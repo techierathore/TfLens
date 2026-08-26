@@ -18,11 +18,12 @@ ALWAYS read and follow:
 3. **Native-head automation binds to the app's own window.** Drive a MAUI head only through a session attached to the app under test (Windows: launched PID → its top-level window handle; Android/iOS/Catalyst: the app's package/bundle id), interact element-by-element via `AutomationId`, and NEVER inject global keyboard/mouse input — it lands in whatever window happens to have focus, not the app (`verify-phase.md §3b`).
 
 ## Project basics
-- Stack: .NET 10 (LTS), Blazor Server (Interactive Server), TrBlazeUI, SQLite via Dapper + Microsoft.Data.Sqlite, Serilog. No TechieRag (no AI features).
+- Stack: .NET 10 (LTS), Blazor Server (Interactive Server), TrBlazeUI, PostgreSQL 16 via Dapper + Npgsql (quoted PascalCase identifiers), Serilog, docker compose. No TechieRag (no AI features).
+- Provenance axes that NEVER pool: live/backfilled · `project_type` · **framework (TechieFlow | Playbook)** · user. Harness columns are `claude-code` / `opencode` / `codex`; `null` is a footnote row.
 - Field-prefix convention: `obj` prefix on instance fields (e.g. `private readonly ILogger<X> objLogger;`) — PER-PROJECT day-1 decision (2026-08-26); recorded in Coding Standards §"Fields, Parameters, Locals", which is authoritative.
 - Test naming: short PascalCase, NO underscores. Full scenario in XML `<summary>` doc.
 - TfLens-specific invariants (BRD-30..36, BRD-89): figures are computed at request time and never written back into a stream table; live and backfilled never pool; first-pass / gate distribution / escape rate never pool across `project_type`; `n < 3` renders `insufficient data (n=…)`; `cost_usd` never pools across harness; there is NO flag, query parameter or toggle that relaxes any of this. `tf-metrics.sh` is the parity oracle and is never edited to match the app.
-- TfLens never writes to any GitHub repository (GET only, contents-read PAT). Secrets come only from PascalCase env vars (`TfLensGitHubToken`, `TfLensAuthUser`, `TfLensAuthPasswordHash`).
+- TfLens never writes to any GitHub repository (GET only; public repos only in this release). Identity is **AppManager** (App Id 1; `docs/AppManager-api-usage-guide.md`) — TfLens holds no users and no passwords; every user is `Manager`; no licence/feature/payment endpoint is ever called. Secrets come only from PascalCase env vars (`TfLensAppManagerApiKey`, `TfLensAppManagerApiSecret`, `TfLensDbConnection`, optional `TfLensGitHubToken`) — never in committed files. `UserId` is a mandatory parameter of every store/engine call (tenant isolation).
 
 ## Requirement ID prefixes used in this repo
 - `REQ-UI-*` — UI work, routed to /trblazeui

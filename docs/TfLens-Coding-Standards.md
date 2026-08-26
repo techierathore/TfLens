@@ -14,7 +14,7 @@
 - FK columns: `{TableName}Id` (e.g., `CustomerId`)
 - PK: `{TableName}Id` (e.g., `UserId`)
 
-> **TfLens note:** stream tables are `Run`, `Gate`, `Session`, `Commit`, `SyncState`, `PbEvent`; columns are the SCHEMA.md field names in PascalCase (`req_id` → `ReqId`, `gates_run` → `GatesRun`, `cost_usd` → `CostUsd`). The JSON→column mapping table in `StreamParser` is the single place the two spellings meet; the export (`tflens.json`) uses the SCHEMA.md spelling so the parity compare works key-for-key.
+> **TfLens note (PostgreSQL, amended 2026-08-26):** stream tables are `Run`, `Gate`, `Session`, `Commit`, `SyncState`, `UserRepo`, `AuthSession`, `PbEvent`. PostgreSQL folds unquoted identifiers to lower case, so **every identifier is double-quoted in DDL and in Dapper SQL** (`SELECT "ReqId" FROM "Gate"`) to keep the PascalCase names above intact; never rely on case-insensitive matching. Columns are the SCHEMA.md field names in PascalCase (`req_id` → `ReqId`, `gates_run` → `GatesRun`, `cost_usd` → `CostUsd`). The JSON→column mapping table in `StreamParser` is the single place the two spellings meet; the export (`tflens.json`) uses the SCHEMA.md spelling so the parity compare works key-for-key.
 
 ### Stored Procedures & Functions
 - PascalCase verb prefix: `GetCustomerOrders`, `InsertOrder`, `CalculateTotal`
@@ -52,7 +52,7 @@ The `a`-prefix applies uniformly to `[FromRoute]`/`[FromQuery]`/`[FromBody]`. Pa
 ### Environment Variables
 **PascalCase, no separators.** `TfLensBaseUrl` NOT `TFLENS_BASE_URL` and NOT `TfLens__BaseUrl`. Use a custom configuration provider mapping PascalCase env vars → `:`-nested config paths. Read via `IConfiguration["Section:Key"]` only — never `Environment.GetEnvironmentVariable(...)`.
 
-> **TfLens secrets (env only, never in files):** `TfLensGitHubToken`, `TfLensAuthUser`, `TfLensAuthPasswordHash`. Optional overrides: `TfLensDataRoot`, `TfLensPollIntervalMinutes`.
+> **TfLens secrets (env only, never in files):** `TfLensAppManagerApiKey`, `TfLensAppManagerApiSecret`, `TfLensDbConnection` (required); `TfLensGitHubToken` (optional). Non-secret settings: `TfLensAppManagerBaseUrl`, `TfLensAppManagerAppId`, `TfLensDataRoot`, `TfLensPollIntervalMinutes`. *(amended 2026-08-26 — local auth credentials removed; identity is AppManager.)*
 
 ### Project & solution naming — the primary head carries the PRODUCT name
 - The product's **primary executable head** project is named exactly `TfLens` — `src/TfLens/TfLens.csproj`. A single-head product's one head IS `TfLens`.
@@ -115,7 +115,7 @@ public class DatabaseService
 - App code logs through injected `ILogger<T>` (structured message templates, e.g. `logger.LogInformation("Imported {Count} rows", n)`), not static `Log.*`, outside the startup boundary.
 - The `logs/` output folder is gitignored (the owner adds it — agents never run git).
 - Brownfield: an app already on a working structured file-logging stack (e.g. NLog-to-file) is compliant — record the stack in this section; new heads added to it still use Serilog.
-- **TfLens privacy rule:** log IDs, counts, SHAs and status codes only — never a stream record body, never the PAT, never a URL containing the token.
+- **TfLens privacy rule:** log IDs, counts, SHAs and status codes only — never a stream record body, never the PAT, never a URL containing a token, never an AppManager access/refresh token or API secret, never a password (encrypted or not).
 
 ### MAUI UI testability — stable AutomationId (MAUI apps only)
 - Every interactive or data-bound control the verifier must reach (buttons, entries, pickers, list/collection views, key labels/values) carries a stable, unique **`AutomationId`** — the native analogue of a stable DOM id for Playwright. Without it Appium selectors drift and the runtime gates (`verify-phase §4a/§4b`) can't reliably find controls on the Android/iOS/Mac Catalyst heads.

@@ -106,26 +106,30 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — UI Design Spec (Mockups)</h1>
-    <div class="subtitle">Visual contract for the build · Last rendered: 2026-08-26</div>
+    <div class="subtitle">Revised 2026-08-26 ×2 after owner review · Last rendered: 2026-08-26</div>
 
-    <blockquote>
-      <p><strong>What this is.</strong> The approved visual design for TfLens, produced at day-1 (greenfield) before any UI is built. Each screen has a <strong>rendered mockup</strong> (<code>docs/mockups/{screen}.html</code>, styled to look like TrBlazeUI) and a <strong>component map</strong> that ties every region to a real <strong>TrBlazeUI control</strong>, so the build (<code>/trblazeui</code>) reproduces it 1:1 and the verifier's visual-truth gate (<code>verify-phase.md §4b</code>) can diff the live screen against it. This is a HUMAN document → rendered to HTML. The owner APPROVES it (alongside the BRD + Architecture) before build.</p>
-    </blockquote>
+    <blockquote><p><strong>What this is.</strong> The approved visual design for TfLens, produced at day-1 (greenfield) before any UI is built and <strong>revised 2026-08-26</strong> after the owner's review (AppManager login + registration, per-user repo management, dark-first collapsible shell with icons and a user menu, click-through flow). Each screen has a <strong>rendered mockup</strong> (<code>docs/mockups/{screen}.html</code>, styled to look like TrBlazeUI) and a <strong>component map</strong> that ties every region to a real <strong>TrBlazeUI control</strong>, so the build (<code>/trblazeui</code>) reproduces it 1:1 and the verifier's visual-truth gate (<code>verify-phase.md §4b</code>) can diff the live screen against it. This is a HUMAN document → rendered to HTML. The owner APPROVES it (alongside the BRD + Architecture) before build.</p></blockquote>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
         <li><a href="#how-to-use">How to use</a></li>
         <li><a href="#design-system-trblazeui">Design system (TrBlazeUI)</a></li>
+        <li><a href="#click-through-flow">Click-through flow</a></li>
         <li><a href="#screens">Screens</a>
           <ul>
             <li><a href="#screen-login-login">Screen: Login (<code>/login</code>)</a></li>
+            <li><a href="#screen-register-register">Screen: Register (<code>/register</code>)</a></li>
+            <li><a href="#screen-forgot-password-forgot-password">Screen: Forgot password (<code>/forgot-password</code>)</a></li>
+            <li><a href="#screen-reset-password-reset-password">Screen: Reset password (<code>/reset-password</code>)</a></li>
+            <li><a href="#screen-repos-repos">Screen: Repos (<code>/repos</code>)</a></li>
+            <li><a href="#screen-profile-profile">Screen: Profile (<code>/profile</code>)</a></li>
             <li><a href="#screen-coverage-health">Screen: Coverage / health (<code>/</code>)</a></li>
             <li><a href="#screen-three-questions-three-questions">Screen: Three questions (<code>/three-questions</code>)</a></li>
             <li><a href="#screen-harness-comparison-harness">Screen: Harness comparison (<code>/harness</code>)</a></li>
             <li><a href="#screen-routing-economics-routing">Screen: Routing &amp; economics (<code>/routing</code>)</a></li>
             <li><a href="#screen-snapshot-export-export">Screen: Snapshot export (<code>/export</code>)</a></li>
-            <li><a href="#screen-playbook-playbook">Screen: Playbook (<code>/playbook</code>)</a></li>
+            <li><a href="#screen-playbook-framework-state-of-the-report-pages">Screen: Playbook framework state of the report pages</a></li>
           </ul>
         </li>
         <li><a href="#library-gaps">Library gaps</a></li>
@@ -134,66 +138,183 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
     <h2 id="how-to-use">How to use<a class="anchor-link" href="#how-to-use">#</a></h2>
     <ul>
-      <li>Every screen below links to its rendered mockup in <code>docs/mockups/</code>. Open those <code>.html</code> files in a browser to see the intended layout.</li>
-      <li>The <strong>Component map</strong> is the build contract: <code>region → TrBlazeUI control</code>. Only controls that actually exist in the TrBlazeUI library are used (the analyst read the component catalog first — <code>TrBlazeUI-AI-Reference.md</code>, TrBlazeUI.Components 1.0.7). If a screen needs something the library lacks, it is flagged in §Library gaps and logged to <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build time.</li>
+      <li>Every screen below links to its rendered mockup in <code>docs/mockups/</code>. Open <code>docs/mockups/login.html</code> first — the set is a <strong>click-through</strong>: every link and nav item goes to the sibling mockup, so the whole app can be walked from login to export.</li>
+      <li>The <strong>Component map</strong> is the build contract: <code>region → TrBlazeUI control</code>. Only controls that actually exist in the TrBlazeUI library are used (catalog: <code>TrBlazeUI-AI-Reference.md</code>, TrBlazeUI.Components 1.0.7, cross-checked against the GitHub repo <code>techierathore/TrBlazeUI</code> at mockup time). If a screen needs something the library lacks, it is flagged in §Library gaps and logged to <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build time.</li>
       <li>To change a screen after approval: run <code>*mockups TfLens --update</code> (or <code>*amend-docs</code> for a requirement change that adds screens).</li>
     </ul>
 
     <h2 id="design-system-trblazeui">Design system (TrBlazeUI)<a class="anchor-link" href="#design-system-trblazeui">#</a></h2>
     <ul>
       <li><strong>Source:</strong> TrBlazeUI component library (<code>TrBlazeUI.Primitives</code> + <code>TrBlazeUI.Components</code> + <code>TrBlazeUI.Icons.Lucide</code>; Tailwind v4 utilities; shadcn/ui design language with OKLCH tokens <code>--background</code>, <code>--foreground</code>, <code>--card</code>, <code>--muted</code>, <code>--muted-foreground</code>, <code>--primary</code>, <code>--border</code>, <code>--destructive</code>, <code>--alert-success/info/warning/danger</code>, <code>--chart-1..5</code>, <code>--radius: 0.625rem</code>, <code>--sidebar*</code>).</li>
-      <li><strong>Layout shell:</strong> <code>SidebarProvider</code> (<code>DefaultOpen=true</code>, <code>HeightClass="h-screen"</code>) → <code>Sidebar</code> (<code>Collapsible=true</code>) with <code>SidebarHeader</code> / <code>SidebarContent</code> / <code>SidebarFooter</code> → <code>SidebarInset</code> holding a hand-rolled <code>&lt;header class="flex h-16 items-center gap-4 border-b bg-background px-4"&gt;</code> (with <code>SidebarTrigger</code>, page title, <strong>Sync now</strong> <code>Button</code>, last-sync <code>Badge</code>, sign-out <code>Button Variant=Ghost</code>) and the page container <code>&lt;div class="flex-1 overflow-auto p-6 md:p-8"&gt;@Body&lt;/div&gt;</code>. Plus <code>&lt;ToastProvider Position="BottomRight" /&gt;</code> and <code>&lt;PortalHost /&gt;</code> in the layout.</li>
-      <li><strong>Navigation:</strong> <code>SidebarGroup</code> → <code>SidebarGroupLabel "Reports"</code> → <code>SidebarMenu</code> → six <code>SidebarMenuItem</code> / <code>SidebarMenuButton Href=… Tooltip=…</code> with <code>LucideIcon</code> (<code>activity</code>, <code>help-circle</code>, <code>git-compare</code>, <code>route</code>, <code>download</code>, <code>book-open</code>). Order is fixed: Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export, Playbook.</li>
-      <li><strong>Theme:</strong> light default (TrBlazeUI <code>:root</code>), dark via <code>class="dark"</code> on <code>&lt;html&gt;</code> (no toggle component — a <code>Switch</code> in the sidebar footer flips the class).</li>
-      <li><strong>KPI pattern:</strong> TrBlazeUI has no stat card; every KPI is the library's documented composition — <code>Card</code> → <code>CardHeader class="flex flex-row items-center justify-between pb-2"</code> (<code>CardTitle class="text-sm font-medium"</code> + <code>LucideIcon</code>) → <code>CardContent</code> (<code>div.text-2xl.font-bold</code> + <code>p.text-xs.text-muted-foreground</code>). Grid <code>grid gap-4 md:grid-cols-2 lg:grid-cols-4</code>.</li>
+      <li><strong>Theme — dark first (BRD-85, ADR-014):</strong> <code>&lt;html class="dark"&gt;</code> on first visit; the header toggle (<code>Switch</code> with sun/moon <code>LucideIcon</code>) flips the class and persists the choice per user. Both palettes are TrBlazeUI's own <code>:root</code> / <code>.dark</code> token sets — nothing custom.</li>
+      <li><strong>Layout shell:</strong> <code>SidebarProvider</code> (<code>DefaultOpen=true</code>, <code>HeightClass="h-screen"</code>, <code>CookieKey="tflens:sidebar"</code>) → <code>Sidebar Collapsible="true"</code> with <code>SidebarHeader</code> (brand mark + "TfLens" + "lens on TechieFlow &amp; Playbook"), <code>SidebarContent</code>, <code>SidebarFooter</code> (theme <code>Switch</code>) and <code>SidebarRail</code> → <code>SidebarInset</code> holding the header <code>&lt;header class="flex h-16 items-center gap-3 border-b bg-background px-4"&gt;</code> with <code>SidebarTrigger</code>, <code>Breadcrumb</code> (section › page), the <strong>Framework switch</strong> — <code>Tabs</code> used as a segmented control (<code>TabsList</code> + two <code>TabsTrigger</code>: "TechieFlow" and "Playbook", each with a <code>Badge</code> repo count; <code>data-testid="framework-switch"</code>; persisted per user; BRD-108) — spacer, <code>Button</code> <strong>Sync now</strong> (<code>LucideIcon refresh-cw</code>), <code>Badge Variant=Outline</code> "synced 12 min ago", theme toggle, and the <strong>user menu</strong> — <code>DropdownMenu</code> whose trigger is <code>Avatar</code> (initials) + display name + <code>LucideIcon chevron-down</code>, with <code>DropdownMenuLabel</code> (email), <code>DropdownMenuItem</code> Profile (<code>user</code>), Manage repos (<code>git-branch</code>), <code>DropdownMenuSeparator</code>, Sign out (<code>log-out</code>). Page container <code>&lt;div class="flex-1 overflow-auto p-6 md:p-8"&gt;@Body&lt;/div&gt;</code>. Plus <code>&lt;ToastProvider Position="BottomRight" /&gt;</code> and <code>&lt;PortalHost /&gt;</code>.</li>
+      <li><strong>Navigation:</strong> <code>SidebarGroup</code> → <code>SidebarGroupLabel "Workspace"</code> → <code>SidebarMenuItem</code>/<code>SidebarMenuButton Href Tooltip IsActive</code> <strong>Repos</strong> (<code>git-branch</code>); <code>SidebarGroupLabel "Reports"</code> → <strong>Coverage / health</strong> (<code>activity</code>), <strong>Three questions</strong> (<code>help-circle</code>), <strong>Harness comparison</strong> (<code>git-compare</code>), <strong>Routing &amp; economics</strong> (<code>route</code>), <strong>Snapshot export</strong> (<code>download</code>). (The separate Playbook item was retired 2026-08-26 — the framework is chosen in the header.) Collapsed state shows icon only with <code>Tooltip</code> (the <code>Tooltip</code> parameter of <code>SidebarMenuButton</code>). <code>SidebarMenuBadge</code> shows the repo count on Repos.</li>
+      <li><strong>KPI pattern:</strong> TrBlazeUI has no stat card; every KPI is the library's documented composition — <code>Card</code> → <code>CardHeader class="flex flex-row items-center justify-between pb-2"</code> (<code>CardTitle class="text-sm font-medium"</code> + <code>LucideIcon</code>) → <code>CardContent</code> (<code>div.text-2xl.font-bold</code> + <code>p.text-xs.text-muted-foreground</code>). Grid <code>grid gap-4 md:grid-cols-2 lg:grid-cols-4</code>. A small trend line uses <code>--chart-1</code> colour.</li>
       <li><strong>Figures:</strong> a <code>Figure</code> renders as a number, or as the literal text <code>insufficient data (n=…)</code> in <code>text-muted-foreground italic</code>, or as <code>—</code>. Estimates always carry a <code>Badge Variant=Outline</code> reading <strong>estimate</strong>. Backfilled columns carry a <code>Badge Variant=Secondary</code> reading <strong>backfilled</strong>.</li>
-      <li><strong>Controls inventory used:</strong> <code>SidebarProvider</code>, <code>Sidebar</code>, <code>SidebarHeader</code>, <code>SidebarContent</code>, <code>SidebarFooter</code>, <code>SidebarGroup</code>, <code>SidebarGroupLabel</code>, <code>SidebarMenu</code>, <code>SidebarMenuItem</code>, <code>SidebarMenuButton</code>, <code>SidebarInset</code>, <code>SidebarTrigger</code>, <code>Card</code> (+ <code>CardHeader</code>, <code>CardTitle</code>, <code>CardDescription</code>, <code>CardContent</code>, <code>CardFooter</code>), <code>DataTable</code> + <code>DataTableColumn</code>, <code>Badge</code>, <code>Alert</code> (+ <code>AlertTitle</code>, <code>AlertDescription</code>), <code>Tabs</code> (+ <code>TabsList</code>, <code>TabsTrigger</code>, <code>TabsContent</code>), <code>Button</code>, <code>Input</code>, <code>Label</code>, <code>Field</code> (+ <code>FieldLabel</code>, <code>FieldContent</code>, <code>FieldError</code>), <code>Dialog</code> (+ <code>DialogTrigger</code>, <code>DialogContent</code>, <code>DialogHeader</code>, <code>DialogTitle</code>, <code>DialogDescription</code>, <code>DialogFooter</code>, <code>DialogClose</code>), <code>AlertDialog</code> (rebuild confirm), <code>Collapsible</code> (+ <code>CollapsibleTrigger</code>, <code>CollapsibleContent</code>), <code>Progress</code>, <code>Tooltip</code>, <code>Skeleton</code>, <code>Spinner</code>, <code>Empty</code> (+ <code>EmptyIcon</code>, <code>EmptyTitle</code>, <code>EmptyDescription</code>, <code>EmptyAction</code>), <code>ToastProvider</code> / <code>ToastService</code>, <code>Switch</code>, <code>Separator</code>, <code>ChartContainer</code> + <code>BarChart</code>, <code>LucideIcon</code>, <code>TypographyH2</code>/<code>TypographyMuted</code>.</li>
+      <li><strong>Auth pages</strong> (no shell): split layout — left brand panel (<code>bg-sidebar</code>, product name, one-line purpose, three bullet benefits with <code>LucideIcon check</code>), right a centred <code>Card</code> (max-w-sm) holding the form. Same on all four auth screens so they read as one flow.</li>
+      <li><strong>Controls inventory used:</strong> <code>StatTile</code>/<code>StatGroup</code> (KPI cards — see §Library gaps), <code>PasswordStrength</code>, <code>CodeBlock</code>, <code>CenteredPanel</code>, <code>SidebarProvider</code>, <code>Sidebar</code>, <code>SidebarHeader</code>, <code>SidebarContent</code>, <code>SidebarFooter</code>, <code>SidebarRail</code>, <code>SidebarGroup</code>, <code>SidebarGroupLabel</code>, <code>SidebarMenu</code>, <code>SidebarMenuItem</code>, <code>SidebarMenuButton</code>, <code>SidebarMenuBadge</code>, <code>SidebarInset</code>, <code>SidebarTrigger</code>, <code>Breadcrumb</code> (+ <code>BreadcrumbList</code>, <code>BreadcrumbItem</code>, <code>BreadcrumbLink</code>, <code>BreadcrumbPage</code>, <code>BreadcrumbSeparator</code>), <code>DropdownMenu</code> (+ <code>DropdownMenuTrigger</code>, <code>DropdownMenuContent</code>, <code>DropdownMenuLabel</code>, <code>DropdownMenuItem</code>, <code>DropdownMenuSeparator</code>), <code>Avatar</code> (+ <code>AvatarFallback</code>), <code>Card</code> (+ <code>CardHeader</code>, <code>CardTitle</code>, <code>CardDescription</code>, <code>CardContent</code>, <code>CardFooter</code>, <code>CardAction</code>), <code>DataTable</code> + <code>DataTableColumn</code>, <code>Badge</code>, <code>Alert</code> (+ <code>AlertTitle</code>, <code>AlertDescription</code>), <code>Tabs</code> (+ <code>TabsList</code>, <code>TabsTrigger</code>, <code>TabsContent</code>), <code>Button</code>, <code>Input</code>, <code>Label</code>, <code>Field</code> (+ <code>FieldLabel</code>, <code>FieldContent</code>, <code>FieldDescription</code>, <code>FieldError</code>), <code>Select</code> (+ <code>SelectTrigger</code>, <code>SelectValue</code>, <code>SelectContent</code>, <code>SelectItem</code>), <code>Dialog</code> (+ <code>DialogTrigger</code>, <code>DialogContent</code>, <code>DialogHeader</code>, <code>DialogTitle</code>, <code>DialogDescription</code>, <code>DialogFooter</code>, <code>DialogClose</code>), <code>AlertDialog</code> (+ <code>AlertDialogTrigger</code>, <code>AlertDialogContent</code>, <code>AlertDialogHeader</code>, <code>AlertDialogTitle</code>, <code>AlertDialogDescription</code>, <code>AlertDialogFooter</code>, <code>AlertDialogCancel</code>, <code>AlertDialogAction</code>), <code>Collapsible</code> (+ <code>CollapsibleTrigger</code>, <code>CollapsibleContent</code>), <code>Progress</code>, <code>Tooltip</code> (+ <code>TooltipTrigger</code>, <code>TooltipContent</code>), <code>Skeleton</code>, <code>Spinner</code>, <code>Empty</code> (+ <code>EmptyIcon</code>, <code>EmptyTitle</code>, <code>EmptyDescription</code>, <code>EmptyAction</code>), <code>ToastProvider</code> / <code>ToastService</code>, <code>Switch</code>, <code>Separator</code>, <code>ChartContainer</code> + <code>BarChart</code>, <code>LucideIcon</code>, <code>TypographyH2</code>/<code>TypographyMuted</code>.</li>
     </ul>
+
+    <h2 id="click-through-flow">Click-through flow<a class="anchor-link" href="#click-through-flow">#</a></h2>
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart LR
+  L["login.html"] -->|"Create account"| R["register.html"]
+  L -->|"Forgot password?"| F["forgot-password.html"]
+  F -->|"email link"| P["reset-password.html"]
+  R -->|"registered"| RP["repos.html"]
+  L -->|"signed in, no repos"| RP
+  L -->|"signed in, has repos"| C["coverage.html"]
+  RP --> C
+  C --> Q["three-questions.html"]
+  Q --> H["harness.html"]
+  H --> RT["routing.html"]
+  RT --> E["export.html"]
+  C -. "Framework switch" .-> PB["playbook.html (Coverage, Playbook state)"]
+  Q -. "Framework switch" .-> PB2["three-questions-playbook.html"]
+  H -. "Framework switch" .-> PB3["harness-playbook.html"]
+  RT -. "Framework switch" .-> PB4["routing-playbook.html"]
+  E -. "Framework switch" .-> PB5["export-playbook.html"]
+  C -. "user menu: Profile" .-> PR["profile.html"]
+  PR -. "user menu: Sign out" .-> L
+</pre>
+    </div>
+    <p>Every sidebar item and every user-menu item in every shell mockup links to the corresponding file, so the set is navigable in any order.</p>
 
     <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
 
     <h3 id="screen-login-login">Screen: Login (<code>/login</code>)<a class="anchor-link" href="#screen-login-login">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/login.html">docs/mockups/login.html</a> · <strong>Role(s):</strong> anonymous → Owner · <strong>BRD:</strong> BRD-1, BRD-2, BRD-3 · <strong>REQ:</strong> (assigned by split-brd)</p>
-    <p><strong>Layout (one line):</strong> centred single <code>Card</code> (max-width 24rem) on the plain background; no sidebar; product name + one-line purpose above the form.</p>
+    <p><strong>Mockup:</strong> <a href="./mockups/login.html">docs/mockups/login.html</a> · <strong>Role(s):</strong> anonymous → User · <strong>BRD:</strong> BRD-1, BRD-2, BRD-90, BRD-94 (deferred) · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> split page — left brand panel, right centred <code>Card</code> with email + password, Sign in, links to Register and Forgot password; no GitHub button in this release (position reserved, noted in a muted line).</p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Page background</td><td>plain <code>div.min-h-screen.flex.items-center.justify-center.bg-muted</code></td><td>—</td><td>—</td></tr>
-        <tr><td>Card</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> "TfLens", <code>CardDescription</code> "A read-only lens over TechieFlow telemetry")</td><td>—</td><td>—</td></tr>
-        <tr><td>Username</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Text</code> <code>data-testid="login-user"</code></td><td>binds <code>Username</code></td><td>required; <code>IsInvalid</code> on error</td></tr>
-        <tr><td>Password</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Password</code> <code>data-testid="login-pass"</code></td><td>binds <code>Password</code></td><td>required</td></tr>
-        <tr><td>Error</td><td><code>Alert Variant=Danger</code> (only when a failed attempt)</td><td>"Sign-in failed." (generic)</td><td>hidden by default</td></tr>
-        <tr><td>Submit</td><td><code>Button Type=Submit</code> full width <code>data-testid="login-submit"</code></td><td>"Sign in"</td><td><code>Disabled</code> + <code>Spinner Size=Small</code> while verifying</td></tr>
-        <tr><td>Footer</td><td><code>TypographyMuted</code></td><td>"Single-user dashboard · read-only"</td><td>—</td></tr>
+        <tr><td>Brand panel</td><td><code>div.bg-sidebar</code> + <code>TypographyH2</code> "TfLens" + <code>TypographyMuted</code> + 4× <code>LucideIcon check</code> bullets</td><td>tagline <strong>"A read-only lens over TechieFlow and AI-First-Playbook telemetry"</strong> · bullets: "Both frameworks, one dashboard" · "Connect any public repo" · "Numbers you can quote" · "Free &amp; open source"</td><td>—</td></tr>
+        <tr><td>Card</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> "Sign in", <code>CardDescription</code> "with your AppManager account")</td><td>—</td><td>—</td></tr>
+        <tr><td>Email</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Email</code> <code>data-testid="login-email"</code></td><td>binds <code>Email</code></td><td>required; <code>IsInvalid</code> on error</td></tr>
+        <tr><td>Password</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Password</code> <code>data-testid="login-pass"</code> + <code>Button Variant=Ghost Size=IconSmall</code> eye toggle</td><td>binds <code>Password</code></td><td>required</td></tr>
+        <tr><td>Error</td><td><code>Alert Variant=Danger</code> (only after a failed attempt)</td><td>"Sign-in failed. Check your email and password."</td><td>hidden by default</td></tr>
+        <tr><td>Submit</td><td><code>Button Type=Submit</code> full width <code>data-testid="login-submit"</code></td><td>"Sign in"</td><td><code>Disabled</code> + <code>Spinner Size=Small</code> while calling AppManager</td></tr>
+        <tr><td>Links</td><td><code>Button Variant=Link</code> ×2</td><td>"Forgot password?" → <code>/forgot-password</code> · "Create an account" → <code>/register</code></td><td>—</td></tr>
+        <tr><td>SSO note</td><td><code>TypographyMuted</code></td><td>"GitHub sign-in: coming in a later release"</td><td>—</td></tr>
+        <tr><td>Footer</td><td><code>TypographyMuted</code></td><td>"Identity by AppManager · public repos only in this release"</td><td>—</td></tr>
       </tbody>
     </table>
-    <p><strong>Notes / interactions:</strong> Enter submits; return URL preserved; no links to register/reset.</p>
-    <p><strong>Empty / loading / error:</strong> loading = button spinner; error = generic <code>Alert</code>, fields keep values; never reveals which field was wrong.</p>
+    <p><strong>Notes / interactions:</strong> Enter submits; return URL preserved; on success redirect to return URL, else <code>/repos</code> when the user has no repos, else <code>/</code>.</p>
+    <p><strong>Empty / loading / error:</strong> loading = button spinner; error = generic <code>Alert</code>, fields keep values; <code>ACCOUNT_LOCKED</code> shows "Account locked — try again later" (the only specific message, per AppManager 423).</p>
 
-    <h3 id="screen-coverage-health">Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/coverage.html">docs/mockups/coverage.html</a> · <strong>Role(s):</strong> Owner · <strong>BRD:</strong> BRD-39..BRD-44, BRD-21, BRD-6 · <strong>REQ:</strong> (assigned by split-brd)</p>
-    <p><strong>Layout (one line):</strong> shell; summary strip (status badge + 4 KPI cards); one <code>Card</code> per repo in a 2-column grid, each with a stream staleness table and warnings; unknown-fields <code>Collapsible</code>; Rebuild-from-raw card at the bottom.</p>
+    <h3 id="screen-register-register">Screen: Register (<code>/register</code>)<a class="anchor-link" href="#screen-register-register">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/register.html">docs/mockups/register.html</a> · <strong>Role(s):</strong> anonymous → User · <strong>BRD:</strong> BRD-91, BRD-95 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> same split page; <code>Card</code> with first name, last name, email, password, confirm password, Create account; link back to Sign in.</p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Header (shell)</td><td><code>SidebarTrigger</code>, <code>TypographyH2</code> "Coverage / health", <code>Button</code> <strong>Sync now</strong> <code>data-testid="sync-now"</code>, <code>Badge Variant=Outline</code> "last sync 12 min ago", <code>Button Variant=Ghost</code> "Sign out"</td><td>—</td><td>Sync button shows <code>Spinner</code> while running; toast per repo outcome</td></tr>
+        <tr><td>Names</td><td>2× <code>Field</code> → <code>Input Type=Text</code> <code>data-testid="reg-first"</code> / <code>"reg-last"</code> in a 2-col grid</td><td>binds FirstName / LastName</td><td>required</td></tr>
+        <tr><td>Email</td><td><code>Field</code> → <code>Input Type=Email</code> <code>data-testid="reg-email"</code></td><td>binds Email</td><td>required; <code>FieldError</code> "already registered" on AppManager duplicate</td></tr>
+        <tr><td>Password</td><td><code>Field</code> → <code>Input Type=Password</code> <code>data-testid="reg-pass"</code> + <code>FieldDescription</code> "8+ chars, an uppercase letter, a number, a special character" + <code>Progress</code> strength bar</td><td>binds Password</td><td><code>FieldError</code> per rule violated (local check before the API)</td></tr>
+        <tr><td>Confirm</td><td><code>Field</code> → <code>Input Type=Password</code> <code>data-testid="reg-confirm"</code></td><td>binds Confirm</td><td><code>FieldError</code> "passwords differ"</td></tr>
+        <tr><td>Role note</td><td><code>Alert Variant=Info AccentBorder</code></td><td>"Every TfLens account is a Manager — no licence, no subscription."</td><td>always</td></tr>
+        <tr><td>Submit</td><td><code>Button Type=Submit</code> full width <code>data-testid="reg-submit"</code></td><td>"Create account"</td><td>spinner while calling</td></tr>
+        <tr><td>Link</td><td><code>Button Variant=Link</code></td><td>"Already have an account? Sign in"</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> on success the user is signed in and lands on <code>/repos</code> (empty state).</p>
+    <p><strong>Empty / loading / error:</strong> server errors (<code>VALIDATION_ERROR</code>, <code>DECRYPTION_FAILED</code>) show a generic danger <code>Alert</code>; field-level rules are shown inline before submit.</p>
+
+    <h3 id="screen-forgot-password-forgot-password">Screen: Forgot password (<code>/forgot-password</code>)<a class="anchor-link" href="#screen-forgot-password-forgot-password">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/forgot-password.html">docs/mockups/forgot-password.html</a> · <strong>Role(s):</strong> anonymous · <strong>BRD:</strong> BRD-92 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> split page; <code>Card</code> with one email field and Send reset link; success state replaces the form.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Email</td><td><code>Field</code> → <code>Input Type=Email</code> <code>data-testid="forgot-email"</code></td><td>binds Email</td><td>required</td></tr>
+        <tr><td>Submit</td><td><code>Button Type=Submit</code> full width <code>data-testid="forgot-submit"</code></td><td>"Send reset link"</td><td>spinner</td></tr>
+        <tr><td>Success</td><td><code>Alert Variant=Success</code> replacing the form</td><td>"If that address exists, a reset link is on its way." (enumeration-safe)</td><td>after submit, always</td></tr>
+        <tr><td>Link</td><td><code>Button Variant=Link</code></td><td>"Back to sign in"</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Empty / loading / error:</strong> never reveals whether the email exists.</p>
+
+    <h3 id="screen-reset-password-reset-password">Screen: Reset password (<code>/reset-password</code>)<a class="anchor-link" href="#screen-reset-password-reset-password">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/reset-password.html">docs/mockups/reset-password.html</a> · <strong>Role(s):</strong> anonymous · <strong>BRD:</strong> BRD-92 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> split page; <code>Card</code> with new password + confirm + Reset; token comes from the query string.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>New password</td><td><code>Field</code> → <code>Input Type=Password</code> <code>data-testid="reset-pass"</code> + strength <code>Progress</code></td><td>binds Password</td><td>rule errors inline</td></tr>
+        <tr><td>Confirm</td><td><code>Field</code> → <code>Input Type=Password</code> <code>data-testid="reset-confirm"</code></td><td>binds Confirm</td><td>mismatch error</td></tr>
+        <tr><td>Submit</td><td><code>Button Type=Submit</code> <code>data-testid="reset-submit"</code></td><td>"Reset password"</td><td>spinner</td></tr>
+        <tr><td>Invalid token</td><td><code>Alert Variant=Danger</code> replacing the form</td><td>"This reset link is invalid or has expired." (<code>INVALID_RESET_TOKEN</code> / <code>APP_ID_MISMATCH</code>)</td><td>when AppManager rejects</td></tr>
+        <tr><td>Success</td><td><code>Alert Variant=Success</code> + <code>Button</code> "Sign in"</td><td>"Password updated."</td><td>after success</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="screen-repos-repos">Screen: Repos (<code>/repos</code>)<a class="anchor-link" href="#screen-repos-repos">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/repos.html">docs/mockups/repos.html</a> · <strong>Role(s):</strong> User · <strong>BRD:</strong> BRD-98..BRD-104 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; page header row (title + "Connect repo" primary button); 3 KPI cards (repos, records, last sync); <code>DataTable</code> of the user's repos with row actions; Connect dialog and Remove alert dialog; empty state for a new user.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Header row</td><td><code>TypographyH2</code> "Repos" + <code>TypographyMuted</code> "Public GitHub repos you've connected" + <code>Button</code> <strong>Connect repo</strong> (<code>LucideIcon plus</code>) <code>data-testid="connect-repo"</code></td><td>—</td><td>—</td></tr>
+        <tr><td>KPI row</td><td>3× <code>Card</code> (KPI): Connected repos · Records synced · Last successful sync</td><td>counts</td><td>zero-state</td></tr>
+        <tr><td>Repos grid</td><td><code>DataTable TData=UserRepoRow ShowToolbar=true ShowPagination=true InitialPageSize=10</code> <code>data-testid="repos-table"</code>; columns: Repo (owner/name + <code>LucideIcon github</code> link) · Branch · Kind (<code>Badge</code> techieflow / playbook) · Visibility (<code>Badge Variant=Outline</code> public) · Status (<code>Badge</code> synced / syncing / error) · Last sync · Records · Actions</td><td>user's repos</td><td>row error → <code>Tooltip</code> with LastError</td></tr>
+        <tr><td>Row actions</td><td><code>Button Variant=Ghost Size=IconSmall</code> Sync (<code>refresh-cw</code>) <code>data-testid="repo-sync-{name}"</code> · <code>Button Variant=Ghost Size=IconSmall</code> Remove (<code>trash-2</code>) <code>data-testid="repo-remove-{name}"</code></td><td>—</td><td>Sync shows <code>Spinner</code></td></tr>
+        <tr><td>Connect dialog</td><td><code>Dialog</code> → <code>DialogContent</code> (<code>DialogTitle</code> "Connect a public GitHub repo") → <code>Field</code> <code>Input</code> "GitHub URL or owner/name" <code>data-testid="connect-input"</code> · <code>Field</code> <code>Input</code> "Branch (optional)" · <code>Field</code> <code>Select</code> Kind (Auto-detect / techieflow / playbook) · <code>Button Variant=Outline</code> <strong>Validate</strong> <code>data-testid="connect-validate"</code> · validation result list (3× line with <code>LucideIcon check</code>/<code>x</code>: "Repository exists" · "Public" · "Telemetry path found: docs/metrics (techieflow)") · <code>DialogFooter</code> <code>DialogClose</code> Cancel + <code>Button</code> <strong>Connect</strong> <code>data-testid="connect-submit"</code> (enabled only after a green validation)</td><td>—</td><td>private → <code>Alert Variant=Warning</code> "Private repos aren't supported in this release"; no path → <code>Alert Variant=Danger</code></td></tr>
+        <tr><td>Remove dialog</td><td><code>AlertDialog</code> (<code>AlertDialogTitle</code> "Remove owner/name?", <code>AlertDialogDescription</code> "Stops syncing and deletes the parsed rows and raw archive for this repo. Your GitHub repo is untouched.") <code>AlertDialogAction Variant=Destructive</code> "Remove"</td><td>—</td><td>—</td></tr>
+        <tr><td>Empty</td><td><code>Empty</code> (<code>EmptyIcon git-branch</code>, <code>EmptyTitle</code> "No repos connected yet", <code>EmptyDescription</code> "Connect a public GitHub repo that carries TechieFlow or Playbook telemetry.", <code>EmptyAction</code> → Connect repo) <code>data-testid="repos-empty"</code></td><td>—</td><td>new user</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> Connect runs the first sync immediately and toasts the outcome; the sidebar Repos badge updates; a second dialog state "Connecting…" shows a <code>Progress</code>.</p>
+    <p><strong>Empty / loading / error:</strong> covered above; GitHub rate-limit → <code>Alert Variant=Warning</code> "GitHub rate limit reached — try again in N minutes".</p>
+
+    <h3 id="screen-profile-profile">Screen: Profile (<code>/profile</code>)<a class="anchor-link" href="#screen-profile-profile">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/profile.html">docs/mockups/profile.html</a> · <strong>Role(s):</strong> User · <strong>BRD:</strong> BRD-107, BRD-95 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; two cards side by side — read-only AppManager profile, and change-password form.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Profile card</td><td><code>Card</code> → <code>Avatar</code> (initials) + name · <code>DataTable ShowToolbar=false ShowPagination=false</code> key/value: Email · Name · Role (<code>Badge</code> Manager) · Member since · Identity provider (AppManager)</td><td><code>GET /UserSvc/profile</code></td><td><code>Skeleton</code> while loading</td></tr>
+        <tr><td>Change password</td><td><code>Card</code> → 3× <code>Field</code> <code>Input Type=Password</code> (current, new, confirm) <code>data-testid="pw-current"</code>/<code>"pw-new"</code>/<code>"pw-confirm"</code> + <code>Button</code> "Update password" <code>data-testid="pw-submit"</code></td><td><code>POST /UserSvc/change-password</code></td><td><code>FieldError</code> <code>INVALID_CURRENT_PASSWORD</code> / rules; toast on success</td></tr>
+        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"TfLens stores no passwords — your account lives in AppManager."</td><td>always</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="screen-coverage-health">Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/coverage.html">docs/mockups/coverage.html</a> · <strong>Role(s):</strong> User, Owner · <strong>BRD:</strong> BRD-39..BRD-44, BRD-21, BRD-6 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; summary strip (status alert + 4 KPI cards); one <code>Card</code> per connected repo in a 2-column grid, each with a stream staleness table and warnings; unknown-fields <code>Collapsible</code>; Rebuild-from-raw card at the bottom.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
         <tr><td>Status strip</td><td><code>Alert Variant=Success</code> "GREEN — 5 repos synced, nothing stale" <strong>or</strong> <code>Alert Variant=Warning</code> "CHECK — 2 warnings" <code>data-testid="coverage-status"</code></td><td>summary</td><td>—</td></tr>
-        <tr><td>KPI row</td><td>4× <code>Card</code> (KPI pattern): Repos synced · Gate records (live / backfilled) · Newest record age · Sync errors</td><td>counts</td><td>zero-state "0"</td></tr>
-        <tr><td>Repo card ×N</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> owner/name, <code>Badge</code> kind, <code>Badge</code> short SHA linked) → <code>CardContent</code></td><td>last sync, outcome, per-stream table</td><td>error state: <code>Alert Variant=Danger</code> with LastError text</td></tr>
-        <tr><td>Per-stream table</td><td><code>DataTable TData=StreamRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="repo-streams-{name}"</code>; columns Stream · Records · Backfilled · Newest · Days since</td><td>4 rows (runs, gates, sessions, commits)</td><td>stale row → <code>Badge Variant=Destructive</code> "stale"</td></tr>
+        <tr><td>KPI row</td><td>4× <code>Card</code> (KPI): Repos synced · Gate records (live / backfilled) · Newest record age · Sync errors</td><td>counts</td><td>zero-state "0"</td></tr>
+        <tr><td>Repo card ×N</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> owner/name, <code>Badge</code> kind, <code>Badge Variant=Outline</code> short SHA linked) → <code>CardContent</code></td><td>last sync, outcome, per-stream table</td><td>error state: <code>Alert Variant=Danger</code> with LastError text</td></tr>
+        <tr><td>Per-stream table</td><td><code>DataTable TData=StreamRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="repo-streams-{name}"</code>; columns Stream · Records · Backfilled · Newest · Days since</td><td>4 rows (runs, gates, sessions, commits); a playbook repo shows one <code>events</code> row</td><td>stale row → <code>Badge Variant=Destructive</code> "stale"</td></tr>
         <tr><td>Staleness warning</td><td><code>Alert Variant=Warning AccentBorder</code></td><td>"sessions/commits stale ≥ 7 days — this clone isn't pushing or lacks hooks; run update-framework.sh on it"</td><td>only when stale</td></tr>
-        <tr><td>Unknown fields</td><td><code>Collapsible</code> → <code>CollapsibleTrigger</code> "Fields observed that SCHEMA.md doesn't document (n)" → <code>CollapsibleContent</code> list of <code>Badge Variant=Outline</code> per field, grouped by repo/stream; <code>Alert Variant=Info</code> if any <code>v &gt; 1</code></td><td>field names only</td><td>empty: "none"</td></tr>
+        <tr><td>Unknown fields</td><td><code>Collapsible</code> → <code>CollapsibleTrigger</code> "Fields observed that SCHEMA.md doesn't document (n)" → list of <code>Badge Variant=Outline</code> per field grouped by repo/stream; <code>Alert Variant=Info</code> if any <code>v &gt; 1</code></td><td>field names only</td><td>empty: "none"</td></tr>
         <tr><td>Rebuild</td><td><code>Card</code> → <code>CardTitle</code> "Rebuild from raw" → <code>AlertDialog</code> (<code>AlertDialogTrigger</code> <code>Button Variant=Destructive</code> "Rebuild…" <code>data-testid="rebuild"</code>, <code>AlertDialogAction</code> "Drop and reparse")</td><td>last rebuild report</td><td><code>Progress</code> while replaying</td></tr>
       </tbody>
     </table>
-    <p><strong>Notes / interactions:</strong> Sync now and Rebuild refresh the page in place; SHA badge opens the GitHub commit in a new tab; cards stack to one column under <code>md</code>.</p>
-    <p><strong>Empty / loading / error:</strong> first run before any sync → <code>Empty</code> (<code>EmptyTitle</code> "No sync yet", <code>EmptyAction</code> Sync now); loading → <code>Skeleton</code> cards; per-repo error → danger alert inside that card, others unaffected.</p>
+    <p><strong>Notes / interactions:</strong> Sync now and Rebuild refresh in place; SHA badge opens the GitHub commit; cards stack to one column under <code>md</code>; a user with no repos is redirected to <code>/repos</code>.</p>
+    <p><strong>Empty / loading / error:</strong> first run before any sync → <code>Empty</code> ("No sync yet", action Sync now); loading → <code>Skeleton</code> cards; per-repo error → danger alert inside that card, others unaffected.</p>
 
     <h3 id="screen-three-questions-three-questions">Screen: Three questions (<code>/three-questions</code>)<a class="anchor-link" href="#screen-three-questions-three-questions">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/three-questions.html">docs/mockups/three-questions.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-45..BRD-50 · <strong>REQ:</strong> (assigned by split-brd)</p>
-    <p><strong>Layout (one line):</strong> shell; standing SCHEMA §6 note; <code>Tabs</code> — one tab per project_type present (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, <code>unclassified</code>) with <strong>no "all" tab</strong>; inside each tab: 3 KPI cards (live) with the backfilled value beneath as a labelled secondary line, the gate distribution table with live and backfilled columns, late-gate coverage lines, and the taint list collapsible.</p>
+    <p><strong>Mockup:</strong> <a href="./mockups/three-questions.html">docs/mockups/three-questions.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-45..BRD-50 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; standing SCHEMA §6 note; <code>Tabs</code> — one tab per project_type present (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, <code>unclassified</code>) with <strong>no "all" tab</strong>; inside each tab: 3 KPI cards (live) with the backfilled value beneath as a labelled secondary line, the gate distribution table with live and backfilled columns and a horizontal bar per row, late-gate coverage lines, and the taint list collapsible.</p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
@@ -202,93 +323,97 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <tr><td>Type tabs</td><td><code>Tabs DefaultValue="app"</code> → <code>TabsList</code> → <code>TabsTrigger</code> per type (label + <code>Badge</code> record count) <code>data-testid="type-tab-{type}"</code></td><td>—</td><td>only types with records appear; <code>unclassified</code> labelled "unclassified (project_type inferred)"</td></tr>
         <tr><td>Question cards</td><td>3× <code>Card</code> (KPI): First-pass rate · Escape rate · Failures scored — big live value; secondary line <code>Badge Variant=Secondary</code> "backfilled" + value</td><td><code>Figure</code></td><td><code>insufficient data (n=…)</code> italic muted text when n &lt; 3</td></tr>
         <tr><td>Segment facts</td><td><code>TypographyMuted</code> line</td><td>"live: 41 records, 17 REQs scored, 3 excluded by backfill taint"</td><td>—</td></tr>
-        <tr><td>Gate distribution</td><td><code>DataTable TData=GateRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="gate-dist-{type}"</code>; columns Gate · Live count · Live share · Backfilled count · Backfilled share; rows in order build, acceptance, render, visual, perf, standards, <strong>escaped</strong>, unattributed</td><td>counts + <code>%</code></td><td><code>escaped</code> row has <code>Badge Variant=Destructive</code> "no gate caught it"; <code>perf</code> row has <code>Badge Variant=Outline</code> "see coverage"</td></tr>
+        <tr><td>Gate distribution</td><td><code>DataTable TData=GateRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="gate-dist-{type}"</code>; columns Gate · Live count · Live share (with <code>Progress</code> bar) · Backfilled count · Backfilled share; rows in order build, acceptance, render, visual, perf, standards, <strong>escaped</strong>, unattributed</td><td>counts + <code>%</code></td><td><code>escaped</code> row has <code>Badge Variant=Destructive</code> "no gate caught it"; <code>perf</code> row has <code>Badge Variant=Outline</code> "see coverage"</td></tr>
         <tr><td>Late-gate coverage</td><td><code>Card</code> → <code>CardContent</code> one line per late gate</td><td>"perf gate: ran on 6 records, caught 1 → insufficient data (n=6)" / "not yet run on this data (gate added 2026-08-10)"</td><td>—</td></tr>
-        <tr><td>Taint list</td><td><code>Collapsible</code> → trigger "3 REQs excluded from the live first-pass rate" → <code>CollapsibleContent</code> <code>Badge Variant=Outline</code> per REQ ID <code>data-testid="taint-list"</code></td><td>REQ IDs</td><td>empty: "none"</td></tr>
+        <tr><td>Taint list</td><td><code>Collapsible</code> → trigger "3 REQs excluded from the live first-pass rate" → <code>Badge Variant=Outline</code> per REQ ID <code>data-testid="taint-list"</code></td><td>REQ IDs</td><td>empty: "none"</td></tr>
       </tbody>
     </table>
     <p><strong>Notes / interactions:</strong> tab choice persisted per session; every figure has a <code>Tooltip</code> with its formula (SCHEMA.md §8 wording).</p>
-    <p><strong>Empty / loading / error:</strong> no gate records → <code>Empty</code> "No gate records yet — run *verify on a managed repo"; loading → <code>Skeleton</code>.</p>
+    <p><strong>Empty / loading / error:</strong> no gate records → <code>Empty</code> "No gate records yet — run *verify on a connected repo"; loading → <code>Skeleton</code>.</p>
 
     <h3 id="screen-harness-comparison-harness">Screen: Harness comparison (<code>/harness</code>)<a class="anchor-link" href="#screen-harness-comparison-harness">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/harness.html">docs/mockups/harness.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-51..BRD-55 · <strong>REQ:</strong> (assigned by split-brd)</p>
-    <p><strong>Layout (one line):</strong> shell; explanatory note; one <code>Card</code> column per harness side by side (claude-code · opencode · not detected), each with the same rows; below, a tokens-by-harness bar chart and the OpenCode-only dollars card.</p>
+    <p><strong>Mockup:</strong> <a href="./mockups/harness.html">docs/mockups/harness.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-51..BRD-55 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; explanatory note; one <code>Card</code> column per detected harness side by side (<strong>claude-code · opencode · codex</strong>), each with the same rows; a footnote row for <code>harness: null</code>; below, a tokens-by-harness bar chart and the OpenCode-only dollars card. <em>(amended 2026-08-26: Codex CLI column; null is a footnote, never a column — BRD-51, BRD-55, ADR-017)</em></p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Tokens may be compared across harness; dollars may not. Claude Code cost is null by design."</td><td>always</td></tr>
-        <tr><td>Harness columns</td><td><code>div.grid.gap-4.md:grid-cols-3</code> → <code>Card</code> per harness (<code>CardTitle</code> harness name + <code>Badge</code> "not detected" for null) <code>data-testid="harness-col-{name}"</code></td><td>—</td><td>a harness with 0 records still renders with <code>—</code></td></tr>
+        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Tokens may be compared across harness; dollars may not. Claude Code and Codex cost is null by design."</td><td>always</td></tr>
+        <tr><td>Harness columns</td><td><code>div.grid.gap-4.md:grid-cols-3</code> → <code>Card</code> per harness (<code>CardTitle</code> harness name + <code>LucideIcon</code>) <code>data-testid="harness-col-{claude-code|opencode|codex}"</code></td><td>—</td><td>a harness with 0 records still renders with <code>—</code></td></tr>
+        <tr><td>Not-detected footnote</td><td><code>TypographyMuted</code> row under the columns <code>data-testid="harness-null-footnote"</code></td><td>"<em>n</em> records with harness not detected — excluded from the columns above"</td><td>hidden when n = 0</td></tr>
         <tr><td>Column rows</td><td><code>DataTable TData=KeyValueRow ShowToolbar=false ShowPagination=false</code> inside each card: Runs · Runs by cmd (top 3) · Gate records · Verdict mix · Sessions · Tokens in / out / cache read / cache write · Tokens per Verified REQ</td><td>values</td><td><code>insufficient data (n=…)</code> text</td></tr>
-        <tr><td>Tokens chart</td><td><code>ChartContainer Class="h-[280px]"</code> → <code>BarChart TItem=HarnessTokens XValue=harness YValue=tokens</code></td><td>total tokens per harness</td><td>empty: <code>Empty</code> "no token data"</td></tr>
-        <tr><td>Dollars</td><td><code>Card</code> (<code>CardTitle</code> "Measured dollars (OpenCode only)", <code>Badge Variant=Secondary</code> "the only measured dollars in the system") → <code>CardContent</code> big <code>$</code> value + <code>TypographyMuted</code> "Claude Code: not measured (null by design)" <code>data-testid="opencode-cost"</code></td><td>Σ <code>cost_usd</code> for <code>opencode</code></td><td>no OpenCode records → "no OpenCode records yet"</td></tr>
+        <tr><td>Tokens chart</td><td><code>ChartContainer Class="h-[280px]"</code> → <code>BarChart TItem=HarnessTokens XValue=harness YValue=tokens</code> (<code>--chart-1..3</code>)</td><td>total tokens per harness</td><td>empty: <code>Empty</code> "no token data"</td></tr>
+        <tr><td>Dollars</td><td><code>Card</code> (<code>CardTitle</code> "Measured dollars (OpenCode only)", <code>Badge Variant=Secondary</code> "the only measured dollars in the system") → big <code>$</code> value + <code>TypographyMuted</code> "Claude Code and Codex: not measured (null by design)" <code>data-testid="opencode-cost"</code></td><td>Σ <code>cost_usd</code> for <code>opencode</code></td><td>no OpenCode records → "no OpenCode records yet"</td></tr>
       </tbody>
     </table>
     <p><strong>Notes / interactions:</strong> no total dollar row anywhere; columns wrap to one per row under <code>md</code>.</p>
-    <p><strong>Empty / loading / error:</strong> no runs/sessions → <code>Empty</code>; loading → <code>Skeleton</code> columns.</p>
 
     <h3 id="screen-routing-economics-routing">Screen: Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#screen-routing-economics-routing">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/routing.html">docs/mockups/routing.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-56..BRD-62 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Mockup:</strong> <a href="./mockups/routing.html">docs/mockups/routing.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-56..BRD-62 · <strong>REQ:</strong> (assigned by split-brd)</p>
     <p><strong>Layout (one line):</strong> shell; <code>Tabs</code> Routing drift · Tokens by model · Repricing (estimate) · Poolable metrics; the Repricing tab has two big cards (actual mix vs all-at-max) with the estimate badge and an "Edit prices" dialog button.</p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Tabs</td><td><code>Tabs DefaultValue="drift"</code> → <code>TabsTrigger</code> drift / models / repricing / poolable</td><td>—</td><td>—</td></tr>
+        <tr><td>Tabs</td><td><code>Tabs DefaultValue="drift"</code> → <code>TabsTrigger</code> drift / models / repricing / poolable <code>data-testid="routing-tab-{key}"</code></td><td>—</td><td>—</td></tr>
         <tr><td>Drift summary</td><td>3× <code>Card</code> (KPI): Runs with routing fields · <code>routed:false</code> runs · Distinct observed models</td><td>counts</td><td>—</td></tr>
         <tr><td>Drift table</td><td><code>DataTable TData=DriftRow</code> <code>data-testid="drift-table"</code>; columns cmd · tier · tier_model · observed model · models · routed · ts</td><td>rows for <code>routed:false</code> first</td><td><code>routed:false</code> → <code>Badge Variant=Destructive</code> "drift"; empty → <code>Empty</code> "no routing fields captured yet"</td></tr>
         <tr><td>Tokens by model</td><td><code>DataTable TData=ModelTokens</code> (model · in · out · cache read · cache write · total) + <code>ChartContainer</code> → <code>BarChart</code> totals</td><td>Σ per model</td><td>—</td></tr>
-        <tr><td>Repricing cards</td><td>2× <code>Card</code>: "Actual mix" and "All runs at most expensive model (<code>claude-opus-…</code>)"; each <code>Badge Variant=Outline</code> <strong>estimate — tokens × rate card, not measured spend</strong>; big <code>$</code> value; <code>TypographyMuted</code> "n runs excluded (tokens_scope none)" <code>data-testid="repricing-actual"</code> / <code>"repricing-max"</code></td><td>computed from <code>prices.json</code></td><td>missing price for a model → <code>Alert Variant=Warning</code> naming the model; figure shows <code>—</code></td></tr>
+        <tr><td>Repricing cards</td><td>2× <code>Card</code>: "Actual mix" and "All runs at most expensive model (<code>claude-opus-…</code>)"; each <code>Badge Variant=Outline</code> <strong>estimate — tokens × rate card, not measured spend</strong>; big <code>$</code> value; <code>TypographyMuted</code> "n runs excluded (tokens_scope none)" <code>data-testid="repricing-actual"</code> / <code>"repricing-max"</code></td><td>computed from <code>prices.json</code></td><td>missing price → <code>Alert Variant=Warning</code> naming the model</td></tr>
         <tr><td>Delta</td><td><code>Card</code> "Counterfactual delta"</td><td>max − actual, <code>%</code></td><td>—</td></tr>
-        <tr><td>Edit prices</td><td><code>Dialog</code> (<code>DialogTrigger</code> <code>Button Variant=Outline</code> "Edit prices.json" <code>data-testid="edit-prices"</code>) → <code>DialogContent</code> with a <code>DataTable</code> of editable rows (<code>Input Type=Number</code> per cell) + <code>Button</code> Save / <code>DialogClose</code> Cancel</td><td>model · input · output · cache read · cache write USD per 1M</td><td>validation <code>FieldError</code> on non-numeric; toast on save</td></tr>
+        <tr><td>Edit prices</td><td><code>Dialog</code> (<code>DialogTrigger</code> <code>Button Variant=Outline</code> "Edit prices.json" <code>data-testid="edit-prices"</code>) → <code>DialogContent</code> with a <code>DataTable</code> of editable rows (<code>Input Type=Number</code> per cell) + <code>Button</code> Save / <code>DialogClose</code> Cancel</td><td>model · input · output · cache read · cache write USD per 1M</td><td>validation <code>FieldError</code>; toast on save</td></tr>
         <tr><td>Poolable metrics</td><td>5× <code>Card</code> (KPI): Rework ratio · Batch size (median) · REQ throughput (REQs/hour) · Tokens per Verified · Commit cadence (+ duplicates collapsed)</td><td>from engine <code>Pooled</code></td><td><code>insufficient data (n=…)</code></td></tr>
       </tbody>
     </table>
-    <p><strong>Notes / interactions:</strong> the most expensive model is chosen by output price; the label names it; saving prices recomputes immediately.</p>
-    <p><strong>Empty / loading / error:</strong> no §2.5 fields at all → drift tab <code>Empty</code>; prices file missing → warning alert + "create default" button.</p>
 
     <h3 id="screen-snapshot-export-export">Screen: Snapshot export (<code>/export</code>)<a class="anchor-link" href="#screen-snapshot-export-export">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/export.html">docs/mockups/export.html</a> · <strong>Role(s):</strong> Author, Parity operator · <strong>BRD:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Mockup:</strong> <a href="./mockups/export.html">docs/mockups/export.html</a> · <strong>Role(s):</strong> User, Author, Parity operator · <strong>BRD:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70 · <strong>REQ:</strong> (assigned by split-brd)</p>
     <p><strong>Layout (one line):</strong> shell; quotable / not-quotable banner; Export card with the button and the dataset SHAs; past snapshots table with download links; parity record card.</p>
     <p><strong>Component map:</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Quotable banner</td><td><code>Alert Variant=Success</code> "QUOTABLE — last parity run 2026-08-30 postdates parser v3" <strong>or</strong> <code>Alert Variant=Warning</code> "NOT QUOTABLE — parser changed after the last parity run; re-run §13" <code>data-testid="quotable-banner"</code></td><td>parity vs parser version</td><td>—</td></tr>
-        <tr><td>Export card</td><td><code>Card</code> → <code>CardTitle</code> "Weekly snapshot" → <code>CardContent</code> <code>Button</code> <strong>Export snapshot</strong> <code>data-testid="export-now"</code> + <code>TypographyMuted</code> "writes data/reports/&lt;date&gt;/snapshot.md + tflens.json"</td><td>—</td><td><code>Spinner</code> while writing; toast with the folder</td></tr>
-        <tr><td>Dataset SHAs</td><td><code>DataTable TData=RepoSha ShowToolbar=false ShowPagination=false</code> (repo · branch · SHA · synced)</td><td>from <code>sync_state</code></td><td>copy button per SHA (<code>Button Size=IconSmall</code>)</td></tr>
-        <tr><td>Past snapshots</td><td><code>DataTable TData=SnapshotRow</code> <code>data-testid="snapshots"</code> (date · parser version · parity status · snapshot.md · tflens.json links)</td><td>folders under <code>data/reports/</code></td><td>empty → <code>Empty</code> "no snapshots yet"</td></tr>
-        <tr><td>Parity record</td><td><code>Card</code> "Last parity run" → date, dataset SHAs, script hash, parser version, compare output (<code>pre</code>)</td><td><code>data/parity-last.json</code></td><td>none → <code>Alert Variant=Warning</code> "no parity run recorded"</td></tr>
+        <tr><td>Quotable banner</td><td><code>Alert Variant=Success</code> "QUOTABLE — …" <strong>or</strong> <code>Alert Variant=Warning</code> "NOT QUOTABLE — parser changed after the last parity run; re-run the parity procedure" <code>data-testid="quotable-banner"</code></td><td>parity vs parser version</td><td>—</td></tr>
+        <tr><td>Export card</td><td><code>Card</code> → <code>Button</code> <strong>Export snapshot</strong> (<code>LucideIcon download</code>) <code>data-testid="export-now"</code> + <code>TypographyMuted</code> "writes data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md + tflens.json"</td><td>—</td><td><code>Spinner</code>; toast</td></tr>
+        <tr><td>Dataset SHAs</td><td><code>DataTable ShowToolbar=false ShowPagination=false</code> (repo · branch · SHA · synced) with copy <code>Button Size=IconSmall</code></td><td>from <code>sync_state</code></td><td>—</td></tr>
+        <tr><td>Past snapshots</td><td><code>DataTable TData=SnapshotRow</code> <code>data-testid="snapshots"</code> (date · parser version · parity status · snapshot.md · tflens.json links)</td><td>user's folders</td><td>empty → <code>Empty</code> "no snapshots yet"</td></tr>
+        <tr><td>Parity record</td><td><code>Card</code> "Last parity run" → date, dataset SHAs, script hash, parser version, compare output (<code>pre</code>)</td><td><code>data/parity-last.json</code></td><td>none → <code>Alert Variant=Warning</code></td></tr>
       </tbody>
     </table>
-    <p><strong>Notes / interactions:</strong> links open the files (served from <code>data/reports/</code> behind auth).</p>
-    <p><strong>Empty / loading / error:</strong> covered above.</p>
 
-    <h3 id="screen-playbook-playbook">Screen: Playbook (<code>/playbook</code>)<a class="anchor-link" href="#screen-playbook-playbook">#</a></h3>
-    <p><strong>Mockup:</strong> <a href="./mockups/playbook.html">docs/mockups/playbook.html</a> · <strong>Role(s):</strong> Owner · <strong>BRD:</strong> BRD-73..BRD-76 · <strong>REQ:</strong> (assigned by split-brd)</p>
-    <p><strong>Layout (one line):</strong> shell; note that this page reads a different schema; per Playbook repo a <code>Card</code> with phase totals table and a main-vs-subagent split; empty state until Phase 3 lands.</p>
-    <p><strong>Component map:</strong></p>
+    <h3 id="screen-playbook-framework-state-of-the-report-pages">Screen: Playbook framework state of the report pages<a class="anchor-link" href="#screen-playbook-framework-state-of-the-report-pages">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/playbook.html">playbook.html</a> (Coverage) · <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a> · <a href="./mockups/harness-playbook.html">harness-playbook.html</a> · <a href="./mockups/routing-playbook.html">routing-playbook.html</a> · <a href="./mockups/export-playbook.html">export-playbook.html</a> — each report page's Playbook pill opens its own Playbook-state mockup · <strong>Role(s):</strong> User, Owner · <strong>BRD:</strong> BRD-73..BRD-76, BRD-108..BRD-110 · <strong>REQ:</strong> (assigned by split-brd) · <strong>Phase 3</strong></p>
+    <p><em>(amended 2026-08-26: the separate <code>/playbook</code> page is retired. Every report page has a Playbook state selected by the header Framework switch; the layouts are identical to the TechieFlow state, only the data and a few labels change. This one mockup documents the pattern on Coverage; the other four pages have their own Playbook-state mockups, linked above.)</em></p>
+    <p><strong>Layout (one line):</strong> the Coverage layout with the Framework switch showing <strong>Playbook</strong> active; a Playbook info note; repo cards for Playbook repos (stream table shows <code>events</code>, or the four v1 streams if the repo has converged); populated state (State A) and the Phase-3 empty state (State B).</p>
+    <p><strong>Component map (deltas from the TechieFlow state only):</strong></p>
     <table>
       <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
       <tbody>
-        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes and never share a chart (SCHEMA.md §11)."</td><td>always</td></tr>
-        <tr><td>Repo card ×N</td><td><code>Card</code> (<code>CardTitle</code> owner/name, <code>Badge</code> "playbook", <code>Badge</code> SHA)</td><td>—</td><td>—</td></tr>
-        <tr><td>Phase totals</td><td><code>DataTable TData=PhaseRow ShowToolbar=false</code> <code>data-testid="pb-phases-{name}"</code> (phase · events · tokens · cost (if present))</td><td>grouped by phase</td><td>cost absent → <code>—</code></td></tr>
-        <tr><td>Main vs subagent</td><td>2× <code>Card</code> (KPI): Main-session tokens · Sub-agent tokens (via parentID) + <code>Progress</code> share bar</td><td>split</td><td>—</td></tr>
-        <tr><td>Schema discovery</td><td><code>Collapsible</code> "Observed fields" → list of <code>Badge</code></td><td>field names from overflow</td><td>—</td></tr>
-        <tr><td>Empty</td><td><code>Empty</code> (<code>EmptyTitle</code> "No Playbook data yet", <code>EmptyDescription</code> "Phase 3 — adapter is built after the real events.ndjson is parsed")</td><td>—</td><td>default at day-1</td></tr>
+        <tr><td>Framework switch</td><td>header <code>Tabs</code> segmented control — <strong>Playbook</strong> trigger active (<code>Badge</code> repo count) <code>data-testid="framework-switch"</code></td><td>—</td><td>persisted per user</td></tr>
+        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks."</td><td>always</td></tr>
+        <tr><td>Repo card ×N</td><td><code>Card</code> (<code>CardTitle</code> owner/name, <code>Badge</code> "playbook", <code>Badge</code> SHA); stream table row <code>events</code> (or v1 streams)</td><td>—</td><td>—</td></tr>
+        <tr><td>Phase totals (Three questions page, Playbook state)</td><td><code>DataTable TData=PhaseRow ShowToolbar=false</code> <code>data-testid="pb-phases-{name}"</code> (phase_gate · events · caught · escaped · tokens · cost if present)</td><td>keyed by <code>phase_gate</code></td><td>cost absent → <code>—</code>; n &lt; 3 → <code>insufficient data (n=…)</code></td></tr>
+        <tr><td>Main vs subagent (Routing page, Playbook state)</td><td>2× <code>StatTile</code>: Main-session tokens · Sub-agent tokens (via parentID) + <code>Progress</code> share bar</td><td>split</td><td>—</td></tr>
+        <tr><td>Schema discovery (Coverage)</td><td><code>Collapsible</code> "Observed fields" → list of <code>Badge</code></td><td>field names from overflow</td><td>—</td></tr>
+        <tr><td>Empty</td><td><code>Empty</code> (<code>EmptyTitle</code> "No Playbook data yet", <code>EmptyDescription</code> "Phase 3 — the report set for Playbook repos is built after the real events.ndjson is parsed", <code>EmptyAction</code> → Connect a Playbook repo) <code>data-testid="playbook-empty"</code></td><td>—</td><td>default until Phase 3</td></tr>
       </tbody>
     </table>
-    <p><strong>Notes / interactions:</strong> deliberately minimal; shrinks when the Playbook converges on schema v1.</p>
-    <p><strong>Empty / loading / error:</strong> covered above.</p>
+    <p><strong>Notes / interactions:</strong> switching framework re-queries every figure on the page; the export writes one snapshot per framework.</p>
 
     <h2 id="library-gaps">Library gaps<a class="anchor-link" href="#library-gaps">#</a></h2>
-    <p>Observed while designing (to be logged as <code>TR-NNN</code> in <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build if still true):</p>
+    <p>Cross-check against the live repo <code>github.com/techierathore/TrBlazeUI</code> (2026-08-26, mockup rebuild) — every control in the inventory exists there, and the repo is <strong>newer than the 1.0.7 reference doc</strong>. Three gaps listed at day-1 are closed by components the repo already ships; the build MUST use these instead of the workarounds:</p>
     <ul>
-      <li>No KPI / stat card component — composed from <code>Card</code> + Tailwind per the library's own documented pattern (acceptable, not blocking).</li>
+      <li><strong>KPI cards → <code>StatTile</code> / <code>StatGroup</code></strong> (<code>Components/Stat/</code>). Every "<code>Card</code> (KPI)" region in the maps above is built with <code>StatTile</code> (title, value, sub-line, icon); the <code>Card</code> composition is the fallback only if <code>StatTile</code> lacks a needed slot.</li>
+      <li><strong>Password strength → <code>PasswordStrength</code></strong> (<code>Components/PasswordStrength/</code>) on Register, Reset password and Profile — not <code>Progress</code>.</li>
+      <li><strong>Parity-compare output → <code>CodeBlock</code></strong> on Snapshot export — not a raw <code>&lt;pre&gt;</code>.</li>
+      <li><strong>Auth card centring → <code>CenteredPanel</code></strong> for the four auth pages' right column.</li>
+    </ul>
+    <p>Remaining gaps (to be logged as <code>TR-NNN</code> in <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build if still true):</p>
+    <ul>
       <li>No plain <code>Table</code> primitives — small key/value tables use <code>DataTable</code> with toolbar and pagination off.</li>
-      <li>No theme toggle component — a <code>Switch</code> in the sidebar footer flips <code>class="dark"</code>.</li>
+      <li>No theme-toggle component — a <code>Switch</code> (with <code>LucideIcon sun</code>/<code>moon</code>) flips <code>class="dark"</code>; dark is the default.</li>
       <li>Chart API documented only as <code>TItem</code>/<code>Items</code>/<code>XValue</code>/<code>YValue</code> — no axis/legend control; charts are supplementary, every figure also has a text table.</li>
+      <li>The <code>TrBlazeUI-AI-Reference.md</code> deployed by NuGet 1.0.7 lags the repo (<code>StatTile</code>, <code>PasswordStrength</code>, <code>CodeBlock</code>, <code>CenteredPanel</code>, <code>Grid</code>, <code>Timeline</code>, <code>Stepper</code>, <code>AnchorNav</code> are undocumented there) — worth a doc-refresh note to the library team.</li>
     </ul>
   </main>
 </div>

@@ -1,6 +1,6 @@
 ---
 project: TfLens
-stack: .NET 10 / Blazor Server / TrBlazeUI / SQLite (Dapper) / Serilog
+stack: .NET 10 / Blazor Server / TrBlazeUI / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose
 last_updated: 2026-08-26
 current_phase: Discovery
 last_verified_build: not-run
@@ -19,7 +19,7 @@ last_verified_date: 2026-08-26
 -->
 
 ## Where I am
-Day-1 (greenfield) complete on 2026-08-26. TfLens is a read-only Blazor Server lens over the telemetry TechieFlow and the AI-First-Playbook already emit: it pulls `docs/metrics/*.jsonl` from GitHub, stores it in SQLite (Dapper), and renders the three questions, harness comparison, routing & repricing and a weekly snapshot export — with SCHEMA.md §6 provenance rules enforced in the result type and a mandatory parity diff against `tf-metrics.sh`. Stack fixed: .NET 10 LTS, Blazor Server + TrBlazeUI, Dapper + Microsoft.Data.Sqlite, Serilog, single-user cookie auth, one Docker image. Drafted: Architecture (target), BRD (BRD-1..BRD-89, 14 features across Phases 1–3), Coding Standards (`obj` prefix), UsageGuide, UI Design spec + 7 mockups. Mockups generated 2026-08-26: docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (7 screens). No code exists yet; nothing is built or verified.
+Day-1 (greenfield) complete on 2026-08-26; docs amended twice the same day after owner review (round 1: AppManager identity, per-user public-repo management, shell rework, GitHub SSO deferred to Phase 2; round 2: both frameworks get the full report set via a Framework switch, harness columns claude-code/opencode/codex, PostgreSQL replaces SQLite, F-CFG retired into F-OPS, mockup links in the BRD). TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow **and** the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user `Manager`), connect their own public GitHub repos, and TfLens pulls the streams, stores them in PostgreSQL (Dapper + Npgsql) per user, and renders the three questions, harness comparison, routing & repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against `tf-metrics.sh`. Stack: .NET 10 LTS, Blazor Server + TrBlazeUI (dark-first), PostgreSQL 16, Serilog, docker compose. Drafted: Architecture (target, ADR-001..017), BRD (BRD-1..BRD-111, 16 active features across Phases 1–3; BRD-3, BRD-7 retired), Coding Standards (`obj` prefix, quoted identifiers), UsageGuide, UI Design spec + 12 mockups. Mockups regenerated 2026-08-26 (round 2): docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (12 screens). No code exists yet; nothing is built or verified.
 
 ## Next command to run
 ```
@@ -31,7 +31,7 @@ After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mocku
 - (populated by `*split-brd TfLens` — none yet)
 
 ## Known blockers
-- No .csproj/.sln yet — create the solution (`src/TfLens`, `src/TfLens.Core`, `tests/TfLens.Core.Tests`) before the first build phase.
+- No .csproj/.sln yet — create the solution (`src/TfLens`, `src/TfLens.Core`, `tests/TfLens.Core.Tests`) and `docker-compose.yml` (postgres) before the first build phase.
 
 ## Verification log
 | Date | Phase | Result | Status table |
@@ -47,5 +47,6 @@ After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mocku
 - Mis-prefixed fields: not yet run
 
 ## Deferred / future
-- Codex-CLI harness detection (a `tf-emit.sh` change, out of scope — TfLens reports `harness: null` honestly)
-- Playbook adapter (Phase 3) waits for a real `events.ndjson` sample
+- GitHub SSO (BRD-94) — Phase 2, waits for an AppManager external-login / token-exchange endpoint
+- Private GitHub repos (per-user PAT) — later release
+- Playbook report set (Phase 3, F-FRAMEWORK) — after the TechieFlow set passes parity; `events.ndjson` adapter waits for a real sample

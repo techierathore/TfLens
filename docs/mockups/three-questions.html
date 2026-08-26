@@ -1,203 +1,212 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TfLens — Three questions</title>
+<script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
-/* ===== TfLens shared mockup styles (TrBlazeUI / shadcn approximation) ===== */
-:root{--background:#ffffff;--foreground:#171717;--card:#ffffff;--border:#e5e5e5;--muted:#f5f5f5;--muted-fg:#737373;--primary:#171717;--primary-fg:#ffffff;--destructive:#dc2626;--success:#16a34a;--warning:#d97706;--info:#2563eb;--sidebar:#fafafa;--radius:10px;--chart-1:#171717;--chart-2:#737373;--chart-3:#a3a3a3}
-html.dark{--background:#0a0a0a;--foreground:#fafafa;--card:#0a0a0a;--border:#262626;--muted:#171717;--muted-fg:#a3a3a3;--primary:#fafafa;--primary-fg:#171717;--sidebar:#0f0f0f;--chart-1:#fafafa;--chart-2:#a3a3a3;--chart-3:#525252}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);background:var(--background)}
-h1,h2,h3{letter-spacing:-0.025em;margin:0}
-h2{font-size:1.5rem;font-weight:600}
-h3{font-size:1rem;font-weight:600}
-a{color:inherit}
-.muted{color:var(--muted-fg)}
-.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-2xl{font-size:1.5rem;font-weight:700;line-height:1.2}
-.italic{font-style:italic}
-/* shell */
-.shell{display:flex;min-height:100vh}
-.sidebar{width:16rem;flex:none;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px}
-.brand{padding:8px 8px 16px}.brand b{display:block;font-size:1rem}.brand span{font-size:.75rem;color:var(--muted-fg)}
-.group-label{font-size:.75rem;font-weight:500;color:var(--muted-fg);padding:4px 8px}
-.nav a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;text-decoration:none;font-size:.875rem}
-.nav a:hover{background:var(--muted)}.nav a.active{background:var(--muted);font-weight:500}
-.nav .ico{width:16px;height:16px;border:1.5px solid currentColor;border-radius:4px;opacity:.6;flex:none}
-.sidebar-footer{margin-top:auto;border-top:1px solid var(--border);padding:12px 8px 0;display:flex;flex-direction:column;gap:10px;font-size:.875rem}
-.switch{display:inline-flex;align-items:center;gap:8px}
-.switch .track{width:32px;height:18px;border-radius:9px;background:#d4d4d4;position:relative}
-.switch .track::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff}
-.inset{flex:1;display:flex;flex-direction:column;min-width:0}
-header.top{height:64px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--background)}
-header.top .spacer{flex:1}
-.trigger{width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;font-size:16px;color:inherit}
-.content{padding:32px;max-width:1200px;width:100%}
-.stack>*+*{margin-top:24px}
-/* buttons, badges */
-.btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:6px;border:1px solid transparent;font:inherit;font-size:.875rem;font-weight:500;cursor:pointer;background:var(--primary);color:var(--primary-fg)}
-.btn.outline{background:transparent;color:var(--foreground);border-color:var(--border)}
-.btn.ghost{background:transparent;color:var(--foreground)}
-.btn.destructive{background:var(--destructive);color:#fff}
-.btn.full{width:100%;justify-content:center}
-.btn.sm{height:28px;padding:0 8px;font-size:.75rem}
-.badge{display:inline-flex;align-items:center;border-radius:9999px;padding:1px 10px;font-size:.75rem;font-weight:600;line-height:1.4;border:1px solid transparent;white-space:nowrap}
-.badge.default{background:var(--primary);color:var(--primary-fg)}
-.badge.secondary{background:var(--muted);color:var(--foreground)}
-.badge.outline{border-color:var(--border);color:var(--foreground)}
-.badge.destructive{background:var(--destructive);color:#fff}
-.badge.success{background:var(--success);color:#fff}
-/* cards */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
-.card-header{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-.card-title{font-size:1rem;font-weight:600;letter-spacing:-0.025em}
-.card-desc{font-size:.875rem;color:var(--muted-fg)}
-.kpi .kpi-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px}
-.kpi .kpi-head .t{font-size:.875rem;font-weight:500}
-.kpi .sub{font-size:.75rem;color:var(--muted-fg);margin-top:4px}
-.grid{display:grid;gap:16px}
-.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
-@media (max-width:900px){.cols-2,.cols-3,.cols-4,.cols-5{grid-template-columns:1fr}}
-.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-/* tables */
-table{width:100%;border-collapse:collapse;font-size:.875rem;border:1px solid var(--border)}
-th,td{padding:8px 12px;border:1px solid var(--border);text-align:left;vertical-align:middle}
-th{background:var(--muted);font-weight:500;color:var(--muted-fg)}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;background:var(--muted);padding:1px 5px;border-radius:4px}
-pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;background:var(--muted);padding:12px;border-radius:6px;overflow-x:auto;margin:0}
-/* alerts */
-.alert{display:flex;gap:12px;border:1px solid var(--border);border-left-width:4px;border-radius:var(--radius);padding:12px 16px;background:var(--card)}
-.alert .glyph{font-weight:700;flex:none}
-.alert .title{font-weight:600}
-.alert.success{border-left-color:var(--success)}.alert.success .glyph{color:var(--success)}
-.alert.warning{border-left-color:var(--warning)}.alert.warning .glyph{color:var(--warning)}
-.alert.info{border-left-color:var(--info)}.alert.info .glyph{color:var(--info)}
-.alert.danger{border-left-color:var(--destructive)}.alert.danger .glyph{color:var(--destructive)}
-/* tabs */
-.tabs{display:inline-flex;gap:4px;background:var(--muted);padding:4px;border-radius:8px}
-.tab{border:0;background:transparent;font:inherit;font-size:.875rem;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer;color:var(--muted-fg);display:inline-flex;gap:6px;align-items:center}
-.tab.active{background:var(--card);color:var(--foreground);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-/* misc */
-details{border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px}
-summary{cursor:pointer;font-weight:500}
-details .body{margin-top:12px}
-.progress{height:8px;background:var(--muted);border-radius:4px;overflow:hidden}
-.progress>div{height:100%;background:var(--primary)}
-.bars{display:flex;align-items:flex-end;gap:32px;height:220px;padding:0 16px;border-bottom:1px solid var(--border)}
-.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;font-size:.75rem;color:var(--muted-fg)}
-.bar>div{width:100%;max-width:96px;background:var(--chart-1);border-radius:4px 4px 0 0}
-.bar-labels{display:flex;gap:32px;padding:8px 16px 0;font-size:.75rem;color:var(--muted-fg)}
-.bar-labels>span{flex:1;text-align:center}
-.field{display:flex;flex-direction:column;gap:6px}
-.field label{font-size:.875rem;font-weight:500}
-.input{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font:inherit;background:var(--background);color:var(--foreground);width:100%}
-.input.sm{height:30px;width:90px;text-align:right}
-.empty{border:1px dashed var(--border);border-radius:var(--radius);padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
-.empty .icon{width:40px;height:40px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;color:var(--muted-fg)}
-.empty .title{font-size:1rem;font-weight:600}
-.sep{border:0;border-top:1px solid var(--border);margin:0}
-.dot{width:16px;height:16px;flex:none}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--background:#fff;--foreground:#0a0a0a;--card:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--primary:#171717;--primary-foreground:#fafafa;--accent:#f4f4f5;--border:#e5e5e5;--input:#e5e5e5;--sidebar:#fafafa;--sidebar-border:#e5e5e5;--ring:#a1a1aa;--success:#22c55e;--warning:#f59e0b;--destructive:#ef4444;--info:#3b82f6;--chart-1:#60a5fa;--chart-2:#34d399;--chart-3:#f472b6;--chart-4:#fbbf24;--chart-5:#a78bfa;--radius:10px;--shadow:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04)}
+html.dark{--background:#0a0a0a;--foreground:#fafafa;--card:#141414;--muted:#1f1f1f;--muted-foreground:#a1a1aa;--primary:#fafafa;--primary-foreground:#0a0a0a;--accent:#1f1f1f;--border:#262626;--input:#262626;--sidebar:#0f0f0f;--sidebar-border:#262626;--ring:#52525b;--shadow:0 1px 2px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3)}
+html,body{height:100%}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--background);color:var(--foreground);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;flex:none}
+.muted{color:var(--muted-foreground)}.xs{font-size:12px}.sm{font-size:13px}.ital{font-style:italic}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.row{display:flex;align-items:center;gap:8px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.stack{display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+.shell{display:flex;height:100vh}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden}
+.sb-head{height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--sidebar-border);white-space:nowrap}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;flex:none}.mark svg{width:18px;height:18px}
+.brand b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}.brand span{display:block;font-size:11px;color:var(--muted-foreground)}
+.sb-body{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+.grp-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);padding:0 8px;margin-bottom:6px;white-space:nowrap}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:var(--foreground);font-size:14px;position:relative;white-space:nowrap}
+.nav a:hover{background:var(--accent)}.nav a.active{background:var(--accent);color:var(--primary);font-weight:500}
+.nav a.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.nav a svg{width:18px;height:18px;color:var(--muted-foreground)}.nav a.active svg{color:var(--primary)}.nav .lbl{flex:1}
+.mbadge{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--muted);font-weight:500}
+.sb-foot{border-top:1px solid var(--sidebar-border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;white-space:nowrap;font-size:12px;color:var(--muted-foreground)}
+body.sidebar-collapsed .sidebar{width:56px}body.sidebar-collapsed .sb-head{padding:0 12px}
+body.sidebar-collapsed .brand,body.sidebar-collapsed .grp-label,body.sidebar-collapsed .lbl,body.sidebar-collapsed .mbadge,body.sidebar-collapsed .sb-foot span,body.sidebar-collapsed .sb-foot .switch{display:none}
+body.sidebar-collapsed .nav a{justify-content:center;padding:0}body.sidebar-collapsed .sb-foot{justify-content:center;padding:12px 8px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.hdr{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--background)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted-foreground)}.crumb b{color:var(--foreground);font-weight:500}.crumb svg{width:14px;height:14px}
+.spacer{flex:1}
+.content{flex:1;overflow:auto;padding:32px}.content>.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}h2{font-size:16px;font-weight:600;letter-spacing:-.01em}h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--muted-foreground);font-size:14px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:500;border:1px solid transparent;cursor:pointer;background:var(--primary);color:var(--primary-foreground);white-space:nowrap}
+.btn:hover{opacity:.9}.btn.outline{background:var(--background);color:var(--foreground);border-color:var(--border)}.btn.outline:hover{background:var(--accent);opacity:1}
+.btn.ghost{background:transparent;color:var(--foreground)}.btn.ghost:hover{background:var(--accent);opacity:1}.btn.destructive{background:var(--destructive);color:#fff}
+.btn.link{background:none;color:var(--foreground);padding:0;height:auto;text-decoration:underline;text-underline-offset:3px;font-weight:400}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}.btn.icon{width:32px;height:32px;padding:0}.btn.block{width:100%}.btn[disabled]{opacity:.5;pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid transparent;white-space:nowrap;background:var(--primary);color:var(--primary-foreground)}
+.badge.outline{background:transparent;color:var(--foreground);border-color:var(--border)}.badge.secondary{background:var(--muted);color:var(--foreground)}
+.badge.success{background:rgba(34,197,94,.14);color:var(--success);border-color:rgba(34,197,94,.3)}.badge.warning{background:rgba(245,158,11,.14);color:var(--warning);border-color:rgba(245,158,11,.3)}
+.badge.destructive{background:rgba(239,68,68,.14);color:var(--destructive);border-color:rgba(239,68,68,.3)}.badge.info{background:rgba(59,130,246,.14);color:var(--info);border-color:rgba(59,130,246,.3)}
+.badge svg{width:12px;height:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card-t{font-size:16px;font-weight:600;letter-spacing:-.01em}.card-d{font-size:13px;color:var(--muted-foreground);margin-top:2px}
+.card-c{padding:20px 24px 24px}.card-c.flush{padding:0}.card-c.tight{padding-top:16px}
+.card-f{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.kpi{padding:20px 24px}.kpi .row{justify-content:space-between}.kpi .t{font-size:13px;font-weight:500;color:var(--muted-foreground)}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:10px;line-height:1.1;font-variant-numeric:tabular-nums}.kpi .n{font-size:12px;color:var(--muted-foreground);margin-top:6px}
+.kpi .insuf{font-size:15px;font-style:italic;font-weight:400;color:var(--muted-foreground)}
+.chip{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none}.chip svg{width:16px;height:16px}
+.chip.c1{background:rgba(96,165,250,.15);color:var(--chart-1)}.chip.c2{background:rgba(52,211,153,.15);color:var(--chart-2)}.chip.c3{background:rgba(244,114,182,.15);color:var(--chart-3)}.chip.c4{background:rgba(251,191,36,.15);color:var(--chart-4)}.chip.c5{background:rgba(167,139,250,.15);color:var(--chart-5)}.chip.cd{background:rgba(239,68,68,.15);color:var(--destructive)}
+.spark{width:100%;height:28px;margin-top:10px}.spark polyline{fill:none;stroke:var(--chart-1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.alert{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);font-size:14px}
+.alert svg{width:18px;height:18px;flex:none;margin-top:1px}.alert b{display:block;font-weight:600;margin-bottom:2px}.alert p{color:var(--muted-foreground);font-size:13px}
+.alert.success{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.alert.success svg{color:var(--success)}
+.alert.warning{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}.alert.warning svg{color:var(--warning)}
+.alert.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}.alert.danger svg{color:var(--destructive)}
+.alert.info{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08)}.alert.info svg{color:var(--info)}.alert.accent{border-left-width:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:var(--muted-foreground);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}.tbl tr:last-child td{border-bottom:0}.tbl tbody tr:hover td{background:var(--accent)}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}.tbl.kv td:first-child{color:var(--muted-foreground);width:40%}
+.tabs{display:inline-flex;gap:4px;padding:4px;background:var(--muted);border-radius:8px}
+.tab{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+.tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.tab .badge{height:18px;padding:0 6px;font-size:11px}
+.prog{height:8px;border-radius:999px;background:var(--muted);overflow:hidden;width:100%}.prog i{display:block;height:100%;border-radius:999px;background:var(--chart-1)}
+.bar{display:flex;align-items:center;gap:10px}.bar .prog{width:110px}
+.field{display:flex;flex-direction:column;gap:6px}.label{font-size:14px;font-weight:500}
+.input{height:36px;width:100%;padding:0 12px;border-radius:8px;border:1px solid var(--input);background:var(--background);color:var(--foreground);font-size:14px;outline:none}
+.input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(161,161,170,.25)}.input::placeholder{color:var(--muted-foreground)}
+.hint{font-size:12px;color:var(--muted-foreground)}.ferr{font-size:12px;color:var(--destructive)}
+.inwrap{position:relative}.inwrap .btn{position:absolute;right:2px;top:2px}.inwrap svg.lead{position:absolute;left:12px;top:10px;color:var(--muted-foreground)}.inwrap .input.lead{padding-left:36px}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--muted);color:var(--foreground);display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--border)}.avatar.lg{width:56px;height:56px;font-size:18px}
+.umenu{position:relative}.umenu>.btn{gap:10px;padding:0 8px 0 4px}
+.dd{position:absolute;right:0;top:44px;width:240px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:4px;z-index:20}
+.dd .lbl{padding:8px 10px;font-size:12px;color:var(--muted-foreground)}.dd a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:14px}.dd a:hover{background:var(--accent)}.dd hr{border:0;border-top:1px solid var(--border);margin:4px 0}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted-foreground);background:none;border:0}
+.switch .trk{width:36px;height:20px;border-radius:999px;background:var(--muted);border:1px solid var(--border);position:relative;transition:background .2s}
+.switch .trk::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:999px;background:var(--foreground);transition:transform .2s}
+html.dark .switch .trk{background:var(--primary)}html.dark .switch .trk::after{transform:translateX(16px);background:var(--primary-foreground)}
+.switch .moon{display:none}html.dark .switch .moon{display:block}html.dark .switch .sun{display:none}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:48px 24px;border:1px dashed var(--border);border-radius:var(--radius)}
+.empty .chip{width:48px;height:48px;border-radius:12px}.empty .chip svg{width:22px;height:22px}.empty b{font-size:16px;font-weight:600;margin-top:8px}.empty p{color:var(--muted-foreground);max-width:400px;font-size:14px}
+.panel{border:1px dashed var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-lbl{font-size:12px;font-weight:500;color:var(--muted-foreground);letter-spacing:.04em;text-transform:uppercase}
+.dialog{max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 20px 50px rgba(0,0,0,.4)}.dialog .body{padding:24px;display:flex;flex-direction:column;gap:16px}
+.vlist{display:flex;flex-direction:column;gap:6px;font-size:14px}.vlist div{display:flex;align-items:center;gap:8px}.vlist svg{width:16px;height:16px;color:var(--success)}
+.coll{border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+.coll .trg{display:flex;align-items:center;gap:8px;padding:14px 16px;font-size:14px;font-weight:500;cursor:pointer}.coll .trg svg{width:16px;height:16px;color:var(--muted-foreground)}.coll .body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:24px;height:220px;padding:16px 8px 0}.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.bars .b i{width:100%;max-width:72px;border-radius:6px 6px 2px 2px;display:block}.bars .b .v{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}.bars .b .l{font-size:12px;color:var(--muted-foreground)}
+pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow:auto;line-height:1.6}
+.sha{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.auth{display:flex;min-height:100vh}
+.brandp{width:45%;background:var(--sidebar);border-right:1px solid var(--border);padding:48px;display:flex;flex-direction:column;justify-content:space-between}
+.brandp .word{display:flex;align-items:center;gap:12px}.brandp .word .mark{width:44px;height:44px;border-radius:12px}.brandp .word .mark svg{width:24px;height:24px}.brandp .word b{font-size:32px;font-weight:700;letter-spacing:-.03em}
+.brandp .tag{font-size:18px;color:var(--muted-foreground);margin-top:16px;max-width:420px;line-height:1.5}
+.brandp ul{list-style:none;margin-top:32px;display:flex;flex-direction:column;gap:14px}.brandp li{display:flex;align-items:center;gap:10px;font-size:15px}.brandp li svg{width:18px;height:18px;color:var(--success)}
+.authr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px}.authc{width:100%;max-width:400px}
+.fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px;margin-left:8px}.fw .tab{height:28px;padding:0 10px;font-size:13px}.fw .tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.fw .tab .badge{height:18px;padding:0 6px;font-size:11px}.fw.dim{opacity:.7}
+.pws{display:flex;flex-direction:column;gap:4px;margin-top:2px}.pws .segs{display:flex;gap:4px}.pws .segs i{flex:1;height:6px;border-radius:999px;background:var(--muted);display:block}.pws .segs i.on{background:var(--success)}.pws .lbl{font-size:11px;color:var(--muted-foreground);display:flex;justify-content:space-between}
+.codeblk{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--muted)}.codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 14px;border-bottom:1px solid var(--border);background:var(--card);font-size:12px;color:var(--muted-foreground)}.codeblk pre{border:0;border-radius:0}
 </style>
 </head>
 <body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-aperture" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94"/><path d="M9.69 8h11.48"/><path d="m7.38 12 5.74-9.94"/><path d="M9.69 16 3.95 6.06"/><path d="M14.31 16H2.83"/><path d="m16.62 12-5.74 9.94"/></symbol>
+<symbol id="i-git-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-panel-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-refresh-cw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-trash-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol>
+<symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+</defs></svg>
+<script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
+function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
+function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-  <aside class="sidebar">
-    <div class="brand"><b>TfLens</b><span>read-only lens</span></div>
-    <div class="group-label">REPORTS</div>
-    <nav class="nav">
-      <a href="coverage.html"><span class="ico"></span>Coverage / health</a>
-      <a class="active" href="three-questions.html"><span class="ico"></span>Three questions</a>
-      <a href="harness.html"><span class="ico"></span>Harness comparison</a>
-      <a href="routing.html"><span class="ico"></span>Routing &amp; economics</a>
-      <a href="export.html"><span class="ico"></span>Snapshot export</a>
-      <a href="playbook.html"><span class="ico"></span>Playbook</a>
-    </nav>
-    <div class="sidebar-footer">
-      <label class="switch"><span class="track"></span>Dark mode</label>
-      <div class="muted">owner</div>
-    </div>
-  </aside>
-  <div class="inset">
-    <header class="top">
-      <button class="trigger" aria-label="Toggle sidebar">☰</button>
-      <h2>Three questions</h2>
-      <span class="spacer"></span>
-      <button class="btn" data-testid="sync-now">Sync now</button>
-      <span class="badge outline">last sync 12 min ago</span>
-      <button class="btn ghost">Sign out</button>
-    </header>
-    <main class="content stack">
-
-      <div class="alert info"><span class="glyph">ℹ</span><div class="text-sm">Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.</div></div>
-
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-testid="type-tab-app">app <span class="badge secondary">41</span></button>
-        <button class="tab" data-testid="type-tab-library">library <span class="badge secondary">78</span></button>
-        <button class="tab" data-testid="type-tab-framework">framework <span class="badge secondary">73</span></button>
-        <button class="tab" data-testid="type-tab-unclassified">unclassified (project_type inferred) <span class="badge secondary">22</span></button>
-      </div>
-      <!-- Reviewer note: no "all" tab by design; only types with records appear. Tab panel below = app. -->
-
-      <div class="grid cols-3">
-        <div class="card kpi" title="first-pass = REQs whose first live attempt was Verified ÷ REQs scored (SCHEMA.md §8)">
-          <div class="kpi-head"><span class="t">First-pass rate</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
-          <div class="text-2xl">71%</div>
-          <div class="sub">live · 17 REQs scored</div>
-          <div class="row text-sm" style="margin-top:10px"><span class="badge secondary">backfilled</span><span>58%</span></div>
-        </div>
-        <div class="card kpi" title="escape rate = escaped ÷ failures scored (SCHEMA.md §8)">
-          <div class="kpi-head"><span class="t">Escape rate</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
-          <div class="text-2xl muted italic" style="font-size:1.125rem;font-weight:400">insufficient data (n=2)</div>
-          <div class="sub">live · escaped ÷ failures scored</div>
-          <div class="row text-sm" style="margin-top:10px"><span class="badge secondary">backfilled</span><span>9%</span></div>
-        </div>
-        <div class="card kpi" title="failures scored = gate records with verdict != Verified (SCHEMA.md §8)">
-          <div class="kpi-head"><span class="t">Failures scored</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
-          <div class="text-2xl">20</div>
-          <div class="sub">live · across 41 records</div>
-          <div class="row text-sm" style="margin-top:10px"><span class="badge secondary">backfilled</span><span>11</span></div>
-        </div>
-      </div>
-
-      <p class="muted text-sm" style="margin:0">live: 41 records, 17 REQs scored, 3 excluded by backfill taint</p>
-
-      <div class="card">
-        <div class="card-header"><div class="card-title">Gate catch distribution — app</div><div class="card-desc">Which gate caught each failure. <code>escaped</code> is its own row and is never folded into a gate.</div></div>
-        <table data-testid="gate-dist-app">
-          <thead><tr><th>Gate</th><th class="num">Live count</th><th class="num">Live share</th><th class="num">Backfilled count</th><th class="num">Backfilled share</th></tr></thead>
-          <tbody>
-            <tr><td>build</td><td class="num">2</td><td class="num">10%</td><td class="num">1</td><td class="num">9%</td></tr>
-            <tr><td>acceptance</td><td class="num">5</td><td class="num">25%</td><td class="num">4</td><td class="num">36%</td></tr>
-            <tr><td>render</td><td class="num">3</td><td class="num">15%</td><td class="num">2</td><td class="num">18%</td></tr>
-            <tr><td>visual</td><td class="num">6</td><td class="num">30%</td><td class="num">3</td><td class="num">27%</td></tr>
-            <tr><td>perf <span class="badge outline">see coverage</span></td><td class="num">1</td><td class="num">5%</td><td class="num">0</td><td class="num">0%</td></tr>
-            <tr><td>standards</td><td class="num">2</td><td class="num">10%</td><td class="num">0</td><td class="num">0%</td></tr>
-            <tr><td>escaped <span class="badge destructive">no gate caught it</span></td><td class="num">1</td><td class="num">5%</td><td class="num">1</td><td class="num">9%</td></tr>
-            <tr><td>unattributed</td><td class="num">0</td><td class="num">0%</td><td class="num">0</td><td class="num">0%</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><div class="card-title">Late-gate coverage</div><div class="card-desc">Gates added after data started flowing report ran / caught side by side; never presented as a catch rate.</div></div>
-        <div class="text-sm">perf gate: ran on 6 records, caught 1 → <span class="muted italic">insufficient data (n=6)</span></div>
-        <div class="text-sm muted" style="margin-top:6px">backfilled segment: not yet run on this data (gate added 2026-08-10)</div>
-      </div>
-
-      <details>
-        <summary>3 REQs excluded from the live first-pass rate</summary>
-        <div class="body row" data-testid="taint-list">
-          <span class="badge outline">REQ-UI-004</span>
-          <span class="badge outline">REQ-FN-011</span>
-          <span class="badge outline">REQ-UI-009</span>
-          <span class="muted text-xs" style="margin-left:8px">each has at least one backfilled record; live attempt restarts at 1</span>
-        </div>
-      </details>
-
-    </main>
+<aside class="sidebar" data-testid="sidebar">
+ <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
+ <div class="sb-body">
+  <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
+  <div><div class="grp-label">Reports</div><nav class="nav">
+   <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
+   <a href="three-questions.html" class="active" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
+   <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
+   <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
+  </nav></div>
+ </div>
+ <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
+</aside>
+<div class="main">
+ <header class="hdr">
+  <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Three questions</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="three-questions.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="three-questions-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <div class="spacer"></div>
+  <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
+  <span class="badge outline">synced 12 min ago</span>
+  <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
+  <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
+ </header>
+ <main class="content"><div class="page">
+  <div><h1>Three questions</h1><p class="sub">First-pass rate · escape rate · failures scored — per project_type, never combined</p></div>
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>SCHEMA.md §6</b><p>Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.</p></div></div>
+  <div class="tabs" role="tablist">
+   <span class="tab active" data-testid="type-tab-app">app <span class="badge secondary">41</span></span>
+   <span class="tab" data-testid="type-tab-library">library <span class="badge secondary">128</span></span>
+   <span class="tab" data-testid="type-tab-framework">framework <span class="badge secondary">96</span></span>
+   <span class="tab" data-testid="type-tab-unclassified">unclassified (project_type inferred) <span class="badge secondary">7</span></span>
   </div>
-</div>
+  <div class="grid g3">
+   <div class="card kpi" title="verified on first *verify ÷ REQs scored (SCHEMA.md §8)"><div class="row"><span class="t">First-pass rate</span><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div><div class="v">71%</div><div class="n row"><span class="badge secondary">backfilled</span> 58%</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,20 15,18 30,22 45,14 60,12 75,10 90,9 100,6"/></svg></div>
+   <div class="card kpi" title="REQs that escaped every gate ÷ REQs with a post-verify failure (SCHEMA.md §8)"><div class="row"><span class="t">Escape rate</span><span class="chip c3"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v"><span class="insuf">insufficient data (n=2)</span></div><div class="n row"><span class="badge secondary">backfilled</span> <span class="ital">insufficient data (n=1)</span></div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,14 100,14"/></svg></div>
+   <div class="card kpi" title="count of gate records with verdict=fail (SCHEMA.md §8)"><div class="row"><span class="t">Failures scored</span><span class="chip c4"><svg><use href="#i-x"/></svg></span></div><div class="v">20</div><div class="n row"><span class="badge secondary">backfilled</span> 11</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,6 15,10 30,8 45,14 60,12 75,18 90,16 100,20"/></svg></div>
+  </div>
+  <p class="muted sm">live: 41 records, 17 REQs scored, 3 excluded by backfill taint · backfilled: 24 records, 12 REQs scored</p>
+  <div class="card">
+   <div class="card-h"><div><div class="card-t">Gate distribution — app</div><div class="card-d">Which gate caught each failure; escaped = no gate caught it</div></div><span class="badge outline">live 20 · backfilled 11</span></div>
+   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="gate-dist-app"><thead><tr><th>Gate</th><th class="r">Live count</th><th>Live share</th><th class="r">Backfilled count</th><th>Backfilled share</th></tr></thead><tbody>
+    <tr><td>build</td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:10%"></i></span><span class="xs">10%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--chart-5)"></i></span><span class="xs">9%</span></span></td></tr>
+    <tr><td>acceptance</td><td class="r">5</td><td><span class="bar"><span class="prog"><i style="width:25%"></i></span><span class="xs">25%</span></span></td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:27%;background:var(--chart-5)"></i></span><span class="xs">27%</span></span></td></tr>
+    <tr><td>render</td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:15%"></i></span><span class="xs">15%</span></span></td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:18%;background:var(--chart-5)"></i></span><span class="xs">18%</span></span></td></tr>
+    <tr><td>visual</td><td class="r">6</td><td><span class="bar"><span class="prog"><i style="width:30%"></i></span><span class="xs">30%</span></span></td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:27%;background:var(--chart-5)"></i></span><span class="xs">27%</span></span></td></tr>
+    <tr><td><span class="row">perf <span class="badge outline">see coverage</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:5%"></i></span><span class="xs">5%</span></span></td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td></tr>
+    <tr><td>standards</td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:10%"></i></span><span class="xs">10%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--chart-5)"></i></span><span class="xs">9%</span></span></td></tr>
+    <tr><td><span class="row"><b>escaped</b> <span class="badge destructive">no gate caught it</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:5%;background:var(--destructive)"></i></span><span class="xs">5%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--destructive)"></i></span><span class="xs">9%</span></span></td></tr>
+    <tr><td>unattributed</td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td></tr>
+   </tbody></table></div>
+  </div>
+  <div class="grid g2" style="align-items:start">
+   <div class="card"><div class="card-h"><div><div class="card-t">Late-gate coverage</div><div class="card-d">Gates added after the data started — coverage is partial by construction</div></div><span class="chip c1"><svg><use href="#i-clock"/></svg></span></div>
+    <div class="card-c stack" style="gap:8px"><div class="row"><span class="badge outline">perf</span><span>perf gate: ran on 6 records, caught 1 → <span class="ital muted">insufficient data (n=6)</span></span></div><div class="row"><span class="badge outline">visual</span><span class="muted">not yet run on this data (gate added 2026-08-10)</span></div></div></div>
+   <div class="coll"><div class="trg"><svg><use href="#i-chevron-down"/></svg>3 REQs excluded from the live first-pass rate</div>
+    <div class="body"><p class="muted sm">Backfill taint — the REQ had a backfilled verdict before its first live verdict, so it cannot count as a first pass.</p><div class="row wrap" data-testid="taint-list"><span class="badge outline mono">REQ-UI-004</span><span class="badge outline mono">REQ-FN-011</span><span class="badge outline mono">REQ-UI-009</span></div></div></div>
+  </div>
+ </div></main>
+</div></div>
 </body>
 </html>

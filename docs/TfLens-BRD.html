@@ -106,23 +106,26 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Business Requirements</h1>
-    <div class="sub">Last rendered: 2026-08-26 · first-pass draft from concept</div>
+    <div class="sub">Amended 2026-08-26 (round 2) · Last rendered: 2026-08-26</div>
     <div class="group">Contents</div>
     <ol>
-      <li><a href="#executive-summary">1. Executive summary</a></li>
-      <li><a href="#business-objectives">2. Business objectives</a></li>
-      <li><a href="#scope">3. Scope</a></li>
-      <li><a href="#development-status">4. Development status</a></li>
-      <li><a href="#stakeholders-users">5. Stakeholders / users</a></li>
-      <li><a href="#context-diagram">6. Context diagram</a></li>
-      <li><a href="#user-journey-primary-use-case">7. User journey — primary use case</a></li>
-      <li><a href="#component-sketch">8. Component sketch</a></li>
-      <li><a href="#feature-catalog">9. Feature catalog</a></li>
-      <li class="h3"><a href="#f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login</a></li>
-      <li class="h3"><a href="#f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets</a></li>
+      <li><a href="#executive-summary">Executive summary</a></li>
+      <li><a href="#business-objectives">Business objectives</a></li>
+      <li><a href="#scope">Scope</a></li>
+      <li><a href="#development-status">Development status</a></li>
+      <li><a href="#stakeholders-users">Stakeholders / users</a></li>
+      <li><a href="#context-diagram">Context diagram</a></li>
+      <li><a href="#user-journey-primary-use-case">User journey — primary use case</a></li>
+      <li><a href="#component-sketch">Component sketch</a></li>
+      <li><a href="#feature-catalog">Feature catalog</a></li>
+      <li class="h3"><a href="#screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup</a></li>
+      <li class="h3"><a href="#f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation</a></li>
+      <li class="h3"><a href="#f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions</a></li>
+      <li class="h3"><a href="#f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user</a></li>
+      <li class="h3"><a href="#f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)</a></li>
       <li class="h3"><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
       <li class="h3"><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
-      <li class="h3"><a href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow</a></li>
+      <li class="h3"><a href="#f-parse-parser-to-postgresql-with-dedupe-and-overflow">F-PARSE: Parser to PostgreSQL with dedupe and overflow</a></li>
       <li class="h3"><a href="#f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules</a></li>
       <li class="h3"><a href="#f-cover-coverage-health-page">F-COVER: Coverage / health page</a></li>
       <li class="h3"><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
@@ -130,21 +133,23 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       <li class="h3"><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
       <li class="h3"><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
       <li class="h3"><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
-      <li class="h3"><a href="#f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page</a></li>
-      <li class="h3"><a href="#f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions</a></li>
-      <li><a href="#functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)</a></li>
-      <li><a href="#non-functional-requirements">11. Non-functional requirements</a></li>
-      <li><a href="#constraints-assumptions">12. Constraints &amp; assumptions</a></li>
-      <li><a href="#parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test</a></li>
-      <li><a href="#definition-of-done">14. Definition of done</a></li>
-      <li><a href="#success-metrics">15. Success metrics</a></li>
-      <li><a href="#risks">16. Risks</a></li>
-      <li><a href="#glossary">17. Glossary</a></li>
+      <li class="h3"><a href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)</a></li>
+      <li class="h3"><a href="#f-ops-container-configuration-health-docs-and-decisions">F-OPS: Container, configuration, health, docs and decisions</a></li>
+      <li><a href="#functional-requirements-brd-ledger">Functional requirements (BRD ledger)</a></li>
+      <li><a href="#non-functional-requirements">Non-functional requirements</a></li>
+      <li class="h3"><a href="#amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell</a></li>
+      <li class="h3"><a href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL</a></li>
+      <li><a href="#constraints-assumptions">Constraints &amp; assumptions</a></li>
+      <li><a href="#parity-check-the-mandatory-acceptance-test">Parity check — the mandatory acceptance test</a></li>
+      <li><a href="#definition-of-done">Definition of done</a></li>
+      <li><a href="#success-metrics">Success metrics</a></li>
+      <li><a href="#risks">Risks</a></li>
+      <li><a href="#glossary">Glossary</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — Business Requirements</h1>
-    <div class="subtitle">Last rendered: 2026-08-26 · first-pass draft from concept</div>
+    <div class="subtitle">Amended 2026-08-26 (round 2) · Last rendered: 2026-08-26</div>
 
 <!-- AGENT-ONLY AUTHORING NOTES — never render as visible text.
   STABLE IDS: every requirement has a BRD-{N} ID; append-only across revisions.
@@ -165,11 +170,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#component-sketch">Component sketch</a></li>
         <li><a href="#feature-catalog">Feature catalog</a>
           <ul>
-            <li><a href="#f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login</a></li>
-            <li><a href="#f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets</a></li>
+            <li><a href="#screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup</a></li>
+            <li><a href="#f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation</a></li>
+            <li><a href="#f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions</a></li>
+            <li><a href="#f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user</a></li>
+            <li><a href="#f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)</a></li>
             <li><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
             <li><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
-            <li><a href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow</a></li>
+            <li><a href="#f-parse-parser-to-postgresql-with-dedupe-and-overflow">F-PARSE: Parser to PostgreSQL with dedupe and overflow</a></li>
             <li><a href="#f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules</a></li>
             <li><a href="#f-cover-coverage-health-page">F-COVER: Coverage / health page</a></li>
             <li><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
@@ -177,12 +185,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
             <li><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
             <li><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
             <li><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
-            <li><a href="#f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page</a></li>
-            <li><a href="#f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions</a></li>
+            <li><a href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)</a></li>
+            <li><a href="#f-ops-container-configuration-health-docs-and-decisions">F-OPS: Container, configuration, health, docs and decisions</a></li>
           </ul>
         </li>
         <li><a href="#functional-requirements-brd-ledger">Functional requirements (BRD ledger)</a></li>
-        <li><a href="#non-functional-requirements">Non-functional requirements</a></li>
+        <li><a href="#non-functional-requirements">Non-functional requirements</a>
+          <ul>
+            <li><a href="#amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell</a></li>
+            <li><a href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL</a></li>
+          </ul>
+        </li>
         <li><a href="#constraints-assumptions">Constraints &amp; assumptions</a></li>
         <li><a href="#parity-check-the-mandatory-acceptance-test">Parity check — the mandatory acceptance test</a></li>
         <li><a href="#definition-of-done">Definition of done</a></li>
@@ -194,7 +207,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <h2 id="executive-summary">1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
 
-<p>TfLens is a read-only lens over the development telemetry that TechieFlow and the AI-First-Playbook <strong>already emit</strong>. Every TechieFlow-managed repository carries four append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>). Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in SQLite, and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard, with a weekly snapshot export whose numbers can be quoted in public writing.</p>
+<p>TfLens is a read-only lens over the development telemetry that <strong>both</strong> of the owner's frameworks — TechieFlow and the AI-First-Playbook — <strong>already emit</strong>. Every TechieFlow-managed repository carries four append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>); Playbook-managed repositories emit <code>verification/telemetry/events.ndjson</code> today and will converge on the same schema. Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in PostgreSQL (amended 2026-08-26), and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard with a <strong>Framework switch</strong> (TechieFlow | Playbook) on every report page, and a weekly snapshot export whose numbers can be quoted in public writing. The Playbook report set is Phase 3.</p>
+
+<p>TfLens is free and open source, and it is <strong>multi-user by design</strong> (amended 2026-08-26): anyone who uses TechieFlow or the Playbook can sign in, connect their own <strong>public</strong> GitHub repos, and see the reports for their data. Identity is delegated to the owner's <strong>AppManager</strong> service (<code>https://appmgrapi.techierathore.com</code>, Application Id 1) — TfLens stores no passwords; every user is an AppManager <code>Manager</code> for this application and no licensing, feature or payment capability is used. Each user's repos, raw archive, parsed rows and reports are isolated from every other user's.</p>
 
 <p>It builds <strong>no capture layer, no ingestion API, and no per-machine agents</strong>. Capture is the frameworks' job and already works across Claude Code, OpenCode, and (via <code>harness: null</code>) anything else that runs the tasks. TfLens never writes to any repository; it reads with a fine-grained, contents-only token.</p>
 
@@ -217,7 +232,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p><strong>In scope</strong></p>
 
 <ul>
-<li>Pulling <code>docs/metrics/{runs,gates,sessions,commits}.jsonl</code> from a configured list of GitHub repos (private allowed) on a poll interval and on demand; raw archive; SQLite store; rebuild from raw.</li>
+<li>Pulling <code>docs/metrics/{runs,gates,sessions,commits}.jsonl</code> (and, for Playbook repos, <code>verification/telemetry/events.ndjson</code>) from the <strong>public</strong> GitHub repos each signed-in user connects on the <code>/repos</code> screen, on a poll interval and on demand; raw archive; PostgreSQL store (Dapper); rebuild from raw; per-user data isolation.</li>
+<li>The same report set for both frameworks, selected by a Framework switch and never pooled across frameworks (Playbook set: Phase 3).</li>
+<li>AppManager-backed identity: email/password login, self-registration, forgot/reset password, session cookie with server-side token refresh; every user is <code>Manager</code>; demo user <code>TfLensDemo</code>.</li>
 <li>Parser with SCHEMA.md-exact columns, JSON overflow for unknown fields, and idempotent dedupe on the streams' natural keys.</li>
 <li>Five report pages (Coverage, Three questions, Harness comparison, Routing &amp; economics, Snapshot export) computed at request time with the provenance rules enforced structurally.</li>
 <li>Weekly snapshot export to <code>data/reports/&lt;date&gt;/</code> as markdown + JSON.</li>
@@ -230,10 +247,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <ul>
 <li>Any capture or ingestion endpoint; OTLP; per-machine agents.</li>
-<li>Codex-CLI harness detection (a <code>tf-emit.sh</code> change; TfLens already reports <code>harness: null</code> honestly).</li>
 <li>Writing anything to any repository, ever.</li>
 <li>VPS / infra configuration (supplied separately).</li>
-<li>Multi-user accounts, roles, or public sharing of the dashboard.</li>
+<li>Private GitHub repos (this release is public-repo-only; a per-user PAT is a later release).</li>
+<li>AppManager licensing, subscriptions, feature flags, payments, issues — none are called.</li>
+<li>GitHub SSO — <strong>deferred to Phase 2</strong> (BRD-94): AppManager has no external-login endpoint, so it needs a bridge or an AppManager change first.</li>
+<li>Roles beyond <code>Manager</code>; sharing a user's reports with another user.</li>
 <li>Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing figure.</li>
 </ul>
 
@@ -244,11 +263,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <table>
 <thead><tr><th>Feature (F-code)</th><th>Phase</th><th>Status</th><th>%</th><th>Notes</th></tr></thead>
 <tbody>
-<tr><td>F-SHELL: App shell, navigation and single-user login</td><td>1</td><td>Planned</td><td>0</td><td>Sidebar shell, <code>/login</code>, cookie auth, Sync-now button in header</td></tr>
-<tr><td>F-CFG: Repo configuration and secrets</td><td>1</td><td>Planned</td><td>0</td><td><code>appsettings</code> repo list, PascalCase env provider, PAT/secrets validation</td></tr>
+<tr><td>F-SHELL: App shell and navigation</td><td>1</td><td>Planned</td><td>0</td><td>Collapsible icon sidebar (Repos first), header with Sync now + user menu, dark-first theme</td></tr>
+<tr><td>F-AUTH: AppManager identity — login, registration, sessions</td><td>1 (SSO: 2, deferred)</td><td>Planned</td><td>0</td><td><code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code> via AppManager App Id 1; <code>TfLensDemo</code> user; GitHub SSO deferred</td></tr>
+<tr><td>F-REPOS: Repo management — connect public GitHub repos per user</td><td>1</td><td>Planned</td><td>0</td><td><code>/repos</code> list + Connect dialog with public/telemetry-path validation; remove = purge; per-user isolation</td></tr>
 <tr><td>F-SYNC: Repo puller — background sync and Sync now</td><td>1</td><td>Planned</td><td>0</td><td><code>BackgroundService</code>, SHA-skip, per-repo error isolation</td></tr>
 <tr><td>F-RAW: Raw archive and rebuild</td><td>1</td><td>Planned</td><td>0</td><td><code>data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code>; <code>rebuild</code> verb + button</td></tr>
-<tr><td>F-PARSE: Parser to SQLite with dedupe and overflow</td><td>1</td><td>Planned</td><td>0</td><td>One table per stream + <code>sync_state</code>; natural-key dedupe</td></tr>
+<tr><td>F-PARSE: Parser to PostgreSQL with dedupe and overflow</td><td>1</td><td>Planned</td><td>0</td><td>One table per stream + <code>sync_state</code>; natural-key dedupe; Npgsql + Dapper</td></tr>
 <tr><td>F-ENGINE: Metrics engine with provenance rules</td><td>2</td><td>Planned</td><td>0</td><td>Port of <code>tf-metrics.sh analyse()</code>; <code>Figure</code> type with <code>InsufficientData</code></td></tr>
 <tr><td>F-COVER: Coverage / health page</td><td>2</td><td>Planned</td><td>0</td><td>Landing page; staleness per stream; unknown-fields report</td></tr>
 <tr><td>F-3Q: The three questions page</td><td>2</td><td>Planned</td><td>0</td><td>Per <code>project_type</code>, live vs backfilled columns, taint list</td></tr>
@@ -256,8 +276,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>F-ROUTE: Routing and economics page</td><td>2</td><td>Planned</td><td>0</td><td>Drift, tokens by model, repricing from <code>prices.json</code>, poolables</td></tr>
 <tr><td>F-EXPORT: Weekly snapshot export</td><td>2</td><td>Planned</td><td>0</td><td>Button + <code>export</code> verb → markdown + JSON</td></tr>
 <tr><td>F-PARITY: Parity check against tf-metrics.sh</td><td>2</td><td>Planned</td><td>0</td><td><code>tflens.json</code> layout, <code>tools/parity-compare.py</code>, DECISIONS.md stamp</td></tr>
-<tr><td>F-PB: Playbook adapter and page</td><td>3</td><td>Planned</td><td>0</td><td>Schema-discovery first; separate tables; <code>phase_gate</code> never shares <code>gate</code></td></tr>
-<tr><td>F-OPS: Container, health, docs and decisions</td><td>1</td><td>Planned</td><td>0</td><td>Dockerfile, <code>/healthz</code>, README out-of-scope list, DECISIONS.md</td></tr>
+<tr><td>F-FRAMEWORK: Playbook as a first-class framework — full report set</td><td>3</td><td>Planned</td><td>0</td><td>Framework switch on every report page; schema-v1 path reuses everything; <code>events.ndjson</code> adapter schema-discovery first; <code>phase_gate</code> never shares <code>gate</code></td></tr>
+<tr><td>F-OPS: Container, configuration, health, docs and decisions</td><td>1</td><td>Planned</td><td>0</td><td>Dockerfile + compose with PostgreSQL 16, settings/secrets, schema script, <code>/healthz</code>, README, DECISIONS.md</td></tr>
 </tbody>
 </table>
 
@@ -265,12 +285,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <h2 id="stakeholders-users">5. Stakeholders / users<a class="anchor-link" href="#stakeholders-users">#</a></h2>
 
-<p>TfLens is a single-user product. The same human wears three hats, and the hats matter because they touch different screens and different guarantees.</p>
+<p>TfLens is multi-user (amended 2026-08-26). Every signed-in person is an AppManager <code>Manager</code> for Application 1 and sees only their own connected repos. The owner additionally wears the parity, author and ops hats.</p>
 
 <table>
 <thead><tr><th>Role</th><th>Who</th><th>Needs</th><th>Key screens</th></tr></thead>
 <tbody>
-<tr><td><strong>Owner</strong> (dashboard user)</td><td>The framework author, logged in with the single configured account</td><td>See whether telemetry is healthy, read the three questions per project type, compare harnesses, see routing drift and the repricing estimate, press Sync now</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code></td></tr>
+<tr><td><strong>User</strong> (any TechieFlow / Playbook user)</td><td>Anyone who registers (email/password via AppManager) — e.g. the demo account <code>TfLensDemo</code></td><td>Sign in, connect their public repos, see health and the reports for their own data, export their snapshot</td><td><code>/login</code>, <code>/register</code>, <code>/repos</code>, <code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/export</code></td></tr>
+<tr><td><strong>Owner</strong> (dashboard user)</td><td>The framework author, signed in like any other user</td><td>See whether telemetry is healthy, read the three questions per project type, compare harnesses, see routing drift and the repricing estimate, press Sync now</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code></td></tr>
 <tr><td><strong>Parity operator</strong></td><td>The same person, at a terminal, before any number is quoted</td><td>Run <code>tf-metrics.sh --rollup --json</code> on a pinned dataset, export <code>tflens.json</code> for the same SHAs, run the compare script, record the pass in DECISIONS.md</td><td><code>/export</code>, the <code>export</code> verb, <code>tools/parity-compare.py</code></td></tr>
 <tr><td><strong>Author</strong> (consumer of the export)</td><td>The same person writing the weekly Numbers row, B1, B3</td><td>A snapshot that never mixes provenances, states <em>estimate</em> where it estimates, and carries its parity stamp so it is quotable</td><td><code>/export</code> output under <code>data/reports/&lt;date&gt;/</code></td></tr>
 <tr><td><strong>Ops</strong></td><td>The same person deploying the container</td><td>One image, one volume, env-var secrets, a health endpoint, rolling file logs</td><td>Dockerfile, <code>/healthz</code>, <code>logs/</code></td></tr>
@@ -278,7 +299,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </tbody>
 </table>
 
-<p>Onboarding path: set <code>TfLensAuthUser</code> / <code>TfLensAuthPasswordHash</code> / <code>TfLensGitHubToken</code> and the repo list, start the container, log in at <code>/login</code>, press <strong>Sync now</strong>, and read the Coverage page until it is green.</p>
+<p>Onboarding path (any user): open <code>/register</code> (or sign in at <code>/login</code>), go to <strong>Repos</strong>, connect a public GitHub repo by URL, press <strong>Sync now</strong>, and read the Coverage page until it is green. Ops path: set the AppManager settings (<code>TfLensAppManagerApiKey</code> / <code>TfLensAppManagerApiSecret</code>, App Id 1) and optionally <code>TfLensGitHubToken</code>, start the container.</p>
 
 <h2 id="context-diagram">6. Context diagram<a class="anchor-link" href="#context-diagram">#</a></h2>
 
@@ -293,9 +314,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     <button data-pop title="Open in new tab">↗</button>
   </div>
   <pre class="mermaid">flowchart LR
-  Owner(["Owner (single user)"]) -- "HTTPS + cookie" --> App["TfLens<br/>Blazor Server dashboard"]
-  App -- "GET only, PAT contents:read" --> GH["GitHub REST API<br/>TechieFlow + Playbook repos"]
-  App --> DB[("SQLite<br/>data/tflens.db")]
+  User(["User (any TechieFlow / Playbook user)"]) -- "HTTPS + cookie" --> App["TfLens<br/>Blazor Server dashboard"]
+  App -- "login / register / refresh / logout<br/>X-Api-Key, App Id 1" --> AM["AppManager API<br/>appmgrapi.techierathore.com"]
+  App -- "GET only, public repos" --> GH["GitHub REST API<br/>user-connected TechieFlow + Playbook repos"]
+  App --> DB[("PostgreSQL 16<br/>Dapper via Npgsql")]
   App --> Raw[("Raw archive<br/>data/raw/")]
   App --> Rep[("Snapshots<br/>data/reports/&lt;date&gt;/")]
   Ref["tf-metrics.sh --rollup --json<br/>(reference, owner-run)"] -. "parity diff" .-> Rep
@@ -353,15 +375,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </div>
   <pre class="mermaid">flowchart TB
   subgraph Head["src/TfLens (Blazor Server, .NET 10)"]
-    Pages["Pages: / · /three-questions · /harness · /routing · /export · /playbook · /login"]
-    Sync["RepoSyncService"]
+    Pages["Pages: /repos · / · /three-questions · /harness · /routing · /export (each with a Framework switch)<br/>/login · /register · /forgot-password · /reset-password · /profile"]
+    Sync["RepoSyncService (all users' repos)"]
     Verbs["Verbs: rebuild · sync · export"]
-    Auth["Cookie auth"]
+    Auth["Cookie auth + AppManager tokens"]
   end
   subgraph Core["src/TfLens.Core"]
+    AMC["AppManagerClient"]
+    RepoSvc["RepoRegistry (validate public + telemetry path)"]
     Fetch["GitHubStreamFetcher"]
     Parse["StreamParser + Dedupe"]
-    Store["SqliteStore (Dapper)"]
+    Store["PostgresStore (Dapper + Npgsql)"]
     Engine["MetricsEngine + ExtraMetrics"]
     Exp["SnapshotExporter"]
     Pb["PlaybookAdapter"]
@@ -377,68 +401,182 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   Pb --> Store
   Engine --> Store
   Exp --> Engine
-  Auth --> Pages</pre>
+  Auth --> Pages
+  Auth --> AMC
+  Pages --> RepoSvc
+  RepoSvc --> Store
+  Sync --> RepoSvc</pre>
 </div>
 
 <h2 id="feature-catalog">9. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
 
-<h3 id="f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login<a class="anchor-link" href="#f-shell-app-shell-navigation-and-single-user-login">#</a></h3>
+<h3 id="screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup<a class="anchor-link" href="#screen-inventory-every-screen-its-feature-and-its-mockup">#</a></h3>
 
-<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 1</p>
-
-<p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar</code> + <code>SidebarInset</code>) with a fixed header carrying the page title, a <strong>Sync now</strong> button with the last-sync timestamp, and the sign-out action. The sidebar lists the six pages in the order the owner should read them (Coverage first — "every other number is suspect until this page is green"). The dashboard sits entirely behind cookie authentication: one account, credentials from configuration, a PBKDF2 hash rather than a plaintext password, generic failure messages, and a sliding 12-hour cookie. There is no registration, no password reset, no roles.</p>
+<p>Read this table with <code>docs/mockups/</code> open: every screen the app has, the feature that owns it, the requirements it satisfies, and the mockup it must match (the mockups are a click-through — start at <code>login.html</code>). The per-screen component map is in <code>docs/TfLens-UIDesign.md</code>.</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Feature</th><th>BRD IDs</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Login</td><td><code>/login</code></td><td>Username + password form; the only anonymous page besides <code>/healthz</code></td></tr>
-<tr><td>Shell</td><td>(layout)</td><td>Sidebar nav (Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export, Playbook), header with Sync now + last sync + sign out</td></tr>
+<tr><td>Login</td><td><code>/login</code></td><td>F-AUTH</td><td>BRD-1, BRD-2, BRD-90, BRD-94 (deferred)</td><td><a href="./mockups/login.html">login.html</a></td></tr>
+<tr><td>Register</td><td><code>/register</code></td><td>F-AUTH</td><td>BRD-91, BRD-95</td><td><a href="./mockups/register.html">register.html</a></td></tr>
+<tr><td>Forgot password</td><td><code>/forgot-password</code></td><td>F-AUTH</td><td>BRD-92</td><td><a href="./mockups/forgot-password.html">forgot-password.html</a></td></tr>
+<tr><td>Reset password</td><td><code>/reset-password</code></td><td>F-AUTH</td><td>BRD-92</td><td><a href="./mockups/reset-password.html">reset-password.html</a></td></tr>
+<tr><td>Profile</td><td><code>/profile</code></td><td>F-AUTH, F-SHELL</td><td>BRD-107, BRD-106</td><td><a href="./mockups/profile.html">profile.html</a> (user menu shown open)</td></tr>
+<tr><td>Repos (+ Connect / Remove dialogs)</td><td><code>/repos</code></td><td>F-REPOS</td><td>BRD-98..BRD-104</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
+<tr><td>Shell: sidebar, header, Framework switch, user menu</td><td>(layout)</td><td>F-SHELL, F-FRAMEWORK</td><td>BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-108</td><td>visible on every report mockup, e.g. <a href="./mockups/coverage.html">coverage.html</a></td></tr>
+<tr><td>Coverage / health</td><td><code>/</code></td><td>F-COVER, F-RAW</td><td>BRD-39..BRD-44, BRD-21</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
+<tr><td>Three questions</td><td><code>/three-questions</code></td><td>F-3Q, F-ENGINE</td><td>BRD-45..BRD-50</td><td><a href="./mockups/three-questions.html">three-questions.html</a> · Playbook state: <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a></td></tr>
+<tr><td>Harness comparison</td><td><code>/harness</code></td><td>F-HARN</td><td>BRD-51..BRD-55</td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
+<tr><td>Routing &amp; economics (+ Edit prices dialog)</td><td><code>/routing</code></td><td>F-ROUTE</td><td>BRD-56..BRD-62</td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
+<tr><td>Snapshot export</td><td><code>/export</code></td><td>F-EXPORT, F-PARITY</td><td>BRD-63..BRD-67, BRD-70</td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
+<tr><td>Health endpoint</td><td><code>/healthz</code></td><td>F-OPS</td><td>BRD-78</td><td>(no UI)</td></tr>
+</tbody>
+</table>
+
+<h3 id="f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation<a class="anchor-link" href="#f-shell-app-shell-and-navigation">#</a></h3>
+
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: login moved to F-AUTH; collapsible icon sidebar, user menu, dark-first)</em></p>
+
+<p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar Collapsible</code> + <code>SidebarInset</code>). The sidebar is <strong>collapsible</strong> via <code>SidebarTrigger</code> (icon-only rail with tooltips when collapsed) and every item carries a <strong>Lucide icon</strong>; the order is the order a user should work in: <strong>Repos</strong> first (nothing to see until a repo is connected), then Coverage ("every other number is suspect until this page is green"), Three questions, Harness comparison, Routing &amp; economics, Snapshot export (the separate Playbook page was retired 2026-08-26 — see F-FRAMEWORK). The header carries the <strong>Framework switch</strong> (TechieFlow | Playbook, F-FRAMEWORK), the page title, a <strong>Sync now</strong> button with the last-sync badge, the theme toggle, and — on the right — the <strong>signed-in user's name</strong> with a <code>DropdownMenu</code> (Profile, Manage repos, Sign out); there is no bare sign-out button. The application <strong>starts in dark mode</strong>; the user's toggle choice is persisted per user.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Shell</td><td>(layout)</td><td>Collapsible icon sidebar (Repos, Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export); header: <strong>Framework switch (TechieFlow / Playbook)</strong> · title · Sync now · last-sync badge · theme toggle · user menu</td><td><a href="./mockups/coverage.html">coverage.html</a> (shell visible on every report mockup)</td></tr>
 </tbody>
 </table>
 
 <p><strong>Workflow:</strong></p>
 <ol>
-<li>Unauthenticated request to any page → redirect to <code>/login</code> with return URL.</li>
-<li>Submit credentials → constant-time verify against the configured PBKDF2 hash → cookie issued → redirect to return URL or <code>/</code>.</li>
-<li>Sign out → cookie cleared → <code>/login</code>.</li>
-<li><strong>Sync now</strong> in the header runs the same <code>SyncAllAsync()</code> the background service runs and shows a toast with the per-repo outcome.</li>
+<li>Unauthenticated request to any page → redirect to <code>/login</code> with return URL (F-AUTH).</li>
+<li><strong>Sync now</strong> in the header runs <code>SyncAllAsync(userId)</code> for the signed-in user's repos and shows a toast with the per-repo outcome.</li>
+<li>User menu → <strong>Sign out</strong> → AppManager <code>/AuthSvc/logout</code> → cookie cleared → <code>/login</code>.</li>
+<li><code>SidebarTrigger</code> collapses/expands the sidebar; the state is remembered (<code>CookieKey</code>).</li>
 </ol>
 
-<p><strong>Requirements:</strong> BRD-1, BRD-2, BRD-3, BRD-4, BRD-5, BRD-6</p>
+<p><strong>Requirements:</strong> BRD-2, BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-107</p>
 
-<h3 id="f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets<a class="anchor-link" href="#f-cfg-repo-configuration-and-secrets">#</a></h3>
+<h3 id="f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions<a class="anchor-link" href="#f-auth-appmanager-identity-login-registration-sessions">#</a></h3>
 
-<p><strong>Personas:</strong> Ops, Owner · <strong>Phase:</strong> 1</p>
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (GitHub SSO: Phase 2, deferred) <em>(added 2026-08-26)</em></p>
 
-<p>Configuration is the only input TfLens has besides the streams themselves. The repo list lives in <code>appsettings.json</code> (and can be overridden by environment): <code>owner</code>, <code>name</code>, <code>branch</code>, <code>kind</code> (<code>techieflow</code> | <code>playbook</code>), plus a global poll interval. Secrets — the GitHub PAT and the auth credentials — come <strong>only</strong> from environment or user-secrets through the PascalCase env-var provider mandated by the Coding Standards (<code>TfLensGitHubToken</code>, <code>TfLensAuthUser</code>, <code>TfLensAuthPasswordHash</code>). Startup validates the configuration and refuses to run with a missing token, a duplicate <code>owner/name</code>, or an unknown <code>kind</code>, logging the reason without logging the value.</p>
+<p>TfLens keeps <strong>no user store and no passwords</strong>. Identity is delegated to the owner's AppManager service (<code>docs/AppManager-api-usage-guide.md</code>, v1.4): base URL <code>https://appmgrapi.techierathore.com</code>, <strong>Application Id 1</strong>, identified on every call by the <code>X-Api-Key</code> / <code>X-Api-Secret</code> headers (values from configuration only — F-OPS). Passwords are never sent in clear: TfLens fetches and caches <code>GET /AuthSvc/public-key</code> and RSA-OAEP-256-encrypts the password client-side before <code>POST /AuthSvc/login</code> or <code>/AuthSvc/register</code>. Because TfLens is free and open source, no licence, feature, subscription or payment endpoint is ever called, and every registered user is assigned <code>applicationRoleCode: "Manager"</code>. On success TfLens issues its own auth cookie (sliding 12 h, HttpOnly, Secure) carrying the AppManager <code>userId</code>, email, display name and role; the AppManager access and refresh tokens are held <strong>server-side</strong> per session and refreshed through <code>POST /AuthSvc/refresh</code> before expiry; a resumed cookie is checked with <code>POST /AuthSvc/validate</code>. A demo account <strong><code>TfLensDemo</code></strong> (<code>tflensdemo@techierathore.com</code>) is registered in AppManager during development and its public demo repos are connected through the Repos screen (no configuration seed — amended 2026-08-26), so testers and first-time visitors can see a populated dashboard.</p>
 
-<p>Initial placeholder repo list (kickoff decision 2026-08-26 — owner corrects names in <code>appsettings.json</code>):</p>
+<p><strong>GitHub SSO — deferred to Phase 2 (BRD-94).</strong> AppManager exposes no external-login or token-exchange endpoint, so "Continue with GitHub" cannot obtain an AppManager token without a bridge (a TfLens-held random credential per SSO user). The owner chose to defer this until AppManager grows an SSO endpoint; the login screen reserves the button position but does not show it in this release.</p>
 
 <table>
-<thead><tr><th>owner</th><th>name</th><th>branch</th><th>kind</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>techierathore</td><td>TechieFlow</td><td>main</td><td>techieflow</td></tr>
-<tr><td>techierathore</td><td>TechieRag</td><td>main</td><td>techieflow</td></tr>
-<tr><td>techierathore</td><td>TrBlazeUI</td><td>main</td><td>techieflow</td></tr>
-<tr><td>techierathore</td><td>blog</td><td>main</td><td>techieflow</td></tr>
-<tr><td>techierathore</td><td>AI-First-Playbook</td><td>main</td><td>playbook</td></tr>
+<tr><td>Login</td><td><code>/login</code></td><td>Email + password; links to Register and Forgot password; generic error on failure; anonymous</td><td><a href="./mockups/login.html">login.html</a></td></tr>
+<tr><td>Register</td><td><code>/register</code></td><td>First name, last name, email, password (+ confirm) per AppManager rules (8+, upper, digit, special); creates the user with role Manager; anonymous</td><td><a href="./mockups/register.html">register.html</a></td></tr>
+<tr><td>Forgot password</td><td><code>/forgot-password</code></td><td>Email → <code>/AuthSvc/forgot-password</code> (always "if that address exists, an email was sent"); anonymous</td><td><a href="./mockups/forgot-password.html">forgot-password.html</a></td></tr>
+<tr><td>Reset password</td><td><code>/reset-password?token=…</code></td><td>New password (+ confirm) → <code>/AuthSvc/reset-password</code>; anonymous</td><td><a href="./mockups/reset-password.html">reset-password.html</a></td></tr>
+<tr><td>Profile</td><td><code>/profile</code></td><td>Read-only AppManager profile (<code>GET /UserSvc/profile</code>) + change password (<code>POST /UserSvc/change-password</code>)</td><td><a href="./mockups/profile.html">profile.html</a></td></tr>
 </tbody>
 </table>
 
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  actor U as User
+  participant L as "/login page"
+  participant A as "AuthService (TfLens)"
+  participant AM as "AppManager API (App Id 1)"
+  participant C as "Cookie middleware"
+  U->>L: email + password
+  L->>A: SignInAsync(email, password)
+  A->>AM: GET /AuthSvc/public-key (cached)
+  AM-->>A: RSA public key
+  A->>A: RSA-OAEP-256 encrypt password
+  A->>AM: POST /AuthSvc/login {email, encryptedPassword} + X-Api-Key/Secret
+  alt success
+    AM-->>A: userId, names, applicationRole=Manager, accessToken, refreshToken, expiresAt
+    A->>A: store tokens server-side (session store)
+    A->>C: SignIn(cookie: userId, email, name, role)
+    C-->>U: redirect to return URL or /repos
+  else INVALID_CREDENTIALS / ACCOUNT_LOCKED / ACCOUNT_DISABLED
+    AM-->>A: error code
+    A-->>L: generic "Sign-in failed" (code logged, never shown)
+  end
+  Note over A,AM: before accessToken expiry POST /AuthSvc/refresh, on sign-out POST /AuthSvc/logout</pre>
+</div>
+
 <p><strong>Workflow:</strong></p>
 <ol>
-<li>Read <code>Repos[]</code>, <code>PollIntervalMinutes</code> (default 15), <code>DataRoot</code> (default <code>data/</code>) from configuration.</li>
-<li>Read secrets from the env provider; never from <code>appsettings.json</code>.</li>
-<li>Validate; on failure log a redacted reason and stop the host (<code>Log.Fatal</code>).</li>
+<li><code>/login</code>: encrypt → login → cookie → redirect (first sign-in with no repos lands on <code>/repos</code>).</li>
+<li><code>/register</code>: validate password rules locally → encrypt → <code>register</code> with <code>applicationRoleCode: "Manager"</code> → same cookie issue as login.</li>
+<li><code>/forgot-password</code> → <code>forgot-password</code>; <code>/reset-password</code> → <code>reset-password</code> (API key header supplies the app scope).</li>
+<li>Session: refresh tokens server-side before <code>tokenExpiresAt</code>; on refresh failure → sign out.</li>
+<li>Sign out: <code>logout</code> with the refresh token (per-app scope) → clear cookie.</li>
 </ol>
 
-<p><strong>Requirements:</strong> BRD-7, BRD-8, BRD-9, BRD-10, BRD-11</p>
+<p><strong>Requirements:</strong> BRD-1, BRD-90, BRD-91, BRD-92, BRD-93, BRD-94 (deferred), BRD-95, BRD-96, BRD-97</p>
+
+<h3 id="f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user<a class="anchor-link" href="#f-repos-repo-management-connect-public-github-repos-per-user">#</a></h3>
+
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 <em>(added 2026-08-26)</em></p>
+
+<p>TfLens is for anyone using the frameworks, so the repos to pull are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected repos (owner/name, branch, kind, public badge, sync status, last sync, per-stream record counts) with per-row <strong>Sync</strong> and <strong>Remove</strong> actions and a <strong>Connect repo</strong> dialog. Connecting takes a GitHub URL or <code>owner/name</code> (+ branch, default branch auto-detected) and validates it through the GitHub API before saving: the repo must exist, must be <strong>public</strong> (this release supports public repos only — a private repo is refused with an explicit message), and must contain the telemetry path for its kind on that branch (<code>docs/metrics/</code> → <code>techieflow</code>, <code>verification/telemetry/</code> → <code>playbook</code>; the kind is auto-detected and can be overridden). Removing a repo stops its sync and <strong>purges</strong> that user's parsed rows and raw archive for it. All data is scoped by user: <code>sync_state</code>, the raw archive (<code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code>), the stream tables and the analysis cache all carry the <code>UserId</code>; a page never shows another user's repos. The same public repo may be connected by several users independently (each gets their own copy — the simplest rule that keeps isolation exact). The <code>appsettings</code> repo list is used only to seed the <code>TfLensDemo</code> account at first start.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Repos</td><td><code>/repos</code></td><td>User's repos grid; Connect repo button; per-row Sync / Remove; empty state for a new user</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
+<tr><td>Connect repo (dialog)</td><td><code>/repos</code></td><td>URL or owner/name, branch, kind (auto), Validate → shows public ✓ / telemetry path ✓ / default branch → Connect</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+<tr><td>Remove repo (dialog)</td><td><code>/repos</code></td><td>Confirm; explains that parsed rows + raw archive for this repo are purged</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+</tbody>
+</table>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["Paste GitHub URL or owner/name"] --> B["GET /repos/{owner}/{name}"]
+  B --> C{"exists?"}
+  C -->|"no"| X["Refuse: repo not found"]
+  C -->|"yes"| D{"private?"}
+  D -->|"yes"| Y["Refuse: public repos only in this release"]
+  D -->|"no"| E["Resolve branch (default or chosen)"]
+  E --> F["GET /contents/docs/metrics or /verification/telemetry at branch"]
+  F --> G{"telemetry path found?"}
+  G -->|"no"| Z["Refuse: no TechieFlow or Playbook telemetry at this path"]
+  G -->|"yes"| H["Kind detected; save UserRepo; first sync queued"]</pre>
+</div>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>New user lands on <code>/repos</code> (empty state: "Connect your first repo").</li>
+<li>Connect → validate (exists, public, telemetry path) → save → first sync runs → toast.</li>
+<li>Row Sync → <code>SyncRepoAsync(userId, repo)</code>; row Remove → confirm → purge rows + raw → row disappears.</li>
+<li>Header Sync now and the background poller iterate every user's repos; errors stay per user/repo.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-103, BRD-104</p>
+
+<h3 id="f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)<a class="anchor-link" href="#f-cfg-configuration-and-secrets-retired-2026-08-26">#</a></h3>
+
+<p><del>F-CFG</del> — retired in the second amendment. Repos are managed only on the Repos screen (F-REPOS), so there is no repo list and no demo seed in configuration; the remaining infrastructure settings (AppManager connection, database connection, poll interval, optional PAT, <code>DataRoot</code>) moved to <strong>F-OPS</strong>. BRD-7 is retired; BRD-8, BRD-9, BRD-10 and BRD-11 now belong to F-OPS. The candidate demo repos (techierathore/TechieFlow, TechieRag, TrBlazeUI, blog, AI-First-Playbook — public ones only) are connected to <code>TfLensDemo</code> through the UI during development (BRD-96).</p>
 
 <h3 id="f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now<a class="anchor-link" href="#f-sync-repo-puller-background-sync-and-sync-now">#</a></h3>
 
 <p><strong>Personas:</strong> Owner (Sync now), Ops (background) · <strong>Phase:</strong> 1</p>
 
-<p>A <code>BackgroundService</code> polls every configured repo on the interval; the header button runs the identical code on demand. For each repo it asks GitHub for the latest commit SHA touching the telemetry path (<code>docs/metrics</code> for <code>techieflow</code>, <code>verification/telemetry</code> for <code>playbook</code>) on the configured branch. If that SHA equals the one in <code>sync_state</code>, the repo is skipped without fetching a byte. Otherwise every stream file is fetched whole at that exact SHA (they are small), written verbatim to the raw archive (F-RAW), and parsed (F-PARSE). A 404 on a stream file means "this stream is absent" and is recorded as zero, not as an error. Errors are per repo: one failing repo never stops the others, and the failure text (status code + short reason, never the token) lands in <code>sync_state.LastError</code> for the Coverage page. The puller is structurally read-only — no method exists that issues anything but GET.</p>
+<p>A <code>BackgroundService</code> polls every connected repo of every user on the interval; the header button runs the identical code on demand for the signed-in user's repos (amended 2026-08-26: repos come from F-REPOS, not configuration). For each repo it asks GitHub for the latest commit SHA touching the telemetry path (<code>docs/metrics</code> for <code>techieflow</code>, <code>verification/telemetry</code> for <code>playbook</code>) on the configured branch. If that SHA equals the one in <code>sync_state</code>, the repo is skipped without fetching a byte. Otherwise every stream file is fetched whole at that exact SHA (they are small), written verbatim to the raw archive (F-RAW), and parsed (F-PARSE). A 404 on a stream file means "this stream is absent" and is recorded as zero, not as an error. Errors are per repo: one failing repo never stops the others, and the failure text (status code + short reason, never the token) lands in <code>sync_state.LastError</code> for the Coverage page. The puller is structurally read-only — no method exists that issues anything but GET.</p>
 
 <div class="diagram">
   <div class="dt">
@@ -480,7 +618,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
 
-<p>The raw archive is the rebuild source and the audit trail. Every fetched file is stored byte-for-byte under <code>data/raw/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> <strong>before</strong> it is parsed, so a parser bug can never lose data — fix the parser, run <code>rebuild</code>, done. <code>rebuild</code> (a command verb <code>dotnet TfLens.dll rebuild</code>, also a confirm-guarded button on the Coverage page) drops the SQLite database, recreates the schema, and replays every archived file in repo order and SHA fetch order, then reports files replayed, records stored, and duplicates collapsed per stream. Because parsing is idempotent (F-PARSE), the record counts after a rebuild equal the counts after live syncs.</p>
+<p>The raw archive is the rebuild source and the audit trail. Every fetched file is stored byte-for-byte under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> <strong>before</strong> it is parsed, so a parser bug can never lose data — fix the parser, run <code>rebuild</code>, done. <code>rebuild</code> (a command verb <code>dotnet TfLens.dll rebuild</code>, also a confirm-guarded button on the Coverage page) truncates every stream table in PostgreSQL (amended 2026-08-26), re-applies the schema script, and replays every archived file in repo order and SHA fetch order, then reports files replayed, records stored, and duplicates collapsed per stream. Because parsing is idempotent (F-PARSE), the record counts after a rebuild equal the counts after live syncs.</p>
 
 <p><strong>Workflow:</strong></p>
 <ol>
@@ -492,7 +630,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <p><strong>Requirements:</strong> BRD-19, BRD-20, BRD-21, BRD-22</p>
 
-<h3 id="f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow<a class="anchor-link" href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">#</a></h3>
+<h3 id="f-parse-parser-to-postgresql-with-dedupe-and-overflow">F-PARSE: Parser to PostgreSQL with dedupe and overflow<a class="anchor-link" href="#f-parse-parser-to-postgresql-with-dedupe-and-overflow">#</a></h3>
 
 <p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
 
@@ -574,12 +712,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 2</p>
 
-<p>The first page, always. Per repo it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
+<p>The first report page (after Repos). For each of the signed-in user's repos it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; staleness; unknown fields; Rebuild button</td></tr>
+<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; staleness; unknown fields; Rebuild button; Framework switch</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
 </tbody>
 </table>
 
@@ -599,9 +737,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p>The headline page and the B3 evidence base. For each <code>project_type</code> present in the data (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, and <code>unclassified</code> for inferred records) it shows the three questions SCHEMA.md §0 exists to answer — <strong>first-pass rate</strong>, <strong>gate catch distribution</strong> (with <code>escaped</code> as its own row, never folded into a gate, and <code>unattributed</code> where a failure carries no gate), and <strong>escape rate</strong> — computed from <strong>live records only</strong>, with the backfilled figures for the same type in an adjacent, clearly labelled column that is never summed with live. Under each type: records, REQs scored, REQs excluded by backfill taint, and the late-gate coverage lines (<code>perf gate: ran on n records, caught k → rate | insufficient data (n=…) | not yet run on this data (gate added 2026-08-10)</code>). The tainted REQ IDs are listed in full in a collapsible panel. Any figure below the minimum n renders as <code>insufficient data (n=…)</code>. There is no "all types" tab and no total row — by design.</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Three questions</td><td><code>/three-questions</code></td><td>One section (or tab) per project_type; live column + labelled backfilled column; taint list; late-gate coverage</td></tr>
+<tr><td>Three questions</td><td><code>/three-questions</code></td><td>One section (or tab) per project_type; live column + labelled backfilled column; taint list; late-gate coverage; Framework switch</td><td><a href="./mockups/three-questions.html">three-questions.html</a> · Playbook state: <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a></td></tr>
 </tbody>
 </table>
 
@@ -618,20 +756,20 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
 
-<p>The portability page — the B1 story rendered as data. Per harness (<code>claude-code</code>, <code>opencode</code>, <code>null</code>; <code>codex</code> appears automatically when the streams start carrying it): run counts by command, gate records and verdict mix, session counts, token totals (input, output, cache read, cache write, from both <code>runs</code> §2.5 fields and <code>sessions</code>), tokens per verified REQ. <strong>Real <code>cost_usd</code> is shown for OpenCode only</strong>, in its own card labelled "the only measured dollars in the system"; Claude Code shows "not measured (null by design)". Tokens may be compared across harness; dollars may not, and the page never shows a dollar total across harnesses. <code>harness: null</code> is shown honestly as its own column ("harness not detected"), never merged into either named harness. This page has no reference in <code>tf-metrics.sh</code>, so it is spot-checked by hand once (F-PARITY).</p>
+<p>The portability page — the B1 story rendered as data. Three columns, one per harness the framework detects (SCHEMA.md §1): <strong><code>claude-code</code> · <code>opencode</code> · <code>codex</code></strong> (Codex CLI — amended 2026-08-26; TechieFlow now detects it). Per column: run counts by command, gate records and verdict mix, session counts, token totals (input, output, cache read, cache write, from both <code>runs</code> §2.5 fields and <code>sessions</code>), tokens per verified REQ. <strong>Real <code>cost_usd</code> is shown for OpenCode only</strong>, in its own card labelled "the only measured dollars in the system"; Claude Code and Codex show "not measured (null by design)". Tokens may be compared across harness; dollars may not, and the page never shows a dollar total across harnesses. Records with <code>harness: null</code> get <strong>no column</strong> but are never hidden: a footnote row states "<em>n</em> records with harness not detected — excluded from the columns above" (owner decision 2026-08-26). The page honours the Framework switch (F-FRAMEWORK). This page has no reference in <code>tf-metrics.sh</code>, so it is spot-checked by hand once (F-PARITY).</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Harness comparison</td><td><code>/harness</code></td><td>Side-by-side columns per harness; tokens chart; OpenCode-only cost card</td></tr>
+<tr><td>Harness comparison</td><td><code>/harness</code></td><td>Columns claude-code · opencode · codex; "not detected" footnote; tokens chart; OpenCode-only cost card; Framework switch</td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
 </tbody>
 </table>
 
 <p><strong>Workflow:</strong></p>
 <ol>
-<li>Group <code>runs</code>, <code>gates</code>, <code>sessions</code> by <code>harness</code> (null kept as its own group).</li>
+<li>Group <code>runs</code>, <code>gates</code>, <code>sessions</code> by <code>harness</code>; count the <code>null</code> group separately.</li>
 <li>Compute volumes, verdict mix, token totals, tokens per Verified; dollars for <code>opencode</code> only.</li>
-<li>Render columns + one bar chart (tokens by harness).</li>
+<li>Render the three columns + one bar chart (tokens by harness) + the not-detected footnote.</li>
 </ol>
 
 <p><strong>Requirements:</strong> BRD-51, BRD-52, BRD-53, BRD-54, BRD-55</p>
@@ -664,9 +802,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </div>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td>Drift table; tokens-by-model chart; repricing cards (estimate); poolable metrics; prices editor dialog</td></tr>
+<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td>Drift table; tokens-by-model chart; repricing cards (estimate); poolable metrics; prices editor dialog; Framework switch</td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
 </tbody>
 </table>
 
@@ -687,9 +825,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p>A button on <code>/export</code> and a command verb (<code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code>) write two files to <code>data/reports/&lt;date&gt;/</code>: <code>snapshot.md</code> (human-readable, sectioned exactly like the pages, provenance never mixed in one figure, every estimate labelled) and <code>tflens.json</code> (machine-readable; the same key layout as <code>tf-metrics.sh --rollup --json</code> — <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code> — plus an <code>extras</code> object for harness, routing and repricing, and a <code>parity</code> object carrying the last recorded parity run). The page lists previous snapshots with download links and shows a <strong>quotable / not quotable</strong> banner: quotable only if the last parity run on record postdates the last parser change (the build stamps a parser version; the parity record stores the version it validated).</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Snapshot export</td><td><code>/export</code></td><td>Export button; list of past snapshots; quotable banner; parity status</td></tr>
+<tr><td>Snapshot export</td><td><code>/export</code></td><td>Export button; list of past snapshots; quotable banner; parity status; Framework switch (one snapshot per framework)</td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
 </tbody>
 </table>
 
@@ -731,67 +869,98 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <p><strong>Requirements:</strong> BRD-68, BRD-69, BRD-70, BRD-71, BRD-72</p>
 
-<h3 id="f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page<a class="anchor-link" href="#f-pb-playbook-adapter-and-page">#</a></h3>
+<h3 id="f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)<a class="anchor-link" href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">#</a></h3>
 
-<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 3</p>
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 3 <em>(amended 2026-08-26: replaces "F-PB: Playbook adapter and page")</em></p>
 
-<p>Playbook-managed repos emit <code>verification/telemetry/events.ndjson</code> (phase-start / turn / phase-end events, with <code>parentID</code> linking sub-agent sessions to a main session) — a different shape from schema v1, so it gets a <strong>separate adapter, separate tables, and a separate page</strong>. Playbook process-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) are different axes (SCHEMA.md §11) and must never share a column or a chart. No sample of the file exists at day-1 (kickoff answer), so the adapter is built schema-discovery-first: task one parses the real file and records the observed field names in DECISIONS.md; only then are the <code>PbEvent</code> columns fixed and the minimal page built — phase token/cost totals and a main-vs-subagent split via <code>parentID</code>. When the Playbook converges on schema v1 this adapter shrinks; it is deliberately minimal.</p>
+<p>TfLens is a lens over <strong>both</strong> frameworks. The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data deserves the same reports as TechieFlow data — not a single page. <strong>Framework</strong> is therefore a third provenance axis beside live/backfilled and <code>project_type</code>: every report page (Coverage, Three questions, Harness comparison, Routing &amp; economics, Snapshot export) carries a <strong>Framework switch</strong> (TechieFlow | Playbook) in the header, and no figure ever pools across frameworks — the same rule, applied once more. The single <code>/playbook</code> page is retired; its content becomes the Playbook state of the report pages.</p>
+
+<p>Two ingestion paths, one set of pages:</p>
+
+<ol>
+<li><strong>Schema v1 streams from a Playbook repo.</strong> SCHEMA.md §11 says the Playbook will emit the same four streams (plus <code>actor</code>) when it grows agents. A repo whose telemetry path is <code>docs/metrics/</code> flows through the <em>same</em> parser, engine and pages automatically, tagged <code>framework: playbook</code> at connect time — zero new code beyond the tag and the switch.</li>
+<li><strong><code>verification/telemetry/events.ndjson</code></strong> (phase-start / turn / phase-end events, <code>parentID</code> linking sub-agent sessions to a main session). A <strong>separate adapter and separate tables</strong> map events to Playbook-native equivalents: the three questions per <strong><code>phase_gate</code></strong> (plan review · verify · gap report · post-verification bugs), phase token/cost totals, main-vs-subagent split, routing/tokens by model where present, and the same snapshot export. Playbook process-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or a chart (SCHEMA.md §11). No sample of the file exists at day-1, so this path is built schema-discovery-first: task one parses the real file and records the observed field names in DECISIONS.md before any column or chart is fixed. When the Playbook converges on schema v1, path 2 shrinks to nothing.</li>
+</ol>
+
+<p>Phase order (owner decision 2026-08-26): Phase 3 — after the TechieFlow reports ship and pass parity. Until then the Playbook state of each page shows the "No Playbook data yet" empty state.</p>
 
 <table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Playbook</td><td><code>/playbook</code></td><td>Per-repo phase totals (tokens, cost if present), main vs subagent split; "no Playbook data yet" empty state</td></tr>
+<tr><td>Framework switch</td><td>(header, every report page)</td><td>Segmented control TechieFlow / Playbook; persisted per user; badge with each framework's repo count</td><td><a href="./mockups/coverage.html">coverage.html</a> (header)</td></tr>
+<tr><td>Report pages — Playbook state</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/export</code></td><td>Same layouts as the TechieFlow state; Three questions keyed by <code>phase_gate</code>; Coverage shows the <code>events</code> stream; empty state until Phase 3</td><td><a href="./mockups/playbook.html">playbook.html</a> (Coverage) · <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a> · <a href="./mockups/harness-playbook.html">harness-playbook.html</a> · <a href="./mockups/routing-playbook.html">routing-playbook.html</a> · <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
 </tbody>
 </table>
 
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["Connected repo"] --> B{"Telemetry path?"}
+  B -->|"docs/metrics (schema v1)"| C["StreamParser + MetricsEngine<br/>framework tag = techieflow or playbook"]
+  B -->|"verification/telemetry/events.ndjson"| D["PlaybookAdapter (Phase 3)<br/>PbEvent tables, phase_gate axis"]
+  C --> E["Report pages<br/>Framework switch"]
+  D --> E
+  E --> F["Never pooled across frameworks"]</pre>
+</div>
+
 <p><strong>Workflow:</strong></p>
 <ol>
-<li>Sync fetches <code>events.ndjson</code> (and the joiner output if committed) for <code>kind: playbook</code> repos, archives raw, parses into <code>PbEvent</code> with overflow.</li>
-<li>Page groups by phase and by <code>parentID</code> presence.</li>
+<li>Connect detects the path → tags the repo <code>framework</code> (F-REPOS).</li>
+<li>Sync archives raw and parses via the matching path.</li>
+<li>Every page filters by the selected framework; export writes one snapshot per framework.</li>
 </ol>
 
-<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76</p>
+<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110</p>
 
-<h3 id="f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions<a class="anchor-link" href="#f-ops-container-health-docs-and-decisions">#</a></h3>
+<h3 id="f-ops-container-configuration-health-docs-and-decisions">F-OPS: Container, configuration, health, docs and decisions<a class="anchor-link" href="#f-ops-container-configuration-health-docs-and-decisions">#</a></h3>
 
-<p><strong>Personas:</strong> Ops · <strong>Phase:</strong> 1</p>
+<p><strong>Personas:</strong> Ops · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: absorbs the settings formerly in F-CFG; PostgreSQL)</em></p>
 
-<p>A multi-stage Dockerfile produces one image; <code>data/</code> and <code>logs/</code> are volumes; secrets arrive as environment variables. <code>/healthz</code> (anonymous) reports database reachability and the age of the last successful sync, nothing else. The README states the out-of-scope list verbatim (§3) and the run/rebuild/export commands. <code>DECISIONS.md</code> is created at day-1 build time and records: the storage choice (Dapper + SQLite), the dedupe keys, the parser version scheme, anything cut for the timebox, and every parity run.</p>
+<p>A multi-stage Dockerfile produces one image; a <code>docker-compose.yml</code> runs it beside a <strong>PostgreSQL 16</strong> service (owner decision 2026-08-26 — SQLite is unreliable on container storage; Dapper stays the data-access layer via Npgsql). Volumes: <code>data/</code> (raw archive, reports, <code>prices.json</code>), <code>logs/</code>, and the Postgres data directory. All settings come from configuration with secrets <strong>only</strong> via the PascalCase env-var provider: <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code> (required); <code>TfLensGitHubToken</code> (optional — raises the GitHub API rate limit for public reads). Non-secret: <code>TfLensAppManagerBaseUrl</code> (default <code>https://appmgrapi.techierathore.com</code>), <code>TfLensAppManagerAppId</code> (default <code>1</code>), <code>PollIntervalMinutes</code> (default 15), <code>DataRoot</code> (default <code>data/</code>). Startup validates the configuration, applies the idempotent schema script <code>database/001-schema.sql</code>, and refuses to run with a missing secret or an unreachable database, logging a redacted reason. <code>/healthz</code> (anonymous) reports database reachability and the age of the last successful sync, nothing else. The README states the out-of-scope list verbatim (§3) and the run/rebuild/export commands. <code>DECISIONS.md</code> is created at day-1 build time and records: the storage choice (Dapper + PostgreSQL, superseding SQLite), the dedupe keys, the parser version scheme, anything cut for the timebox, and every parity run.</p>
 
 <p><strong>Workflow:</strong></p>
 <ol>
-<li><code>docker build</code> → image; <code>docker run -v data -v logs -e TfLensGitHubToken=…</code> → container.</li>
+<li><code>docker compose up</code> → <code>postgres</code> + <code>tflens</code>; secrets from the environment.</li>
+<li>Startup: validate config → apply schema script → start poller + web host.</li>
 <li><code>docker exec &lt;c&gt; dotnet TfLens.dll rebuild|sync|export</code> for operations.</li>
 </ol>
 
-<p><strong>Requirements:</strong> BRD-77, BRD-78, BRD-79, BRD-80, BRD-81</p>
+<p><strong>Requirements:</strong> BRD-8, BRD-9, BRD-10, BRD-11, BRD-77, BRD-78, BRD-79, BRD-80, BRD-81, BRD-111</p>
 
 <h2 id="functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)<a class="anchor-link" href="#functional-requirements-brd-ledger">#</a></h2>
 
 <ul>
-<li><strong>BRD-1</strong> — Owner can sign in at <code>/login</code> with the single configured username and password and is redirected to the requested page. <em>(F-SHELL)</em></li>
-<li><strong>BRD-2</strong> — System shall place every page except <code>/login</code> and <code>/healthz</code> behind cookie authentication (sliding 12 h, HttpOnly, Secure). <em>(F-SHELL)</em></li>
-<li><strong>BRD-3</strong> — System shall verify the password against a PBKDF2 hash from configuration using a constant-time comparison and show a generic error on failure. <em>(F-SHELL)</em></li>
-<li><strong>BRD-4</strong> — Owner can sign out from the header. <em>(F-SHELL)</em></li>
-<li><strong>BRD-5</strong> — Owner can navigate between Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export and Playbook via a TrBlazeUI sidebar, in that order. <em>(F-SHELL)</em></li>
-<li><strong>BRD-6</strong> — Owner can press <strong>Sync now</strong> in the header and see the last-sync timestamp and a per-repo outcome toast. <em>(F-SHELL)</em></li>
-<li><strong>BRD-7</strong> — Ops can configure the repo list <code>{owner, name, branch, kind: techieflow|playbook}</code> and the poll interval in <code>appsettings.json</code> / environment. <em>(F-CFG)</em></li>
-<li><strong>BRD-8</strong> — System shall read the GitHub PAT and the auth credentials only from environment / user-secrets via the PascalCase env-var provider (<code>TfLensGitHubToken</code>, <code>TfLensAuthUser</code>, <code>TfLensAuthPasswordHash</code>), never from files in the repo. <em>(F-CFG)</em></li>
-<li><strong>BRD-9</strong> — System shall refuse to start when the token or credentials are missing, a repo is duplicated, or a <code>kind</code> is unknown, logging a redacted reason. <em>(F-CFG)</em></li>
-<li><strong>BRD-10</strong> — System shall never log, display, or export the PAT or the password hash. <em>(F-CFG)</em></li>
-<li><strong>BRD-11</strong> — Ops can override <code>DataRoot</code> (default <code>data/</code>) for the database, raw archive, reports and <code>prices.json</code>. <em>(F-CFG)</em></li>
-<li><strong>BRD-12</strong> — System shall poll every configured repo on the configured interval via a <code>BackgroundService</code>. <em>(F-SYNC)</em></li>
+<li><strong>BRD-1</strong> — User can sign in at <code>/login</code> with their AppManager email and password and is redirected to the requested page (first sign-in with no repos lands on <code>/repos</code>). <em>(F-AUTH — amended 2026-08-26)</em></li>
+<li><strong>BRD-2</strong> — System shall place every page except <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code> and <code>/healthz</code> behind cookie authentication (sliding 12 h, HttpOnly, Secure). <em>(F-AUTH — amended 2026-08-26)</em></li>
+<li><del><strong>BRD-3</strong></del> <em>(removed 2026-08-26: local PBKDF2 credential store superseded by AppManager — see BRD-90)</em></li>
+<li><strong>BRD-4</strong> — User can sign out from the <strong>user menu</strong> in the header (name → DropdownMenu → Sign out), which calls AppManager <code>/AuthSvc/logout</code> and clears the cookie. <em>(F-SHELL — amended 2026-08-26)</em></li>
+<li><strong>BRD-5</strong> — User can navigate between Repos, Coverage, Three questions, Harness, Routing &amp; economics and Snapshot export via a TrBlazeUI sidebar with a Lucide icon per item, in that order (Playbook page retired — framework is a header switch, BRD-108). <em>(F-SHELL — amended 2026-08-26 ×2)</em></li>
+<li><strong>BRD-6</strong> — User can press <strong>Sync now</strong> in the header and see the last-sync timestamp and a per-repo outcome toast for their own repos. <em>(F-SHELL — amended 2026-08-26)</em></li>
+<li><del><strong>BRD-7</strong></del> <em>(removed 2026-08-26: no repo list or demo seed in configuration — repos are managed only on the Repos screen, F-REPOS)</em></li>
+<li><strong>BRD-8</strong> — System shall read the AppManager API key/secret, the database connection string and the optional GitHub PAT only from environment / user-secrets via the PascalCase env-var provider (<code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code>, <code>TfLensGitHubToken</code>), never from files in the repo. <em>(F-OPS — amended 2026-08-26 ×2)</em></li>
+<li><strong>BRD-9</strong> — System shall refuse to start when a required secret is missing or the database is unreachable, logging a redacted reason. <em>(F-OPS — amended 2026-08-26 ×2)</em></li>
+<li><strong>BRD-10</strong> — System shall never log, display, or export the AppManager secret, the connection string, the PAT, or any AppManager token. <em>(F-OPS — amended 2026-08-26 ×2)</em></li>
+<li><strong>BRD-11</strong> — Ops can override <code>DataRoot</code> (default <code>data/</code>) for the raw archive, reports and <code>prices.json</code>. <em>(F-OPS — amended 2026-08-26)</em></li>
+<li><strong>BRD-12</strong> — System shall poll every connected repo of every user on the configured interval via a <code>BackgroundService</code>. <em>(F-SYNC — amended 2026-08-26)</em></li>
 <li><strong>BRD-13</strong> — System shall, per repo, read the latest commit SHA touching the telemetry path on the configured branch and skip the repo when it equals the stored SHA. <em>(F-SYNC)</em></li>
 <li><strong>BRD-14</strong> — System shall fetch each stream file whole at that exact SHA and treat a 404 as "stream absent" (zero records), not an error. <em>(F-SYNC)</em></li>
 <li><strong>BRD-15</strong> — System shall isolate errors per repo (401/403/404/network), record a redacted reason in <code>sync_state.LastError</code>, and continue with the remaining repos. <em>(F-SYNC)</em></li>
 <li><strong>BRD-16</strong> — System shall be structurally read-only against GitHub: only GET requests, contents-read scope, no code path that writes to any repository. <em>(F-SYNC)</em></li>
-<li><strong>BRD-17</strong> — System shall update <code>sync_state</code> (last SHA, last sync ts, per-stream record counts, last error) after each repo sync. <em>(F-SYNC)</em></li>
+<li><strong>BRD-17</strong> — System shall update <code>sync_state</code> (per user and repo: last SHA, last sync ts, per-stream record counts, last error) after each repo sync. <em>(F-SYNC — amended 2026-08-26)</em></li>
 <li><strong>BRD-18</strong> — System shall invalidate cached analysis results after every completed sync or rebuild. <em>(F-SYNC)</em></li>
-<li><strong>BRD-19</strong> — System shall store every fetched stream file verbatim under <code>data/raw/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> before parsing it. <em>(F-RAW)</em></li>
-<li><strong>BRD-20</strong> — Ops can run <code>rebuild</code> (command verb) to drop the SQLite database and reparse every archived raw file. <em>(F-RAW)</em></li>
+<li><strong>BRD-19</strong> — System shall store every fetched stream file verbatim under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> before parsing it. <em>(F-RAW — amended 2026-08-26)</em></li>
+<li><strong>BRD-20</strong> — Ops can run <code>rebuild</code> (command verb) to truncate the stream tables in PostgreSQL, re-apply the schema script and reparse every archived raw file. <em>(F-RAW — amended 2026-08-26)</em></li>
 <li><strong>BRD-21</strong> — Owner can trigger the same rebuild from the Coverage page behind a confirmation dialog. <em>(F-RAW)</em></li>
 <li><strong>BRD-22</strong> — System shall report, after a rebuild, files replayed, records stored and duplicates collapsed per stream, and produce the same counts as live syncing did. <em>(F-RAW)</em></li>
-<li><strong>BRD-23</strong> — System shall store each stream in its own table (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>, with columns named exactly after SCHEMA.md fields. <em>(F-PARSE)</em></li>
+<li><strong>BRD-23</strong> — System shall store each stream in its own PostgreSQL table (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>, via Dapper + Npgsql, with columns named exactly after SCHEMA.md fields (PascalCase, quoted identifiers). <em>(F-PARSE — amended 2026-08-26)</em></li>
 <li><strong>BRD-24</strong> — System shall keep unknown properties (and all properties of records with <code>v &gt; 1</code>) in a JSON <code>Overflow</code> column instead of dropping them. <em>(F-PARSE)</em></li>
 <li><strong>BRD-25</strong> — System shall count and skip lines that are not valid JSON, as the reference does. <em>(F-PARSE)</em></li>
 <li><strong>BRD-26</strong> — System shall dedupe <code>commits</code> on <code>sha</code> per repo, keeping the first and counting the collapsed duplicates. <em>(F-PARSE)</em></li>
@@ -807,23 +976,23 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>BRD-36</strong> — System shall report late-added gates (<code>perf</code>, since 2026-08-10) as <code>ran</code> (records whose <code>gates_run</code> contains the gate) beside <code>caught</code>, and never present their share of the raw distribution as a catch rate. <em>(F-ENGINE)</em></li>
 <li><strong>BRD-37</strong> — System shall compute the poolable metrics (rework ratio, batch size median, REQ throughput median in REQs/hour, tokens total, tokens per Verified REQ, commit cadence, duplicates collapsed) with the reference's formulas and rounding. <em>(F-ENGINE)</em></li>
 <li><strong>BRD-38</strong> — System shall include a unit test that asserts the engine's output on checked-in fixture streams equals a checked-in <code>reference.json</code> produced by <code>tf-metrics.sh</code> on the same fixtures. <em>(F-ENGINE)</em></li>
-<li><strong>BRD-39</strong> — Owner can see, per repo, last sync time and outcome, last commit SHA, record counts per stream and live-vs-backfilled gate counts on the Coverage page at <code>/</code>. <em>(F-COVER)</em></li>
+<li><strong>BRD-39</strong> — User can see, per connected repo of their own, last sync time and outcome, last commit SHA, record counts per stream and live-vs-backfilled gate counts on the Coverage page at <code>/</code>. <em>(F-COVER)</em></li>
 <li><strong>BRD-40</strong> — Owner can see days since the newest record per stream per repo. <em>(F-COVER)</em></li>
 <li><strong>BRD-41</strong> — System shall flag on screen, in words, any repo whose newest <code>sessions</code> or <code>commits</code> record is older than the staleness threshold (default 7 days), stating that the clone is not pushing or lacks hooks. <em>(F-COVER)</em></li>
 <li><strong>BRD-42</strong> — Owner can see per repo the field names observed that SCHEMA.md does not document, and any records with <code>v &gt; 1</code>. <em>(F-COVER)</em></li>
 <li><strong>BRD-43</strong> — System shall show a single GREEN / CHECK summary badge with the warning count at the top of the Coverage page. <em>(F-COVER)</em></li>
-<li><strong>BRD-44</strong> — System shall show the Coverage page as the landing page after login. <em>(F-COVER)</em></li>
+<li><strong>BRD-44</strong> — System shall show the Coverage page as the landing page after login for a user with at least one connected repo (<code>/repos</code> otherwise). <em>(F-COVER — amended 2026-08-26)</em></li>
 <li><strong>BRD-45</strong> — Owner can see, per <code>project_type</code> (including <code>unclassified</code>), the live first-pass rate, gate catch distribution and escape rate at <code>/three-questions</code>. <em>(F-3Q)</em></li>
 <li><strong>BRD-46</strong> — System shall show backfilled figures for the same <code>project_type</code> in an adjacent column labelled backfilled, never summed with live. <em>(F-3Q)</em></li>
 <li><strong>BRD-47</strong> — System shall present <code>escaped</code> as its own row in the gate catch distribution and <code>unattributed</code> for failures without a gate, in the reference's gate order. <em>(F-3Q)</em></li>
 <li><strong>BRD-48</strong> — Owner can see the full list of REQ IDs excluded by backfill taint. <em>(F-3Q)</em></li>
 <li><strong>BRD-49</strong> — Owner can see the late-gate coverage line per gate (<code>ran</code>, <code>caught</code>, rate or insufficient data, or "not yet run on this data (gate added …)"). <em>(F-3Q)</em></li>
 <li><strong>BRD-50</strong> — System shall show no "all types" view and no total row on the three-questions page, and shall display the SCHEMA.md §6 note explaining why. <em>(F-3Q)</em></li>
-<li><strong>BRD-51</strong> — Owner can see per harness (<code>claude-code</code>, <code>opencode</code>, <code>null</code>, and any new value) run counts by command, gate verdict mix, session counts, and token totals at <code>/harness</code>. <em>(F-HARN)</em></li>
+<li><strong>BRD-51</strong> — User can see per harness — columns <strong><code>claude-code</code>, <code>opencode</code>, <code>codex</code></strong> — run counts by command, gate verdict mix, session counts, and token totals at <code>/harness</code>. <em>(F-HARN — amended 2026-08-26)</em></li>
 <li><strong>BRD-52</strong> — Owner can see tokens per verified REQ per harness. <em>(F-HARN)</em></li>
 <li><strong>BRD-53</strong> — System shall show real <code>cost_usd</code> for <code>opencode</code> only, labelled as the only measured dollars in the system, and "not measured (null by design)" for Claude Code. <em>(F-HARN)</em></li>
 <li><strong>BRD-54</strong> — System shall never show a dollar total across harnesses. <em>(F-HARN)</em></li>
-<li><strong>BRD-55</strong> — System shall present <code>harness: null</code> as its own "not detected" column, never merged into a named harness. <em>(F-HARN)</em></li>
+<li><strong>BRD-55</strong> — System shall never merge <code>harness: null</code> records into a named harness and shall disclose them in a footnote row ("<em>n</em> records with harness not detected — excluded from the columns above") rather than a column. <em>(F-HARN — amended 2026-08-26)</em></li>
 <li><strong>BRD-56</strong> — Owner can see routing drift at <code>/routing</code>: <code>routed:false</code> run count and list, and declared <code>tier</code>/<code>tier_model</code> versus observed <code>model</code>/<code>models</code>, by command. <em>(F-ROUTE)</em></li>
 <li><strong>BRD-57</strong> — Owner can see tokens by observed model (input, output, cache read, cache write). <em>(F-ROUTE)</em></li>
 <li><strong>BRD-58</strong> — Owner can see the counterfactual repricing figure: all tokens repriced at the most expensive observed model versus the actual mix, from <code>data/prices.json</code>. <em>(F-ROUTE)</em></li>
@@ -831,7 +1000,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>BRD-60</strong> — System shall exclude runs with <code>tokens_scope: none</code> (or no token fields) from repricing and state how many were excluded. <em>(F-ROUTE)</em></li>
 <li><strong>BRD-61</strong> — Owner can edit <code>prices.json</code> (per model: input/output/cache-read/cache-write USD per million tokens) through a validated dialog; the file remains the source of truth. <em>(F-ROUTE)</em></li>
 <li><strong>BRD-62</strong> — Owner can see the poolable metrics (rework ratio, REQ throughput, batch size, commit cadence) on the routing page. <em>(F-ROUTE)</em></li>
-<li><strong>BRD-63</strong> — Owner can press Export on <code>/export</code> to write <code>data/reports/&lt;date&gt;/snapshot.md</code> and <code>tflens.json</code>. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-63</strong> — User can press Export on <code>/export</code> to write <code>data/reports/&lt;userId&gt;/&lt;date&gt;/snapshot.md</code> and <code>tflens.json</code> for their own repos. <em>(F-EXPORT — amended 2026-08-26)</em></li>
 <li><strong>BRD-64</strong> — Ops can run the <code>export</code> verb (<code>dotnet TfLens.dll export [--date]</code>) to produce the same files headlessly. <em>(F-EXPORT)</em></li>
 <li><strong>BRD-65</strong> — System shall lay out <code>tflens.json</code> with the same keys as <code>tf-metrics.sh --rollup --json</code> (<code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>) plus <code>extras</code> and <code>parity</code> objects. <em>(F-EXPORT)</em></li>
 <li><strong>BRD-66</strong> — System shall never mix provenances in one figure in the snapshot and shall label every estimate in both files. <em>(F-EXPORT)</em></li>
@@ -841,10 +1010,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>BRD-70</strong> — Parity operator can read the dataset SHAs for the last sync from the export and the Coverage page to pin the reference dataset. <em>(F-PARITY)</em></li>
 <li><strong>BRD-71</strong> — System shall record each passing parity run in <code>data/parity-last.json</code> (date, dataset SHAs, script hash, parser version, compare output) and the operator records it in DECISIONS.md. <em>(F-PARITY)</em></li>
 <li><strong>BRD-72</strong> — Parity operator shall spot-check the metrics without a reference (harness, routing, repricing) by hand against raw JSONL once and record it in DECISIONS.md. <em>(F-PARITY)</em></li>
-<li><strong>BRD-73</strong> — System shall fetch <code>verification/telemetry/events.ndjson</code> (and the joiner output if committed) for <code>kind: playbook</code> repos, archive raw, and parse into separate <code>PbEvent</code> tables with overflow. <em>(F-PB)</em></li>
-<li><strong>BRD-74</strong> — System shall keep Playbook <code>phase_gate</code> data in separate tables and charts from TechieFlow <code>gate</code> data — never a shared column or chart. <em>(F-PB)</em></li>
-<li><strong>BRD-75</strong> — Owner can see per Playbook repo the phase token/cost totals and the main-vs-subagent split via <code>parentID</code> at <code>/playbook</code>. <em>(F-PB)</em></li>
-<li><strong>BRD-76</strong> — System shall record the observed <code>events.ndjson</code> field names in DECISIONS.md before the adapter's columns are fixed (schema-discovery first). <em>(F-PB)</em></li>
+<li><strong>BRD-73</strong> — System shall fetch <code>verification/telemetry/events.ndjson</code> (and the joiner output if committed) for Playbook repos that carry it, archive raw, and parse into separate <code>PbEvent</code> tables with overflow. <em>(F-FRAMEWORK — amended 2026-08-26)</em></li>
+<li><strong>BRD-74</strong> — System shall keep Playbook <code>phase_gate</code> data in separate tables and charts from TechieFlow <code>gate</code> data — never a shared column or chart. <em>(F-FRAMEWORK)</em></li>
+<li><strong>BRD-75</strong> — User can see, in the Playbook state of the report pages, the Playbook-native three questions per <code>phase_gate</code>, phase token/cost totals, the main-vs-subagent split via <code>parentID</code>, and routing/tokens where present. <em>(F-FRAMEWORK — amended 2026-08-26; replaces the single <code>/playbook</code> page)</em></li>
+<li><strong>BRD-76</strong> — System shall record the observed <code>events.ndjson</code> field names in DECISIONS.md before the adapter's columns are fixed (schema-discovery first). <em>(F-FRAMEWORK)</em></li>
 <li><strong>BRD-77</strong> — Ops can build one Docker image (multi-stage, .NET 10) and run it with <code>data/</code> and <code>logs/</code> volumes and env-var secrets. <em>(F-OPS)</em></li>
 <li><strong>BRD-78</strong> — Ops can call <code>/healthz</code> anonymously and get DB reachability plus last-successful-sync age, nothing else. <em>(F-OPS)</em></li>
 <li><strong>BRD-79</strong> — System shall ship a README that states the out-of-scope list verbatim and the run / rebuild / sync / export commands. <em>(F-OPS)</em></li>
@@ -856,36 +1025,71 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <ul>
 <li><strong>BRD-82</strong> — Performance: report pages render from the memoised analysis within a second for the expected data volume (tens of thousands of records across ≤10 repos); a full sync of 5 repos completes in under 30 s on a normal connection. Targets:
-  <table>
-  <thead><tr><th>Metric</th><th>Target</th><th>Notes</th></tr></thead>
-  <tbody>
-  <tr><td>Page render (cached analysis)</td><td>p95 load ≤ 1500 ms</td><td>single user</td></tr>
-  <tr><td>Cold analysis (after sync)</td><td>≤ 3 s for 50k records</td><td>computed once per sync</td></tr>
-  <tr><td>Sync, 5 repos, unchanged</td><td>≤ 5 s</td><td>SHA lookup only</td></tr>
-  <tr><td>Rebuild, 5 repos × 20 SHAs</td><td>≤ 60 s</td><td>replay from raw</td></tr>
-  </tbody>
-  </table>
-  <p>perf-budget: p95 load &lt;= 1500ms @ concurrency 1</p>
+<table>
+<thead><tr><th>Metric</th><th>Target</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Page render (cached analysis)</td><td>p95 load ≤ 1500 ms</td><td>single user</td></tr>
+<tr><td>Cold analysis (after sync)</td><td>≤ 3 s for 50k records</td><td>computed once per sync</td></tr>
+<tr><td>Sync, 5 repos, unchanged</td><td>≤ 5 s</td><td>SHA lookup only</td></tr>
+<tr><td>Rebuild, 5 repos × 20 SHAs</td><td>≤ 60 s</td><td>replay from raw</td></tr>
+</tbody>
+</table>
+<p>perf-budget: p95 load &lt;= 1500ms @ concurrency 1</p>
 </li>
 <li><strong>BRD-83</strong> — Security: cookie auth on every page (HttpOnly, Secure, SameSite=Lax); antiforgery on forms; secrets only via environment; PAT is fine-grained contents-read; no inbound API; HTTPS terminated by the VPS proxy (out of scope) — the app sets <code>ForwardedHeaders</code> accordingly.</li>
 <li><strong>BRD-84</strong> — Privacy: TfLens displays and stores only what the streams carry (IDs, counts, durations, verdicts, short SHAs); no requirement text, no commit subjects, nothing from <code>src/</code>; the <code>Overflow</code> column is never rendered, only its field names.</li>
-<li><strong>BRD-85</strong> — Accessibility: TrBlazeUI components with semantic markup; every figure has a text equivalent (charts are supplementary); <code>insufficient data</code> and <code>estimate</code> labels are text, not colour alone; keyboard-reachable Sync / Export / Rebuild.</li>
+<li><strong>BRD-85</strong> — Accessibility &amp; theme: TrBlazeUI components with semantic markup; every figure has a text equivalent (charts are supplementary); <code>insufficient data</code> and <code>estimate</code> labels are text, not colour alone; keyboard-reachable Sync / Export / Rebuild / user menu; <strong>dark mode is the default</strong> on first visit, light available via the header toggle, choice persisted per user <em>(amended 2026-08-26)</em>.</li>
 <li><strong>BRD-86</strong> — Observability: Serilog file-based logging in the single executable head — rolling file sink under <code>logs/</code> (<code>logs/tflens-.log</code>, daily, 14 files retained) plus console, wired at startup before the host builds, unhandled exceptions logged at the boundary, <code>Log.CloseAndFlush()</code> on exit (see Coding Standards §Logging). Sync outcomes logged per repo with counts and SHAs only.</li>
 <li><strong>BRD-87</strong> — Reliability: a failing repo never fails a sync; a failing sync never affects served pages (last good analysis stays); the database can be rebuilt from <code>data/raw/</code> at any time with identical counts.</li>
 <li><strong>BRD-88</strong> — Testability: the engine and parser are in <code>TfLens.Core</code> with no web dependency; fixture JSONL under <code>tests/</code>; Blazor screens use stable <code>data-testid</code> ids for Playwright.</li>
 <li><strong>BRD-89</strong> — Integrity: the provenance rules (BRD-31..36) have no configuration switch, no query parameter and no UI toggle that relaxes them.</li>
 </ul>
 
+<h3 id="amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell<a class="anchor-link" href="#amendment-2026-08-26-identity-repo-management-shell">#</a></h3>
+
+<ul>
+<li><strong>BRD-90</strong> — User can sign in with email + password via AppManager <code>POST /AuthSvc/login</code> (App Id 1, <code>X-Api-Key</code>/<code>X-Api-Secret</code> headers, password RSA-OAEP-256-encrypted with the cached <code>/AuthSvc/public-key</code>); TfLens stores no passwords. <em>(F-AUTH)</em></li>
+<li><strong>BRD-91</strong> — User can self-register at <code>/register</code> via <code>POST /AuthSvc/register</code> with <code>applicationRoleCode: "Manager"</code>, with the AppManager password rules validated locally first. <em>(F-AUTH)</em></li>
+<li><strong>BRD-92</strong> — User can request a password reset at <code>/forgot-password</code> and complete it at <code>/reset-password?token=…</code> via AppManager, with an enumeration-safe message. <em>(F-AUTH)</em></li>
+<li><strong>BRD-93</strong> — System shall issue its own auth cookie (userId, email, name, role) and hold the AppManager access/refresh tokens server-side, refreshing via <code>/AuthSvc/refresh</code> before expiry, validating a resumed cookie via <code>/AuthSvc/validate</code>, and calling <code>/AuthSvc/logout</code> on sign-out. <em>(F-AUTH)</em></li>
+<li><strong>BRD-94</strong> — <em>(Phase 2 — deferred 2026-08-26)</em> User can sign in with GitHub as SSO, with the user record living in AppManager; blocked until AppManager offers an external-login / token-exchange endpoint (or a TfLens bridge is accepted). Not in this release; login screen shows no GitHub button. <em>(F-AUTH)</em></li>
+<li><strong>BRD-95</strong> — System shall treat every user as AppManager <code>Manager</code> for Application 1 and shall never call LicenseSvc, FeatureSvc, PaymentSvc or IssueSvc. <em>(F-AUTH)</em></li>
+<li><strong>BRD-96</strong> — System shall have a demo user <code>TfLensDemo</code> (<code>tflensdemo@techierathore.com</code>) registered in AppManager during development, listed as UsageGuide test user #1, with its public demo repos connected through the Repos screen (no configuration seed). <em>(F-AUTH — amended 2026-08-26)</em></li>
+<li><strong>BRD-97</strong> — System shall read the AppManager connection from configuration only: <code>TfLensAppManagerBaseUrl</code>, <code>TfLensAppManagerAppId</code> (1), <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>; the key and secret never appear in the repo, logs or UI. <em>(F-AUTH)</em></li>
+<li><strong>BRD-98</strong> — User can see their connected repos at <code>/repos</code> (owner/name, branch, kind, public badge, sync status, last sync, per-stream counts) with per-row Sync and Remove. <em>(F-REPOS)</em></li>
+<li><strong>BRD-99</strong> — User can connect a repo by GitHub URL or <code>owner/name</code> (+ branch); system shall validate through the GitHub API that it exists, is public, and has the telemetry path for its kind, auto-detecting the kind. <em>(F-REPOS)</em></li>
+<li><strong>BRD-100</strong> — System shall refuse private repos with an explicit message in this release (public-only); the server PAT is optional and only raises the rate limit. <em>(F-REPOS)</em></li>
+<li><strong>BRD-101</strong> — User can remove a connected repo after confirmation; system shall stop its sync and purge that user's parsed rows and raw archive for it. <em>(F-REPOS)</em></li>
+<li><strong>BRD-102</strong> — System shall scope every page, sync, export, cache and stored row to the signed-in user (<code>UserId</code> on <code>sync_state</code>, stream tables, raw archive path and reports path); no user can see another user's repos or figures. <em>(F-REPOS)</em></li>
+<li><strong>BRD-103</strong> — System shall sync every user's repos in the background poller and only the signed-in user's repos on header Sync now, keeping errors per user and repo. <em>(F-REPOS)</em></li>
+<li><strong>BRD-104</strong> — System shall reject a duplicate <code>owner/name</code> for the same user and allow different users to connect the same public repo independently. <em>(F-REPOS)</em></li>
+<li><strong>BRD-105</strong> — User can collapse and expand the sidebar (<code>SidebarTrigger</code>); collapsed items show icon + tooltip; the state is remembered. <em>(F-SHELL)</em></li>
+<li><strong>BRD-106</strong> — System shall show the signed-in user's display name in the header with a DropdownMenu (Profile, Manage repos, Sign out). <em>(F-SHELL)</em></li>
+<li><strong>BRD-107</strong> — User can view their AppManager profile and change their password at <code>/profile</code> (<code>GET /UserSvc/profile</code>, <code>POST /UserSvc/change-password</code>, both passwords RSA-encrypted). <em>(F-AUTH)</em></li>
+</ul>
+
+<h3 id="amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL<a class="anchor-link" href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">#</a></h3>
+
+<ul>
+<li><strong>BRD-108</strong> — User can switch every report page (Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export) between <strong>TechieFlow</strong> and <strong>Playbook</strong> via a header Framework switch; the system shall never pool any figure across frameworks (a third provenance axis, same rule as <code>project_type</code>); the choice is persisted per user. <em>(F-FRAMEWORK, F-SHELL)</em></li>
+<li><strong>BRD-109</strong> — System shall run a Playbook repo that emits schema v1 streams (<code>docs/metrics/*.jsonl</code>) through the same parser, engine and pages as TechieFlow repos, tagged <code>framework: playbook</code> at connect time. <em>(F-FRAMEWORK)</em></li>
+<li><strong>BRD-110</strong> — System shall, for <code>events.ndjson</code> repos, produce Playbook-native equivalents of the full report set (three questions per <code>phase_gate</code>, phase totals, main-vs-subagent split, routing/tokens where present, snapshot export) from separate tables — Phase 3, schema-discovery first. <em>(F-FRAMEWORK)</em></li>
+<li><strong>BRD-111</strong> — Ops can run TfLens with <code>docker compose</code> beside a PostgreSQL 16 service; the system shall apply <code>database/001-schema.sql</code> idempotently at startup and read the connection string from <code>TfLensDbConnection</code>. <em>(F-OPS)</em></li>
+</ul>
+
 <h2 id="constraints-assumptions">12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
 
 <ul>
-<li>Blazor Server on the current LTS .NET (10); SQLite; Dapper (owner decision 2026-08-26); TrBlazeUI where it fits (dogfood). Docker on a VPS — infra config supplied separately.</li>
+<li>Blazor Server on the current LTS .NET (10); <strong>PostgreSQL 16</strong> (owner decision 2026-08-26 — SQLite is unreliable on container storage); Dapper via Npgsql; TrBlazeUI where it fits (dogfood). Docker Compose on a VPS — infra config supplied separately.</li>
 <li>Timebox 1–2 days; phase order is hard (1 → 2 → 3). Anything cut for time is recorded in DECISIONS.md.</li>
 <li>Schema v=1 as documented in <code>.tfcore/telemetry/SCHEMA.md</code> at 2026-08-26; <code>tf-metrics.sh</code> at the same date is the reference. A reference change invalidates the last parity stamp (the script hash is recorded).</li>
-<li>The placeholder repo list (§F-CFG) is corrected by the owner before first sync.</li>
+<li>Repos are connected only through the Repos screen; the demo repos are connected to <code>TfLensDemo</code> by hand during development.</li>
+<li>Playbook report set (F-FRAMEWORK) is Phase 3, after the TechieFlow set ships and passes parity (owner decision 2026-08-26).</li>
 <li>No Playbook <code>events.ndjson</code> sample exists at day-1; Phase 3 starts with schema discovery.</li>
 <li>A0′ ("logging live, three runs") is satisfied by the frameworks' existing emission, not by TfLens; the only machine-side task is running <code>update-framework.sh</code> on each clone so the per-clone hooks exist. TfLens can trail A0′ without blocking it.</li>
-<li>Single user; no horizontal scaling; the memoised analysis lives in process memory.</li>
+<li>Multi-user (amended 2026-08-26) but single process; the memoised analysis lives in process memory keyed by user; no horizontal scaling.</li>
+<li>Identity is AppManager (App Id 1, API v1.4). AppManager has no SSO endpoint today — GitHub SSO (BRD-94) is deferred to Phase 2.</li>
+<li>Public GitHub repos only in this release; unauthenticated GitHub API limits (60 req/h per IP) apply unless the optional server PAT is set.</li>
 </ul>
 
 <h2 id="parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test<a class="anchor-link" href="#parity-check-the-mandatory-acceptance-test">#</a></h2>
@@ -909,7 +1113,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 
 <h2 id="definition-of-done">14. Definition of done<a class="anchor-link" href="#definition-of-done">#</a></h2>
 
-<ul style="list-style:none;padding-left:4px">
+<ul>
 <li>☐ All configured repos syncing; Coverage page green with real staleness numbers</li>
 <li>☐ Three-questions page renders per project_type with live/backfilled separation and the taint-exclusion list visible</li>
 <li>☐ Harness comparison page shows claude-code vs opencode side by side, with OpenCode-only dollars</li>
@@ -942,6 +1146,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Playbook file shape differs from the brief's description</td><td>High</td><td>Low</td><td>Schema-discovery first; adapter isolated in its own tables/page</td></tr>
 <tr><td>Timebox pressure erodes Phase 2 pages</td><td>Medium</td><td>Medium</td><td>Phase order hard; cuts recorded in DECISIONS.md; Coverage + Three questions + Export are the minimum</td></tr>
 <tr><td>TrBlazeUI lacks a control a screen needs (no KPI card, no table primitives)</td><td>Medium</td><td>Low</td><td>Compose from <code>Card</code> + Tailwind per the library's documented KPI pattern; log gaps to <code>docs/TfLens-TrBlazeUI-Feedback.md</code></td></tr>
+<tr><td>AppManager outage blocks all sign-ins</td><td>Low</td><td>High</td><td>Sessions survive on the server-side refresh token until expiry; clear "identity service unavailable" message; no local fallback by design</td></tr>
+<tr><td>Cross-user data leak through a missed <code>UserId</code> filter</td><td>Low</td><td>High</td><td><code>UserId</code> is a mandatory parameter of every store read; integration test signs in two users and asserts isolation</td></tr>
+<tr><td>Unauthenticated GitHub rate limit (60/h) with many users</td><td>Medium</td><td>Medium</td><td>Optional server PAT (5,000/h); SHA-skip keeps steady-state to 1 call per repo per poll</td></tr>
 </tbody>
 </table>
 
@@ -960,13 +1167,20 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>Raw archive</strong> — <code>data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code>; the rebuild source.</li>
 <li><strong>REQ-UI-* / REQ-FN-* / REQ-RAG-* / REQ-NFR-*</strong> — checklist requirement IDs produced by <code>*split-brd</code>.</li>
 <li><strong>TrBlazeUI</strong> — the Blazor component library dogfooded by the UI; <strong>TechieRag</strong> — not used here.</li>
+<li><strong>Framework</strong> — the provenance axis TechieFlow | Playbook; figures never pool across it.</li>
+<li><strong>phase_gate</strong> — the Playbook's process-gate axis (plan review · verify · gap report · post-verification bugs), distinct from TechieFlow's assertion <code>gate</code>.</li>
+<li><strong>codex</strong> — the Codex CLI harness value detected by <code>tf-emit.sh</code>.</li>
+<li><strong>AppManager</strong> — the owner's identity/licensing service (<code>appmgrapi.techierathore.com</code>); TfLens is Application 1 and uses only AuthSvc + UserSvc.</li>
+<li><strong>Manager</strong> — the AppManager application role every TfLens user receives.</li>
+<li><strong>TfLensDemo</strong> — the demo account used for testing and first-visit demos.</li>
 </ul>
 
 <hr>
 <p>Last updated: 2026-08-26<br>
-Highest BRD ID: BRD-89<br>
+Last amended: 2026-08-26 (round 2) — both frameworks get the full report set via a Framework switch (F-FRAMEWORK replaces F-PB, Phase 3); harness columns claude-code/opencode/codex with a null footnote; PostgreSQL replaces SQLite (Dapper stays); F-CFG retired into F-OPS (BRD-7 retired); mockup links added to every screens table + a Screen inventory. Round 1 (same day): AppManager identity (F-AUTH), per-user repo management (F-REPOS), shell rework; BRD-3 retired; GitHub SSO (BRD-94) deferred to Phase 2<br>
+Highest BRD ID: BRD-111<br>
 Sources harvested: docs/TfLens-Project-Brief.md (v2, superseded → docs/OldDocs/), .tfcore/telemetry/SCHEMA.md, .tfcore/telemetry/tf-metrics.sh, docs/ravi-90day-positioning-plan-v2.4.2.md (context only)<br>
-Custom instructions applied: Dapper + Microsoft.Data.Sqlite (owner); placeholder repo list from the plan; Phase 3 as schema-discovery (no events.ndjson sample); split-brd deferred until after review<br>
+Custom instructions applied: Dapper + PostgreSQL (owner, superseding SQLite); repos managed only in the UI; Phase 3 as schema-discovery (no events.ndjson sample); split-brd deferred until after review<br>
 First-pass draft from concept — review and edit. New BRDs may be added (append-only); do not renumber existing IDs.</p>
 
   </main>

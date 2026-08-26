@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Routing &amp; economics</title>
+<title>TfLens — Routing &amp; economics (Playbook)</title>
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -165,7 +165,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
  <header class="hdr">
   <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
   <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Routing &amp; economics</b></nav>
-  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="routing.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="routing-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab" href="routing.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab active" href="routing-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
   <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
   <span class="badge outline">synced 12 min ago</span>
@@ -173,58 +173,49 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div class="row between"><div><h1>Routing &amp; economics</h1><p class="sub">Did runs land on the tier they were routed to, and what would the token mix cost at rate-card prices?</p></div><span class="badge outline">all tab panels shown for review</span></div>
-  <div class="tabs" role="tablist"><span class="tab active" data-testid="routing-tab-drift">Routing drift</span><span class="tab" data-testid="routing-tab-models">Tokens by model</span><span class="tab" data-testid="routing-tab-repricing">Repricing (estimate)</span><span class="tab" data-testid="routing-tab-poolable">Poolable metrics</span></div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Routing drift</div>
-   <div class="grid g3">
-    <div class="card kpi"><div class="row"><span class="t">Runs with routing fields</span><span class="chip c1"><svg><use href="#i-route"/></svg></span></div><div class="v">1,412</div><div class="n">of 2,954 runs · fields added 2026-07-30</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,26 20,26 40,18 60,12 80,8 100,4"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">routed:false runs</span><span class="chip cd"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v">1</div><div class="n">0.07% of routed runs</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,24 20,24 40,24 60,24 80,6 100,24"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">Distinct observed models</span><span class="chip c5"><svg><use href="#i-database"/></svg></span></div><div class="v">3</div><div class="n">opus-4-6 · sonnet-4-5 · haiku-4-5</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,20 30,20 50,12 80,12 100,4"/></svg></div>
-   </div>
-   <div class="card"><div class="card-c flush"><table class="tbl" data-testid="drift-table"><thead><tr><th>cmd</th><th>tier</th><th>tier_model</th><th>observed model</th><th class="r">models</th><th>routed</th><th>ts</th></tr></thead><tbody>
-    <tr><td class="mono">*verify</td><td>fast</td><td class="mono">claude-haiku-4-5</td><td class="mono">claude-sonnet-4-5</td><td class="r">2</td><td><span class="row"><span class="badge destructive">drift</span><span class="mono xs">routed:false</span></span></td><td class="muted">2026-08-24 16:02</td></tr>
-    <tr><td class="mono">*build</td><td>strong</td><td class="mono">claude-opus-4-6</td><td class="mono">claude-opus-4-6</td><td class="r">1</td><td><span class="badge success">routed:true</span></td><td class="muted">2026-08-26 09:10</td></tr>
-    <tr><td class="mono">*plan</td><td>balanced</td><td class="mono">claude-sonnet-4-5</td><td class="mono">claude-sonnet-4-5</td><td class="r">1</td><td><span class="badge success">routed:true</span></td><td class="muted">2026-08-26 08:47</td></tr>
+  <div class="row between"><div><h1>Routing &amp; economics</h1><p class="sub">Playbook state — tokens and cost per phase, main session vs sub-agents, and what the token mix would cost at rate-card prices</p></div><span class="badge outline">all tab panels shown for review</span></div>
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Different axes</b><p>Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks.</p></div></div>
+  <div class="tabs" role="tablist"><span class="tab active" data-testid="pb-routing-tab-phases">Phase totals</span><span class="tab" data-testid="pb-routing-tab-mainsub">Main vs subagent</span><span class="tab" data-testid="pb-routing-tab-models">Tokens by model</span><span class="tab" data-testid="pb-routing-tab-repricing">Repricing (estimate)</span></div>
+  <p class="muted sm">Review note: all four tab panels are stacked below; in the app only one is visible at a time.</p>
+  <div class="panel"><div class="panel-lbl">State A · Tab panel · Phase totals</div>
+   <div class="card"><div class="card-c flush"><table class="tbl" data-testid="pb-phase-totals"><thead><tr><th>phase_gate</th><th class="r">events</th><th class="r">tokens</th><th class="r">cost</th></tr></thead><tbody>
+    <tr><td class="mono">plan</td><td class="r">63</td><td class="r">1.9M</td><td class="r">$0.41 <span class="badge outline xs">opencode only</span></td></tr>
+    <tr><td class="mono">build</td><td class="r">202</td><td class="r">7.2M</td><td class="r">$1.28 <span class="badge outline xs">opencode only</span></td></tr>
+    <tr><td class="mono">verify</td><td class="r">146</td><td class="r">2.6M</td><td class="r">$0.39 <span class="badge outline xs">opencode only</span></td></tr>
+    <tr><td class="mono">gap-report</td><td class="r">18</td><td class="r">0.6M</td><td class="r">$0.06 <span class="badge outline xs">opencode only</span></td></tr>
    </tbody></table></div></div>
+   <p class="muted xs">cost is Σ cost_usd where present (OpenCode); Claude Code and Codex are null by design and not summed</p>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Tokens by model</div>
+  <div class="panel"><div class="panel-lbl">State A · Tab panel · Main vs subagent</div>
+   <div class="grid g2">
+    <div class="card kpi"><div class="row"><span class="t">Main-session tokens</span><span class="chip c1"><svg><use href="#i-route"/></svg></span></div><div class="v">8.1M</div><div class="n">events with no parentID · 307 sessions</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,22 20,18 40,16 60,12 80,10 100,6"/></svg></div>
+    <div class="card kpi"><div class="row"><span class="t">Sub-agent tokens</span><span class="chip c5"><svg><use href="#i-git-branch"/></svg></span></div><div class="v">4.2M</div><div class="n">events with parentID · 118 child sessions</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,24 20,22 40,20 60,18 80,14 100,12"/></svg></div>
+   </div>
+   <div class="card"><div class="card-c"><div class="row between"><span class="sm">Share of total tokens</span><span class="muted xs">main 66% · sub-agent 34%</span></div><div class="prog" style="margin-top:10px" data-testid="pb-main-vs-sub"><i style="width:66%;background:var(--chart-1)"></i></div><p class="muted xs" style="margin-top:6px">parentID links a child session to the main session that spawned it; orphan parentIDs (3) counted as sub-agent</p></div></div>
+  </div>
+  <div class="panel"><div class="panel-lbl">State A · Tab panel · Tokens by model</div>
    <div class="grid" style="grid-template-columns:3fr 2fr;align-items:start">
-    <div class="card"><div class="card-c flush"><table class="tbl" data-testid="model-tokens"><thead><tr><th>model</th><th class="r">in</th><th class="r">out</th><th class="r">cache read</th><th class="r">cache write</th><th class="r">total</th></tr></thead><tbody>
-     <tr><td class="mono">claude-opus-4-6</td><td class="r">6.1M</td><td class="r">1.4M</td><td class="r">14.8M</td><td class="r">2.2M</td><td class="r"><b>24.5M</b></td></tr>
-     <tr><td class="mono">claude-sonnet-4-5</td><td class="r">14.9M</td><td class="r">2.1M</td><td class="r">28.4M</td><td class="r">4.0M</td><td class="r"><b>49.4M</b></td></tr>
-     <tr><td class="mono">claude-haiku-4-5</td><td class="r">4.2M</td><td class="r">0.5M</td><td class="r">7.7M</td><td class="r">1.3M</td><td class="r"><b>13.7M</b></td></tr>
+    <div class="card"><div class="card-c flush"><table class="tbl" data-testid="pb-model-tokens"><thead><tr><th>model</th><th class="r">in</th><th class="r">out</th><th class="r">cache read</th><th class="r">cache write</th><th class="r">total</th></tr></thead><tbody>
+     <tr><td class="mono">claude-opus-4-6</td><td class="r">0.9M</td><td class="r">0.2M</td><td class="r">2.1M</td><td class="r">0.3M</td><td class="r"><b>3.5M</b></td></tr>
+     <tr><td class="mono">claude-sonnet-4-5</td><td class="r">2.2M</td><td class="r">0.3M</td><td class="r">4.1M</td><td class="r">0.6M</td><td class="r"><b>7.2M</b></td></tr>
+     <tr><td class="mono">claude-haiku-4-5</td><td class="r">0.5M</td><td class="r">0.1M</td><td class="r">0.9M</td><td class="r">0.1M</td><td class="r"><b>1.6M</b></td></tr>
     </tbody></table></div></div>
     <div class="card"><div class="card-h"><div class="card-t">Total tokens by model</div><span class="badge outline">millions</span></div><div class="card-c"><div class="bars" style="height:200px">
-     <div class="b"><span class="v">24.5M</span><i style="height:50%;background:var(--chart-5)"></i><span class="l">opus-4-6</span></div><div class="b"><span class="v">49.4M</span><i style="height:100%;background:var(--chart-1)"></i><span class="l">sonnet-4-5</span></div><div class="b"><span class="v">13.7M</span><i style="height:28%;background:var(--chart-2)"></i><span class="l">haiku-4-5</span></div>
+     <div class="b"><span class="v">3.5M</span><i style="height:49%;background:var(--chart-5)"></i><span class="l">opus-4-6</span></div><div class="b"><span class="v">7.2M</span><i style="height:100%;background:var(--chart-1)"></i><span class="l">sonnet-4-5</span></div><div class="b"><span class="v">1.6M</span><i style="height:22%;background:var(--chart-2)"></i><span class="l">haiku-4-5</span></div>
     </div></div></div>
    </div>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Repricing (estimate)</div>
-   <div class="grid g3" style="align-items:stretch">
-    <div class="card" data-testid="repricing-actual"><div class="card-h"><div><div class="card-t">Actual mix</div><div class="card-d">tokens per model × prices.json</div></div><span class="chip c1"><svg><use href="#i-route"/></svg></span></div>
-     <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$212.40</div></div><div style="margin-top:12px"><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div><p class="muted xs" style="margin-top:10px">3 runs excluded (tokens_scope none)</p></div></div>
-    <div class="card" data-testid="repricing-max"><div class="card-h"><div><div class="card-t">All at claude-opus-4-6</div><div class="card-d">every run repriced at the most expensive model</div></div><span class="chip c5"><svg><use href="#i-route"/></svg></span></div>
-     <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$618.90</div></div><div style="margin-top:12px"><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div><p class="muted xs" style="margin-top:10px">3 runs excluded (tokens_scope none)</p></div></div>
-    <div class="card"><div class="card-h"><div><div class="card-t">Counterfactual delta</div><div class="card-d">max − actual</div></div><span class="chip c2"><svg><use href="#i-activity"/></svg></span></div>
-     <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px;color:var(--success)">−$406.50</div><div class="n">routing saved <b>65.7%</b> against the all-opus counterfactual</div></div><div class="prog" style="margin-top:14px"><i style="width:34%;background:var(--success)"></i></div><p class="muted xs" style="margin-top:6px">actual is 34% of the max estimate</p></div></div>
+  <div class="panel"><div class="panel-lbl">State A · Tab panel · Repricing (estimate)</div>
+   <div class="grid g2" style="align-items:stretch">
+    <div class="card" data-testid="pb-repricing-actual"><div class="card-h"><div><div class="card-t">Actual mix</div><div class="card-d">tokens per model × prices.json</div></div><span class="chip c1"><svg><use href="#i-route"/></svg></span></div>
+     <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$31.60</div></div><div style="margin-top:12px"><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div><p class="muted xs" style="margin-top:10px">1 event excluded (no model field)</p></div></div>
+    <div class="card" data-testid="pb-repricing-max"><div class="card-h"><div><div class="card-t">All at claude-opus-4-6</div><div class="card-d">every event repriced at the most expensive model</div></div><span class="chip c5"><svg><use href="#i-route"/></svg></span></div>
+     <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$88.20</div></div><div style="margin-top:12px"><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div><p class="muted xs" style="margin-top:10px">1 event excluded (no model field)</p></div></div>
    </div>
-   <div class="row between"><span class="muted sm">Prices from <span class="mono">prices.json</span> · USD per 1M tokens · a missing price shows a warning naming the model</span><button class="btn outline sm" data-testid="edit-prices"><svg class="i"><use href="#i-database"/></svg>Edit prices.json</button></div>
-   <div class="panel" style="border-style:solid"><div class="panel-lbl">Dialog: Edit prices.json (opens on click)</div>
-    <div class="dialog" style="max-width:680px"><div class="body"><div><h3>Edit prices.json</h3><p class="muted sm">Rate card used for the repricing estimate only. Saving re-runs the estimate; nothing measured changes.</p></div>
-     <table class="tbl"><thead><tr><th>model</th><th class="r">input</th><th class="r">output</th><th class="r">cache read</th><th class="r">cache write</th></tr></thead><tbody>
-      <tr><td class="mono">claude-opus-4-6</td><td class="r"><input class="input" type="number" value="15.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="75.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="1.50" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="18.75" style="width:90px;text-align:right"></td></tr>
-      <tr><td class="mono">claude-sonnet-4-5</td><td class="r"><input class="input" type="number" value="3.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="15.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="0.30" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="3.75" style="width:90px;text-align:right"></td></tr>
-      <tr><td class="mono">claude-haiku-4-5</td><td class="r"><input class="input" type="number" value="1.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="5.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="0.10" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="1.25" style="width:90px;text-align:right"></td></tr>
-     </tbody></table></div><div class="card-f"><button class="btn outline">Cancel</button><button class="btn">Save</button></div></div></div>
+   <p class="muted sm">Prices from <span class="mono">prices.json</span> · USD per 1M tokens · the same rate card as the TechieFlow page; figures are never pooled with it</p>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Poolable metrics</div>
-   <div class="grid g5">
-    <div class="card kpi"><div class="row"><span class="t">Rework ratio</span><span class="chip c3"><svg><use href="#i-refresh-cw"/></svg></span></div><div class="v">33%</div><div class="n">REQs verified more than once</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,8 25,12 50,10 75,16 100,14"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">Batch size (median)</span><span class="chip c1"><svg><use href="#i-database"/></svg></span></div><div class="v">4</div><div class="n">REQs per *build run</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,18 25,14 50,16 75,10 100,12"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">REQ throughput</span><span class="chip c2"><svg><use href="#i-activity"/></svg></span></div><div class="v">6.2</div><div class="n">REQs/hour of active session</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,22 25,18 50,14 75,10 100,6"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">Tokens per Verified</span><span class="chip c5"><svg><use href="#i-route"/></svg></span></div><div class="v">48,120</div><div class="n">all harnesses pooled</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,10 25,14 50,12 75,18 100,16"/></svg></div>
-    <div class="card kpi"><div class="row"><span class="t">Commit cadence</span><span class="chip c4"><svg><use href="#i-git-branch"/></svg></span></div><div class="v">3.4</div><div class="n">commits/active day · 2 duplicate shas collapsed</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,16 25,12 50,18 75,8 100,10"/></svg></div>
-   </div>
+  <div class="panel"><div class="panel-lbl">State B: before Phase 3</div>
+   <div class="empty" data-testid="playbook-empty"><span class="chip c5"><svg><use href="#i-book-open"/></svg></span><b>No Playbook data yet</b><p>Phase 3 — the report set for Playbook repos is built after the real events.ndjson is parsed</p><a class="btn outline" style="margin-top:8px" href="repos.html"><svg class="i"><use href="#i-git-branch"/></svg>Connect a Playbook repo</a></div>
   </div>
  </div></main>
 </div></div>

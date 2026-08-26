@@ -113,7 +113,7 @@ dl.meta dd{margin:0}
 
     <dl class="meta">
       <dt>project</dt><dd>TfLens</dd>
-      <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI / SQLite (Dapper) / Serilog</dd>
+      <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose</dd>
       <dt>last_updated</dt><dd>2026-08-26</dd>
       <dt>current_phase</dt><dd>Discovery</dd>
       <dt>last_verified_build</dt><dd>not-run</dd>
@@ -135,7 +135,7 @@ dl.meta dd{margin:0}
     </div>
 
     <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-    <p>Day-1 (greenfield) complete on 2026-08-26. TfLens is a read-only Blazor Server lens over the telemetry TechieFlow and the AI-First-Playbook already emit: it pulls <code>docs/metrics/*.jsonl</code> from GitHub, stores it in SQLite (Dapper), and renders the three questions, harness comparison, routing &amp; repricing and a weekly snapshot export — with SCHEMA.md §6 provenance rules enforced in the result type and a mandatory parity diff against <code>tf-metrics.sh</code>. Stack fixed: .NET 10 LTS, Blazor Server + TrBlazeUI, Dapper + Microsoft.Data.Sqlite, Serilog, single-user cookie auth, one Docker image. Drafted: Architecture (target), BRD (BRD-1..BRD-89, 14 features across Phases 1–3), Coding Standards (<code>obj</code> prefix), UsageGuide, UI Design spec + 7 mockups. Mockups generated 2026-08-26: docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (7 screens). No code exists yet; nothing is built or verified.</p>
+    <p>Day-1 (greenfield) complete on 2026-08-26; docs amended twice the same day after owner review (round 1: AppManager identity, per-user public-repo management, shell rework, GitHub SSO deferred to Phase 2; round 2: both frameworks get the full report set via a Framework switch, harness columns claude-code/opencode/codex, PostgreSQL replaces SQLite, F-CFG retired into F-OPS, mockup links in the BRD). TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow <strong>and</strong> the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user <code>Manager</code>), connect their own public GitHub repos, and TfLens pulls the streams, stores them in PostgreSQL (Dapper + Npgsql) per user, and renders the three questions, harness comparison, routing &amp; repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against <code>tf-metrics.sh</code>. Stack: .NET 10 LTS, Blazor Server + TrBlazeUI (dark-first), PostgreSQL 16, Serilog, docker compose. Drafted: Architecture (target, ADR-001..017), BRD (BRD-1..BRD-111, 16 active features across Phases 1–3; BRD-3, BRD-7 retired), Coding Standards (<code>obj</code> prefix, quoted identifiers), UsageGuide, UI Design spec + 12 mockups. Mockups regenerated 2026-08-26 (round 2): docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (12 screens). No code exists yet; nothing is built or verified.</p>
 
     <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
     <div style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
@@ -152,7 +152,7 @@ dl.meta dd{margin:0}
 
     <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
     <ul>
-      <li>No .csproj/.sln yet — create the solution (<code>src/TfLens</code>, <code>src/TfLens.Core</code>, <code>tests/TfLens.Core.Tests</code>) before the first build phase.</li>
+      <li>No .csproj/.sln yet — create the solution (<code>src/TfLens</code>, <code>src/TfLens.Core</code>, <code>tests/TfLens.Core.Tests</code>) and <code>docker-compose.yml</code> (postgres) before the first build phase.</li>
     </ul>
 
     <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
@@ -176,8 +176,9 @@ dl.meta dd{margin:0}
 
     <h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
     <ul>
-      <li>Codex-CLI harness detection (a <code>tf-emit.sh</code> change, out of scope — TfLens reports <code>harness: null</code> honestly)</li>
-      <li>Playbook adapter (Phase 3) waits for a real <code>events.ndjson</code> sample</li>
+      <li>GitHub SSO (BRD-94) — Phase 2, waits for an AppManager external-login / token-exchange endpoint</li>
+      <li>Private GitHub repos (per-user PAT) — later release</li>
+      <li>Playbook report set (Phase 3, F-FRAMEWORK) — after the TechieFlow set passes parity; <code>events.ndjson</code> adapter waits for a real sample</li>
     </ul>
   </main>
 </div>
