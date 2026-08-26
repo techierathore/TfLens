@@ -2,7 +2,7 @@
 project: TfLens
 stack: .NET 10 / Blazor Server / TrBlazeUI / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose
 last_updated: 2026-08-26
-current_phase: Discovery
+current_phase: Build — 114 REQs split from the BRD, none built
 last_verified_build: not-run
 last_verified_date: 2026-08-26
 ---
@@ -19,16 +19,19 @@ last_verified_date: 2026-08-26
 -->
 
 ## Where I am
-Day-1 (greenfield) complete on 2026-08-26; docs amended twice the same day after owner review (round 1: AppManager identity, per-user public-repo management, shell rework, GitHub SSO deferred to Phase 2; round 2: both frameworks get the full report set via a Framework switch, harness columns claude-code/opencode/codex, PostgreSQL replaces SQLite, F-CFG retired into F-OPS, mockup links in the BRD). TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow **and** the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user `Manager`), connect their own public GitHub repos, and TfLens pulls the streams, stores them in PostgreSQL (Dapper + Npgsql) per user, and renders the three questions, harness comparison, routing & repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against `tf-metrics.sh`. Stack: .NET 10 LTS, Blazor Server + TrBlazeUI (dark-first), PostgreSQL 16, Serilog, docker compose. Drafted: Architecture (target, ADR-001..017), BRD (BRD-1..BRD-111, 16 active features across Phases 1–3; BRD-3, BRD-7 retired), Coding Standards (`obj` prefix, quoted identifiers), UsageGuide, UI Design spec + 12 mockups. Mockups regenerated 2026-08-26 (round 2): docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (12 screens). No code exists yet; nothing is built or verified.
+Day-1 (greenfield) complete on 2026-08-26, docs amended twice the same day after owner review, and `*split-brd` run the same day. TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow **and** the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user `Manager`), connect their own public GitHub repos, and TfLens pulls the streams into PostgreSQL per user and renders the three questions, harness comparison, routing & repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against `tf-metrics.sh`. Approved docs: BRD (BRD-1..BRD-111; BRD-3, BRD-7 retired), Architecture (ADR-001..017), UI Design + 12 mockups, Coding Standards, UsageGuide. `docs/TfLens-Checklist.md` now holds **114 REQs** — 34 `REQ-UI-*`, 70 `REQ-FN-*`, 0 `REQ-RAG-*` (ADR-003: no AI features), 10 `REQ-NFR-*` — every active BRD ID mapped, nothing seeded as done (no prior dev plan existed). No code exists yet; nothing is built or verified. Phase order is hard: 1 → 2 → 3.
 
 ## Next command to run
 ```
-/TechieFlow:agents:analyst *split-brd TfLens      (OpenCode: /flow-analyst *split-brd TfLens)
+/TechieFlow:agents:flow-master *build-phase TfLens      (OpenCode: /flow-master *build-phase TfLens)
 ```
-After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mockups/*.html.
+Start with Phase 1: `REQ-UI-001`..`REQ-UI-013`, `REQ-FN-001`..`REQ-FN-045`, `REQ-NFR-002`, `REQ-NFR-003`, `REQ-NFR-005`..`REQ-NFR-008`, `REQ-NFR-010`.
 
 ## Open requirements
-- (populated by `*split-brd TfLens` — none yet)
+- Phase 1 — shell, auth, repos, sync, parse, ops: `REQ-UI-001`..`REQ-UI-013`, `REQ-FN-001`..`REQ-FN-011`, `REQ-FN-013`..`REQ-FN-045`, `REQ-NFR-002`, `REQ-NFR-003`, `REQ-NFR-005`, `REQ-NFR-006`, `REQ-NFR-007`, `REQ-NFR-008`, `REQ-NFR-010` — all Not Started
+- Phase 2 — engine, five report pages, export, parity: `REQ-UI-014`..`REQ-UI-033`, `REQ-FN-046`..`REQ-FN-064`, `REQ-NFR-001`, `REQ-NFR-004`, `REQ-NFR-009` — all Not Started
+- Phase 3 — Playbook as a first-class framework: `REQ-UI-034`, `REQ-FN-065`..`REQ-FN-070` — all Not Started
+- Terminal: `REQ-FN-012` (GitHub SSO) — `N/A`, deferred to Phase 2 per BRD-94 / ADR-012
 
 ## Known blockers
 - No .csproj/.sln yet — create the solution (`src/TfLens`, `src/TfLens.Core`, `tests/TfLens.Core.Tests`) and `docker-compose.yml` (postgres) before the first build phase.
@@ -36,6 +39,7 @@ After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mocku
 ## Verification log
 | Date | Phase | Result | Status table |
 |------|-------|--------|--------------|
+| 2026-08-26 | split-brd | N/A — no build or verify this phase | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 
 ## Library feedback summary
 - TrBlazeUI: 0 major, 0 minor — docs/TfLens-TrBlazeUI-Feedback.md
@@ -47,6 +51,6 @@ After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mocku
 - Mis-prefixed fields: not yet run
 
 ## Deferred / future
-- GitHub SSO (BRD-94) — Phase 2, waits for an AppManager external-login / token-exchange endpoint
+- GitHub SSO (BRD-94 → REQ-FN-012) — Phase 2, waits for an AppManager external-login / token-exchange endpoint
 - Private GitHub repos (per-user PAT) — later release
 - Playbook report set (Phase 3, F-FRAMEWORK) — after the TechieFlow set passes parity; `events.ndjson` adapter waits for a real sample

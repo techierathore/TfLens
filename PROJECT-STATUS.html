@@ -109,13 +109,13 @@ dl.meta dd{margin:0}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Status</h1>
-    <div class="subtitle">Snapshot · 2026-08-26 · phase: Discovery</div>
+    <div class="subtitle">Snapshot · 2026-08-26 · phase: Build</div>
 
     <dl class="meta">
       <dt>project</dt><dd>TfLens</dd>
       <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose</dd>
       <dt>last_updated</dt><dd>2026-08-26</dd>
-      <dt>current_phase</dt><dd>Discovery</dd>
+      <dt>current_phase</dt><dd>Build — 114 REQs split from the BRD, none built</dd>
       <dt>last_verified_build</dt><dd>not-run</dd>
       <dt>last_verified_date</dt><dd>2026-08-26</dd>
     </dl>
@@ -135,19 +135,22 @@ dl.meta dd{margin:0}
     </div>
 
     <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-    <p>Day-1 (greenfield) complete on 2026-08-26; docs amended twice the same day after owner review (round 1: AppManager identity, per-user public-repo management, shell rework, GitHub SSO deferred to Phase 2; round 2: both frameworks get the full report set via a Framework switch, harness columns claude-code/opencode/codex, PostgreSQL replaces SQLite, F-CFG retired into F-OPS, mockup links in the BRD). TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow <strong>and</strong> the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user <code>Manager</code>), connect their own public GitHub repos, and TfLens pulls the streams, stores them in PostgreSQL (Dapper + Npgsql) per user, and renders the three questions, harness comparison, routing &amp; repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against <code>tf-metrics.sh</code>. Stack: .NET 10 LTS, Blazor Server + TrBlazeUI (dark-first), PostgreSQL 16, Serilog, docker compose. Drafted: Architecture (target, ADR-001..017), BRD (BRD-1..BRD-111, 16 active features across Phases 1–3; BRD-3, BRD-7 retired), Coding Standards (<code>obj</code> prefix, quoted identifiers), UsageGuide, UI Design spec + 12 mockups. Mockups regenerated 2026-08-26 (round 2): docs/TfLens-UIDesign.md (+ .html) + docs/mockups/ (12 screens). No code exists yet; nothing is built or verified.</p>
+    <p>Day-1 (greenfield) complete on 2026-08-26, docs amended twice the same day after owner review, and <code>*split-brd</code> run the same day. TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow <strong>and</strong> the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user <code>Manager</code>), connect their own public GitHub repos, and TfLens pulls the streams into PostgreSQL per user and renders the three questions, harness comparison, routing &amp; repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against <code>tf-metrics.sh</code>. Approved docs: BRD (BRD-1..BRD-111; BRD-3, BRD-7 retired), Architecture (ADR-001..017), UI Design + 12 mockups, Coding Standards, UsageGuide. <code>docs/TfLens-Checklist.md</code> now holds <strong>114 REQs</strong> — 34 <code>REQ-UI-*</code>, 70 <code>REQ-FN-*</code>, 0 <code>REQ-RAG-*</code> (ADR-003: no AI features), 10 <code>REQ-NFR-*</code> — every active BRD ID mapped, nothing seeded as done (no prior dev plan existed). No code exists yet; nothing is built or verified. Phase order is hard: 1 → 2 → 3.</p>
 
     <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
     <div style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
       <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:analyst *split-brd TfLens</div>
+      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *build-phase TfLens</div>
     </div>
-    <pre><code>/TechieFlow:agents:analyst *split-brd TfLens      (OpenCode: /flow-analyst *split-brd TfLens)</code></pre>
-    <p>After you approve docs/TfLens-BRD.md, docs/TfLens-Architecture.md and docs/mockups/*.html.</p>
+    <pre><code>/TechieFlow:agents:flow-master *build-phase TfLens      (OpenCode: /flow-master *build-phase TfLens)</code></pre>
+    <p>Start with Phase 1: <code>REQ-UI-001</code>..<code>REQ-UI-013</code>, <code>REQ-FN-001</code>..<code>REQ-FN-045</code>, <code>REQ-NFR-002</code>, <code>REQ-NFR-003</code>, <code>REQ-NFR-005</code>..<code>REQ-NFR-008</code>, <code>REQ-NFR-010</code>.</p>
 
     <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
     <ul>
-      <li>(populated by <code>*split-brd TfLens</code> — none yet)</li>
+      <li>Phase 1 — shell, auth, repos, sync, parse, ops: <code>REQ-UI-001</code>..<code>REQ-UI-013</code>, <code>REQ-FN-001</code>..<code>REQ-FN-011</code>, <code>REQ-FN-013</code>..<code>REQ-FN-045</code>, <code>REQ-NFR-002</code>, <code>REQ-NFR-003</code>, <code>REQ-NFR-005</code>, <code>REQ-NFR-006</code>, <code>REQ-NFR-007</code>, <code>REQ-NFR-008</code>, <code>REQ-NFR-010</code> — all Not Started</li>
+      <li>Phase 2 — engine, five report pages, export, parity: <code>REQ-UI-014</code>..<code>REQ-UI-033</code>, <code>REQ-FN-046</code>..<code>REQ-FN-064</code>, <code>REQ-NFR-001</code>, <code>REQ-NFR-004</code>, <code>REQ-NFR-009</code> — all Not Started</li>
+      <li>Phase 3 — Playbook as a first-class framework: <code>REQ-UI-034</code>, <code>REQ-FN-065</code>..<code>REQ-FN-070</code> — all Not Started</li>
+      <li>Terminal: <code>REQ-FN-012</code> (GitHub SSO) — <code>N/A</code>, deferred to Phase 2 per BRD-94 / ADR-012</li>
     </ul>
 
     <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
@@ -158,7 +161,9 @@ dl.meta dd{margin:0}
     <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
     <table>
       <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
-      <tbody></tbody>
+      <tbody>
+        <tr><td>2026-08-26</td><td>split-brd</td><td>N/A — no build or verify this phase</td><td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
+      </tbody>
     </table>
 
     <h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
@@ -176,7 +181,7 @@ dl.meta dd{margin:0}
 
     <h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
     <ul>
-      <li>GitHub SSO (BRD-94) — Phase 2, waits for an AppManager external-login / token-exchange endpoint</li>
+      <li>GitHub SSO (BRD-94 → <code>REQ-FN-012</code>) — Phase 2, waits for an AppManager external-login / token-exchange endpoint</li>
       <li>Private GitHub repos (per-user PAT) — later release</li>
       <li>Playbook report set (Phase 3, F-FRAMEWORK) — after the TechieFlow set passes parity; <code>events.ndjson</code> adapter waits for a real sample</li>
     </ul>
