@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TfLens — Routing &amp; economics</title>
+<style>
+/* ===== TfLens shared mockup styles (TrBlazeUI / shadcn approximation) ===== */
+:root{--background:#ffffff;--foreground:#171717;--card:#ffffff;--border:#e5e5e5;--muted:#f5f5f5;--muted-fg:#737373;--primary:#171717;--primary-fg:#ffffff;--destructive:#dc2626;--success:#16a34a;--warning:#d97706;--info:#2563eb;--sidebar:#fafafa;--radius:10px;--chart-1:#171717;--chart-2:#737373;--chart-3:#a3a3a3}
+html.dark{--background:#0a0a0a;--foreground:#fafafa;--card:#0a0a0a;--border:#262626;--muted:#171717;--muted-fg:#a3a3a3;--primary:#fafafa;--primary-fg:#171717;--sidebar:#0f0f0f;--chart-1:#fafafa;--chart-2:#a3a3a3;--chart-3:#525252}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);background:var(--background)}
+h1,h2,h3{letter-spacing:-0.025em;margin:0}
+h2{font-size:1.5rem;font-weight:600}
+h3{font-size:1rem;font-weight:600}
+a{color:inherit}
+.muted{color:var(--muted-fg)}
+.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-2xl{font-size:1.5rem;font-weight:700;line-height:1.2}
+.italic{font-style:italic}
+/* shell */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:16rem;flex:none;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px}
+.brand{padding:8px 8px 16px}.brand b{display:block;font-size:1rem}.brand span{font-size:.75rem;color:var(--muted-fg)}
+.group-label{font-size:.75rem;font-weight:500;color:var(--muted-fg);padding:4px 8px}
+.nav a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;text-decoration:none;font-size:.875rem}
+.nav a:hover{background:var(--muted)}.nav a.active{background:var(--muted);font-weight:500}
+.nav .ico{width:16px;height:16px;border:1.5px solid currentColor;border-radius:4px;opacity:.6;flex:none}
+.sidebar-footer{margin-top:auto;border-top:1px solid var(--border);padding:12px 8px 0;display:flex;flex-direction:column;gap:10px;font-size:.875rem}
+.switch{display:inline-flex;align-items:center;gap:8px}
+.switch .track{width:32px;height:18px;border-radius:9px;background:#d4d4d4;position:relative}
+.switch .track::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+.inset{flex:1;display:flex;flex-direction:column;min-width:0}
+header.top{height:64px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--background)}
+header.top .spacer{flex:1}
+.trigger{width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;font-size:16px;color:inherit}
+.content{padding:32px;max-width:1200px;width:100%}
+.stack>*+*{margin-top:24px}
+/* buttons, badges */
+.btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:6px;border:1px solid transparent;font:inherit;font-size:.875rem;font-weight:500;cursor:pointer;background:var(--primary);color:var(--primary-fg)}
+.btn.outline{background:transparent;color:var(--foreground);border-color:var(--border)}
+.btn.ghost{background:transparent;color:var(--foreground)}
+.btn.destructive{background:var(--destructive);color:#fff}
+.btn.full{width:100%;justify-content:center}
+.btn.sm{height:28px;padding:0 8px;font-size:.75rem}
+.badge{display:inline-flex;align-items:center;border-radius:9999px;padding:1px 10px;font-size:.75rem;font-weight:600;line-height:1.4;border:1px solid transparent;white-space:nowrap}
+.badge.default{background:var(--primary);color:var(--primary-fg)}
+.badge.secondary{background:var(--muted);color:var(--foreground)}
+.badge.outline{border-color:var(--border);color:var(--foreground)}
+.badge.destructive{background:var(--destructive);color:#fff}
+.badge.success{background:var(--success);color:#fff}
+/* cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.card-header{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.card-title{font-size:1rem;font-weight:600;letter-spacing:-0.025em}
+.card-desc{font-size:.875rem;color:var(--muted-fg)}
+.kpi .kpi-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px}
+.kpi .kpi-head .t{font-size:.875rem;font-weight:500}
+.kpi .sub{font-size:.75rem;color:var(--muted-fg);margin-top:4px}
+.grid{display:grid;gap:16px}
+.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:900px){.cols-2,.cols-3,.cols-4,.cols-5{grid-template-columns:1fr}}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:.875rem;border:1px solid var(--border)}
+th,td{padding:8px 12px;border:1px solid var(--border);text-align:left;vertical-align:middle}
+th{background:var(--muted);font-weight:500;color:var(--muted-fg)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;background:var(--muted);padding:1px 5px;border-radius:4px}
+pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8125rem;background:var(--muted);padding:12px;border-radius:6px;overflow-x:auto;margin:0}
+/* alerts */
+.alert{display:flex;gap:12px;border:1px solid var(--border);border-left-width:4px;border-radius:var(--radius);padding:12px 16px;background:var(--card)}
+.alert .glyph{font-weight:700;flex:none}
+.alert .title{font-weight:600}
+.alert.success{border-left-color:var(--success)}.alert.success .glyph{color:var(--success)}
+.alert.warning{border-left-color:var(--warning)}.alert.warning .glyph{color:var(--warning)}
+.alert.info{border-left-color:var(--info)}.alert.info .glyph{color:var(--info)}
+.alert.danger{border-left-color:var(--destructive)}.alert.danger .glyph{color:var(--destructive)}
+/* tabs */
+.tabs{display:inline-flex;gap:4px;background:var(--muted);padding:4px;border-radius:8px}
+.tab{border:0;background:transparent;font:inherit;font-size:.875rem;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer;color:var(--muted-fg);display:inline-flex;gap:6px;align-items:center}
+.tab.active{background:var(--card);color:var(--foreground);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* misc */
+details{border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px}
+summary{cursor:pointer;font-weight:500}
+details .body{margin-top:12px}
+.progress{height:8px;background:var(--muted);border-radius:4px;overflow:hidden}
+.progress>div{height:100%;background:var(--primary)}
+.bars{display:flex;align-items:flex-end;gap:32px;height:220px;padding:0 16px;border-bottom:1px solid var(--border)}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;font-size:.75rem;color:var(--muted-fg)}
+.bar>div{width:100%;max-width:96px;background:var(--chart-1);border-radius:4px 4px 0 0}
+.bar-labels{display:flex;gap:32px;padding:8px 16px 0;font-size:.75rem;color:var(--muted-fg)}
+.bar-labels>span{flex:1;text-align:center}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.875rem;font-weight:500}
+.input{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font:inherit;background:var(--background);color:var(--foreground);width:100%}
+.input.sm{height:30px;width:90px;text-align:right}
+.empty{border:1px dashed var(--border);border-radius:var(--radius);padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .icon{width:40px;height:40px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;color:var(--muted-fg)}
+.empty .title{font-size:1rem;font-weight:600}
+.sep{border:0;border-top:1px solid var(--border);margin:0}
+.dot{width:16px;height:16px;flex:none}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><b>TfLens</b><span>read-only lens</span></div>
+    <div class="group-label">REPORTS</div>
+    <nav class="nav">
+      <a href="coverage.html"><span class="ico"></span>Coverage / health</a>
+      <a href="three-questions.html"><span class="ico"></span>Three questions</a>
+      <a href="harness.html"><span class="ico"></span>Harness comparison</a>
+      <a class="active" href="routing.html"><span class="ico"></span>Routing &amp; economics</a>
+      <a href="export.html"><span class="ico"></span>Snapshot export</a>
+      <a href="playbook.html"><span class="ico"></span>Playbook</a>
+    </nav>
+    <div class="sidebar-footer">
+      <label class="switch"><span class="track"></span>Dark mode</label>
+      <div class="muted">owner</div>
+    </div>
+  </aside>
+  <div class="inset">
+    <header class="top">
+      <button class="trigger" aria-label="Toggle sidebar">☰</button>
+      <h2>Routing &amp; economics</h2>
+      <span class="spacer"></span>
+      <button class="btn" data-testid="sync-now">Sync now</button>
+      <span class="badge outline">last sync 12 min ago</span>
+      <button class="btn ghost">Sign out</button>
+    </header>
+    <main class="content stack">
+
+      <div class="row" style="justify-content:space-between">
+        <div class="tabs" role="tablist">
+          <button class="tab active">Routing drift</button>
+          <button class="tab">Tokens by model</button>
+          <button class="tab">Repricing (estimate)</button>
+          <button class="tab">Poolable metrics</button>
+        </div>
+        <span class="muted text-xs">mockup: all tab panels shown for review — the built page shows one at a time (DefaultValue="drift")</span>
+      </div>
+
+      <!-- ===== Tab panel: Routing drift ===== -->
+      <section class="stack">
+        <h3 class="muted">Tab: Routing drift</h3>
+        <div class="grid cols-3">
+          <div class="card kpi"><div class="kpi-head"><span class="t">Runs with routing fields</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">174</div><div class="sub">of 189 runs carry §2.5 tier / model</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">routed:false runs</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">1</div><div class="sub">observed model ≠ declared tier_model</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">Distinct observed models</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">3</div><div class="sub">claude-opus-4-6 · claude-sonnet-4-5 · claude-haiku-4-5</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Declared vs observed, by command</div><div class="card-desc">routed:false rows first.</div></div>
+          <table data-testid="drift-table">
+            <thead><tr><th>cmd</th><th>tier</th><th>tier_model</th><th>observed model</th><th>models</th><th>routed</th><th>ts</th></tr></thead>
+            <tbody>
+              <tr><td>build</td><td>standard</td><td>claude-sonnet-4-5</td><td>claude-opus-4-6</td><td class="text-xs">claude-opus-4-6, claude-haiku-4-5</td><td><span class="badge destructive">drift</span> false</td><td class="text-xs">2026-08-24 16:02</td></tr>
+              <tr><td>verify</td><td>max</td><td>claude-opus-4-6</td><td>claude-opus-4-6</td><td class="text-xs">—</td><td>true</td><td class="text-xs">2026-08-26 07:41</td></tr>
+              <tr><td>plan</td><td>fast</td><td>claude-haiku-4-5</td><td>claude-haiku-4-5</td><td class="text-xs">—</td><td>true</td><td class="text-xs">2026-08-25 21:14</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <hr class="sep">
+
+      <!-- ===== Tab panel: Tokens by model ===== -->
+      <section class="stack">
+        <h3 class="muted">Tab: Tokens by model</h3>
+        <div class="card">
+          <table style="margin-bottom:24px">
+            <thead><tr><th>model</th><th class="num">in</th><th class="num">out</th><th class="num">cache read</th><th class="num">cache write</th><th class="num">total</th></tr></thead>
+            <tbody>
+              <tr><td>claude-opus-4-6</td><td class="num">612,400</td><td class="num">171,230</td><td class="num">3,980,110</td><td class="num">402,880</td><td class="num">5,166,620</td></tr>
+              <tr><td>claude-sonnet-4-5</td><td class="num">941,800</td><td class="num">204,190</td><td class="num">4,120,300</td><td class="num">498,170</td><td class="num">5,764,460</td></tr>
+              <tr><td>claude-haiku-4-5</td><td class="num">132,990</td><td class="num">39,896</td><td class="num">213,280</td><td class="num">52,071</td><td class="num">438,237</td></tr>
+            </tbody>
+          </table>
+          <div class="bars" style="height:160px">
+            <div class="bar">5.17M<div style="height:90%"></div></div>
+            <div class="bar">5.76M<div style="height:100%;background:var(--chart-2)"></div></div>
+            <div class="bar">0.44M<div style="height:8%;background:var(--chart-3)"></div></div>
+          </div>
+          <div class="bar-labels"><span>claude-opus-4-6</span><span>claude-sonnet-4-5</span><span>claude-haiku-4-5</span></div>
+        </div>
+      </section>
+
+      <hr class="sep">
+
+      <!-- ===== Tab panel: Repricing (estimate) ===== -->
+      <section class="stack">
+        <div class="row" style="justify-content:space-between"><h3 class="muted">Tab: Repricing (estimate)</h3><button class="btn outline" data-testid="edit-prices">Edit prices.json</button></div>
+        <div class="grid cols-2">
+          <div class="card" data-testid="repricing-actual">
+            <div class="card-header"><div class="card-title">Actual mix</div><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div>
+            <div class="text-2xl" style="font-size:2rem">$212.40 <span class="muted text-sm" style="font-weight:400">estimate</span></div>
+            <p class="muted text-sm" style="margin:8px 0 0">3 runs excluded (tokens_scope none)</p>
+          </div>
+          <div class="card" data-testid="repricing-max">
+            <div class="card-header"><div class="card-title">All runs at most expensive model (claude-opus-4-6)</div><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div>
+            <div class="text-2xl" style="font-size:2rem">$618.90 <span class="muted text-sm" style="font-weight:400">estimate</span></div>
+            <p class="muted text-sm" style="margin:8px 0 0">3 runs excluded (tokens_scope none)</p>
+          </div>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="card-header"><div class="card-title">Counterfactual delta</div><div class="card-desc">max − actual · most expensive model chosen by output price</div></div>
+          <div class="text-2xl">$406.50 <span class="muted text-sm" style="font-weight:400">(+191%)</span> <span class="badge outline">estimate</span></div>
+        </div>
+
+        <div class="card" style="border-style:dashed">
+          <div class="card-header"><div class="card-title">Dialog: Edit prices.json (opens on click)</div><div class="card-desc">USD per 1M tokens. The file is the source; this dialog is a convenience. Saving recomputes immediately and shows a toast.</div></div>
+          <table style="margin-bottom:16px">
+            <thead><tr><th>model</th><th class="num">input</th><th class="num">output</th><th class="num">cache read</th><th class="num">cache write</th></tr></thead>
+            <tbody>
+              <tr><td>claude-opus-4-6</td><td class="num"><input class="input sm" type="number" value="15.00"></td><td class="num"><input class="input sm" type="number" value="75.00"></td><td class="num"><input class="input sm" type="number" value="1.50"></td><td class="num"><input class="input sm" type="number" value="18.75"></td></tr>
+              <tr><td>claude-sonnet-4-5</td><td class="num"><input class="input sm" type="number" value="3.00"></td><td class="num"><input class="input sm" type="number" value="15.00"></td><td class="num"><input class="input sm" type="number" value="0.30"></td><td class="num"><input class="input sm" type="number" value="3.75"></td></tr>
+              <tr><td>claude-haiku-4-5</td><td class="num"><input class="input sm" type="number" value="1.00"></td><td class="num"><input class="input sm" type="number" value="5.00"></td><td class="num"><input class="input sm" type="number" value="0.10"></td><td class="num"><input class="input sm" type="number" value="1.25"></td></tr>
+            </tbody>
+          </table>
+          <p class="text-xs" style="color:var(--destructive);margin:0 0 12px">FieldError example: "output must be a number" (shown under the offending cell on non-numeric input)</p>
+          <div class="row" style="justify-content:flex-end"><button class="btn ghost">Cancel</button><button class="btn">Save</button></div>
+        </div>
+      </section>
+
+      <hr class="sep">
+
+      <!-- ===== Tab panel: Poolable metrics ===== -->
+      <section class="stack">
+        <h3 class="muted">Tab: Poolable metrics</h3>
+        <div class="grid cols-5">
+          <div class="card kpi"><div class="kpi-head"><span class="t">Rework ratio</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">33%</div><div class="sub">SCHEMA.md §8</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">Batch size (median)</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">4</div><div class="sub">REQs per build run</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">REQ throughput</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">6.2</div><div class="sub">REQs/hour (median)</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">Tokens per Verified</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">48,120</div><div class="sub">all harnesses pooled (tokens only)</div></div>
+          <div class="card kpi"><div class="kpi-head"><span class="t">Commit cadence</span><svg class="dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="text-2xl">3.4</div><div class="sub">commits/active day — 2 duplicate shas collapsed</div></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

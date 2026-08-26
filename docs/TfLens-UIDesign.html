@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — UI Design Spec (Mockups)</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — UI Design Spec (Mockups)</h1>
+    <div class="subtitle">Visual contract for the build · Last rendered: 2026-08-26</div>
+
+    <blockquote>
+      <p><strong>What this is.</strong> The approved visual design for TfLens, produced at day-1 (greenfield) before any UI is built. Each screen has a <strong>rendered mockup</strong> (<code>docs/mockups/{screen}.html</code>, styled to look like TrBlazeUI) and a <strong>component map</strong> that ties every region to a real <strong>TrBlazeUI control</strong>, so the build (<code>/trblazeui</code>) reproduces it 1:1 and the verifier's visual-truth gate (<code>verify-phase.md §4b</code>) can diff the live screen against it. This is a HUMAN document → rendered to HTML. The owner APPROVES it (alongside the BRD + Architecture) before build.</p>
+    </blockquote>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#how-to-use">How to use</a></li>
+        <li><a href="#design-system-trblazeui">Design system (TrBlazeUI)</a></li>
+        <li><a href="#screens">Screens</a>
+          <ul>
+            <li><a href="#screen-login-login">Screen: Login (<code>/login</code>)</a></li>
+            <li><a href="#screen-coverage-health">Screen: Coverage / health (<code>/</code>)</a></li>
+            <li><a href="#screen-three-questions-three-questions">Screen: Three questions (<code>/three-questions</code>)</a></li>
+            <li><a href="#screen-harness-comparison-harness">Screen: Harness comparison (<code>/harness</code>)</a></li>
+            <li><a href="#screen-routing-economics-routing">Screen: Routing &amp; economics (<code>/routing</code>)</a></li>
+            <li><a href="#screen-snapshot-export-export">Screen: Snapshot export (<code>/export</code>)</a></li>
+            <li><a href="#screen-playbook-playbook">Screen: Playbook (<code>/playbook</code>)</a></li>
+          </ul>
+        </li>
+        <li><a href="#library-gaps">Library gaps</a></li>
+      </ol>
+    </div>
+
+    <h2 id="how-to-use">How to use<a class="anchor-link" href="#how-to-use">#</a></h2>
+    <ul>
+      <li>Every screen below links to its rendered mockup in <code>docs/mockups/</code>. Open those <code>.html</code> files in a browser to see the intended layout.</li>
+      <li>The <strong>Component map</strong> is the build contract: <code>region → TrBlazeUI control</code>. Only controls that actually exist in the TrBlazeUI library are used (the analyst read the component catalog first — <code>TrBlazeUI-AI-Reference.md</code>, TrBlazeUI.Components 1.0.7). If a screen needs something the library lacks, it is flagged in §Library gaps and logged to <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build time.</li>
+      <li>To change a screen after approval: run <code>*mockups TfLens --update</code> (or <code>*amend-docs</code> for a requirement change that adds screens).</li>
+    </ul>
+
+    <h2 id="design-system-trblazeui">Design system (TrBlazeUI)<a class="anchor-link" href="#design-system-trblazeui">#</a></h2>
+    <ul>
+      <li><strong>Source:</strong> TrBlazeUI component library (<code>TrBlazeUI.Primitives</code> + <code>TrBlazeUI.Components</code> + <code>TrBlazeUI.Icons.Lucide</code>; Tailwind v4 utilities; shadcn/ui design language with OKLCH tokens <code>--background</code>, <code>--foreground</code>, <code>--card</code>, <code>--muted</code>, <code>--muted-foreground</code>, <code>--primary</code>, <code>--border</code>, <code>--destructive</code>, <code>--alert-success/info/warning/danger</code>, <code>--chart-1..5</code>, <code>--radius: 0.625rem</code>, <code>--sidebar*</code>).</li>
+      <li><strong>Layout shell:</strong> <code>SidebarProvider</code> (<code>DefaultOpen=true</code>, <code>HeightClass="h-screen"</code>) → <code>Sidebar</code> (<code>Collapsible=true</code>) with <code>SidebarHeader</code> / <code>SidebarContent</code> / <code>SidebarFooter</code> → <code>SidebarInset</code> holding a hand-rolled <code>&lt;header class="flex h-16 items-center gap-4 border-b bg-background px-4"&gt;</code> (with <code>SidebarTrigger</code>, page title, <strong>Sync now</strong> <code>Button</code>, last-sync <code>Badge</code>, sign-out <code>Button Variant=Ghost</code>) and the page container <code>&lt;div class="flex-1 overflow-auto p-6 md:p-8"&gt;@Body&lt;/div&gt;</code>. Plus <code>&lt;ToastProvider Position="BottomRight" /&gt;</code> and <code>&lt;PortalHost /&gt;</code> in the layout.</li>
+      <li><strong>Navigation:</strong> <code>SidebarGroup</code> → <code>SidebarGroupLabel "Reports"</code> → <code>SidebarMenu</code> → six <code>SidebarMenuItem</code> / <code>SidebarMenuButton Href=… Tooltip=…</code> with <code>LucideIcon</code> (<code>activity</code>, <code>help-circle</code>, <code>git-compare</code>, <code>route</code>, <code>download</code>, <code>book-open</code>). Order is fixed: Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export, Playbook.</li>
+      <li><strong>Theme:</strong> light default (TrBlazeUI <code>:root</code>), dark via <code>class="dark"</code> on <code>&lt;html&gt;</code> (no toggle component — a <code>Switch</code> in the sidebar footer flips the class).</li>
+      <li><strong>KPI pattern:</strong> TrBlazeUI has no stat card; every KPI is the library's documented composition — <code>Card</code> → <code>CardHeader class="flex flex-row items-center justify-between pb-2"</code> (<code>CardTitle class="text-sm font-medium"</code> + <code>LucideIcon</code>) → <code>CardContent</code> (<code>div.text-2xl.font-bold</code> + <code>p.text-xs.text-muted-foreground</code>). Grid <code>grid gap-4 md:grid-cols-2 lg:grid-cols-4</code>.</li>
+      <li><strong>Figures:</strong> a <code>Figure</code> renders as a number, or as the literal text <code>insufficient data (n=…)</code> in <code>text-muted-foreground italic</code>, or as <code>—</code>. Estimates always carry a <code>Badge Variant=Outline</code> reading <strong>estimate</strong>. Backfilled columns carry a <code>Badge Variant=Secondary</code> reading <strong>backfilled</strong>.</li>
+      <li><strong>Controls inventory used:</strong> <code>SidebarProvider</code>, <code>Sidebar</code>, <code>SidebarHeader</code>, <code>SidebarContent</code>, <code>SidebarFooter</code>, <code>SidebarGroup</code>, <code>SidebarGroupLabel</code>, <code>SidebarMenu</code>, <code>SidebarMenuItem</code>, <code>SidebarMenuButton</code>, <code>SidebarInset</code>, <code>SidebarTrigger</code>, <code>Card</code> (+ <code>CardHeader</code>, <code>CardTitle</code>, <code>CardDescription</code>, <code>CardContent</code>, <code>CardFooter</code>), <code>DataTable</code> + <code>DataTableColumn</code>, <code>Badge</code>, <code>Alert</code> (+ <code>AlertTitle</code>, <code>AlertDescription</code>), <code>Tabs</code> (+ <code>TabsList</code>, <code>TabsTrigger</code>, <code>TabsContent</code>), <code>Button</code>, <code>Input</code>, <code>Label</code>, <code>Field</code> (+ <code>FieldLabel</code>, <code>FieldContent</code>, <code>FieldError</code>), <code>Dialog</code> (+ <code>DialogTrigger</code>, <code>DialogContent</code>, <code>DialogHeader</code>, <code>DialogTitle</code>, <code>DialogDescription</code>, <code>DialogFooter</code>, <code>DialogClose</code>), <code>AlertDialog</code> (rebuild confirm), <code>Collapsible</code> (+ <code>CollapsibleTrigger</code>, <code>CollapsibleContent</code>), <code>Progress</code>, <code>Tooltip</code>, <code>Skeleton</code>, <code>Spinner</code>, <code>Empty</code> (+ <code>EmptyIcon</code>, <code>EmptyTitle</code>, <code>EmptyDescription</code>, <code>EmptyAction</code>), <code>ToastProvider</code> / <code>ToastService</code>, <code>Switch</code>, <code>Separator</code>, <code>ChartContainer</code> + <code>BarChart</code>, <code>LucideIcon</code>, <code>TypographyH2</code>/<code>TypographyMuted</code>.</li>
+    </ul>
+
+    <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
+
+    <h3 id="screen-login-login">Screen: Login (<code>/login</code>)<a class="anchor-link" href="#screen-login-login">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/login.html">docs/mockups/login.html</a> · <strong>Role(s):</strong> anonymous → Owner · <strong>BRD:</strong> BRD-1, BRD-2, BRD-3 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> centred single <code>Card</code> (max-width 24rem) on the plain background; no sidebar; product name + one-line purpose above the form.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Page background</td><td>plain <code>div.min-h-screen.flex.items-center.justify-center.bg-muted</code></td><td>—</td><td>—</td></tr>
+        <tr><td>Card</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> "TfLens", <code>CardDescription</code> "A read-only lens over TechieFlow telemetry")</td><td>—</td><td>—</td></tr>
+        <tr><td>Username</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Text</code> <code>data-testid="login-user"</code></td><td>binds <code>Username</code></td><td>required; <code>IsInvalid</code> on error</td></tr>
+        <tr><td>Password</td><td><code>Field</code> → <code>FieldLabel</code> + <code>Input Type=Password</code> <code>data-testid="login-pass"</code></td><td>binds <code>Password</code></td><td>required</td></tr>
+        <tr><td>Error</td><td><code>Alert Variant=Danger</code> (only when a failed attempt)</td><td>"Sign-in failed." (generic)</td><td>hidden by default</td></tr>
+        <tr><td>Submit</td><td><code>Button Type=Submit</code> full width <code>data-testid="login-submit"</code></td><td>"Sign in"</td><td><code>Disabled</code> + <code>Spinner Size=Small</code> while verifying</td></tr>
+        <tr><td>Footer</td><td><code>TypographyMuted</code></td><td>"Single-user dashboard · read-only"</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> Enter submits; return URL preserved; no links to register/reset.</p>
+    <p><strong>Empty / loading / error:</strong> loading = button spinner; error = generic <code>Alert</code>, fields keep values; never reveals which field was wrong.</p>
+
+    <h3 id="screen-coverage-health">Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/coverage.html">docs/mockups/coverage.html</a> · <strong>Role(s):</strong> Owner · <strong>BRD:</strong> BRD-39..BRD-44, BRD-21, BRD-6 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; summary strip (status badge + 4 KPI cards); one <code>Card</code> per repo in a 2-column grid, each with a stream staleness table and warnings; unknown-fields <code>Collapsible</code>; Rebuild-from-raw card at the bottom.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Header (shell)</td><td><code>SidebarTrigger</code>, <code>TypographyH2</code> "Coverage / health", <code>Button</code> <strong>Sync now</strong> <code>data-testid="sync-now"</code>, <code>Badge Variant=Outline</code> "last sync 12 min ago", <code>Button Variant=Ghost</code> "Sign out"</td><td>—</td><td>Sync button shows <code>Spinner</code> while running; toast per repo outcome</td></tr>
+        <tr><td>Status strip</td><td><code>Alert Variant=Success</code> "GREEN — 5 repos synced, nothing stale" <strong>or</strong> <code>Alert Variant=Warning</code> "CHECK — 2 warnings" <code>data-testid="coverage-status"</code></td><td>summary</td><td>—</td></tr>
+        <tr><td>KPI row</td><td>4× <code>Card</code> (KPI pattern): Repos synced · Gate records (live / backfilled) · Newest record age · Sync errors</td><td>counts</td><td>zero-state "0"</td></tr>
+        <tr><td>Repo card ×N</td><td><code>Card</code> → <code>CardHeader</code> (<code>CardTitle</code> owner/name, <code>Badge</code> kind, <code>Badge</code> short SHA linked) → <code>CardContent</code></td><td>last sync, outcome, per-stream table</td><td>error state: <code>Alert Variant=Danger</code> with LastError text</td></tr>
+        <tr><td>Per-stream table</td><td><code>DataTable TData=StreamRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="repo-streams-{name}"</code>; columns Stream · Records · Backfilled · Newest · Days since</td><td>4 rows (runs, gates, sessions, commits)</td><td>stale row → <code>Badge Variant=Destructive</code> "stale"</td></tr>
+        <tr><td>Staleness warning</td><td><code>Alert Variant=Warning AccentBorder</code></td><td>"sessions/commits stale ≥ 7 days — this clone isn't pushing or lacks hooks; run update-framework.sh on it"</td><td>only when stale</td></tr>
+        <tr><td>Unknown fields</td><td><code>Collapsible</code> → <code>CollapsibleTrigger</code> "Fields observed that SCHEMA.md doesn't document (n)" → <code>CollapsibleContent</code> list of <code>Badge Variant=Outline</code> per field, grouped by repo/stream; <code>Alert Variant=Info</code> if any <code>v &gt; 1</code></td><td>field names only</td><td>empty: "none"</td></tr>
+        <tr><td>Rebuild</td><td><code>Card</code> → <code>CardTitle</code> "Rebuild from raw" → <code>AlertDialog</code> (<code>AlertDialogTrigger</code> <code>Button Variant=Destructive</code> "Rebuild…" <code>data-testid="rebuild"</code>, <code>AlertDialogAction</code> "Drop and reparse")</td><td>last rebuild report</td><td><code>Progress</code> while replaying</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> Sync now and Rebuild refresh the page in place; SHA badge opens the GitHub commit in a new tab; cards stack to one column under <code>md</code>.</p>
+    <p><strong>Empty / loading / error:</strong> first run before any sync → <code>Empty</code> (<code>EmptyTitle</code> "No sync yet", <code>EmptyAction</code> Sync now); loading → <code>Skeleton</code> cards; per-repo error → danger alert inside that card, others unaffected.</p>
+
+    <h3 id="screen-three-questions-three-questions">Screen: Three questions (<code>/three-questions</code>)<a class="anchor-link" href="#screen-three-questions-three-questions">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/three-questions.html">docs/mockups/three-questions.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-45..BRD-50 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; standing SCHEMA §6 note; <code>Tabs</code> — one tab per project_type present (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, <code>unclassified</code>) with <strong>no "all" tab</strong>; inside each tab: 3 KPI cards (live) with the backfilled value beneath as a labelled secondary line, the gate distribution table with live and backfilled columns, late-gate coverage lines, and the taint list collapsible.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Standing note</td><td><code>Alert Variant=Info</code></td><td>"Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total."</td><td>always</td></tr>
+        <tr><td>Type tabs</td><td><code>Tabs DefaultValue="app"</code> → <code>TabsList</code> → <code>TabsTrigger</code> per type (label + <code>Badge</code> record count) <code>data-testid="type-tab-{type}"</code></td><td>—</td><td>only types with records appear; <code>unclassified</code> labelled "unclassified (project_type inferred)"</td></tr>
+        <tr><td>Question cards</td><td>3× <code>Card</code> (KPI): First-pass rate · Escape rate · Failures scored — big live value; secondary line <code>Badge Variant=Secondary</code> "backfilled" + value</td><td><code>Figure</code></td><td><code>insufficient data (n=…)</code> italic muted text when n &lt; 3</td></tr>
+        <tr><td>Segment facts</td><td><code>TypographyMuted</code> line</td><td>"live: 41 records, 17 REQs scored, 3 excluded by backfill taint"</td><td>—</td></tr>
+        <tr><td>Gate distribution</td><td><code>DataTable TData=GateRow ShowToolbar=false ShowPagination=false</code> <code>data-testid="gate-dist-{type}"</code>; columns Gate · Live count · Live share · Backfilled count · Backfilled share; rows in order build, acceptance, render, visual, perf, standards, <strong>escaped</strong>, unattributed</td><td>counts + <code>%</code></td><td><code>escaped</code> row has <code>Badge Variant=Destructive</code> "no gate caught it"; <code>perf</code> row has <code>Badge Variant=Outline</code> "see coverage"</td></tr>
+        <tr><td>Late-gate coverage</td><td><code>Card</code> → <code>CardContent</code> one line per late gate</td><td>"perf gate: ran on 6 records, caught 1 → insufficient data (n=6)" / "not yet run on this data (gate added 2026-08-10)"</td><td>—</td></tr>
+        <tr><td>Taint list</td><td><code>Collapsible</code> → trigger "3 REQs excluded from the live first-pass rate" → <code>CollapsibleContent</code> <code>Badge Variant=Outline</code> per REQ ID <code>data-testid="taint-list"</code></td><td>REQ IDs</td><td>empty: "none"</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> tab choice persisted per session; every figure has a <code>Tooltip</code> with its formula (SCHEMA.md §8 wording).</p>
+    <p><strong>Empty / loading / error:</strong> no gate records → <code>Empty</code> "No gate records yet — run *verify on a managed repo"; loading → <code>Skeleton</code>.</p>
+
+    <h3 id="screen-harness-comparison-harness">Screen: Harness comparison (<code>/harness</code>)<a class="anchor-link" href="#screen-harness-comparison-harness">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/harness.html">docs/mockups/harness.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-51..BRD-55 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; explanatory note; one <code>Card</code> column per harness side by side (claude-code · opencode · not detected), each with the same rows; below, a tokens-by-harness bar chart and the OpenCode-only dollars card.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Tokens may be compared across harness; dollars may not. Claude Code cost is null by design."</td><td>always</td></tr>
+        <tr><td>Harness columns</td><td><code>div.grid.gap-4.md:grid-cols-3</code> → <code>Card</code> per harness (<code>CardTitle</code> harness name + <code>Badge</code> "not detected" for null) <code>data-testid="harness-col-{name}"</code></td><td>—</td><td>a harness with 0 records still renders with <code>—</code></td></tr>
+        <tr><td>Column rows</td><td><code>DataTable TData=KeyValueRow ShowToolbar=false ShowPagination=false</code> inside each card: Runs · Runs by cmd (top 3) · Gate records · Verdict mix · Sessions · Tokens in / out / cache read / cache write · Tokens per Verified REQ</td><td>values</td><td><code>insufficient data (n=…)</code> text</td></tr>
+        <tr><td>Tokens chart</td><td><code>ChartContainer Class="h-[280px]"</code> → <code>BarChart TItem=HarnessTokens XValue=harness YValue=tokens</code></td><td>total tokens per harness</td><td>empty: <code>Empty</code> "no token data"</td></tr>
+        <tr><td>Dollars</td><td><code>Card</code> (<code>CardTitle</code> "Measured dollars (OpenCode only)", <code>Badge Variant=Secondary</code> "the only measured dollars in the system") → <code>CardContent</code> big <code>$</code> value + <code>TypographyMuted</code> "Claude Code: not measured (null by design)" <code>data-testid="opencode-cost"</code></td><td>Σ <code>cost_usd</code> for <code>opencode</code></td><td>no OpenCode records → "no OpenCode records yet"</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> no total dollar row anywhere; columns wrap to one per row under <code>md</code>.</p>
+    <p><strong>Empty / loading / error:</strong> no runs/sessions → <code>Empty</code>; loading → <code>Skeleton</code> columns.</p>
+
+    <h3 id="screen-routing-economics-routing">Screen: Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#screen-routing-economics-routing">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/routing.html">docs/mockups/routing.html</a> · <strong>Role(s):</strong> Owner, Author · <strong>BRD:</strong> BRD-56..BRD-62 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; <code>Tabs</code> Routing drift · Tokens by model · Repricing (estimate) · Poolable metrics; the Repricing tab has two big cards (actual mix vs all-at-max) with the estimate badge and an "Edit prices" dialog button.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Tabs</td><td><code>Tabs DefaultValue="drift"</code> → <code>TabsTrigger</code> drift / models / repricing / poolable</td><td>—</td><td>—</td></tr>
+        <tr><td>Drift summary</td><td>3× <code>Card</code> (KPI): Runs with routing fields · <code>routed:false</code> runs · Distinct observed models</td><td>counts</td><td>—</td></tr>
+        <tr><td>Drift table</td><td><code>DataTable TData=DriftRow</code> <code>data-testid="drift-table"</code>; columns cmd · tier · tier_model · observed model · models · routed · ts</td><td>rows for <code>routed:false</code> first</td><td><code>routed:false</code> → <code>Badge Variant=Destructive</code> "drift"; empty → <code>Empty</code> "no routing fields captured yet"</td></tr>
+        <tr><td>Tokens by model</td><td><code>DataTable TData=ModelTokens</code> (model · in · out · cache read · cache write · total) + <code>ChartContainer</code> → <code>BarChart</code> totals</td><td>Σ per model</td><td>—</td></tr>
+        <tr><td>Repricing cards</td><td>2× <code>Card</code>: "Actual mix" and "All runs at most expensive model (<code>claude-opus-…</code>)"; each <code>Badge Variant=Outline</code> <strong>estimate — tokens × rate card, not measured spend</strong>; big <code>$</code> value; <code>TypographyMuted</code> "n runs excluded (tokens_scope none)" <code>data-testid="repricing-actual"</code> / <code>"repricing-max"</code></td><td>computed from <code>prices.json</code></td><td>missing price for a model → <code>Alert Variant=Warning</code> naming the model; figure shows <code>—</code></td></tr>
+        <tr><td>Delta</td><td><code>Card</code> "Counterfactual delta"</td><td>max − actual, <code>%</code></td><td>—</td></tr>
+        <tr><td>Edit prices</td><td><code>Dialog</code> (<code>DialogTrigger</code> <code>Button Variant=Outline</code> "Edit prices.json" <code>data-testid="edit-prices"</code>) → <code>DialogContent</code> with a <code>DataTable</code> of editable rows (<code>Input Type=Number</code> per cell) + <code>Button</code> Save / <code>DialogClose</code> Cancel</td><td>model · input · output · cache read · cache write USD per 1M</td><td>validation <code>FieldError</code> on non-numeric; toast on save</td></tr>
+        <tr><td>Poolable metrics</td><td>5× <code>Card</code> (KPI): Rework ratio · Batch size (median) · REQ throughput (REQs/hour) · Tokens per Verified · Commit cadence (+ duplicates collapsed)</td><td>from engine <code>Pooled</code></td><td><code>insufficient data (n=…)</code></td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> the most expensive model is chosen by output price; the label names it; saving prices recomputes immediately.</p>
+    <p><strong>Empty / loading / error:</strong> no §2.5 fields at all → drift tab <code>Empty</code>; prices file missing → warning alert + "create default" button.</p>
+
+    <h3 id="screen-snapshot-export-export">Screen: Snapshot export (<code>/export</code>)<a class="anchor-link" href="#screen-snapshot-export-export">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/export.html">docs/mockups/export.html</a> · <strong>Role(s):</strong> Author, Parity operator · <strong>BRD:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; quotable / not-quotable banner; Export card with the button and the dataset SHAs; past snapshots table with download links; parity record card.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Quotable banner</td><td><code>Alert Variant=Success</code> "QUOTABLE — last parity run 2026-08-30 postdates parser v3" <strong>or</strong> <code>Alert Variant=Warning</code> "NOT QUOTABLE — parser changed after the last parity run; re-run §13" <code>data-testid="quotable-banner"</code></td><td>parity vs parser version</td><td>—</td></tr>
+        <tr><td>Export card</td><td><code>Card</code> → <code>CardTitle</code> "Weekly snapshot" → <code>CardContent</code> <code>Button</code> <strong>Export snapshot</strong> <code>data-testid="export-now"</code> + <code>TypographyMuted</code> "writes data/reports/&lt;date&gt;/snapshot.md + tflens.json"</td><td>—</td><td><code>Spinner</code> while writing; toast with the folder</td></tr>
+        <tr><td>Dataset SHAs</td><td><code>DataTable TData=RepoSha ShowToolbar=false ShowPagination=false</code> (repo · branch · SHA · synced)</td><td>from <code>sync_state</code></td><td>copy button per SHA (<code>Button Size=IconSmall</code>)</td></tr>
+        <tr><td>Past snapshots</td><td><code>DataTable TData=SnapshotRow</code> <code>data-testid="snapshots"</code> (date · parser version · parity status · snapshot.md · tflens.json links)</td><td>folders under <code>data/reports/</code></td><td>empty → <code>Empty</code> "no snapshots yet"</td></tr>
+        <tr><td>Parity record</td><td><code>Card</code> "Last parity run" → date, dataset SHAs, script hash, parser version, compare output (<code>pre</code>)</td><td><code>data/parity-last.json</code></td><td>none → <code>Alert Variant=Warning</code> "no parity run recorded"</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> links open the files (served from <code>data/reports/</code> behind auth).</p>
+    <p><strong>Empty / loading / error:</strong> covered above.</p>
+
+    <h3 id="screen-playbook-playbook">Screen: Playbook (<code>/playbook</code>)<a class="anchor-link" href="#screen-playbook-playbook">#</a></h3>
+    <p><strong>Mockup:</strong> <a href="./mockups/playbook.html">docs/mockups/playbook.html</a> · <strong>Role(s):</strong> Owner · <strong>BRD:</strong> BRD-73..BRD-76 · <strong>REQ:</strong> (assigned by split-brd)</p>
+    <p><strong>Layout (one line):</strong> shell; note that this page reads a different schema; per Playbook repo a <code>Card</code> with phase totals table and a main-vs-subagent split; empty state until Phase 3 lands.</p>
+    <p><strong>Component map:</strong></p>
+    <table>
+      <thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows / binds</th><th>States</th></tr></thead>
+      <tbody>
+        <tr><td>Note</td><td><code>Alert Variant=Info</code></td><td>"Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes and never share a chart (SCHEMA.md §11)."</td><td>always</td></tr>
+        <tr><td>Repo card ×N</td><td><code>Card</code> (<code>CardTitle</code> owner/name, <code>Badge</code> "playbook", <code>Badge</code> SHA)</td><td>—</td><td>—</td></tr>
+        <tr><td>Phase totals</td><td><code>DataTable TData=PhaseRow ShowToolbar=false</code> <code>data-testid="pb-phases-{name}"</code> (phase · events · tokens · cost (if present))</td><td>grouped by phase</td><td>cost absent → <code>—</code></td></tr>
+        <tr><td>Main vs subagent</td><td>2× <code>Card</code> (KPI): Main-session tokens · Sub-agent tokens (via parentID) + <code>Progress</code> share bar</td><td>split</td><td>—</td></tr>
+        <tr><td>Schema discovery</td><td><code>Collapsible</code> "Observed fields" → list of <code>Badge</code></td><td>field names from overflow</td><td>—</td></tr>
+        <tr><td>Empty</td><td><code>Empty</code> (<code>EmptyTitle</code> "No Playbook data yet", <code>EmptyDescription</code> "Phase 3 — adapter is built after the real events.ndjson is parsed")</td><td>—</td><td>default at day-1</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Notes / interactions:</strong> deliberately minimal; shrinks when the Playbook converges on schema v1.</p>
+    <p><strong>Empty / loading / error:</strong> covered above.</p>
+
+    <h2 id="library-gaps">Library gaps<a class="anchor-link" href="#library-gaps">#</a></h2>
+    <p>Observed while designing (to be logged as <code>TR-NNN</code> in <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build if still true):</p>
+    <ul>
+      <li>No KPI / stat card component — composed from <code>Card</code> + Tailwind per the library's own documented pattern (acceptable, not blocking).</li>
+      <li>No plain <code>Table</code> primitives — small key/value tables use <code>DataTable</code> with toolbar and pagination off.</li>
+      <li>No theme toggle component — a <code>Switch</code> in the sidebar footer flips <code>class="dark"</code>.</li>
+      <li>Chart API documented only as <code>TItem</code>/<code>Items</code>/<code>XValue</code>/<code>YValue</code> — no axis/legend control; charts are supplementary, every figure also has a text table.</li>
+    </ul>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

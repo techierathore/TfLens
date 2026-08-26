@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Business Requirements</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Business Requirements</h1>
+    <div class="sub">Last rendered: 2026-08-26 · first-pass draft from concept</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#executive-summary">1. Executive summary</a></li>
+      <li><a href="#business-objectives">2. Business objectives</a></li>
+      <li><a href="#scope">3. Scope</a></li>
+      <li><a href="#development-status">4. Development status</a></li>
+      <li><a href="#stakeholders-users">5. Stakeholders / users</a></li>
+      <li><a href="#context-diagram">6. Context diagram</a></li>
+      <li><a href="#user-journey-primary-use-case">7. User journey — primary use case</a></li>
+      <li><a href="#component-sketch">8. Component sketch</a></li>
+      <li><a href="#feature-catalog">9. Feature catalog</a></li>
+      <li class="h3"><a href="#f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login</a></li>
+      <li class="h3"><a href="#f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets</a></li>
+      <li class="h3"><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
+      <li class="h3"><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
+      <li class="h3"><a href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow</a></li>
+      <li class="h3"><a href="#f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules</a></li>
+      <li class="h3"><a href="#f-cover-coverage-health-page">F-COVER: Coverage / health page</a></li>
+      <li class="h3"><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
+      <li class="h3"><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a></li>
+      <li class="h3"><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
+      <li class="h3"><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
+      <li class="h3"><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
+      <li class="h3"><a href="#f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page</a></li>
+      <li class="h3"><a href="#f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions</a></li>
+      <li><a href="#functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)</a></li>
+      <li><a href="#non-functional-requirements">11. Non-functional requirements</a></li>
+      <li><a href="#constraints-assumptions">12. Constraints &amp; assumptions</a></li>
+      <li><a href="#parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test</a></li>
+      <li><a href="#definition-of-done">14. Definition of done</a></li>
+      <li><a href="#success-metrics">15. Success metrics</a></li>
+      <li><a href="#risks">16. Risks</a></li>
+      <li><a href="#glossary">17. Glossary</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — Business Requirements</h1>
+    <div class="subtitle">Last rendered: 2026-08-26 · first-pass draft from concept</div>
+
+<!-- AGENT-ONLY AUTHORING NOTES — never render as visible text.
+  STABLE IDS: every requirement has a BRD-{N} ID; append-only across revisions.
+  DEPTH MANDATE: human document; §9 Feature catalog is the heart; one-liners only in §10.
+  MERMAID MANDATE: html-render-shell.md §5.5 — quote every label; never use `end` as a node id.
+-->
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#executive-summary">Executive summary</a></li>
+        <li><a href="#business-objectives">Business objectives</a></li>
+        <li><a href="#scope">Scope</a></li>
+        <li><a href="#development-status">Development status</a></li>
+        <li><a href="#stakeholders-users">Stakeholders / users</a></li>
+        <li><a href="#context-diagram">Context diagram</a></li>
+        <li><a href="#user-journey-primary-use-case">User journey — primary use case</a></li>
+        <li><a href="#component-sketch">Component sketch</a></li>
+        <li><a href="#feature-catalog">Feature catalog</a>
+          <ul>
+            <li><a href="#f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login</a></li>
+            <li><a href="#f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets</a></li>
+            <li><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
+            <li><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
+            <li><a href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow</a></li>
+            <li><a href="#f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules</a></li>
+            <li><a href="#f-cover-coverage-health-page">F-COVER: Coverage / health page</a></li>
+            <li><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
+            <li><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a></li>
+            <li><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
+            <li><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
+            <li><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
+            <li><a href="#f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page</a></li>
+            <li><a href="#f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions</a></li>
+          </ul>
+        </li>
+        <li><a href="#functional-requirements-brd-ledger">Functional requirements (BRD ledger)</a></li>
+        <li><a href="#non-functional-requirements">Non-functional requirements</a></li>
+        <li><a href="#constraints-assumptions">Constraints &amp; assumptions</a></li>
+        <li><a href="#parity-check-the-mandatory-acceptance-test">Parity check — the mandatory acceptance test</a></li>
+        <li><a href="#definition-of-done">Definition of done</a></li>
+        <li><a href="#success-metrics">Success metrics</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#glossary">Glossary</a></li>
+      </ol>
+    </div>
+
+<h2 id="executive-summary">1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
+
+<p>TfLens is a read-only lens over the development telemetry that TechieFlow and the AI-First-Playbook <strong>already emit</strong>. Every TechieFlow-managed repository carries four append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>). Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in SQLite, and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard, with a weekly snapshot export whose numbers can be quoted in public writing.</p>
+
+<p>It builds <strong>no capture layer, no ingestion API, and no per-machine agents</strong>. Capture is the frameworks' job and already works across Claude Code, OpenCode, and (via <code>harness: null</code>) anything else that runs the tasks. TfLens never writes to any repository; it reads with a fine-grained, contents-only token.</p>
+
+<p>The name is deliberate: "Analyst" collides with TechieFlow's analyst agent and "TfMetrics" collides with <code>tf-metrics.sh</code>. A <em>lens</em> changes nothing it looks at. The dangerous failure mode of this product is not a crash but a <strong>plausible wrong number</strong> — a backfilled record leaking into a live rate, a <code>library</code> record pooled into an <code>app</code> gate distribution — that gets exported, quoted, and cannot be defended. The provenance rules of SCHEMA.md §6 are therefore enforced in code with no switch to disable them, and a mandatory parity test against <code>tf-metrics.sh</code> is the acceptance gate (§13).</p>
+
+<p>Plan context (from <code>docs/ravi-90day-positioning-plan-v2.4.2.md</code>): TfLens is the A-V verification vehicle — a real side project built through the full TechieFlow phase sequence, funded from side-project hours, never a plan deliverable. Its exported numbers feed the plan's Numbers table, the B1 portability story (harness comparison), and the B3 token-economics post (counterfactual repricing).</p>
+
+<h2 id="business-objectives">2. Business objectives<a class="anchor-link" href="#business-objectives">#</a></h2>
+
+<ul>
+<li>Turn the existing telemetry into a dashboard the owner can open in a browser, within a 1–2 day timebox, without adding any capture surface to the frameworks.</li>
+<li>Produce <strong>quotable numbers</strong>: a weekly snapshot (markdown + JSON) that never mixes provenances and that has passed an exact parity diff against <code>tf-metrics.sh --rollup</code> on the same dataset.</li>
+<li>Make the telemetry's own health visible: a Coverage page that says, per repo, whether a clone has stopped pushing or lacks hooks — before any other figure is trusted.</li>
+<li>Render the B1 story as data (per-harness volumes, tokens, verdict mix, OpenCode-only dollars) and the B3 claim basis (tokens repriced as if every run used the most expensive observed model, labelled <em>estimate</em>).</li>
+<li>Serve as the A-V verification build: every TechieFlow phase runs on TfLens itself, gates enforced, so the framework's telemetry records its own dashboard being built.</li>
+</ul>
+
+<h2 id="scope">3. Scope<a class="anchor-link" href="#scope">#</a></h2>
+
+<p><strong>In scope</strong></p>
+
+<ul>
+<li>Pulling <code>docs/metrics/{runs,gates,sessions,commits}.jsonl</code> from a configured list of GitHub repos (private allowed) on a poll interval and on demand; raw archive; SQLite store; rebuild from raw.</li>
+<li>Parser with SCHEMA.md-exact columns, JSON overflow for unknown fields, and idempotent dedupe on the streams' natural keys.</li>
+<li>Five report pages (Coverage, Three questions, Harness comparison, Routing &amp; economics, Snapshot export) computed at request time with the provenance rules enforced structurally.</li>
+<li>Weekly snapshot export to <code>data/reports/&lt;date&gt;/</code> as markdown + JSON.</li>
+<li>Parity tooling: machine-readable export in the reference's key layout, a compare script, and the DECISIONS.md record of each passing run.</li>
+<li>Phase 3: a separate Playbook adapter for <code>verification/telemetry/events.ndjson</code> with its own tables and a minimal page.</li>
+<li>Single-user cookie auth; Serilog file logging; Dockerfile; <code>/healthz</code>.</li>
+</ul>
+
+<p><strong>Out of scope (explicit — recorded in the README)</strong></p>
+
+<ul>
+<li>Any capture or ingestion endpoint; OTLP; per-machine agents.</li>
+<li>Codex-CLI harness detection (a <code>tf-emit.sh</code> change; TfLens already reports <code>harness: null</code> honestly).</li>
+<li>Writing anything to any repository, ever.</li>
+<li>VPS / infra configuration (supplied separately).</li>
+<li>Multi-user accounts, roles, or public sharing of the dashboard.</li>
+<li>Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing figure.</li>
+</ul>
+
+<h2 id="development-status">4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+
+<p><strong>Snapshot as of 2026-08-26.</strong> Live, per-requirement status: see <code>PROJECT-STATUS.md</code> and the <strong>Requirements Status</strong> table in <code>docs/TfLens-Checklist.md</code> (created by <code>*split-brd</code>).</p>
+
+<table>
+<thead><tr><th>Feature (F-code)</th><th>Phase</th><th>Status</th><th>%</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>F-SHELL: App shell, navigation and single-user login</td><td>1</td><td>Planned</td><td>0</td><td>Sidebar shell, <code>/login</code>, cookie auth, Sync-now button in header</td></tr>
+<tr><td>F-CFG: Repo configuration and secrets</td><td>1</td><td>Planned</td><td>0</td><td><code>appsettings</code> repo list, PascalCase env provider, PAT/secrets validation</td></tr>
+<tr><td>F-SYNC: Repo puller — background sync and Sync now</td><td>1</td><td>Planned</td><td>0</td><td><code>BackgroundService</code>, SHA-skip, per-repo error isolation</td></tr>
+<tr><td>F-RAW: Raw archive and rebuild</td><td>1</td><td>Planned</td><td>0</td><td><code>data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code>; <code>rebuild</code> verb + button</td></tr>
+<tr><td>F-PARSE: Parser to SQLite with dedupe and overflow</td><td>1</td><td>Planned</td><td>0</td><td>One table per stream + <code>sync_state</code>; natural-key dedupe</td></tr>
+<tr><td>F-ENGINE: Metrics engine with provenance rules</td><td>2</td><td>Planned</td><td>0</td><td>Port of <code>tf-metrics.sh analyse()</code>; <code>Figure</code> type with <code>InsufficientData</code></td></tr>
+<tr><td>F-COVER: Coverage / health page</td><td>2</td><td>Planned</td><td>0</td><td>Landing page; staleness per stream; unknown-fields report</td></tr>
+<tr><td>F-3Q: The three questions page</td><td>2</td><td>Planned</td><td>0</td><td>Per <code>project_type</code>, live vs backfilled columns, taint list</td></tr>
+<tr><td>F-HARN: Harness comparison page</td><td>2</td><td>Planned</td><td>0</td><td>claude-code / opencode / null; OpenCode-only dollars</td></tr>
+<tr><td>F-ROUTE: Routing and economics page</td><td>2</td><td>Planned</td><td>0</td><td>Drift, tokens by model, repricing from <code>prices.json</code>, poolables</td></tr>
+<tr><td>F-EXPORT: Weekly snapshot export</td><td>2</td><td>Planned</td><td>0</td><td>Button + <code>export</code> verb → markdown + JSON</td></tr>
+<tr><td>F-PARITY: Parity check against tf-metrics.sh</td><td>2</td><td>Planned</td><td>0</td><td><code>tflens.json</code> layout, <code>tools/parity-compare.py</code>, DECISIONS.md stamp</td></tr>
+<tr><td>F-PB: Playbook adapter and page</td><td>3</td><td>Planned</td><td>0</td><td>Schema-discovery first; separate tables; <code>phase_gate</code> never shares <code>gate</code></td></tr>
+<tr><td>F-OPS: Container, health, docs and decisions</td><td>1</td><td>Planned</td><td>0</td><td>Dockerfile, <code>/healthz</code>, README out-of-scope list, DECISIONS.md</td></tr>
+</tbody>
+</table>
+
+<p><strong>Legend:</strong> <strong>Done</strong> = shipped &amp; working · <strong>In progress</strong> = actively being built · <strong>Partial</strong> = some sub-features done, others pending · <strong>Planned</strong> = not started. (Maps to the checklist's <code>Done (pre-existing)</code> / <code>In Progress</code> / <code>PARTIAL</code> / <code>Not Started</code>.)</p>
+
+<h2 id="stakeholders-users">5. Stakeholders / users<a class="anchor-link" href="#stakeholders-users">#</a></h2>
+
+<p>TfLens is a single-user product. The same human wears three hats, and the hats matter because they touch different screens and different guarantees.</p>
+
+<table>
+<thead><tr><th>Role</th><th>Who</th><th>Needs</th><th>Key screens</th></tr></thead>
+<tbody>
+<tr><td><strong>Owner</strong> (dashboard user)</td><td>The framework author, logged in with the single configured account</td><td>See whether telemetry is healthy, read the three questions per project type, compare harnesses, see routing drift and the repricing estimate, press Sync now</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code></td></tr>
+<tr><td><strong>Parity operator</strong></td><td>The same person, at a terminal, before any number is quoted</td><td>Run <code>tf-metrics.sh --rollup --json</code> on a pinned dataset, export <code>tflens.json</code> for the same SHAs, run the compare script, record the pass in DECISIONS.md</td><td><code>/export</code>, the <code>export</code> verb, <code>tools/parity-compare.py</code></td></tr>
+<tr><td><strong>Author</strong> (consumer of the export)</td><td>The same person writing the weekly Numbers row, B1, B3</td><td>A snapshot that never mixes provenances, states <em>estimate</em> where it estimates, and carries its parity stamp so it is quotable</td><td><code>/export</code> output under <code>data/reports/&lt;date&gt;/</code></td></tr>
+<tr><td><strong>Ops</strong></td><td>The same person deploying the container</td><td>One image, one volume, env-var secrets, a health endpoint, rolling file logs</td><td>Dockerfile, <code>/healthz</code>, <code>logs/</code></td></tr>
+<tr><td><strong>Downstream frameworks</strong> (not users)</td><td>TechieFlow, AI-First-Playbook</td><td>Nothing — TfLens never writes to them and never asks them to change</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p>Onboarding path: set <code>TfLensAuthUser</code> / <code>TfLensAuthPasswordHash</code> / <code>TfLensGitHubToken</code> and the repo list, start the container, log in at <code>/login</code>, press <strong>Sync now</strong>, and read the Coverage page until it is green.</p>
+
+<h2 id="context-diagram">6. Context diagram<a class="anchor-link" href="#context-diagram">#</a></h2>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  Owner(["Owner (single user)"]) -- "HTTPS + cookie" --> App["TfLens<br/>Blazor Server dashboard"]
+  App -- "GET only, PAT contents:read" --> GH["GitHub REST API<br/>TechieFlow + Playbook repos"]
+  App --> DB[("SQLite<br/>data/tflens.db")]
+  App --> Raw[("Raw archive<br/>data/raw/")]
+  App --> Rep[("Snapshots<br/>data/reports/&lt;date&gt;/")]
+  Ref["tf-metrics.sh --rollup --json<br/>(reference, owner-run)"] -. "parity diff" .-> Rep
+  Rep --> Plan["Numbers table · B1 · B3"]</pre>
+</div>
+
+<h2 id="user-journey-primary-use-case">7. User journey — primary use case<a class="anchor-link" href="#user-journey-primary-use-case">#</a></h2>
+
+<p>The weekly loop: sync, check health, read the questions, export, prove parity, quote.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  actor O as Owner
+  participant L as "/login"
+  participant C as Coverage page
+  participant S as RepoSyncService
+  participant Q as Three questions page
+  participant E as Export page
+  participant T as "Terminal (parity)"
+  O->>L: log in (cookie)
+  L-->>O: redirect to /
+  O->>C: press Sync now
+  C->>S: SyncAllAsync()
+  S-->>C: per-repo report (updated / skipped / error)
+  C-->>O: staleness per stream, green or warnings
+  O->>Q: open /three-questions
+  Q-->>O: per project_type: first-pass, gate dist, escape rate (live | backfilled), taint list
+  O->>E: press Export snapshot
+  E-->>O: data/reports/2026-08-30/snapshot.md + tflens.json (+ parity banner)
+  O->>T: tf-metrics.sh --rollup --json > reference.json
+  O->>T: python3 tools/parity-compare.py reference.json tflens.json
+  T-->>O: empty diff (exit 0) → record in DECISIONS.md → numbers are quotable</pre>
+</div>
+
+<h2 id="component-sketch">8. Component sketch<a class="anchor-link" href="#component-sketch">#</a></h2>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  subgraph Head["src/TfLens (Blazor Server, .NET 10)"]
+    Pages["Pages: / · /three-questions · /harness · /routing · /export · /playbook · /login"]
+    Sync["RepoSyncService"]
+    Verbs["Verbs: rebuild · sync · export"]
+    Auth["Cookie auth"]
+  end
+  subgraph Core["src/TfLens.Core"]
+    Fetch["GitHubStreamFetcher"]
+    Parse["StreamParser + Dedupe"]
+    Store["SqliteStore (Dapper)"]
+    Engine["MetricsEngine + ExtraMetrics"]
+    Exp["SnapshotExporter"]
+    Pb["PlaybookAdapter"]
+  end
+  Pages --> Engine
+  Pages --> Exp
+  Sync --> Fetch
+  Verbs --> Sync
+  Verbs --> Exp
+  Fetch --> Parse
+  Fetch --> Pb
+  Parse --> Store
+  Pb --> Store
+  Engine --> Store
+  Exp --> Engine
+  Auth --> Pages</pre>
+</div>
+
+<h2 id="feature-catalog">9. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
+
+<h3 id="f-shell-app-shell-navigation-and-single-user-login">F-SHELL: App shell, navigation and single-user login<a class="anchor-link" href="#f-shell-app-shell-navigation-and-single-user-login">#</a></h3>
+
+<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 1</p>
+
+<p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar</code> + <code>SidebarInset</code>) with a fixed header carrying the page title, a <strong>Sync now</strong> button with the last-sync timestamp, and the sign-out action. The sidebar lists the six pages in the order the owner should read them (Coverage first — "every other number is suspect until this page is green"). The dashboard sits entirely behind cookie authentication: one account, credentials from configuration, a PBKDF2 hash rather than a plaintext password, generic failure messages, and a sliding 12-hour cookie. There is no registration, no password reset, no roles.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Login</td><td><code>/login</code></td><td>Username + password form; the only anonymous page besides <code>/healthz</code></td></tr>
+<tr><td>Shell</td><td>(layout)</td><td>Sidebar nav (Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export, Playbook), header with Sync now + last sync + sign out</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Unauthenticated request to any page → redirect to <code>/login</code> with return URL.</li>
+<li>Submit credentials → constant-time verify against the configured PBKDF2 hash → cookie issued → redirect to return URL or <code>/</code>.</li>
+<li>Sign out → cookie cleared → <code>/login</code>.</li>
+<li><strong>Sync now</strong> in the header runs the same <code>SyncAllAsync()</code> the background service runs and shows a toast with the per-repo outcome.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-1, BRD-2, BRD-3, BRD-4, BRD-5, BRD-6</p>
+
+<h3 id="f-cfg-repo-configuration-and-secrets">F-CFG: Repo configuration and secrets<a class="anchor-link" href="#f-cfg-repo-configuration-and-secrets">#</a></h3>
+
+<p><strong>Personas:</strong> Ops, Owner · <strong>Phase:</strong> 1</p>
+
+<p>Configuration is the only input TfLens has besides the streams themselves. The repo list lives in <code>appsettings.json</code> (and can be overridden by environment): <code>owner</code>, <code>name</code>, <code>branch</code>, <code>kind</code> (<code>techieflow</code> | <code>playbook</code>), plus a global poll interval. Secrets — the GitHub PAT and the auth credentials — come <strong>only</strong> from environment or user-secrets through the PascalCase env-var provider mandated by the Coding Standards (<code>TfLensGitHubToken</code>, <code>TfLensAuthUser</code>, <code>TfLensAuthPasswordHash</code>). Startup validates the configuration and refuses to run with a missing token, a duplicate <code>owner/name</code>, or an unknown <code>kind</code>, logging the reason without logging the value.</p>
+
+<p>Initial placeholder repo list (kickoff decision 2026-08-26 — owner corrects names in <code>appsettings.json</code>):</p>
+
+<table>
+<thead><tr><th>owner</th><th>name</th><th>branch</th><th>kind</th></tr></thead>
+<tbody>
+<tr><td>techierathore</td><td>TechieFlow</td><td>main</td><td>techieflow</td></tr>
+<tr><td>techierathore</td><td>TechieRag</td><td>main</td><td>techieflow</td></tr>
+<tr><td>techierathore</td><td>TrBlazeUI</td><td>main</td><td>techieflow</td></tr>
+<tr><td>techierathore</td><td>blog</td><td>main</td><td>techieflow</td></tr>
+<tr><td>techierathore</td><td>AI-First-Playbook</td><td>main</td><td>playbook</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Read <code>Repos[]</code>, <code>PollIntervalMinutes</code> (default 15), <code>DataRoot</code> (default <code>data/</code>) from configuration.</li>
+<li>Read secrets from the env provider; never from <code>appsettings.json</code>.</li>
+<li>Validate; on failure log a redacted reason and stop the host (<code>Log.Fatal</code>).</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-7, BRD-8, BRD-9, BRD-10, BRD-11</p>
+
+<h3 id="f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now<a class="anchor-link" href="#f-sync-repo-puller-background-sync-and-sync-now">#</a></h3>
+
+<p><strong>Personas:</strong> Owner (Sync now), Ops (background) · <strong>Phase:</strong> 1</p>
+
+<p>A <code>BackgroundService</code> polls every configured repo on the interval; the header button runs the identical code on demand. For each repo it asks GitHub for the latest commit SHA touching the telemetry path (<code>docs/metrics</code> for <code>techieflow</code>, <code>verification/telemetry</code> for <code>playbook</code>) on the configured branch. If that SHA equals the one in <code>sync_state</code>, the repo is skipped without fetching a byte. Otherwise every stream file is fetched whole at that exact SHA (they are small), written verbatim to the raw archive (F-RAW), and parsed (F-PARSE). A 404 on a stream file means "this stream is absent" and is recorded as zero, not as an error. Errors are per repo: one failing repo never stops the others, and the failure text (status code + short reason, never the token) lands in <code>sync_state.LastError</code> for the Coverage page. The puller is structurally read-only — no method exists that issues anything but GET.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  A["Tick or Sync now"] --> B["For each configured repo"]
+  B --> C["GET latest commit SHA touching telemetry path"]
+  C --> D{"SHA == sync_state.LastSha?"}
+  D -->|"yes"| E["Skip: update LastSyncTs only"]
+  D -->|"no"| F["For each stream file"]
+  F --> G["GET raw file at SHA (404 = absent)"]
+  G --> H["Write data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl verbatim"]
+  H --> I["Parse + dedupe + upsert"]
+  I --> J["Update sync_state: sha, ts, per-stream counts, LastError=null"]
+  C -->|"401 / 403 / 404 / network"| K["Record LastError for this repo; continue with next"]
+  E --> L["SyncReport"]
+  J --> L
+  K --> L</pre>
+</div>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Timer tick (every <code>PollIntervalMinutes</code>) or button press.</li>
+<li>Per repo: SHA lookup → skip or fetch → archive → parse → <code>sync_state</code>.</li>
+<li>Return a <code>SyncReport</code> (per repo: <code>Updated(sha, counts)</code> / <code>Skipped</code> / <code>Error(reason)</code>); the UI shows it as a toast and the Coverage page reflects it.</li>
+<li>Invalidate the cached analysis so pages recompute.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-12, BRD-13, BRD-14, BRD-15, BRD-16, BRD-17, BRD-18</p>
+
+<h3 id="f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild<a class="anchor-link" href="#f-raw-raw-archive-and-rebuild">#</a></h3>
+
+<p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
+
+<p>The raw archive is the rebuild source and the audit trail. Every fetched file is stored byte-for-byte under <code>data/raw/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> <strong>before</strong> it is parsed, so a parser bug can never lose data — fix the parser, run <code>rebuild</code>, done. <code>rebuild</code> (a command verb <code>dotnet TfLens.dll rebuild</code>, also a confirm-guarded button on the Coverage page) drops the SQLite database, recreates the schema, and replays every archived file in repo order and SHA fetch order, then reports files replayed, records stored, and duplicates collapsed per stream. Because parsing is idempotent (F-PARSE), the record counts after a rebuild equal the counts after live syncs.</p>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li><code>rebuild</code> requested (verb or button with an "are you sure" dialog).</li>
+<li>Drop all tables → create DDL → enumerate <code>data/raw/**/*.jsonl</code>.</li>
+<li>Replay in order → recompute <code>sync_state</code> counts from the newest SHA per repo.</li>
+<li>Report; invalidate caches.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-19, BRD-20, BRD-21, BRD-22</p>
+
+<h3 id="f-parse-parser-to-sqlite-with-dedupe-and-overflow">F-PARSE: Parser to SQLite with dedupe and overflow<a class="anchor-link" href="#f-parse-parser-to-sqlite-with-dedupe-and-overflow">#</a></h3>
+
+<p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
+
+<p>One table per stream (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>. Column names follow SCHEMA.md field names exactly (PascalCase form; the mapping table is in the parser and in Architecture §6). A line that is not valid JSON is counted and skipped, exactly as the reference does. Any property the parser does not know for that stream — and any record with <code>v &gt; 1</code> — keeps its unknown properties in a JSON <code>Overflow</code> column rather than being dropped; the set of unknown field names seen per repo is reported on the Coverage page ("fields observed that SCHEMA.md doesn't document"). Fields that SCHEMA.md says are "present only when true" or "absent means not captured" are stored as <code>NULL</code> when absent, never as <code>0</code>/<code>false</code>, so downstream can tell "not captured" from "zero".</p>
+
+<p>Dedupe is idempotent on the natural identity of each stream, so re-parsing the same raw file or replaying it during rebuild never double-counts:</p>
+
+<table>
+<thead><tr><th>Stream</th><th>Identity</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td><code>commits</code></td><td><code>sha</code> <strong>per repo</strong></td><td>keep first; count collapsed duplicates (expected after union merges — two repos may legitimately share a short sha, hence per repo)</td></tr>
+<tr><td><code>sessions</code></td><td><code>session_id</code></td><td>OpenCode records are cumulative snapshots: keep the record with the highest <code>output_tokens</code>, tie → latest <code>ts</code></td></tr>
+<tr><td><code>runs</code></td><td><code>ts</code> + <code>app</code> + <code>cmd</code></td><td>keep first</td></tr>
+<tr><td><code>gates</code></td><td><code>ts</code> + <code>app</code> + <code>req_id</code> + <code>run_id</code></td><td>keep first</td></tr>
+</tbody>
+</table>
+
+<p>Provenance fields are preserved verbatim and typed: <code>backfilled</code>, <code>inferred</code>, <code>project_type</code>, <code>project_type_inferred</code>, <code>harness</code>. They are what Phase 2 segments on.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["raw JSONL text"] --> B["split lines"]
+  B --> C{"valid JSON?"}
+  C -->|"no"| D["count + skip"]
+  C -->|"yes"| E["map known fields to columns"]
+  E --> F["unknown fields to Overflow JSON"]
+  F --> G{"natural key already stored?"}
+  G -->|"yes"| H["skip (dedupe count)"]
+  G -->|"no"| I["insert"]</pre>
+</div>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Receive <code>(repo, stream, sha, text)</code>.</li>
+<li>Parse line by line; map; overflow; dedupe against the unique index; insert in one transaction.</li>
+<li>Return <code>(inserted, duplicates, invalidLines, unknownFields[])</code>.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-23, BRD-24, BRD-25, BRD-26, BRD-27, BRD-28, BRD-29</p>
+
+<h3 id="f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules<a class="anchor-link" href="#f-engine-metrics-engine-with-provenance-rules">#</a></h3>
+
+<p><strong>Personas:</strong> Owner (indirectly — every page), Parity operator · <strong>Phase:</strong> 2</p>
+
+<p>The engine is a field-for-field port of <code>analyse()</code> in <code>.tfcore/telemetry/tf-metrics.sh</code>, the trusted reference. All figures are computed at request time from the stream tables; nothing derived is ever written back into a stream table. The SCHEMA.md §6 provenance rules are enforced by the shape of the result, not by a flag:</p>
+
+<ul>
+<li><strong>Live and backfilled never pool.</strong> The result has <code>Live[projectType]</code> and <code>Backfilled[projectType]</code>; there is no <code>Total</code>.</li>
+<li><strong>First-pass rate, gate catch distribution and escape rate never pool across <code>project_type</code>.</strong> Records with <code>project_type_inferred: true</code> are segmented as <strong>unclassified</strong>, never silently as <code>app</code>.</li>
+<li><strong>Taint exclusion.</strong> Any <code>req_id</code> with even one backfilled record is excluded from the live first-pass rate (its live <code>attempt</code> restarts at 1); the excluded IDs are returned as a list for display.</li>
+<li><strong>Minimum n.</strong> Any metric with fewer than 3 supporting records is <code>InsufficientData(n)</code>, a distinct case of the <code>Figure</code> type that a page can only render as text.</li>
+<li><strong>Dollars never pool across harness.</strong> <code>Pooled.CostUsd</code> is always <code>null</code> (the reference's contract); real dollars appear only in the harness page for <code>opencode</code>.</li>
+<li><strong>Late-added gates</strong> (<code>perf</code>, 2026-08-10) report <code>ran</code> (records whose <code>gates_run</code> contains the gate) and <code>caught</code> side by side; their share of the raw distribution is never presented as a catch rate.</li>
+<li>Poolable metrics (rework ratio, batch size median, REQ throughput median in REQs/hour, tokens total, tokens per Verified REQ, commit cadence, duplicates collapsed) follow SCHEMA.md §8 and the reference's rounding (<code>%.0f%%</code>, 2 dp throughput, 1 dp tokens per Verified).</li>
+</ul>
+
+<p>A unit test feeds the checked-in fixture streams to the engine and asserts equality with a <code>reference.json</code> produced by the script on the same fixtures — the parity test in miniature, run on every build.</p>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li><code>Analyse(repos, options)</code> reads streams per repo, dedupes commits per repo.</li>
+<li>Segments gates: live vs backfilled → by project type (unclassified for inferred).</li>
+<li>Computes taint set → per-segment figures → late-gate coverage → pooled block.</li>
+<li>Returns <code>AnalysisResult</code> (same key layout as <code>--rollup --json</code>) — memoised until the next sync/rebuild.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-30, BRD-31, BRD-32, BRD-33, BRD-34, BRD-35, BRD-36, BRD-37, BRD-38</p>
+
+<h3 id="f-cover-coverage-health-page">F-COVER: Coverage / health page<a class="anchor-link" href="#f-cover-coverage-health-page">#</a></h3>
+
+<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 2</p>
+
+<p>The first page, always. Per repo it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; staleness; unknown fields; Rebuild button</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Read <code>sync_state</code> + per-stream <code>MAX(ts)</code> per repo + counts + overflow field names.</li>
+<li>Compute staleness per stream vs today; apply thresholds; compose warnings.</li>
+<li>Render; Sync now / Rebuild refresh in place.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44</p>
+
+<h3 id="f-3q-the-three-questions-page">F-3Q: The three questions page<a class="anchor-link" href="#f-3q-the-three-questions-page">#</a></h3>
+
+<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
+
+<p>The headline page and the B3 evidence base. For each <code>project_type</code> present in the data (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, and <code>unclassified</code> for inferred records) it shows the three questions SCHEMA.md §0 exists to answer — <strong>first-pass rate</strong>, <strong>gate catch distribution</strong> (with <code>escaped</code> as its own row, never folded into a gate, and <code>unattributed</code> where a failure carries no gate), and <strong>escape rate</strong> — computed from <strong>live records only</strong>, with the backfilled figures for the same type in an adjacent, clearly labelled column that is never summed with live. Under each type: records, REQs scored, REQs excluded by backfill taint, and the late-gate coverage lines (<code>perf gate: ran on n records, caught k → rate | insufficient data (n=…) | not yet run on this data (gate added 2026-08-10)</code>). The tainted REQ IDs are listed in full in a collapsible panel. Any figure below the minimum n renders as <code>insufficient data (n=…)</code>. There is no "all types" tab and no total row — by design.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Three questions</td><td><code>/three-questions</code></td><td>One section (or tab) per project_type; live column + labelled backfilled column; taint list; late-gate coverage</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li><code>Analyse()</code> → iterate <code>Live</code> and <code>Backfilled</code> keyed by type.</li>
+<li>Render first-pass, escape rate, distribution table (rows in the reference's <code>GATE_ORDER</code>), late-gate coverage.</li>
+<li>Render the taint list and the standing note: "figures are deliberately not combined across project_type or provenance (SCHEMA.md §6)".</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-45, BRD-46, BRD-47, BRD-48, BRD-49, BRD-50</p>
+
+<h3 id="f-harn-harness-comparison-page">F-HARN: Harness comparison page<a class="anchor-link" href="#f-harn-harness-comparison-page">#</a></h3>
+
+<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
+
+<p>The portability page — the B1 story rendered as data. Per harness (<code>claude-code</code>, <code>opencode</code>, <code>null</code>; <code>codex</code> appears automatically when the streams start carrying it): run counts by command, gate records and verdict mix, session counts, token totals (input, output, cache read, cache write, from both <code>runs</code> §2.5 fields and <code>sessions</code>), tokens per verified REQ. <strong>Real <code>cost_usd</code> is shown for OpenCode only</strong>, in its own card labelled "the only measured dollars in the system"; Claude Code shows "not measured (null by design)". Tokens may be compared across harness; dollars may not, and the page never shows a dollar total across harnesses. <code>harness: null</code> is shown honestly as its own column ("harness not detected"), never merged into either named harness. This page has no reference in <code>tf-metrics.sh</code>, so it is spot-checked by hand once (F-PARITY).</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Harness comparison</td><td><code>/harness</code></td><td>Side-by-side columns per harness; tokens chart; OpenCode-only cost card</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Group <code>runs</code>, <code>gates</code>, <code>sessions</code> by <code>harness</code> (null kept as its own group).</li>
+<li>Compute volumes, verdict mix, token totals, tokens per Verified; dollars for <code>opencode</code> only.</li>
+<li>Render columns + one bar chart (tokens by harness).</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-51, BRD-52, BRD-53, BRD-54, BRD-55</p>
+
+<h3 id="f-route-routing-and-economics-page">F-ROUTE: Routing and economics page<a class="anchor-link" href="#f-route-routing-and-economics-page">#</a></h3>
+
+<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
+
+<p>Three panels. <strong>Routing drift</strong> uses the §2.5 per-run fields: count and list of <code>routed: false</code> runs, declared <code>tier</code>/<code>tier_model</code> versus observed <code>model</code> (and <code>models</code> when more than one), by command. <strong>Tokens by model</strong> sums run tokens per observed model. <strong>Counterfactual repricing</strong> is the B3 claim basis: total tokens (input, output, cache read, cache write) repriced as if every run had used the most expensive model observed in the data, versus the actual mix, using an editable <code>data/prices.json</code> rate card (per model: input/output/cache-read/cache-write USD per million tokens). The figure is labelled <strong>estimate — tokens × rate card, not measured spend</strong> in the UI and in the export; runs with <code>tokens_scope: none</code> (no tokens captured) are counted and excluded, and stated. The page also carries the poolable metrics per SCHEMA.md §8 — rework ratio, REQ throughput, batch size, commit cadence — straight from the engine. A small editor (dialog) lets the owner edit <code>prices.json</code> in place with validation; the file is the source, the dialog is a convenience.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["runs with tokens (scope != none)"] --> B["Σ tokens by model"]
+  B --> C["actual cost estimate = Σ tokens_m × price_m"]
+  P[("data/prices.json")] --> C
+  P --> D["most expensive observed model"]
+  B --> E["counterfactual = Σ all tokens × price_max"]
+  D --> E
+  C --> F["show both, labelled ESTIMATE, with excluded-run count"]
+  E --> F</pre>
+</div>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td>Drift table; tokens-by-model chart; repricing cards (estimate); poolable metrics; prices editor dialog</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Drift: filter runs with <code>tier_model</code> and <code>model</code>; group by <code>cmd</code>; list <code>routed:false</code>.</li>
+<li>Tokens by model: sum §2.5 token fields by <code>model</code>.</li>
+<li>Repricing: load <code>prices.json</code>; compute actual-mix and all-at-max; label estimate; show excluded runs.</li>
+<li>Poolables: from <code>AnalysisResult.Pooled</code>.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62</p>
+
+<h3 id="f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export<a class="anchor-link" href="#f-export-weekly-snapshot-export">#</a></h3>
+
+<p><strong>Personas:</strong> Author, Parity operator · <strong>Phase:</strong> 2</p>
+
+<p>A button on <code>/export</code> and a command verb (<code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code>) write two files to <code>data/reports/&lt;date&gt;/</code>: <code>snapshot.md</code> (human-readable, sectioned exactly like the pages, provenance never mixed in one figure, every estimate labelled) and <code>tflens.json</code> (machine-readable; the same key layout as <code>tf-metrics.sh --rollup --json</code> — <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code> — plus an <code>extras</code> object for harness, routing and repricing, and a <code>parity</code> object carrying the last recorded parity run). The page lists previous snapshots with download links and shows a <strong>quotable / not quotable</strong> banner: quotable only if the last parity run on record postdates the last parser change (the build stamps a parser version; the parity record stores the version it validated).</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Snapshot export</td><td><code>/export</code></td><td>Export button; list of past snapshots; quotable banner; parity status</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Press Export (or run the verb) → <code>Analyse()</code> + extras → write markdown + JSON → refresh list.</li>
+<li>Banner reads <code>data/parity-last.json</code> (written by the parity procedure) and compares parser version.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-63, BRD-64, BRD-65, BRD-66, BRD-67</p>
+
+<h3 id="f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh<a class="anchor-link" href="#f-parity-parity-check-against-tf-metrics-sh">#</a></h3>
+
+<p><strong>Personas:</strong> Parity operator · <strong>Phase:</strong> 2</p>
+
+<p>Two independent implementations now compute the same metrics from the same files: <code>tf-metrics.sh</code> (trusted; the §6 rules live in its code) and TfLens (new, unproven). Correct implementations must agree exactly; any disagreement is by definition a bug in TfLens, and the script is never changed to match the app. TfLens ships the tooling that makes the check cheap: the <code>tflens.json</code> export in the reference's key layout, a <code>tools/parity-compare.py</code> script that compares key-by-key (not a text diff — key order and formatting may differ) and exits non-zero on any mismatch, the <code>sync_state</code> SHAs so the same dataset can be checked out for the script, and a <code>data/parity-last.json</code> + DECISIONS.md entry that records each passing run (date, dataset SHAs, script hash, compare output). The full procedure and the zero-tolerance rule are in §13; the metrics the script does not compute (harness, routing, repricing) have no oracle and are spot-checked by hand against raw JSONL once, recorded the same way.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["sync_state SHAs"] --> B["clone repos at those SHAs"]
+  B --> C["tf-metrics.sh --rollup ... --json > reference.json"]
+  D["TfLens export verb"] --> E["tflens.json"]
+  C --> F["tools/parity-compare.py reference.json tflens.json"]
+  E --> F
+  F -->|"empty diff, exit 0"| G["record in DECISIONS.md + data/parity-last.json"]
+  F -->|"any diff"| H["bug in TfLens: fix parser/engine, re-run"]</pre>
+</div>
+
+<p><strong>Workflow:</strong> see §13 (mandatory acceptance test).</p>
+
+<p><strong>Requirements:</strong> BRD-68, BRD-69, BRD-70, BRD-71, BRD-72</p>
+
+<h3 id="f-pb-playbook-adapter-and-page">F-PB: Playbook adapter and page<a class="anchor-link" href="#f-pb-playbook-adapter-and-page">#</a></h3>
+
+<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 3</p>
+
+<p>Playbook-managed repos emit <code>verification/telemetry/events.ndjson</code> (phase-start / turn / phase-end events, with <code>parentID</code> linking sub-agent sessions to a main session) — a different shape from schema v1, so it gets a <strong>separate adapter, separate tables, and a separate page</strong>. Playbook process-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) are different axes (SCHEMA.md §11) and must never share a column or a chart. No sample of the file exists at day-1 (kickoff answer), so the adapter is built schema-discovery-first: task one parses the real file and records the observed field names in DECISIONS.md; only then are the <code>PbEvent</code> columns fixed and the minimal page built — phase token/cost totals and a main-vs-subagent split via <code>parentID</code>. When the Playbook converges on schema v1 this adapter shrinks; it is deliberately minimal.</p>
+
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Playbook</td><td><code>/playbook</code></td><td>Per-repo phase totals (tokens, cost if present), main vs subagent split; "no Playbook data yet" empty state</td></tr>
+</tbody>
+</table>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Sync fetches <code>events.ndjson</code> (and the joiner output if committed) for <code>kind: playbook</code> repos, archives raw, parses into <code>PbEvent</code> with overflow.</li>
+<li>Page groups by phase and by <code>parentID</code> presence.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76</p>
+
+<h3 id="f-ops-container-health-docs-and-decisions">F-OPS: Container, health, docs and decisions<a class="anchor-link" href="#f-ops-container-health-docs-and-decisions">#</a></h3>
+
+<p><strong>Personas:</strong> Ops · <strong>Phase:</strong> 1</p>
+
+<p>A multi-stage Dockerfile produces one image; <code>data/</code> and <code>logs/</code> are volumes; secrets arrive as environment variables. <code>/healthz</code> (anonymous) reports database reachability and the age of the last successful sync, nothing else. The README states the out-of-scope list verbatim (§3) and the run/rebuild/export commands. <code>DECISIONS.md</code> is created at day-1 build time and records: the storage choice (Dapper + SQLite), the dedupe keys, the parser version scheme, anything cut for the timebox, and every parity run.</p>
+
+<p><strong>Workflow:</strong></p>
+<ol>
+<li><code>docker build</code> → image; <code>docker run -v data -v logs -e TfLensGitHubToken=…</code> → container.</li>
+<li><code>docker exec &lt;c&gt; dotnet TfLens.dll rebuild|sync|export</code> for operations.</li>
+</ol>
+
+<p><strong>Requirements:</strong> BRD-77, BRD-78, BRD-79, BRD-80, BRD-81</p>
+
+<h2 id="functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)<a class="anchor-link" href="#functional-requirements-brd-ledger">#</a></h2>
+
+<ul>
+<li><strong>BRD-1</strong> — Owner can sign in at <code>/login</code> with the single configured username and password and is redirected to the requested page. <em>(F-SHELL)</em></li>
+<li><strong>BRD-2</strong> — System shall place every page except <code>/login</code> and <code>/healthz</code> behind cookie authentication (sliding 12 h, HttpOnly, Secure). <em>(F-SHELL)</em></li>
+<li><strong>BRD-3</strong> — System shall verify the password against a PBKDF2 hash from configuration using a constant-time comparison and show a generic error on failure. <em>(F-SHELL)</em></li>
+<li><strong>BRD-4</strong> — Owner can sign out from the header. <em>(F-SHELL)</em></li>
+<li><strong>BRD-5</strong> — Owner can navigate between Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export and Playbook via a TrBlazeUI sidebar, in that order. <em>(F-SHELL)</em></li>
+<li><strong>BRD-6</strong> — Owner can press <strong>Sync now</strong> in the header and see the last-sync timestamp and a per-repo outcome toast. <em>(F-SHELL)</em></li>
+<li><strong>BRD-7</strong> — Ops can configure the repo list <code>{owner, name, branch, kind: techieflow|playbook}</code> and the poll interval in <code>appsettings.json</code> / environment. <em>(F-CFG)</em></li>
+<li><strong>BRD-8</strong> — System shall read the GitHub PAT and the auth credentials only from environment / user-secrets via the PascalCase env-var provider (<code>TfLensGitHubToken</code>, <code>TfLensAuthUser</code>, <code>TfLensAuthPasswordHash</code>), never from files in the repo. <em>(F-CFG)</em></li>
+<li><strong>BRD-9</strong> — System shall refuse to start when the token or credentials are missing, a repo is duplicated, or a <code>kind</code> is unknown, logging a redacted reason. <em>(F-CFG)</em></li>
+<li><strong>BRD-10</strong> — System shall never log, display, or export the PAT or the password hash. <em>(F-CFG)</em></li>
+<li><strong>BRD-11</strong> — Ops can override <code>DataRoot</code> (default <code>data/</code>) for the database, raw archive, reports and <code>prices.json</code>. <em>(F-CFG)</em></li>
+<li><strong>BRD-12</strong> — System shall poll every configured repo on the configured interval via a <code>BackgroundService</code>. <em>(F-SYNC)</em></li>
+<li><strong>BRD-13</strong> — System shall, per repo, read the latest commit SHA touching the telemetry path on the configured branch and skip the repo when it equals the stored SHA. <em>(F-SYNC)</em></li>
+<li><strong>BRD-14</strong> — System shall fetch each stream file whole at that exact SHA and treat a 404 as "stream absent" (zero records), not an error. <em>(F-SYNC)</em></li>
+<li><strong>BRD-15</strong> — System shall isolate errors per repo (401/403/404/network), record a redacted reason in <code>sync_state.LastError</code>, and continue with the remaining repos. <em>(F-SYNC)</em></li>
+<li><strong>BRD-16</strong> — System shall be structurally read-only against GitHub: only GET requests, contents-read scope, no code path that writes to any repository. <em>(F-SYNC)</em></li>
+<li><strong>BRD-17</strong> — System shall update <code>sync_state</code> (last SHA, last sync ts, per-stream record counts, last error) after each repo sync. <em>(F-SYNC)</em></li>
+<li><strong>BRD-18</strong> — System shall invalidate cached analysis results after every completed sync or rebuild. <em>(F-SYNC)</em></li>
+<li><strong>BRD-19</strong> — System shall store every fetched stream file verbatim under <code>data/raw/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> before parsing it. <em>(F-RAW)</em></li>
+<li><strong>BRD-20</strong> — Ops can run <code>rebuild</code> (command verb) to drop the SQLite database and reparse every archived raw file. <em>(F-RAW)</em></li>
+<li><strong>BRD-21</strong> — Owner can trigger the same rebuild from the Coverage page behind a confirmation dialog. <em>(F-RAW)</em></li>
+<li><strong>BRD-22</strong> — System shall report, after a rebuild, files replayed, records stored and duplicates collapsed per stream, and produce the same counts as live syncing did. <em>(F-RAW)</em></li>
+<li><strong>BRD-23</strong> — System shall store each stream in its own table (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>, with columns named exactly after SCHEMA.md fields. <em>(F-PARSE)</em></li>
+<li><strong>BRD-24</strong> — System shall keep unknown properties (and all properties of records with <code>v &gt; 1</code>) in a JSON <code>Overflow</code> column instead of dropping them. <em>(F-PARSE)</em></li>
+<li><strong>BRD-25</strong> — System shall count and skip lines that are not valid JSON, as the reference does. <em>(F-PARSE)</em></li>
+<li><strong>BRD-26</strong> — System shall dedupe <code>commits</code> on <code>sha</code> per repo, keeping the first and counting the collapsed duplicates. <em>(F-PARSE)</em></li>
+<li><strong>BRD-27</strong> — System shall keep, per <code>session_id</code>, only the session record with the highest <code>output_tokens</code> (tie: latest <code>ts</code>). <em>(F-PARSE)</em></li>
+<li><strong>BRD-28</strong> — System shall dedupe <code>runs</code> on <code>ts+app+cmd</code> and <code>gates</code> on <code>ts+app+req_id+run_id</code> so re-parsing never double-counts. <em>(F-PARSE)</em></li>
+<li><strong>BRD-29</strong> — System shall preserve <code>backfilled</code>, <code>inferred</code>, <code>project_type</code>, <code>project_type_inferred</code>, <code>harness</code>, <code>tokens_scope</code> and every §2.5 optional field verbatim, storing absent optionals as <code>NULL</code> never <code>0</code>. <em>(F-PARSE)</em></li>
+<li><strong>BRD-30</strong> — System shall compute every figure at request time from the stream tables and never write a derived value into a stream table. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-31</strong> — System shall never pool live and backfilled records for first-pass rate, gate catch distribution or escape rate; backfilled figures appear only in an adjacent labelled column, with no total row and no disabling flag. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-32</strong> — System shall never pool first-pass rate, gate catch distribution or escape rate across <code>project_type</code>, and shall report <code>project_type_inferred</code> records as <strong>unclassified</strong>. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-33</strong> — System shall exclude any REQ with at least one backfilled record from the live first-pass rate and expose the excluded REQ ID list. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-34</strong> — System shall render any metric with fewer than 3 supporting records as <code>insufficient data (n=…)</code>, never as a number, via a <code>Figure</code> type that cannot carry a value in that case. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-35</strong> — System shall never pool <code>cost_usd</code> across harness; <code>Pooled.CostUsd</code> is always null. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-36</strong> — System shall report late-added gates (<code>perf</code>, since 2026-08-10) as <code>ran</code> (records whose <code>gates_run</code> contains the gate) beside <code>caught</code>, and never present their share of the raw distribution as a catch rate. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-37</strong> — System shall compute the poolable metrics (rework ratio, batch size median, REQ throughput median in REQs/hour, tokens total, tokens per Verified REQ, commit cadence, duplicates collapsed) with the reference's formulas and rounding. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-38</strong> — System shall include a unit test that asserts the engine's output on checked-in fixture streams equals a checked-in <code>reference.json</code> produced by <code>tf-metrics.sh</code> on the same fixtures. <em>(F-ENGINE)</em></li>
+<li><strong>BRD-39</strong> — Owner can see, per repo, last sync time and outcome, last commit SHA, record counts per stream and live-vs-backfilled gate counts on the Coverage page at <code>/</code>. <em>(F-COVER)</em></li>
+<li><strong>BRD-40</strong> — Owner can see days since the newest record per stream per repo. <em>(F-COVER)</em></li>
+<li><strong>BRD-41</strong> — System shall flag on screen, in words, any repo whose newest <code>sessions</code> or <code>commits</code> record is older than the staleness threshold (default 7 days), stating that the clone is not pushing or lacks hooks. <em>(F-COVER)</em></li>
+<li><strong>BRD-42</strong> — Owner can see per repo the field names observed that SCHEMA.md does not document, and any records with <code>v &gt; 1</code>. <em>(F-COVER)</em></li>
+<li><strong>BRD-43</strong> — System shall show a single GREEN / CHECK summary badge with the warning count at the top of the Coverage page. <em>(F-COVER)</em></li>
+<li><strong>BRD-44</strong> — System shall show the Coverage page as the landing page after login. <em>(F-COVER)</em></li>
+<li><strong>BRD-45</strong> — Owner can see, per <code>project_type</code> (including <code>unclassified</code>), the live first-pass rate, gate catch distribution and escape rate at <code>/three-questions</code>. <em>(F-3Q)</em></li>
+<li><strong>BRD-46</strong> — System shall show backfilled figures for the same <code>project_type</code> in an adjacent column labelled backfilled, never summed with live. <em>(F-3Q)</em></li>
+<li><strong>BRD-47</strong> — System shall present <code>escaped</code> as its own row in the gate catch distribution and <code>unattributed</code> for failures without a gate, in the reference's gate order. <em>(F-3Q)</em></li>
+<li><strong>BRD-48</strong> — Owner can see the full list of REQ IDs excluded by backfill taint. <em>(F-3Q)</em></li>
+<li><strong>BRD-49</strong> — Owner can see the late-gate coverage line per gate (<code>ran</code>, <code>caught</code>, rate or insufficient data, or "not yet run on this data (gate added …)"). <em>(F-3Q)</em></li>
+<li><strong>BRD-50</strong> — System shall show no "all types" view and no total row on the three-questions page, and shall display the SCHEMA.md §6 note explaining why. <em>(F-3Q)</em></li>
+<li><strong>BRD-51</strong> — Owner can see per harness (<code>claude-code</code>, <code>opencode</code>, <code>null</code>, and any new value) run counts by command, gate verdict mix, session counts, and token totals at <code>/harness</code>. <em>(F-HARN)</em></li>
+<li><strong>BRD-52</strong> — Owner can see tokens per verified REQ per harness. <em>(F-HARN)</em></li>
+<li><strong>BRD-53</strong> — System shall show real <code>cost_usd</code> for <code>opencode</code> only, labelled as the only measured dollars in the system, and "not measured (null by design)" for Claude Code. <em>(F-HARN)</em></li>
+<li><strong>BRD-54</strong> — System shall never show a dollar total across harnesses. <em>(F-HARN)</em></li>
+<li><strong>BRD-55</strong> — System shall present <code>harness: null</code> as its own "not detected" column, never merged into a named harness. <em>(F-HARN)</em></li>
+<li><strong>BRD-56</strong> — Owner can see routing drift at <code>/routing</code>: <code>routed:false</code> run count and list, and declared <code>tier</code>/<code>tier_model</code> versus observed <code>model</code>/<code>models</code>, by command. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-57</strong> — Owner can see tokens by observed model (input, output, cache read, cache write). <em>(F-ROUTE)</em></li>
+<li><strong>BRD-58</strong> — Owner can see the counterfactual repricing figure: all tokens repriced at the most expensive observed model versus the actual mix, from <code>data/prices.json</code>. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-59</strong> — System shall label the repricing figure <strong>estimate — tokens × rate card, not measured spend</strong> everywhere it appears, including the export. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-60</strong> — System shall exclude runs with <code>tokens_scope: none</code> (or no token fields) from repricing and state how many were excluded. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-61</strong> — Owner can edit <code>prices.json</code> (per model: input/output/cache-read/cache-write USD per million tokens) through a validated dialog; the file remains the source of truth. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-62</strong> — Owner can see the poolable metrics (rework ratio, REQ throughput, batch size, commit cadence) on the routing page. <em>(F-ROUTE)</em></li>
+<li><strong>BRD-63</strong> — Owner can press Export on <code>/export</code> to write <code>data/reports/&lt;date&gt;/snapshot.md</code> and <code>tflens.json</code>. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-64</strong> — Ops can run the <code>export</code> verb (<code>dotnet TfLens.dll export [--date]</code>) to produce the same files headlessly. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-65</strong> — System shall lay out <code>tflens.json</code> with the same keys as <code>tf-metrics.sh --rollup --json</code> (<code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>) plus <code>extras</code> and <code>parity</code> objects. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-66</strong> — System shall never mix provenances in one figure in the snapshot and shall label every estimate in both files. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-67</strong> — Owner can see past snapshots with download links and a quotable / not-quotable banner based on whether the last parity run postdates the last parser change. <em>(F-EXPORT)</em></li>
+<li><strong>BRD-68</strong> — System shall stamp a parser version into the build and into every export. <em>(F-PARITY)</em></li>
+<li><strong>BRD-69</strong> — Parity operator can run <code>tools/parity-compare.py reference.json tflens.json</code> and get a key-by-key diff (record counts per stream and backfilled counts, duplicates collapsed, tainted-REQ set, per-type live and backfilled figures, late-gate coverage, every poolable, every insufficient-data marker with its n) with non-zero exit on any mismatch. <em>(F-PARITY)</em></li>
+<li><strong>BRD-70</strong> — Parity operator can read the dataset SHAs for the last sync from the export and the Coverage page to pin the reference dataset. <em>(F-PARITY)</em></li>
+<li><strong>BRD-71</strong> — System shall record each passing parity run in <code>data/parity-last.json</code> (date, dataset SHAs, script hash, parser version, compare output) and the operator records it in DECISIONS.md. <em>(F-PARITY)</em></li>
+<li><strong>BRD-72</strong> — Parity operator shall spot-check the metrics without a reference (harness, routing, repricing) by hand against raw JSONL once and record it in DECISIONS.md. <em>(F-PARITY)</em></li>
+<li><strong>BRD-73</strong> — System shall fetch <code>verification/telemetry/events.ndjson</code> (and the joiner output if committed) for <code>kind: playbook</code> repos, archive raw, and parse into separate <code>PbEvent</code> tables with overflow. <em>(F-PB)</em></li>
+<li><strong>BRD-74</strong> — System shall keep Playbook <code>phase_gate</code> data in separate tables and charts from TechieFlow <code>gate</code> data — never a shared column or chart. <em>(F-PB)</em></li>
+<li><strong>BRD-75</strong> — Owner can see per Playbook repo the phase token/cost totals and the main-vs-subagent split via <code>parentID</code> at <code>/playbook</code>. <em>(F-PB)</em></li>
+<li><strong>BRD-76</strong> — System shall record the observed <code>events.ndjson</code> field names in DECISIONS.md before the adapter's columns are fixed (schema-discovery first). <em>(F-PB)</em></li>
+<li><strong>BRD-77</strong> — Ops can build one Docker image (multi-stage, .NET 10) and run it with <code>data/</code> and <code>logs/</code> volumes and env-var secrets. <em>(F-OPS)</em></li>
+<li><strong>BRD-78</strong> — Ops can call <code>/healthz</code> anonymously and get DB reachability plus last-successful-sync age, nothing else. <em>(F-OPS)</em></li>
+<li><strong>BRD-79</strong> — System shall ship a README that states the out-of-scope list verbatim and the run / rebuild / sync / export commands. <em>(F-OPS)</em></li>
+<li><strong>BRD-80</strong> — System shall ship <code>DECISIONS.md</code> recording the storage choice, dedupe keys, parser version scheme, timebox cuts, and every parity run. <em>(F-OPS)</em></li>
+<li><strong>BRD-81</strong> — Ops can run <code>sync</code> as a command verb for a one-off headless sync. <em>(F-OPS)</em></li>
+</ul>
+
+<h2 id="non-functional-requirements">11. Non-functional requirements<a class="anchor-link" href="#non-functional-requirements">#</a></h2>
+
+<ul>
+<li><strong>BRD-82</strong> — Performance: report pages render from the memoised analysis within a second for the expected data volume (tens of thousands of records across ≤10 repos); a full sync of 5 repos completes in under 30 s on a normal connection. Targets:
+  <table>
+  <thead><tr><th>Metric</th><th>Target</th><th>Notes</th></tr></thead>
+  <tbody>
+  <tr><td>Page render (cached analysis)</td><td>p95 load ≤ 1500 ms</td><td>single user</td></tr>
+  <tr><td>Cold analysis (after sync)</td><td>≤ 3 s for 50k records</td><td>computed once per sync</td></tr>
+  <tr><td>Sync, 5 repos, unchanged</td><td>≤ 5 s</td><td>SHA lookup only</td></tr>
+  <tr><td>Rebuild, 5 repos × 20 SHAs</td><td>≤ 60 s</td><td>replay from raw</td></tr>
+  </tbody>
+  </table>
+  <p>perf-budget: p95 load &lt;= 1500ms @ concurrency 1</p>
+</li>
+<li><strong>BRD-83</strong> — Security: cookie auth on every page (HttpOnly, Secure, SameSite=Lax); antiforgery on forms; secrets only via environment; PAT is fine-grained contents-read; no inbound API; HTTPS terminated by the VPS proxy (out of scope) — the app sets <code>ForwardedHeaders</code> accordingly.</li>
+<li><strong>BRD-84</strong> — Privacy: TfLens displays and stores only what the streams carry (IDs, counts, durations, verdicts, short SHAs); no requirement text, no commit subjects, nothing from <code>src/</code>; the <code>Overflow</code> column is never rendered, only its field names.</li>
+<li><strong>BRD-85</strong> — Accessibility: TrBlazeUI components with semantic markup; every figure has a text equivalent (charts are supplementary); <code>insufficient data</code> and <code>estimate</code> labels are text, not colour alone; keyboard-reachable Sync / Export / Rebuild.</li>
+<li><strong>BRD-86</strong> — Observability: Serilog file-based logging in the single executable head — rolling file sink under <code>logs/</code> (<code>logs/tflens-.log</code>, daily, 14 files retained) plus console, wired at startup before the host builds, unhandled exceptions logged at the boundary, <code>Log.CloseAndFlush()</code> on exit (see Coding Standards §Logging). Sync outcomes logged per repo with counts and SHAs only.</li>
+<li><strong>BRD-87</strong> — Reliability: a failing repo never fails a sync; a failing sync never affects served pages (last good analysis stays); the database can be rebuilt from <code>data/raw/</code> at any time with identical counts.</li>
+<li><strong>BRD-88</strong> — Testability: the engine and parser are in <code>TfLens.Core</code> with no web dependency; fixture JSONL under <code>tests/</code>; Blazor screens use stable <code>data-testid</code> ids for Playwright.</li>
+<li><strong>BRD-89</strong> — Integrity: the provenance rules (BRD-31..36) have no configuration switch, no query parameter and no UI toggle that relaxes them.</li>
+</ul>
+
+<h2 id="constraints-assumptions">12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
+
+<ul>
+<li>Blazor Server on the current LTS .NET (10); SQLite; Dapper (owner decision 2026-08-26); TrBlazeUI where it fits (dogfood). Docker on a VPS — infra config supplied separately.</li>
+<li>Timebox 1–2 days; phase order is hard (1 → 2 → 3). Anything cut for time is recorded in DECISIONS.md.</li>
+<li>Schema v=1 as documented in <code>.tfcore/telemetry/SCHEMA.md</code> at 2026-08-26; <code>tf-metrics.sh</code> at the same date is the reference. A reference change invalidates the last parity stamp (the script hash is recorded).</li>
+<li>The placeholder repo list (§F-CFG) is corrected by the owner before first sync.</li>
+<li>No Playbook <code>events.ndjson</code> sample exists at day-1; Phase 3 starts with schema discovery.</li>
+<li>A0′ ("logging live, three runs") is satisfied by the frameworks' existing emission, not by TfLens; the only machine-side task is running <code>update-framework.sh</code> on each clone so the per-clone hooks exist. TfLens can trail A0′ without blocking it.</li>
+<li>Single user; no horizontal scaling; the memoised analysis lives in process memory.</li>
+</ul>
+
+<h2 id="parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test<a class="anchor-link" href="#parity-check-the-mandatory-acceptance-test">#</a></h2>
+
+<p><strong>Principle:</strong> two independent implementations compute the same metrics from the same files — <code>tf-metrics.sh</code> (existing, trusted; SCHEMA.md §6 enforced in its code) and TfLens (new, unproven). Correct implementations must agree exactly. Any disagreement is, by definition, a bug in TfLens. The script is never "fixed" to match the app.</p>
+
+<p><strong>Why this test exists:</strong> the dangerous failure mode is not a crash — it is a <em>plausible wrong number</em>. A pooling bug produces a figure that looks normal, gets exported, and ends up quoted publicly in B3. Once published it cannot be defended. The parity diff is the only cheap way to catch that class of bug.</p>
+
+<p><strong>Procedure</strong> (run before TfLens's export is used for any weekly Numbers row or any post, and re-run after every parser or engine change):</p>
+
+<ol>
+<li>Pick a fixed dataset: clone the same repos TfLens is configured to pull, checked out at the exact commit SHAs TfLens's <code>sync_state</code> shows for its last sync (also printed in the export's <code>per_repo</code>). Same data in, or the comparison is meaningless.</li>
+<li>Run the reference: <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repo1&gt; &lt;repo2&gt; ... --json &gt; reference.json</code>.</li>
+<li>Run TfLens's export for the same repos: <code>dotnet TfLens.dll export</code> → <code>data/reports/&lt;date&gt;/tflens.json</code>.</li>
+<li>Compare, key by key: <code>python3 tools/parity-compare.py reference.json tflens.json</code> — it checks per-repo record counts per stream and backfilled counts; commit duplicates collapsed; the tainted-REQ set (identical set of IDs); first-pass rate, gate catch distribution, escape rate per project_type, live and backfilled separately; late-gate coverage (<code>ran</code> / <code>caught</code> per gate); every poolable metric; every <code>insufficient data (n=…)</code> marker — the n must match, and a figure the reference refuses to print TfLens must also refuse to print.</li>
+<li><strong>Zero tolerance:</strong> any mismatch fails. Debug TfLens until the diff is empty. The only acceptable permanent differences are metrics TfLens adds that the script does not compute (<code>extras</code>) — those have no reference and are spot-checked by hand against raw JSONL once.</li>
+<li>Record the passing run in DECISIONS.md and <code>data/parity-last.json</code>: date, commit SHAs of the dataset, <code>tf-metrics.sh</code> hash, TfLens parser version, and the compare script's output. That entry is the licence to trust the export.</li>
+</ol>
+
+<p><strong>Standing rule after ship:</strong> the weekly snapshot export is only quotable if the last parity run on record postdates the last parser change. The <code>/export</code> page shows this as the quotable / not-quotable banner (BRD-67).</p>
+
+<h2 id="definition-of-done">14. Definition of done<a class="anchor-link" href="#definition-of-done">#</a></h2>
+
+<ul style="list-style:none;padding-left:4px">
+<li>☐ All configured repos syncing; Coverage page green with real staleness numbers</li>
+<li>☐ Three-questions page renders per project_type with live/backfilled separation and the taint-exclusion list visible</li>
+<li>☐ Harness comparison page shows claude-code vs opencode side by side, with OpenCode-only dollars</li>
+<li>☐ Counterfactual repricing figure renders from <code>prices.json</code>, labelled estimate</li>
+<li>☐ Weekly snapshot export produces markdown + JSON</li>
+<li>☐ Parity check (§13) passed with an empty diff, recorded in DECISIONS.md</li>
+<li>☐ DECISIONS.md records: storage choice, dedupe keys, anything cut for the timebox</li>
+<li>☐ Finish report delivered: any field observed in real files that SCHEMA.md doesn't document; any place TfLens disagrees with <code>tf-metrics.sh --rollup</code> on the same data (must be none); what breaks first when schema v=2 appears</li>
+</ul>
+
+<h2 id="success-metrics">15. Success metrics<a class="anchor-link" href="#success-metrics">#</a></h2>
+
+<ul>
+<li>Parity diff empty on the first real dataset within the timebox; re-run green after every parser change.</li>
+<li>Coverage page identifies at least one real staleness/hook gap on the live repos (the page proves its worth by finding the gap the files hide).</li>
+<li>Weekly snapshot used for the plan's Numbers table from the first week after ship, with no provenance mix reported in review.</li>
+<li>B1 harness page and B3 repricing figure sourced directly from the export, with the <em>estimate</em> label carried into the posts.</li>
+<li>TfLens's own <code>docs/metrics/</code> streams show the full TechieFlow phase sequence with gates enforced (A-V evidence).</li>
+</ul>
+
+<h2 id="risks">16. Risks<a class="anchor-link" href="#risks">#</a></h2>
+
+<table>
+<thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>Plausible wrong number reaches a public post</td><td>Medium</td><td>High</td><td>Provenance rules in the result type (no flag); mandatory parity diff; quotable banner tied to parser version</td></tr>
+<tr><td>Schema v=2 renames a known field and it silently drops out of a metric</td><td>Medium</td><td>Medium</td><td>Overflow report + <code>v &gt; 1</code> warning on Coverage; "what breaks first" section in the finish report</td></tr>
+<tr><td>Reference script changes after a parity run</td><td>Medium</td><td>Medium</td><td>Script hash recorded in the parity entry; banner shows not-quotable until re-run</td></tr>
+<tr><td>PAT expiry / rate limit</td><td>Low</td><td>Low</td><td>401/403 surfaced per repo on Coverage; poll interval 15 min keeps calls far below limits</td></tr>
+<tr><td>Playbook file shape differs from the brief's description</td><td>High</td><td>Low</td><td>Schema-discovery first; adapter isolated in its own tables/page</td></tr>
+<tr><td>Timebox pressure erodes Phase 2 pages</td><td>Medium</td><td>Medium</td><td>Phase order hard; cuts recorded in DECISIONS.md; Coverage + Three questions + Export are the minimum</td></tr>
+<tr><td>TrBlazeUI lacks a control a screen needs (no KPI card, no table primitives)</td><td>Medium</td><td>Low</td><td>Compose from <code>Card</code> + Tailwind per the library's documented KPI pattern; log gaps to <code>docs/TfLens-TrBlazeUI-Feedback.md</code></td></tr>
+</tbody>
+</table>
+
+<h2 id="glossary">17. Glossary<a class="anchor-link" href="#glossary">#</a></h2>
+
+<ul>
+<li><strong>Stream</strong> — one of the four append-only JSONL files under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>).</li>
+<li><strong>Live / backfilled</strong> — provenance; backfilled records were reconstructed after the fact and carry <code>backfilled: true</code>.</li>
+<li><strong>Taint</strong> — a REQ that has any backfilled record; excluded from the live first-pass rate.</li>
+<li><strong>project_type</strong> — <code>app</code> | <code>library</code> | <code>docs</code> | <code>framework</code>; <code>unclassified</code> when <code>project_type_inferred: true</code>.</li>
+<li><strong>Harness</strong> — <code>claude-code</code> | <code>opencode</code> | <code>codex</code> | <code>null</code>; detected by <code>tf-emit.sh</code>, never declared.</li>
+<li><strong>Late gate</strong> — a gate added after the stream started (<code>perf</code>, 2026-08-10); reported against <code>gates_run</code> coverage.</li>
+<li><strong>Poolable</strong> — a metric that may be summed across provenances and project types (runs, commits, tokens, cadence).</li>
+<li><strong>Repricing (estimate)</strong> — tokens × rate card from <code>prices.json</code>; never a measurement.</li>
+<li><strong>Parity</strong> — exact agreement between <code>tf-metrics.sh --rollup --json</code> and <code>tflens.json</code> on the same dataset.</li>
+<li><strong>Raw archive</strong> — <code>data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code>; the rebuild source.</li>
+<li><strong>REQ-UI-* / REQ-FN-* / REQ-RAG-* / REQ-NFR-*</strong> — checklist requirement IDs produced by <code>*split-brd</code>.</li>
+<li><strong>TrBlazeUI</strong> — the Blazor component library dogfooded by the UI; <strong>TechieRag</strong> — not used here.</li>
+</ul>
+
+<hr>
+<p>Last updated: 2026-08-26<br>
+Highest BRD ID: BRD-89<br>
+Sources harvested: docs/TfLens-Project-Brief.md (v2, superseded → docs/OldDocs/), .tfcore/telemetry/SCHEMA.md, .tfcore/telemetry/tf-metrics.sh, docs/ravi-90day-positioning-plan-v2.4.2.md (context only)<br>
+Custom instructions applied: Dapper + Microsoft.Data.Sqlite (owner); placeholder repo list from the plan; Phase 3 as schema-discovery (no events.ndjson sample); split-brd deferred until after review<br>
+First-pass draft from concept — review and edit. New BRDs may be added (append-only); do not renumber existing IDs.</p>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

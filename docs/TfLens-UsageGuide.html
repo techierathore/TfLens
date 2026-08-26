@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Usage Guide</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Usage Guide</h1>
+    <div class="sub">Last rendered: 2026-08-26</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical)</a></li>
+      <li><a href="#how-to-test-screen-by-screen-menu-by-menu">How to test — screen by screen / menu by menu</a></li>
+      <li class="h3"><a href="#login-login">Login (/login)</a></li>
+      <li class="h3"><a href="#shell-sidebar-header">Shell (sidebar + header)</a></li>
+      <li class="h3"><a href="#coverage-health">Coverage / health (/)</a></li>
+      <li class="h3"><a href="#three-questions-three-questions">Three questions (/three-questions)</a></li>
+      <li class="h3"><a href="#harness-comparison-harness">Harness comparison (/harness)</a></li>
+      <li class="h3"><a href="#routing-economics-routing">Routing &amp; economics (/routing)</a></li>
+      <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
+      <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
+      <li class="h3"><a href="#playbook-playbook">Playbook (/playbook)</a></li>
+      <li class="h3"><a href="#health-endpoint-healthz">Health endpoint (/healthz)</a></li>
+      <li class="h3"><a href="#logs-logs">Logs (logs/)</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps</a></li>
+      <li><a href="#test-automated">Test (automated)</a></li>
+      <li><a href="#smoke-checklist-quick-capability-pass">Smoke checklist</a></li>
+      <li><a href="#known-limitations">Known limitations</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — Usage Guide</h1>
+    <div class="subtitle">Test users · test plan · setup · Last rendered: 2026-08-26</div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical — use THESE for all smoke / verify / UAT)</a></li>
+        <li><a href="#how-to-test-screen-by-screen-menu-by-menu">How to test — screen by screen / menu by menu</a>
+          <ul>
+            <li><a href="#login-login">Login (<code>/login</code>)</a></li>
+            <li><a href="#shell-sidebar-header">Shell (sidebar + header)</a></li>
+            <li><a href="#coverage-health">Coverage / health (<code>/</code>)</a></li>
+            <li><a href="#three-questions-three-questions">Three questions (<code>/three-questions</code>)</a></li>
+            <li><a href="#harness-comparison-harness">Harness comparison (<code>/harness</code>)</a></li>
+            <li><a href="#routing-economics-routing">Routing &amp; economics (<code>/routing</code>)</a></li>
+            <li><a href="#snapshot-export-export">Snapshot export (<code>/export</code>)</a></li>
+            <li><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
+            <li><a href="#playbook-playbook">Playbook (<code>/playbook</code>)</a></li>
+            <li><a href="#health-endpoint-healthz">Health endpoint (<code>/healthz</code>)</a></li>
+            <li><a href="#logs-logs">Logs (<code>logs/</code>)</a></li>
+          </ul>
+        </li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps (runbook — one command per line, in order)</a></li>
+        <li><a href="#test-automated">Test (automated)</a></li>
+        <li><a href="#smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)</a></li>
+        <li><a href="#known-limitations">Known limitations</a></li>
+      </ol>
+    </div>
+
+    <blockquote><p>The single source for <strong>how to test and run</strong> this app. Every agent (flow-master self-smoke, the verifier) <strong>and</strong> the human UAT use the SAME test users and the SAME walkthrough listed here — no one invents throwaway accounts (enforced by <code>.tfcore/tasks/_smoke-test-policy.md</code>). Keep the Test-users table current: when an account is actually created, flip its <code>Created?</code> to ✅.</p></blockquote>
+
+    <h2 id="test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical — use THESE for all smoke / verify / UAT)<a class="anchor-link" href="#test-users-canonical-use-these-for-all-smoke-verify-uat">#</a></h2>
+
+    <p>TfLens is a <strong>single-user</strong> app: there is no user table. The one account is defined by configuration (<code>TfLensAuthUser</code> + <code>TfLensAuthPasswordHash</code>). "Creating" it means setting those two environment variables for the test environment — done on first build only after confirming with the owner.</p>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Username / Email</th><th>Password</th><th>Role / Permission</th><th>Created?</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><code>owner</code></td><td><code>TfLens!Test23</code></td><td>Owner (the single configured account — all pages)</td><td>⬜</td><td>Planned. Set <code>TfLensAuthUser=owner</code> and <code>TfLensAuthPasswordHash=&lt;PBKDF2 of the password&gt;</code> in the test env (<code>dotnet user-secrets</code> for dev, env vars in Docker). Never commit the hash.</td></tr>
+        <tr><td>2</td><td><em>(anonymous)</em></td><td>—</td><td>Unauthenticated visitor — may reach <code>/login</code> and <code>/healthz</code> only</td><td>n/a</td><td>Used to prove the redirect and the anonymous health endpoint.</td></tr>
+      </tbody>
+    </table>
+
+    <ul>
+      <li><strong>Created?</strong> — ✅ = the account exists now (verified). ⬜ = planned; create it on first build, but <strong>only after confirming with the owner</strong> (see <code>_smoke-test-policy.md</code>). Never auto-create silently.</li>
+      <li><strong>To add or confirm an account:</strong> edit this table — it is the registry the whole pipeline reads from.</li>
+      <li><strong>Seeding:</strong> no database seed — the account is configuration. A helper verb <code>dotnet TfLens.dll hash-password &lt;pw&gt;</code> (Phase 1, F-SHELL) prints the PBKDF2 hash to paste into the env.</li>
+      <li><strong>GitHub token for tests:</strong> smoke/verify runs need a real fine-grained read-only PAT in <code>TfLensGitHubToken</code> <strong>or</strong> the fixture mode <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code> (Phase 1 adds an in-process fixture fetcher so the UI can be verified without network). Ask the owner which to use; never paste a token into a doc.</li>
+    </ul>
+
+    <h2 id="how-to-test-screen-by-screen-menu-by-menu">How to test — screen by screen / menu by menu<a class="anchor-link" href="#how-to-test-screen-by-screen-menu-by-menu">#</a></h2>
+
+    <p>One subsection per screen, in navigation order. Each names which test user to log in as.</p>
+
+    <p><strong>The weekly loop under test</strong> (sync → coverage → questions → export → parity):</p>
+
+    <div class="diagram">
+      <div class="dt">
+        <button data-zout title="Zoom out">−</button>
+        <span class="zlabel">100%</span>
+        <button data-zin title="Zoom in">+</button>
+        <button data-fit title="Fit to width">Fit</button>
+        <button data-one title="Actual size">1:1</button>
+        <button data-fs title="Fullscreen">⛶</button>
+        <button data-pop title="Open in new tab">↗</button>
+      </div>
+      <pre class="mermaid">flowchart LR
+  A["Log in as owner"] --> B["Coverage: Sync now"]
+  B --> C{"Coverage GREEN?"}
+  C -->|"no"| D["Read the warning text; fix clone / hooks"]
+  C -->|"yes"| E["Three questions per project_type"]
+  E --> F["Harness + Routing pages"]
+  F --> G["Export snapshot"]
+  G --> H["Terminal: tf-metrics.sh rollup + parity-compare.py"]
+  H --> I{"empty diff?"}
+  I -->|"yes"| J["Record in DECISIONS.md; banner QUOTABLE"]
+  I -->|"no"| K["Bug in TfLens: fix, rebuild, re-run"]</pre>
+    </div>
+
+    <h3 id="login-login">Login (<code>/login</code>)<a class="anchor-link" href="#login-login">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 2 (anonymous) first, then user 1</li>
+      <li><strong>Steps:</strong> 1) Open <code>/three-questions</code> while signed out → 2) observe redirect to <code>/login?returnUrl=…</code> → 3) submit a wrong password → 4) submit <code>owner</code> / <code>TfLens!Test23</code></li>
+      <li><strong>Expected:</strong> step 2 redirects; step 3 shows the generic "Sign-in failed." alert without saying which field was wrong; step 4 lands on <code>/three-questions</code> (the return URL) with the shell visible</li>
+      <li><strong>Covers:</strong> BRD-1, BRD-2, BRD-3</li>
+    </ul>
+
+    <h3 id="shell-sidebar-header">Shell (sidebar + header)<a class="anchor-link" href="#shell-sidebar-header">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Read the sidebar order → 2) click each item → 3) press <strong>Sync now</strong> → 4) press <strong>Sign out</strong></li>
+      <li><strong>Expected:</strong> order is Coverage / health, Three questions, Harness comparison, Routing &amp; economics, Snapshot export, Playbook; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo (updated / skipped / error) and the "last sync" badge updates; Sign out returns to <code>/login</code></li>
+      <li><strong>Covers:</strong> BRD-4, BRD-5, BRD-6</li>
+    </ul>
+
+    <h3 id="coverage-health">Coverage / health (<code>/</code>)<a class="anchor-link" href="#coverage-health">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Land on <code>/</code> after login → 2) read the status strip → 3) open each repo card → 4) find the stale repo (fixture: TrBlazeUI, sessions 11 days) → 5) expand "Fields observed that SCHEMA.md doesn't document" → 6) press <strong>Rebuild…</strong>, confirm</li>
+      <li><strong>Expected:</strong> landing page is Coverage (BRD-44); strip says GREEN or CHECK with the warning count; each card shows last sync, outcome, short SHA linked to GitHub, and a 4-row stream table with records / backfilled / newest / days-since; the stale repo shows the warning text "sessions/commits stale ≥ 7 days — this clone isn't pushing or lacks hooks; run update-framework.sh on it"; unknown fields list names only (fixture: <code>routed_reason</code>); rebuild reports files replayed / records / duplicates and the counts equal the pre-rebuild counts</li>
+      <li><strong>Covers:</strong> BRD-21, BRD-22, BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44</li>
+    </ul>
+
+    <h3 id="three-questions-three-questions">Three questions (<code>/three-questions</code>)<a class="anchor-link" href="#three-questions-three-questions">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Read the SCHEMA §6 note → 2) switch tabs <code>app</code> → <code>library</code> → <code>unclassified</code> → 3) on <code>app</code> read the three cards → 4) read the gate distribution table → 5) read the late-gate line → 6) expand the taint list</li>
+      <li><strong>Expected:</strong> there is <strong>no "all" tab and no total row</strong>; each card shows the live value with a "backfilled" secondary line, never a sum; a segment with fewer than 3 records shows the literal <code>insufficient data (n=…)</code>; the table lists gates in order build, acceptance, render, visual, perf, standards, escaped, unattributed, with <code>escaped</code> badged "no gate caught it" and <code>perf</code> badged "see coverage"; the perf line reads "ran on N records, caught K → …" or "not yet run on this data (gate added 2026-08-10)"; the taint list shows exactly the REQ IDs that have a backfilled record (fixture: REQ-UI-004, REQ-FN-011, REQ-UI-009)</li>
+      <li><strong>Covers:</strong> BRD-45, BRD-46, BRD-47, BRD-48, BRD-49, BRD-50 (and BRD-31..BRD-36 by observation)</li>
+    </ul>
+
+    <h3 id="harness-comparison-harness">Harness comparison (<code>/harness</code>)<a class="anchor-link" href="#harness-comparison-harness">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Read the three columns → 2) compare token rows → 3) read the dollars card → 4) search the page for any <code>$</code> total</li>
+      <li><strong>Expected:</strong> columns claude-code / opencode / "not detected" all render (a harness with 0 records shows <code>—</code>); tokens per Verified REQ per column or <code>insufficient data</code>; the dollars card shows the OpenCode sum labelled "the only measured dollars in the system" and the line "Claude Code: not measured (null by design)"; there is no cross-harness dollar total anywhere</li>
+      <li><strong>Covers:</strong> BRD-51, BRD-52, BRD-53, BRD-54, BRD-55</li>
+    </ul>
+
+    <h3 id="routing-economics-routing">Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#routing-economics-routing">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Drift tab: find a <code>routed:false</code> row → 2) Models tab: read totals → 3) Repricing tab: read both cards and the excluded-runs line → 4) press <strong>Edit prices.json</strong>, change one output price, Save → 5) Poolable tab: read the five cards</li>
+      <li><strong>Expected:</strong> drift rows badge "drift" on <code>routed:false</code>; both repricing cards carry the exact badge "estimate — tokens × rate card, not measured spend" and name the most expensive observed model; the excluded count matches runs with <code>tokens_scope: none</code>; saving prices recomputes both cards immediately and a toast confirms the file write; a non-numeric price shows a field error and does not save; poolable cards match <code>tf-metrics.sh --rollup</code> for the same data (rework ratio, batch size, throughput, tokens per Verified, cadence + duplicates collapsed)</li>
+      <li><strong>Covers:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62</li>
+    </ul>
+
+    <h3 id="snapshot-export-export">Snapshot export (<code>/export</code>)<a class="anchor-link" href="#snapshot-export-export">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Read the banner → 2) press <strong>Export snapshot</strong> → 3) open both files from the new row → 4) copy a SHA from the dataset table</li>
+      <li><strong>Expected:</strong> banner is NOT QUOTABLE until a parity run is recorded for the current parser version, QUOTABLE afterwards; export creates <code>data/reports/&lt;today&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>extras</code>, <code>parity</code>; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version</li>
+      <li><strong>Covers:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70</li>
+    </ul>
+
+    <h3 id="parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)<a class="anchor-link" href="#parity-procedure-terminal-no-screen">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> n/a (operator at a shell)</li>
+      <li><strong>Steps:</strong> 1) <code>dotnet TfLens.dll export</code> → 2) clone the configured repos at the SHAs shown on <code>/export</code> → 3) <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repos…&gt; --json &gt; reference.json</code> → 4) <code>python3 tools/parity-compare.py reference.json data/reports/&lt;date&gt;/tflens.json</code></li>
+      <li><strong>Expected:</strong> exit code 0 and "0 differences" on matching data; introduce a deliberate change (e.g. delete one backfilled record from a local copy) and the script exits non-zero naming the differing key; a passing run writes <code>data/parity-last.json</code> and the <code>/export</code> banner flips to QUOTABLE</li>
+      <li><strong>Covers:</strong> BRD-64, BRD-68, BRD-69, BRD-71, BRD-72</li>
+    </ul>
+
+    <h3 id="playbook-playbook">Playbook (<code>/playbook</code>)<a class="anchor-link" href="#playbook-playbook">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 1</li>
+      <li><strong>Steps:</strong> 1) Open the page at day-1 (no Playbook data) → 2) after Phase 3, sync a <code>kind: playbook</code> repo and reopen</li>
+      <li><strong>Expected:</strong> day-1 shows the info note and the "No Playbook data yet" empty state; after Phase 3, one card per Playbook repo with phase totals, main-vs-subagent cards and the observed-fields list; nothing from this page appears on <code>/three-questions</code> and vice versa</li>
+      <li><strong>Covers:</strong> BRD-73, BRD-74, BRD-75, BRD-76</li>
+    </ul>
+
+    <h3 id="health-endpoint-healthz">Health endpoint (<code>/healthz</code>)<a class="anchor-link" href="#health-endpoint-healthz">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> user 2 (anonymous)</li>
+      <li><strong>Steps:</strong> 1) <code>curl -s http://localhost:5099/healthz</code></li>
+      <li><strong>Expected:</strong> 200 with DB reachability and last-successful-sync age only; no figures, no repo names beyond count</li>
+      <li><strong>Covers:</strong> BRD-78</li>
+    </ul>
+
+    <h3 id="logs-logs">Logs (<code>logs/</code>)<a class="anchor-link" href="#logs-logs">#</a></h3>
+    <ul>
+      <li><strong>Log in as:</strong> n/a</li>
+      <li><strong>Steps:</strong> 1) run the app, sync once → 2) open the newest <code>logs/tflens-*.log</code></li>
+      <li><strong>Expected:</strong> rolling daily file exists; sync lines carry repo, SHA, counts and status codes only — grep for the token value and for any JSON record body must find nothing</li>
+      <li><strong>Covers:</strong> BRD-10, BRD-86</li>
+    </ul>
+
+    <h2 id="prerequisites">Prerequisites<a class="anchor-link" href="#prerequisites">#</a></h2>
+    <ul>
+      <li>.NET 10 SDK (10.0.302 or later)</li>
+      <li>Python 3 (for <code>tools/parity-compare.py</code> and <code>tf-metrics.sh</code>)</li>
+      <li>Node 20 + Playwright (verifier harness; already provisioned by the framework)</li>
+      <li>Docker (deployment only)</li>
+    </ul>
+
+    <h2 id="setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps (runbook — one command per line, in order)<a class="anchor-link" href="#setup-deployment-steps-runbook-one-command-per-line-in-order">#</a></h2>
+
+    <p>Numbered, terse, copy-pasteable. Commands marked <em>(after Phase 1)</em> depend on projects that do not exist yet.</p>
+
+    <ol>
+      <li><code>git clone &lt;repo&gt; &amp;&amp; cd TfLens</code></li>
+      <li><code>dotnet user-secrets init --project src/TfLens</code> <em>(after Phase 1)</em></li>
+      <li><code>dotnet user-secrets set TfLensGitHubToken &lt;fine-grained PAT, contents:read&gt; --project src/TfLens</code> <em>(after Phase 1)</em></li>
+      <li><code>dotnet user-secrets set TfLensAuthUser owner --project src/TfLens</code> <em>(after Phase 1)</em></li>
+      <li><code>dotnet run --project src/TfLens -- hash-password 'TfLens!Test23'</code> → paste into <code>dotnet user-secrets set TfLensAuthPasswordHash &lt;hash&gt; --project src/TfLens</code> <em>(after Phase 1)</em></li>
+      <li>Edit <code>src/TfLens/appsettings.json</code> → <code>Repos[]</code> (owner, name, branch, kind) and <code>PollIntervalMinutes</code></li>
+      <li><code>dotnet restore</code></li>
+      <li><code>dotnet build</code></li>
+      <li><code>dotnet run --project src/TfLens --urls http://localhost:5099</code></li>
+      <li>Open <code>http://localhost:5099</code> → <code>/login</code> → user 1 → press <strong>Sync now</strong></li>
+      <li>Docker: <code>docker build -t tflens .</code> then <code>docker run -p 8080:8080 -v $PWD/data:/app/data -v $PWD/logs:/app/logs -e TfLensGitHubToken=… -e TfLensAuthUser=… -e TfLensAuthPasswordHash=… tflens</code> <em>(after Phase 1)</em></li>
+      <li>Operations: <code>dotnet TfLens.dll rebuild</code> · <code>dotnet TfLens.dll sync</code> · <code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code> (or the same via <code>docker exec</code>)</li>
+    </ol>
+
+    <h2 id="test-automated">Test (automated)<a class="anchor-link" href="#test-automated">#</a></h2>
+<pre><code class="language-bash">dotnet test</code></pre>
+    <p>Playwright specs are added by the verifier under <code>tests/</code> from Phase 2 onward; run with <code>npx playwright test</code> once present.</p>
+
+    <h2 id="smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)<a class="anchor-link" href="#smoke-checklist-quick-capability-pass">#</a></h2>
+    <ul style="list-style:none;padding-left:4px">
+      <li>☐ Signed-out visit to <code>/</code> redirects to <code>/login</code>; user 1 signs in and lands on Coverage</li>
+      <li>☐ Sync now completes with one toast per repo and updates the last-sync badge</li>
+      <li>☐ Coverage shows per-stream days-since and flags the stale fixture repo in words</li>
+      <li>☐ Three questions has no "all" tab; a thin segment prints <code>insufficient data (n=…)</code></li>
+      <li>☐ Harness page shows OpenCode-only dollars and no cross-harness dollar total</li>
+      <li>☐ Routing repricing cards carry the estimate badge; editing prices recomputes</li>
+      <li>☐ Export writes <code>snapshot.md</code> + <code>tflens.json</code>; banner reflects parity state</li>
+      <li>☐ <code>parity-compare.py</code> exits 0 on the reference dataset</li>
+      <li>☐ <code>/healthz</code> answers anonymously; <code>logs/tflens-*.log</code> contains no token and no record bodies</li>
+    </ul>
+
+    <h2 id="known-limitations">Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
+    <ul>
+      <li>Day-1: no code exists; every step marked <em>(after Phase 1)</em> is a roadmap item.</li>
+      <li>Phase 3 Playbook adapter is schema-discovery-first — its columns are provisional until the real <code>events.ndjson</code> is parsed.</li>
+      <li>Harness, routing and repricing figures have no reference implementation; they are spot-checked by hand once (BRD-72), not parity-diffed.</li>
+      <li>TrBlazeUI gaps observed at design time (no KPI card, no plain table primitives, no theme toggle) — see <code>docs/TfLens-UIDesign.md</code> §Library gaps; logged to <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build if still true.</li>
+    </ul>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

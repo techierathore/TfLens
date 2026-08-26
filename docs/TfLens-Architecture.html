@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Architecture</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Architecture</h1>
+    <div class="sub">Status: Target (greenfield) · Last rendered: 2026-08-26</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#tech-stack">1. Tech stack</a></li>
+      <li><a href="#component-map">2. Component map</a></li>
+      <li><a href="#data-flow-primary-path">3. Data flow — primary path</a></li>
+      <li><a href="#module-responsibilities">4. Module responsibilities</a></li>
+      <li><a href="#runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path</a></li>
+      <li class="h3"><a href="#repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)</a></li>
+      <li class="h3"><a href="#rebuild-from-raw">5.2 Rebuild from raw</a></li>
+      <li class="h3"><a href="#login-single-user-cookie">5.3 Login (single-user cookie)</a></li>
+      <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
+      <li><a href="#data-model">6. Data model</a></li>
+      <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
+      <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
+      <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
+      <li><a href="#architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)</a></li>
+      <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only)</a></li>
+      <li><a href="#open-questions-risks">12. Open questions / risks</a></li>
+      <li><a href="#sources-harvested">13. Sources harvested</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — Architecture</h1>
+    <div class="subtitle">Status: Target (greenfield) · Last rendered: 2026-08-26</div>
+
+    <p><strong>Last updated:</strong> 2026-08-26<br>
+    <strong>Status:</strong> Target (greenfield)</p>
+
+<!-- AGENT-ONLY AUTHORING NOTES — never render as visible text.
+  DEPTH MANDATE: human document; every non-trivial module gets prose; every significant runtime
+  flow beyond the primary path gets its own diagram.
+  MERMAID MANDATE: html-render-shell.md §5.5 — quote every label, never use `end` as a node id.
+-->
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#tech-stack">Tech stack</a></li>
+        <li><a href="#component-map">Component map</a></li>
+        <li><a href="#data-flow-primary-path">Data flow — primary path</a></li>
+        <li><a href="#module-responsibilities">Module responsibilities</a></li>
+        <li><a href="#runtime-flows-beyond-the-primary-path">Runtime flows beyond the primary path</a>
+          <ul>
+            <li><a href="#repo-sync-background-sync-now">Repo sync (background + Sync now)</a></li>
+            <li><a href="#rebuild-from-raw">Rebuild from raw</a></li>
+            <li><a href="#login-single-user-cookie">Login (single-user cookie)</a></li>
+            <li><a href="#weekly-snapshot-export">Weekly snapshot export</a></li>
+          </ul>
+        </li>
+        <li><a href="#data-model">Data model</a></li>
+        <li><a href="#metrics-engine-parity-with-tf-metrics-sh">Metrics engine — parity with tf-metrics.sh</a></li>
+        <li><a href="#cross-cutting-concerns">Cross-cutting concerns</a></li>
+        <li><a href="#deployment-architecture">Deployment architecture</a></li>
+        <li><a href="#architectural-decisions-adr-style-log">Architectural decisions (ADR-style log)</a></li>
+        <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">Target architecture (brownfield only — if enhancement changes structure)</a></li>
+        <li><a href="#open-questions-risks">Open questions / risks</a></li>
+        <li><a href="#sources-harvested">Sources harvested</a></li>
+      </ol>
+    </div>
+
+<h2 id="tech-stack">1. Tech stack<a class="anchor-link" href="#tech-stack">#</a></h2>
+
+<table>
+<thead><tr><th>Layer</th><th>Choice</th><th>Version</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Runtime</td><td>.NET</td><td>10 (LTS)</td><td>SDK 10.0.302 present on the dev machine. The brief asks for "current LTS"; .NET 10 is the LTS line as of 2026-08.</td></tr>
+<tr><td>UI</td><td>Blazor Server (Interactive Server render mode) + TrBlazeUI</td><td>TrBlazeUI.Components 1.0.7 / Primitives 1.0.3</td><td>Single web head <code>src/TfLens</code>. Dogfoods TrBlazeUI where it fits (shell, nav, cards, grid, badges, alerts, dialogs).</td></tr>
+<tr><td>Data access</td><td>Dapper + Microsoft.Data.Sqlite</td><td>latest stable</td><td>Owner decision (day-1 kickoff, 2026-08-26). Hand-written DDL; no migrations — the store is disposable and rebuilt from <code>data/raw/</code>.</td></tr>
+<tr><td>DB</td><td>SQLite</td><td>file <code>data/tflens.db</code></td><td>One table per stream + <code>sync_state</code> + Playbook tables. Never the source of truth — raw JSONL is.</td></tr>
+<tr><td>GitHub access</td><td><code>HttpClient</code> against the GitHub REST API (<code>/repos/{owner}/{repo}/commits</code>, <code>/contents</code>)</td><td>—</td><td>Fine-grained read-only PAT (<code>contents:read</code>). No Octokit dependency (ADR-004).</td></tr>
+<tr><td>Auth</td><td>ASP.NET Core cookie authentication, single configured user</td><td>—</td><td>Username + PBKDF2 password hash from configuration/env. No identity DB.</td></tr>
+<tr><td>Logging</td><td>Serilog, rolling file sink under <code>logs/</code> + console</td><td>—</td><td>Standing TechieFlow NFR; wired first in <code>Program.cs</code>.</td></tr>
+<tr><td>Background work</td><td><code>BackgroundService</code> (<code>RepoSyncService</code>) with <code>PeriodicTimer</code></td><td>—</td><td>Poll interval from config; manual "Sync now" triggers the same code path.</td></tr>
+<tr><td>Tests</td><td>xUnit + fixture JSONL under <code>tests/TfLens.Core.Tests/Fixtures/</code></td><td>—</td><td>Parity fixtures mirror real stream shapes; metrics engine tested without the web host.</td></tr>
+<tr><td>Parity tooling</td><td><code>tools/parity-compare.py</code> (Python 3, stdlib only)</td><td>—</td><td>Same runtime as <code>tf-metrics.sh</code>; key-by-key JSON compare.</td></tr>
+<tr><td>Container</td><td>Docker (Linux), volume-mounted <code>data/</code> + <code>logs/</code></td><td>—</td><td>Infra/VPS config is supplied separately and out of scope.</td></tr>
+<tr><td>Vector store / RAG</td><td>none</td><td>—</td><td>No AI features in TfLens.</td></tr>
+</tbody>
+</table>
+
+<h2 id="component-map">2. Component map<a class="anchor-link" href="#component-map">#</a></h2>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  subgraph GH["GitHub (read-only, PAT contents:read)"]
+    R1["TechieFlow-managed repos<br/>docs/metrics/*.jsonl"]
+    R2["Playbook-managed repos<br/>verification/telemetry/events.ndjson"]
+  end
+
+  subgraph Head["src/TfLens — Blazor Server head (.NET 10)"]
+    Sync["RepoSyncService<br/>(BackgroundService + Sync now)"]
+    Auth["Cookie auth<br/>(single user)"]
+    subgraph Pages["Report pages (TrBlazeUI)"]
+      P1["Coverage / health  /"]
+      P2["Three questions  /three-questions"]
+      P3["Harness comparison  /harness"]
+      P4["Routing & economics  /routing"]
+      P5["Snapshot export  /export"]
+      P6["Playbook  /playbook"]
+    end
+    CLI["Command verbs<br/>rebuild · sync · export"]
+  end
+
+  subgraph Core["src/TfLens.Core — engine (no UI, no web deps)"]
+    Fetch["GitHubStreamFetcher"]
+    Parse["StreamParser + Dedupe"]
+    PbParse["PlaybookAdapter (Phase 3)"]
+    Store["SqliteStore (Dapper)"]
+    Metrics["MetricsEngine<br/>(port of tf-metrics.sh analyse)"]
+    Extra["ExtraMetrics<br/>harness · routing · repricing"]
+    Export["SnapshotExporter<br/>markdown + JSON"]
+  end
+
+  subgraph Disk["Volume: data/"]
+    Raw[("data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl")]
+    DB[("data/tflens.db")]
+    Rep[("data/reports/&lt;date&gt;/")]
+    Prices[("data/prices.json")]
+  end
+
+  R1 --> Fetch
+  R2 --> Fetch
+  Sync --> Fetch
+  CLI --> Sync
+  CLI --> Export
+  Fetch --> Raw
+  Fetch --> Parse
+  Fetch --> PbParse
+  Parse --> Store
+  PbParse --> Store
+  Store --> DB
+  Raw -. "rebuild" .-> Parse
+  Pages --> Metrics
+  Pages --> Extra
+  Metrics --> Store
+  Extra --> Store
+  Extra --> Prices
+  P5 --> Export
+  Export --> Metrics
+  Export --> Rep
+  Auth --> Pages
+</pre>
+</div>
+
+<p>Two projects, one head. <code>TfLens.Core</code> holds everything that must be testable and parity-checked without a browser: fetching, parsing, dedupe, storage, the metrics engine, and the exporter. <code>TfLens</code> is the only executable: it hosts Blazor Server, the background sync, cookie auth, and the three command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>) so that a Docker <code>exec</code> or a parity run never needs a second image (ADR-005).</p>
+
+<h2 id="data-flow-primary-path">3. Data flow — primary path<a class="anchor-link" href="#data-flow-primary-path">#</a></h2>
+
+<p>The primary path is "owner opens a report page". Every figure on every page is computed at request time from the stream tables; nothing derived is stored.</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  actor O as Owner
+  participant B as Blazor page (TrBlazeUI)
+  participant A as Cookie auth
+  participant M as MetricsEngine (Core)
+  participant S as SqliteStore (Dapper)
+  participant DB as data/tflens.db
+  O->>B: GET /three-questions
+  B->>A: authenticated?
+  A-->>B: yes (cookie) / redirect /login
+  B->>M: Analyse(repos, filters)
+  M->>S: ReadStream("gates"), ReadStream("runs"), ...
+  S->>DB: SELECT * FROM Gate ... (per repo)
+  DB-->>S: rows (+ Overflow JSON)
+  S-->>M: typed records
+  M->>M: segment live vs backfilled, per project_type; taint set; MIN_N guard
+  M-->>B: AnalysisResult (figures or InsufficientData(n))
+  B-->>O: render cards / grid / labelled columns
+</pre>
+</div>
+
+<p>The engine never receives a "pool everything" option: <code>Analyse</code> returns a structure keyed <code>live[project_type]</code>, <code>backfilled[project_type]</code>, <code>pooled</code> — the same shape as <code>tf-metrics.sh --rollup --json</code> — so a page cannot even ask for a merged first-pass rate (§7).</p>
+
+<h2 id="module-responsibilities">4. Module responsibilities<a class="anchor-link" href="#module-responsibilities">#</a></h2>
+
+<table>
+<thead><tr><th>Module</th><th>Responsibility</th><th>Depends on</th></tr></thead>
+<tbody>
+<tr><td><code>src/TfLens</code></td><td>Blazor Server head: pages, layout, cookie auth, <code>RepoSyncService</code>, command verbs, Serilog wiring, <code>prices.json</code> editor</td><td>TfLens.Core, TrBlazeUI</td></tr>
+<tr><td><code>src/TfLens.Core/GitHub</code></td><td><code>GitHubStreamFetcher</code> — latest-SHA-touching-path lookup, whole-file fetch, raw archive to <code>data/raw/</code></td><td>HttpClient</td></tr>
+<tr><td><code>src/TfLens.Core/Parsing</code></td><td><code>StreamParser</code> — JSONL → typed records, schema-v check, overflow capture; <code>Dedupe</code> — natural-key rules per stream</td><td>(none)</td></tr>
+<tr><td><code>src/TfLens.Core/Storage</code></td><td><code>SqliteStore</code> — DDL, Dapper CRUD, <code>sync_state</code>, idempotent upsert, <code>Rebuild()</code></td><td>Dapper, Microsoft.Data.Sqlite</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics</code></td><td><code>MetricsEngine</code> — the <code>analyse()</code> port; <code>ExtraMetrics</code> — harness comparison, routing drift, counterfactual repricing; <code>InsufficientData</code> type</td><td>Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Export</code></td><td><code>SnapshotExporter</code> — markdown + machine-readable JSON (<code>tflens.json</code>) to <code>data/reports/&lt;date&gt;/</code></td><td>Metrics</td></tr>
+<tr><td><code>src/TfLens.Core/Playbook</code></td><td><code>PlaybookAdapter</code> — <code>events.ndjson</code> → <code>PbEvent</code> table; phase totals; <code>parentID</code> split (Phase 3)</td><td>Storage</td></tr>
+<tr><td><code>tests/TfLens.Core.Tests</code></td><td>xUnit: parser, dedupe, engine (fixture-driven, incl. provenance-separation tests)</td><td>TfLens.Core</td></tr>
+<tr><td><code>tools/parity-compare.py</code></td><td>Key-by-key compare of <code>reference.json</code> (tf-metrics.sh) vs <code>tflens.json</code>; non-zero exit on any diff</td><td>Python 3</td></tr>
+</tbody>
+</table>
+
+<p><strong><code>GitHubStreamFetcher</code>.</strong> For each configured repo it asks the REST API for the newest commit touching the telemetry path on the configured branch (<code>GET /repos/{o}/{r}/commits?sha={branch}&amp;path=docs/metrics&amp;per_page=1</code>). If that SHA equals <code>sync_state.LastSha</code>, the repo is skipped — no file traffic at all. Otherwise it fetches each stream file at that exact SHA (<code>GET /repos/{o}/{r}/contents/docs/metrics/{stream}.jsonl?ref={sha}</code> with <code>Accept: application/vnd.github.raw</code>), writes the bytes verbatim to <code>data/raw/{owner}__{repo}/{stream}-{sha}.jsonl</code> <strong>before</strong> parsing, and only then hands the text to the parser. A 404 on a stream file is a legitimate "stream absent" (recorded as zero records), not an error. The fetcher is structurally read-only: it holds no write scopes, and no code path issues anything but GET.</p>
+
+<p><strong><code>StreamParser</code> + <code>Dedupe</code>.</strong> Line-by-line <code>System.Text.Json</code> parse; a malformed line is counted and skipped (mirrors <code>read_stream</code> in the reference, which logs and skips). Known fields map to typed columns named exactly as SCHEMA.md; any property not in the known set for that stream (or any record with <code>v &gt; 1</code>) is preserved in the <code>Overflow</code> JSON column. The dedupe keys are the natural identities the brief fixes: <code>commits</code> on <code>sha</code> (per repo — two repos may share a short sha), <code>sessions</code> keep-highest-<code>output_tokens</code>-then-latest-<code>ts</code> per <code>session_id</code>, <code>runs</code> on <code>ts+app+cmd</code>, <code>gates</code> on <code>ts+app+req_id+run_id</code>. Re-parsing the same raw file is therefore a no-op.</p>
+
+<p><strong><code>SqliteStore</code>.</strong> Owns the DDL (§6), opens one connection per unit of work, and exposes stream reads per repo plus <code>sync_state</code>. <code>Rebuild()</code> drops every table, recreates the schema, and replays every file under <code>data/raw/</code> in <code>(repo, sha-commit-order)</code> — the raw archive is the rebuild source, never the API.</p>
+
+<p><strong><code>MetricsEngine</code>.</strong> A field-for-field port of <code>analyse()</code> in <code>tf-metrics.sh</code> (§7). Its public result type has no "total" slot: figures live under <code>Live[projectType]</code>, <code>Backfilled[projectType]</code>, and <code>Pooled</code>. Any figure with fewer than <code>MinN = 3</code> supporting records is an <code>InsufficientData(n)</code> value, which the UI renders as text, never as a number.</p>
+
+<p><strong><code>ExtraMetrics</code>.</strong> The metrics the reference does not compute — per-harness volumes/tokens/verdict mix (dollars only for <code>harness == "opencode"</code>), routing drift (<code>routed:false</code>, <code>tier_model</code> vs <code>model</code>), tokens by model, and counterfactual repricing from <code>data/prices.json</code> (labelled <em>estimate</em> everywhere). These have no parity oracle and are spot-checked by hand against raw JSONL once (BRD §9 F-PARITY).</p>
+
+<p><strong><code>SnapshotExporter</code>.</strong> Writes <code>data/reports/&lt;yyyy-MM-dd&gt;/snapshot.md</code> (human) and <code>tflens.json</code> (machine, same key layout as <code>tf-metrics.sh --rollup --json</code> plus an <code>extras</code> object) — the diffable numbers for the plan's Numbers table and B3, with the parity stamp (last passing run date + dataset SHAs) embedded.</p>
+
+<p><strong><code>PlaybookAdapter</code> (Phase 3).</strong> Separate tables (<code>PbEvent</code>, <code>PbSyncState</code>), separate page. Phase-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or chart (SCHEMA.md §11). Built as schema-discovery: the first task is to parse the real <code>events.ndjson</code> and record the observed field names in DECISIONS.md before any chart exists.</p>
+
+<h2 id="runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path<a class="anchor-link" href="#runtime-flows-beyond-the-primary-path">#</a></h2>
+
+<h3 id="repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)<a class="anchor-link" href="#repo-sync-background-sync-now">#</a></h3>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  participant T as PeriodicTimer / Sync now button
+  participant SS as RepoSyncService
+  participant F as GitHubStreamFetcher
+  participant GH as GitHub REST API
+  participant Raw as data/raw/
+  participant P as StreamParser + Dedupe
+  participant S as SqliteStore
+  T->>SS: tick / click
+  loop per configured repo
+    SS->>F: LatestShaAsync(owner, repo, branch, path)
+    F->>GH: GET /commits?sha=branch&path=docs/metrics&per_page=1
+    GH-->>F: sha
+    alt sha == sync_state.LastSha
+      SS->>S: touch LastSyncTs (skipped)
+    else changed
+      loop per stream runs/gates/sessions/commits
+        F->>GH: GET /contents/docs/metrics/{stream}.jsonl?ref=sha (raw)
+        GH-->>F: bytes or 404
+        F->>Raw: write {stream}-{sha}.jsonl verbatim
+        F->>P: parse(text)
+        P->>S: upsert by natural key (idempotent)
+      end
+      SS->>S: sync_state = {sha, ts, per-stream counts}
+    end
+  end
+  SS-->>T: SyncReport (per repo: skipped / updated / error)
+</pre>
+</div>
+
+<p>Errors are per-repo and non-fatal: a 401/403/404/network failure is written to that repo's <code>sync_state.LastError</code> and surfaced on the Coverage page; the other repos still sync. Nothing is ever written back to any repository.</p>
+
+<h3 id="rebuild-from-raw">5.2 Rebuild from raw<a class="anchor-link" href="#rebuild-from-raw">#</a></h3>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["rebuild verb / button"] --> B["Drop all tables"]
+  B --> C["Create schema (DDL)"]
+  C --> D["Enumerate data/raw/*/*.jsonl"]
+  D --> E["Order by repo, then SHA fetch order"]
+  E --> F["Parse + dedupe + upsert"]
+  F --> G["Recompute sync_state counts"]
+  G --> H["Report: files replayed, records, duplicates collapsed"]
+</pre>
+</div>
+
+<h3 id="login-single-user-cookie">5.3 Login (single-user cookie)<a class="anchor-link" href="#login-single-user-cookie">#</a></h3>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  actor O as Owner
+  participant L as /login page
+  participant A as AuthService
+  participant C as Cookie middleware
+  O->>L: username + password
+  L->>A: Verify(username, password)
+  A->>A: constant-time compare vs PBKDF2 hash from config
+  alt valid
+    A-->>L: ok
+    L->>C: SignIn (cookie, sliding 12h, HttpOnly, Secure)
+    C-->>O: redirect to /
+  else invalid
+    A-->>L: fail (logged, no detail)
+    L-->>O: generic error
+  end
+</pre>
+</div>
+
+<h3 id="weekly-snapshot-export">5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["Export button or export verb"] --> B["MetricsEngine.Analyse(all repos)"]
+  B --> C["ExtraMetrics (harness, routing, repricing)"]
+  C --> D["Read parity stamp from DECISIONS.md section or data/parity-last.json"]
+  D --> E["Write data/reports/&lt;date&gt;/snapshot.md"]
+  D --> F["Write data/reports/&lt;date&gt;/tflens.json"]
+  E --> G["Show download links + quotable / not-quotable banner"]
+  F --> G
+</pre>
+</div>
+
+<h2 id="data-model">6. Data model<a class="anchor-link" href="#data-model">#</a></h2>
+
+<p>One table per stream, columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc.; the JSON→column mapping table lives in <code>StreamParser</code>). Every stream table carries <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields).</p>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">erDiagram
+  SyncState {
+    string Repo PK
+    string Kind
+    string Branch
+    string LastSha
+    string LastSyncTs
+    string LastError
+    int RunsCount
+    int GatesCount
+    int SessionsCount
+    int CommitsCount
+  }
+  Run {
+    string Repo
+    string SourceSha
+    int V
+    string Ts
+    string App
+    string ProjectType
+    bool ProjectTypeInferred
+    bool Backfilled
+    string Harness
+    string Cmd
+    string Mode
+    string Started
+    string Ended
+    int DurationS
+    string ReqsTouched
+    int ReqsCount
+    string Subagents
+    int FilesWritten
+    string BuildResult
+    string Tier
+    string TierModel
+    string Model
+    string Models
+    bool Routed
+    int TokensIn
+    int TokensOut
+    int TokensCacheRead
+    int TokensCacheWrite
+    real CostUsd
+    string TokensScope
+    int Attempt
+    string Overflow
+  }
+  Gate {
+    string Repo
+    string SourceSha
+    int V
+    string Ts
+    string App
+    string ProjectType
+    bool ProjectTypeInferred
+    bool Backfilled
+    string Inferred
+    string Harness
+    string RunId
+    string ReqId
+    string ReqClass
+    int Attempt
+    string Verdict
+    string Gate
+    string GatesRun
+    string FailureClass
+    string PriorVerdict
+    string Proof
+    string Overflow
+  }
+  Session {
+    string Repo
+    string SourceSha
+    int V
+    string Ts
+    string App
+    string ProjectType
+    string Harness
+    string SessionId
+    string Model
+    int DurationS
+    int InputTokens
+    int OutputTokens
+    int CacheReadTokens
+    int CacheCreationTokens
+    real CostUsd
+    string Overflow
+  }
+  Commit {
+    string Repo
+    string SourceSha
+    int V
+    string Ts
+    string App
+    string ProjectType
+    string Sha
+    int Files
+    int Insertions
+    int Deletions
+    string SubjectPrefix
+    string Branch
+    string Overflow
+  }
+  PbEvent {
+    string Repo
+    string SourceSha
+    string Ts
+    string EventType
+    string PhaseGate
+    string SessionId
+    string ParentId
+    int Tokens
+    real CostUsd
+    string Overflow
+  }
+  SyncState ||--o{ Run : "Repo"
+  SyncState ||--o{ Gate : "Repo"
+  SyncState ||--o{ Session : "Repo"
+  SyncState ||--o{ Commit : "Repo"
+  SyncState ||--o{ PbEvent : "Repo"
+</pre>
+</div>
+
+<p>Unique indexes implement the dedupe keys: <code>UcCommitRepoSha (Repo, Sha)</code>, <code>UcRunIdentity (Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionRepoId (Repo, SessionId)</code>. <code>PbEvent</code> columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as <code>NULL</code>, never <code>0</code> (SCHEMA.md §2.5).</p>
+
+<h2 id="metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
+
+<p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>
+
+<table>
+<thead><tr><th>tf-metrics.sh</th><th>TfLens.Core</th><th>Rule carried</th></tr></thead>
+<tbody>
+<tr><td><code>read_stream</code></td><td><code>SqliteStore.ReadStream</code></td><td>invalid lines skipped and counted</td></tr>
+<tr><td><code>dedupe_commits</code></td><td><code>Dedupe.Commits</code></td><td>per repo, first wins, count collapsed</td></tr>
+<tr><td><code>seg()</code></td><td><code>Segment.ByProjectType</code></td><td><code>project_type_inferred</code> → <code>unclassified</code>, never <code>app</code></td></tr>
+<tr><td><code>tainted = {req_id of any backfilled}</code></td><td><code>TaintSet</code></td><td>excluded from live first-pass; listed on screen</td></tr>
+<tr><td><code>first_pass_rate</code></td><td><code>FirstPassRate</code></td><td><code>attempt==1 &amp;&amp; verdict==Verified</code> ÷ distinct eligible <code>req_id</code>; <code>MinN</code> guard</td></tr>
+<tr><td><code>gate_distribution</code></td><td><code>GateDistribution</code></td><td>over <code>verdict ∉ {Verified, Done (pre-existing)}</code>; <code>escaped</code> its own row; <code>unattributed</code> bucket</td></tr>
+<tr><td><code>late_gate_coverage</code></td><td><code>LateGateCoverage</code></td><td><code>LATE_GATES = { perf: 2026-08-10 }</code>; <code>ran</code> = <code>gates_run</code> contains; <code>caught</code> beside it</td></tr>
+<tr><td><code>escape_rate</code></td><td><code>EscapeRate</code></td><td>REQs with <code>gate=="escaped"</code> ÷ REQs with any failure; <code>MinN</code></td></tr>
+<tr><td>pooled block</td><td><code>Pooled</code></td><td>rework ratio, batch median, throughput median (REQs/hour, 2 dp), tokens total (sessions in+out), tokens per Verified (1 dp), cadence, <code>cost_usd: null</code></td></tr>
+<tr><td><code>pct()</code></td><td><code>Pct</code></td><td><code>"—"</code> when denominator 0; <code>%.0f%%</code> otherwise</td></tr>
+<tr><td><code>MIN_N = 3</code></td><td><code>MetricsEngine.MinN</code></td><td>constant, no configuration key</td></tr>
+</tbody>
+</table>
+
+<p>Two guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate, and (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case. A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
+
+<h2 id="cross-cutting-concerns">8. Cross-cutting concerns<a class="anchor-link" href="#cross-cutting-concerns">#</a></h2>
+
+<ul>
+<li><strong>Logging</strong> — Serilog, <code>WriteTo.File("logs/tflens-.log", rollingInterval: Day, retainedFileCountLimit: 14)</code> + console, wired before the host builds; <code>ILogger&lt;T&gt;</code> in app code; sync outcomes logged per repo (IDs and counts only — never file contents).</li>
+<li><strong>Error handling</strong> — per-repo sync errors captured to <code>sync_state.LastError</code> and rendered on Coverage; Blazor error boundary on each page; unhandled exceptions → <code>Log.Fatal</code> at the head boundary.</li>
+<li><strong>Auth</strong> — cookie auth for every page and the export endpoint; <code>/login</code> and <code>/healthz</code> are the only anonymous routes; antiforgery on the login form.</li>
+<li><strong>Secrets</strong> — PAT and auth credentials from environment / user-secrets via the PascalCase env-var provider (<code>TfLensGitHubToken</code>, <code>TfLensAuthUser</code>, <code>TfLensAuthPasswordHash</code>). Never in <code>appsettings.json</code>, never in the repo, never logged.</li>
+<li><strong>Privacy</strong> — TfLens stores and shows only what the streams carry (SCHEMA.md §9). The overflow column is displayed nowhere; it exists for rebuild fidelity and the "unknown fields" report.</li>
+<li><strong>Caching</strong> — <code>AnalysisResult</code> memoised per <code>(sync version, filter)</code> in <code>IMemoryCache</code>; invalidated on every completed sync or rebuild.</li>
+<li><strong>Health</strong> — <code>/healthz</code> reports DB reachable + last successful sync age; no metrics exposed there.</li>
+<li><strong>Telemetry</strong> — none outbound. TfLens itself is a TechieFlow-managed repo, so its own <code>docs/metrics/</code> streams are emitted by the framework as usual (and it may read them like any other repo).</li>
+</ul>
+
+<h2 id="deployment-architecture">9. Deployment architecture<a class="anchor-link" href="#deployment-architecture">#</a></h2>
+
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">−</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">⛶</button>
+    <button data-pop title="Open in new tab">↗</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  Dev["Dev machine<br/>dotnet run"] --> Img["Docker image<br/>(multi-stage, .NET 10)"]
+  Img --> VPS["VPS container<br/>(infra config out of scope)"]
+  VPS --> Vol[("Volume: data/ + logs/")]
+  VPS --> GH["GitHub REST API<br/>(outbound HTTPS only)"]
+  Owner(["Owner browser"]) -- "HTTPS + cookie" --> VPS
+</pre>
+</div>
+
+<p>Single container, single process. Persistent state is exactly two directories on one volume: <code>data/</code> (<code>tflens.db</code>, <code>raw/</code>, <code>reports/</code>, <code>prices.json</code>) and <code>logs/</code>. The image never contains the PAT; it arrives as an environment variable. No inbound endpoint exists other than the authenticated UI and <code>/healthz</code>.</p>
+
+<h2 id="architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)<a class="anchor-link" href="#architectural-decisions-adr-style-log">#</a></h2>
+
+<ul>
+<li><strong>ADR-001 — Blazor Server with TrBlazeUI as the only UI head.</strong> Reason: the brief fixes Blazor Server; dogfooding TrBlazeUI is an explicit goal; a single-user dashboard has no WASM/offline need.</li>
+<li><strong>ADR-002 — SQLite via Dapper + Microsoft.Data.Sqlite, hand-written DDL, no migrations.</strong> Reason: owner choice at kickoff; the store is disposable (rebuilt from <code>data/raw/</code>), so migrations add ceremony without value and the overflow JSON column stays an explicit <code>TEXT</code> column.</li>
+<li><strong>ADR-003 — No vector store / RAG.</strong> Reason: TfLens has no AI features.</li>
+<li><strong>ADR-004 — Raw <code>HttpClient</code> against the GitHub REST API, not Octokit.</strong> Reason: three GET calls per repo; a typed SDK adds a dependency and hides the <code>Accept: application/vnd.github.raw</code> header the whole-file fetch relies on.</li>
+<li><strong>ADR-005 — One executable (<code>src/TfLens</code>) hosting web + background sync + command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>).</strong> Reason: 1–2 day timebox and one Docker image; the verbs run via <code>dotnet TfLens.dll rebuild</code> / <code>docker exec</code>, and share the <code>TfLens.Core</code> engine so parity runs use exactly the code the pages use.</li>
+<li><strong>ADR-006 — <code>TfLens.Core</code> is UI-free and web-free.</strong> Reason: the engine must be unit-testable against fixture JSONL and driven by the CLI verbs without a browser; it also keeps the parity surface (engine output) identical between the export and the pages.</li>
+<li><strong>ADR-007 — Provenance rules are encoded in the result type (<code>AnalysisResult</code> has no total slot; <code>Figure</code> carries <code>InsufficientData</code>).</strong> Reason: the brief demands "no flag to disable"; a shape that cannot express the forbidden number is stronger than a check.</li>
+<li><strong>ADR-008 — Parity compare script in Python (<code>tools/parity-compare.py</code>).</strong> Reason: it runs where <code>tf-metrics.sh</code> runs (Python 3 already required), needs no build, and compares <code>reference.json</code> vs <code>tflens.json</code> key-by-key.</li>
+<li><strong>ADR-009 — <code>data/prices.json</code> is the only editable input; repricing is labelled <em>estimate</em> in every rendering and export.</strong> Reason: SCHEMA.md §4 forbids presenting a rate-card figure as a measurement; the label is part of the contract.</li>
+<li><strong>ADR-010 — Playbook adapter is separate tables + separate page, built schema-discovery-first.</strong> Reason: SCHEMA.md §11 (<code>gate</code> vs <code>phase_gate</code> are different axes); no sample file exists yet (kickoff answer), so the adapter's first task is to parse the real file and record the field names.</li>
+</ul>
+
+<h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>
+
+<p>Not applicable — greenfield; §2 is the target.</p>
+
+<h2 id="open-questions-risks">12. Open questions / risks<a class="anchor-link" href="#open-questions-risks">#</a></h2>
+
+<ul>
+<li><strong>Schema v=2 arrival.</strong> Unknown fields land in <code>Overflow</code> and are listed on the Coverage page ("fields observed that SCHEMA.md doesn't document"), but a <em>renamed</em> or <em>re-typed</em> known field would silently fall into the overflow and drop out of the metrics. First thing that breaks: any figure depending on the renamed field, with no error. Mitigation: a per-sync "unknown fields" report + a hard warning when <code>v &gt; 1</code> is seen.</li>
+<li><strong>Playbook <code>events.ndjson</code> shape is unknown</strong> — <code>PbEvent</code> columns are provisional (ADR-010).</li>
+<li><strong>GitHub rate limits / PAT expiry.</strong> A fine-grained PAT has a maximum lifetime; expiry shows up as 401s on the Coverage page. Poll interval defaults to 15 minutes; 5 repos × 5 calls is far below the 5,000/hour authenticated limit.</li>
+<li><strong>Reference drift.</strong> <code>tf-metrics.sh</code> can change (it is part of the framework and is refreshed by <code>update-framework.sh</code>). The parity procedure re-runs after every parser change <em>in TfLens</em>, but a reference change also invalidates the last parity stamp — record the script's own hash in the parity entry.</li>
+<li><strong>Short-SHA collision across repos</strong> is handled (dedupe per repo), but the same repo cloned under two names in config would double-count; config validation rejects duplicate <code>owner/name</code>.</li>
+</ul>
+
+<h2 id="sources-harvested">13. Sources harvested<a class="anchor-link" href="#sources-harvested">#</a></h2>
+
+<ul>
+<li><code>docs/TfLens-Project-Brief.md</code> (v2) — concept, phases, constraints, parity procedure, definition of done. Superseded by this document + the BRD; archived to <code>docs/OldDocs/</code>.</li>
+<li><code>.tfcore/telemetry/SCHEMA.md</code> (schema v=1) — field names, enums, provenance rules.</li>
+<li><code>.tfcore/telemetry/tf-metrics.sh</code> — reference implementation of every reporting rule (the parity oracle).</li>
+<li><code>docs/ravi-90day-positioning-plan-v2.4.2.md</code> — A-V / A0′ / B1 / B3 context only; stays in <code>docs/</code> (independently authoritative).</li>
+</ul>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>
