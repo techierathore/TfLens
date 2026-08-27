@@ -93,6 +93,8 @@
                       Value="@GateRecordTotal.ToString("N0")"
                       IconName="database"
                       Accent="StatAccent.Chart2"
+                      Sparkline="@(objGateSeries.IsPlottable ? objGateSeries.Values : null)"
+                      SparklineLabel="@objGateSeries.Label"
                       data-testid="kpi-gate-records">
                 <DescriptionContent>
                     <span class="flex flex-wrap items-center gap-1">
@@ -401,6 +403,9 @@
     private IReadOnlyList<string> objWarnings = [];
 
     private CoverageFacts objFacts = CoverageFacts.Empty;
+
+    /// <summary>Gate records per day, backing the Gate-records tile's sparkline.</summary>
+    private DailySeries objGateSeries = DailySeries.Empty;
     private DateTimeOffset objNow = DateTimeOffset.UtcNow;
     private string objFramework = FrameworkNames.TechieFlow;
     private string? objLoadError;
@@ -531,6 +536,13 @@
             var vRepos = await objStore.ReadUserReposAsync(objUserId.Value);
             var vSyncStates = await objStore.ReadSyncStateAsync(objUserId.Value);
             objFacts = await objStore.ReadCoverageFactsAsync(objUserId.Value);
+
+            // The Gate-records tile states a count of gate records, so its sparkline plots exactly
+            // that: gate records per day. No other tile on this page gets one — "Newest record age"
+            // and "Sync errors" have no stored history to plot, and inventing one would be the kind
+            // of decorative-but-unfounded figure this whole product exists to avoid.
+            objGateSeries = await objStore.ReadDailySeriesAsync(
+                objUserId.Value, objFramework, StreamKind.Gates);
 
             objHasAnyRepo = vRepos.Count > 0;
 

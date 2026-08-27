@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens Coding Standards</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00-19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+:root{
+  --bg:#faf9f7; --fg:#1f2328; --muted:#5b636d; --border:#e2e0dc; --card:#ffffff;
+  --accent:#0b62c4; --code-bg:#f4f2ef; --quote:#f6f4f1; --shadow:0 1px 2px rgba(0,0,0,.05);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#14171c; --fg:#dde1e7; --muted:#98a1ad; --border:#2a3038; --card:#191d23;
+  --accent:#7cc4ff; --code-bg:#11151a; --quote:#181d24; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.layout{display:flex;gap:32px;max-width:1280px;margin:0 auto;padding:32px 24px 96px}
+nav.side{width:270px;flex:0 0 270px;position:sticky;top:32px;align-self:flex-start;max-height:calc(100vh - 64px);overflow:auto}
+nav.side h1{font-size:17px;margin:0 0 4px;line-height:1.3}
+nav.side .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+nav.side .group{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.side ol{list-style:none;margin:0;padding:0;font-size:13.5px}
+nav.side li{margin:2px 0}
+nav.side li.h3{padding-left:14px;font-size:12.5px}
+nav.side a{color:var(--muted);text-decoration:none;display:block;padding:2px 6px;border-radius:5px}
+nav.side a:hover{color:var(--accent);background:var(--code-bg)}
+main{flex:1;min-width:0;max-width:900px}
+h1,h2,h3,h4{line-height:1.25;scroll-margin-top:24px}
+h1{font-size:30px;margin:0 0 8px}
+h2{font-size:22px;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:17.5px;margin:26px 0 8px}
+h4{font-size:15px;margin:20px 0 6px;color:var(--muted)}
+p{margin:12px 0}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.12em .38em;border-radius:4px}
+.codeblock{position:relative;margin:16px 0}
+.codeblock pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow:auto;margin:0}
+.codeblock pre code{background:none;padding:0;font-size:13px;line-height:1.55}
+.codeblock .copy{position:absolute;top:8px;right:8px;font-size:11px;padding:3px 9px;border-radius:5px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s}
+.codeblock:hover .copy{opacity:1}
+.codeblock .copy:hover{color:var(--accent);border-color:var(--accent)}
+.table-wrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;color:var(--fg)}
+ul,ol{margin:12px 0;padding-left:26px}
+li{margin:4px 0}
+img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);margin:12px 0}
+hr{border:0;border-top:1px solid var(--border);margin:28px 0}
+del{color:var(--muted)}
+.theme-toggle{position:fixed;top:14px;right:16px;z-index:20;font-size:12px;padding:5px 11px;border-radius:6px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+@media(max-width:1000px){.layout{flex-direction:column;padding:20px 16px 64px}nav.side{position:static;width:auto;flex:auto;max-height:none}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">Theme</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens Coding Standards</h1>
+    <div class="sub">Authoritative for all code under src//source/ and tests/. Conformance enforced via repo-root .editorconfig + verifier grep checks in §&quot;Enforcement&quot;.</div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#database-naming-conventions">Database Naming Conventions</a></li>
+      <li class="h3"><a href="#tables-and-columns">Tables and Columns</a></li>
+      <li class="h3"><a href="#stored-procedures-functions">Stored Procedures &amp; Functions</a></li>
+      <li class="h3"><a href="#indexes-constraints">Indexes &amp; Constraints</a></li>
+      <li><a href="#c-conventions">C# Conventions</a></li>
+      <li class="h3"><a href="#classes-interfaces">Classes &amp; Interfaces</a></li>
+      <li class="h3"><a href="#fields-parameters-locals">Fields, Parameters, Locals</a></li>
+      <li class="h3"><a href="#controller-action-parameters">Controller-action parameters</a></li>
+      <li class="h3"><a href="#environment-variables">Environment Variables</a></li>
+      <li class="h3"><a href="#project-solution-naming-the-primary-head-carries-the-product-name">Project &amp; solution naming — the primary head carries the PRODUCT name</a></li>
+      <li class="h3"><a href="#file-structure">File Structure</a></li>
+      <li class="h3"><a href="#best-practices">Best Practices</a></li>
+      <li class="h3"><a href="#xml-documentation-mandatory-on-public-members">XML Documentation (MANDATORY on public members)</a></li>
+      <li class="h3"><a href="#testing">Testing</a></li>
+      <li class="h3"><a href="#security">Security</a></li>
+      <li class="h3"><a href="#logging-serilog-file-sink-mandatory-every-net-app-type">Logging — Serilog file sink (MANDATORY, every .NET app type)</a></li>
+      <li class="h3"><a href="#maui-ui-testability-stable-automationid-maui-apps-only">MAUI UI testability — stable AutomationId (MAUI apps only)</a></li>
+      <li><a href="#enforcement">Enforcement</a></li>
+      <li class="h3"><a href="#editorconfig-machine-checkable">.editorconfig (machine-checkable)</a></li>
+      <li class="h3"><a href="#verifier-grep-checks">Verifier grep checks</a></li>
+      <li class="h3"><a href="#severity">Severity</a></li>
+    </ol>
+  </nav>
+  <main>
+<h1 id="tflens-coding-standards">TfLens Coding Standards</h1>
+<p><strong>Last Updated:</strong> 2026-08-26 <strong>Status:</strong> Authoritative for all code under <code>src/</code>/<code>source/</code> and <code>tests/</code>. Conformance enforced via repo-root <code>.editorconfig</code> + verifier grep checks in §"Enforcement".</p>
+<blockquote><strong>Per-project decision (day-1, 2026-08-26):</strong> instance fields use the <strong><code>obj</code> prefix</strong> (greenfield default; no CustomInstructions overrode it).</blockquote>
+<h2 id="database-naming-conventions">Database Naming Conventions</h2>
+<h3 id="tables-and-columns">Tables and Columns</h3>
+<ul>
+<li>PascalCase: <code>CustomerOrder</code> NOT <code>customer_order</code></li>
+<li>Singular: <code>CustomerOrder</code> NOT <code>CustomerOrders</code></li>
+<li><strong>NEVER use underscores</strong> in any DB object name</li>
+<li>FK columns: <code>{TableName}Id</code> (e.g., <code>CustomerId</code>)</li>
+<li>PK: <code>{TableName}Id</code> (e.g., <code>UserId</code>)</li>
+</ul>
+<blockquote><strong>TfLens note (PostgreSQL, amended 2026-08-26):</strong> stream tables are <code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>, <code>SyncState</code>, <code>UserRepo</code>, <code>AuthSession</code>, <code>PbEvent</code>. PostgreSQL folds unquoted identifiers to lower case, so <strong>every identifier is double-quoted in DDL and in Dapper SQL</strong> (<code>SELECT "ReqId" FROM "Gate"</code>) to keep the PascalCase names above intact; never rely on case-insensitive matching. Columns are the SCHEMA.md field names in PascalCase (<code>req_id</code> → <code>ReqId</code>, <code>gates_run</code> → <code>GatesRun</code>, <code>cost_usd</code> → <code>CostUsd</code>). The JSON→column mapping table in <code>StreamParser</code> is the single place the two spellings meet; the export (<code>tflens.json</code>) uses the SCHEMA.md spelling so the parity compare works key-for-key.</blockquote>
+<h3 id="stored-procedures-functions">Stored Procedures &amp; Functions</h3>
+<ul>
+<li>PascalCase verb prefix: <code>GetCustomerOrders</code>, <code>InsertOrder</code>, <code>CalculateTotal</code></li>
+<li>Action prefixes: Get / Insert / Update / Delete / Calculate</li>
+</ul>
+<h3 id="indexes-constraints">Indexes &amp; Constraints</h3>
+<ul>
+<li>Index: <code>IX{Table}{Column}</code> · PK: <code>Pk{Table}</code> · FK: <code>Fk{Table}{Ref}</code> · Unique: <code>Uc{Table}{Column}</code></li>
+</ul>
+<h2 id="c-conventions">C# Conventions</h2>
+<h3 id="classes-interfaces">Classes &amp; Interfaces</h3>
+<ul>
+<li>PascalCase for classes; <code>I</code> prefix for interfaces; descriptive names.</li>
+<li>Async methods end with <code>Async</code>.</li>
+</ul>
+<h3 id="fields-parameters-locals">Fields, Parameters, Locals</h3>
+<p><strong>NEVER use underscores</strong> anywhere in any identifier.</p>
+<div class="table-wrap"><table><thead><tr><th>Kind</th><th>Convention</th><th>Example</th></tr></thead><tbody><tr><td><strong>Instance fields</strong></td><td><code>obj</code> prefix + PascalCase tail (no underscores)</td><td><code>private readonly ILogger&lt;X&gt; objLogger;</code>&lt;br&gt;<code>private readonly HttpClient objHttpClient;</code>&lt;br&gt;<code>private string objCachedPublicKey;</code></td></tr><tr><td><strong>Static / <code>const</code> fields</strong></td><td>PascalCase, no prefix</td><td><code>private const string CachePrefix = "…";</code></td></tr><tr><td><strong>Method parameters</strong></td><td><code>a</code> prefix + PascalCase</td><td><code>LoginAsync(string aEmail, string aPassword)</code></td></tr><tr><td><strong>Local variables</strong></td><td><code>v</code> prefix + PascalCase</td><td><code>var vResponse = await …</code></td></tr><tr><td><strong>Booleans</strong></td><td>same prefix + <code>Is</code>/<code>Has</code>/<code>Can</code></td><td><code>IsAuthenticated</code>, <code>vIsValid</code>, <code>aHasAccess</code></td></tr><tr><td><strong>Properties</strong></td><td>PascalCase, no prefix</td><td><code>public string ConnectionString { get; set; }</code></td></tr><tr><td><strong>Constants</strong></td><td>PascalCase, no underscores</td><td><code>MaxRetryCount</code> NOT <code>MAX_RETRY_COUNT</code></td></tr><tr><td><strong>Test methods</strong></td><td>Short PascalCase, no underscores — full scenario in XML <code>&lt;summary&gt;</code></td><td><code>LoginRejectsBadPassword</code> not <code>Login_BadPassword_ReturnsUnauthorized</code></td></tr></tbody></table></div>
+<p><strong>Rejected forms:</strong> <code>_underscore</code> field prefixes, snake_case anywhere, Hungarian prefixes (<code>strName</code>), underscores in test method names.</p>
+<h3 id="controller-action-parameters">Controller-action parameters</h3>
+<p>The <code>a</code>-prefix applies uniformly to <code>[FromRoute]</code>/<code>[FromQuery]</code>/<code>[FromBody]</code>. Parameter name flows through to OpenAPI. Body DTO <strong>property</strong> names stay PascalCase no prefix; only the parameter symbol holding the deserialized DTO gets the <code>a</code> prefix.</p>
+<h3 id="environment-variables">Environment Variables</h3>
+<p><strong>PascalCase, no separators.</strong> <code>TfLensBaseUrl</code> NOT <code>TFLENS_BASE_URL</code> and NOT <code>TfLens__BaseUrl</code>. Use a custom configuration provider mapping PascalCase env vars → <code>:</code>-nested config paths. Read via <code>IConfiguration["Section:Key"]</code> only — never <code>Environment.GetEnvironmentVariable(...)</code>.</p>
+<blockquote><strong>TfLens secrets (env only, never in files):</strong> <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code> (required); <code>TfLensGitHubToken</code> (optional). Non-secret settings: <code>TfLensAppManagerBaseUrl</code>, <code>TfLensAppManagerAppId</code>, <code>TfLensDataRoot</code>, <code>TfLensPollIntervalMinutes</code>. <em>(amended 2026-08-26 — local auth credentials removed; identity is AppManager.)</em></blockquote>
+<h3 id="project-solution-naming-the-primary-head-carries-the-product-name">Project &amp; solution naming — the primary head carries the PRODUCT name</h3>
+<ul>
+<li>The product's <strong>primary executable head</strong> project is named exactly <code>TfLens</code> — <code>src/TfLens/TfLens.csproj</code>. A single-head product's one head IS <code>TfLens</code>.</li>
+<li><strong><code>TfLens.App</code> is BANNED</strong> (owner rule 2026-07-10): "App" says nothing — the product name already names the app. Never scaffold it; if the codebase has one, log a rename REQ (dir + <code>.csproj</code> + sln entry + namespaces) in the checklist instead of propagating the name.</li>
+<li>Secondary heads of a multi-head product take a <strong>descriptive</strong> dotted suffix: <code>TfLens.Api</code>, <code>TfLens.Desktop</code>, <code>TfLens.Cli</code>. Satellites keep their conventional names: <code>TfLens.Core</code> (engine), <code>TfLensUI</code> (RCL), <code>TfLens.Core.Tests</code> / <code>TfLens.Tests</code>.</li>
+</ul>
+<blockquote><strong>TfLens layout (Architecture ADR-005/006):</strong> <code>src/TfLens</code> (Blazor Server head + sync + verbs), <code>src/TfLens.Core</code> (fetch, parse, store, metrics, export — no web deps), <code>tests/TfLens.Core.Tests</code>, <code>tools/parity-compare.py</code>.</blockquote>
+<h3 id="file-structure">File Structure</h3>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-csharp">using System;
+
+namespace TfLens.Services.Example;
+
+public class DatabaseService
+{
+    private readonly ILogger&lt;DatabaseService&gt; objLogger;
+    private readonly IConfiguration objConfiguration;
+
+    public DatabaseService(ILogger&lt;DatabaseService&gt; aLogger, IConfiguration aConfiguration)
+    {
+        objLogger = aLogger;
+        objConfiguration = aConfiguration;
+    }
+
+    public string ConnectionString { get; set; }
+
+    public async Task&lt;DataTable&gt; GetDataAsync(string aQueryName)
+    {
+        var vConnString = objConfiguration.GetConnectionString("Default");
+        var vResult = await ExecuteQueryAsync(vConnString, aQueryName);
+        return vResult;
+    }
+}</code></pre></div>
+<h3 id="best-practices">Best Practices</h3>
+<ul>
+<li>One class per file. File name matches class.</li>
+<li>File-scoped namespaces. Nullable reference types enabled.</li>
+<li>Methods small (&lt;20 lines). Single responsibility.</li>
+<li>Max 3 nesting levels. Early returns for validation.</li>
+<li>ConfigureAwait(false) in libraries.</li>
+<li>StringBuilder for loop concatenation. Dispose IDisposable. Cache expensive ops.</li>
+</ul>
+<h3 id="xml-documentation-mandatory-on-public-members">XML Documentation (MANDATORY on public members)</h3>
+<p><code>&lt;summary&gt;</code>, <code>&lt;remarks&gt;</code>, <code>&lt;param&gt;</code>, <code>&lt;returns&gt;</code>, <code>&lt;exception&gt;</code> — all required.</p>
+<h3 id="testing">Testing</h3>
+<ul>
+<li>Short PascalCase test name, no underscores. Full scenario in XML <code>&lt;summary&gt;</code>.</li>
+<li>Arrange-Act-Assert. One assertion per test where practical.</li>
+</ul>
+<h3 id="security">Security</h3>
+<ul>
+<li>Never hardcode credentials. Parameterized queries. Validate inputs. Log security events.</li>
+</ul>
+<h3 id="logging-serilog-file-sink-mandatory-every-net-app-type">Logging — Serilog file sink (MANDATORY, every .NET app type)</h3>
+<ul>
+<li><strong>Every executable head gets Serilog with a rolling FILE sink — web (Blazor Server/WASM host), API, MAUI, WinForms/WPF desktop, console/CLI, background service. No exceptions, and never wait for the owner to ask.</strong></li>
+<li>Wire at startup, before anything else can fail: <code>Log.Logger = new LoggerConfiguration().MinimumLevel.Information().WriteTo.Console().WriteTo.File("logs/tflens-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14).CreateLogger();</code> then plug into DI (<code>builder.Services.AddSerilog()</code> / <code>builder.Host.UseSerilog()</code> for hosts; <code>builder.Logging.AddSerilog()</code> in <code>MauiProgram.CreateMauiApp</code>). Read overrides from <code>appsettings.json</code> (<code>Serilog</code> section) where the host has one. For MAUI/desktop, root the path in a writable per-app location (<code>FileSystem.AppDataDirectory</code> / <code>Environment.SpecialFolder.LocalApplicationData</code>), not the install dir.</li>
+<li>Log unhandled exceptions at the head boundary: <code>try/catch</code> + <code>Log.Fatal</code> around startup, <code>AppDomain.CurrentDomain.UnhandledException</code> / <code>TaskScheduler.UnobservedTaskException</code> handlers, and <code>Log.CloseAndFlush()</code> on exit.</li>
+<li><strong>Class libraries never reference Serilog</strong> — they log through <code>ILogger&lt;T&gt;</code> / <code>Microsoft.Extensions.Logging.Abstractions</code> only; the head's Serilog config picks those up automatically.</li>
+<li>App code logs through injected <code>ILogger&lt;T&gt;</code> (structured message templates, e.g. <code>logger.LogInformation("Imported {Count} rows", n)</code>), not static <code>Log.*</code>, outside the startup boundary.</li>
+<li>The <code>logs/</code> output folder is gitignored (the owner adds it — agents never run git).</li>
+<li>Brownfield: an app already on a working structured file-logging stack (e.g. NLog-to-file) is compliant — record the stack in this section; new heads added to it still use Serilog.</li>
+<li><strong>TfLens privacy rule:</strong> log IDs, counts, SHAs and status codes only — never a stream record body, never the PAT, never a URL containing a token, never an AppManager access/refresh token or API secret, never a password (encrypted or not).</li>
+</ul>
+<h3 id="maui-ui-testability-stable-automationid-maui-apps-only">MAUI UI testability — stable AutomationId (MAUI apps only)</h3>
+<ul>
+<li>Every interactive or data-bound control the verifier must reach (buttons, entries, pickers, list/collection views, key labels/values) carries a stable, unique <strong><code>AutomationId</code></strong> — the native analogue of a stable DOM id for Playwright. Without it Appium selectors drift and the runtime gates (<code>verify-phase §4a/§4b</code>) can't reliably find controls on the Android/iOS/Mac Catalyst heads.</li>
+<li>Name them by intent, not layout: <code>AutomationId="LoginSubmitButton"</code>, <code>AutomationId="ClientsGrid"</code>, <code>AutomationId="TotalBalanceValue"</code> — never positional (<code>Button2</code>).</li>
+<li>Set it on the control whose data the gate asserts (the grid/list itself, the value label), so "rows present AND non-empty" / "value not blank" maps to one addressable element.</li>
+<li>(Blazor screens use the equivalent <code>data-testid</code>/stable element ids for Playwright — same principle. TfLens's ids are listed per region in <code>docs/TfLens-UIDesign.md</code>.)</li>
+</ul>
+<h2 id="enforcement">Enforcement</h2>
+<h3 id="editorconfig-machine-checkable">.editorconfig (machine-checkable)</h3>
+<ul>
+<li>File-scoped namespaces (<code>warning</code>)</li>
+<li>Async-method <code>Async</code> suffix (<code>warning</code>)</li>
+<li><code>var</code> for locals (<code>warning</code>)</li>
+<li>Nullable reference types enabled</li>
+<li>No <code>_</code> prefix on private fields (<code>warning</code> via custom naming rule)</li>
+</ul>
+<h3 id="verifier-grep-checks">Verifier grep checks</h3>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash"># Forbidden underscore-prefix fields
+grep -rE "private(\s+readonly)?\s+\w+\s+_[a-z]" src/ source/ 2&gt;/dev/null
+
+# Forbidden test-method underscores
+grep -rE "public\s+(async\s+)?Task\s+\w+_\w+\s*\(" tests/
+
+# Field missing obj prefix
+grep -rE "private(\s+readonly)?\s+\w+\s+(?!obj)[A-Z]\w+\s*[;=]" src/ source/ 2&gt;/dev/null | grep -v "static\|const"</code></pre></div>
+<h3 id="severity">Severity</h3>
+<ul>
+<li><strong>Error</strong>: file-scoped namespace, underscore field prefix</li>
+<li><strong>Warning</strong>: nullable, async suffix</li>
+<li><strong>Info</strong>: consider fixing</li>
+</ul>
+  </main>
+</div>
+<script>
+var btn = document.getElementById('themeToggle');
+function label(){ var d = document.documentElement.getAttribute('data-theme')==='dark';
+  btn.textContent = d ? 'Light' : 'Dark'; }
+label();
+btn.addEventListener('click', function(){
+  var d = document.documentElement.getAttribute('data-theme')==='dark';
+  var next = d ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('tf-theme', next); }catch(e){}
+  label();
+});
+document.querySelectorAll('.codeblock .copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    var code = b.parentElement.querySelector('code');
+    navigator.clipboard.writeText(code.innerText).then(function(){
+      var old = b.textContent; b.textContent = 'Copied';
+      setTimeout(function(){ b.textContent = old; }, 1200);
+    });
+  });
+});
+</script>
+</body>
+</html>

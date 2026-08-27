@@ -21,8 +21,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # wget backs the compose healthcheck against /healthz.
+# libgssapi-krb5-2 is needed by Npgsql: it probes for GSSAPI/Kerberos when opening a connection, and
+# without it every startup and every command verb prints
+#   "Error: libgssapi_krb5.so.2: cannot open shared object file"
+# before carrying on. The connection works either way, but an error line on a healthy boot trains
+# people to ignore error lines.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends wget \
+    && apt-get install -y --no-install-recommends wget libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish ./

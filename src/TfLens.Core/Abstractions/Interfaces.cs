@@ -411,6 +411,40 @@ public interface ITelemetryStore
         Task.FromResult(CoverageFacts.Empty);
 
     /// <summary>
+    /// Counts one stream's records per day, for the KPI sparklines.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returns one point per day in the window, including days with no records, so a gap reads as a
+    /// gap rather than being closed up into a smooth line. Days are taken from the record's own
+    /// <c>Ts</c>, not from when TfLens synced it, so the series describes when the work happened.
+    /// </para>
+    /// <para>
+    /// A sparkline drawn from this may only sit on a tile that states the <b>same</b> count. It is
+    /// never a rate: see <see cref="DailySeries"/> for why rate tiles get no line.
+    /// </para>
+    /// <para>
+    /// The default returns <see cref="DailySeries.Empty"/> so fixtures and fakes degrade to "no line"
+    /// rather than failing to compile.
+    /// </para>
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id — mandatory (ADR-013).</param>
+    /// <param name="aFramework">The provenance axis; a series never spans frameworks (ADR-016).</param>
+    /// <param name="aStream">Which stream to count.</param>
+    /// <param name="aDays">How many days back the window runs, ending today.</param>
+    /// <param name="aFailuresOnly">When true, counts only records whose verdict is a failure — the quantity the Failures-scored tile states. Applies to <see cref="StreamKind.Gates"/> only.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The daily counts, oldest first, with a label naming exactly what was counted.</returns>
+    Task<DailySeries> ReadDailySeriesAsync(
+        int aUserId,
+        string aFramework,
+        StreamKind aStream,
+        int aDays = 14,
+        bool aFailuresOnly = false,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult(DailySeries.Empty);
+
+    /// <summary>
     /// Drops and recreates every stream table, then replays the raw archive.
     /// </summary>
     /// <param name="aUserId">One user, or <c>null</c> to rebuild every user's data.</param>

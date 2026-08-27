@@ -38,7 +38,7 @@
                 </span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem OnClick="OnSignOut">
+            <DropdownMenuItem OnClick="OnSignOutAsync">
                 <span class="flex items-center gap-2" data-testid="user-menu-signout">
                     <LucideIcon Name="log-out" Size="16" />
                     Sign out
@@ -47,6 +47,15 @@
         </div>
     </DropdownMenuContent>
 </DropdownMenu>
+
+@* Sign-out has to be a POST to a real HTTP endpoint: the auth cookie can only be cleared on a real
+   response, which an interactive circuit does not have. It is a POST rather than a GET so it carries
+   the antiforgery token — a GET sign-out can be triggered by any third-party page embedding
+   <img src="/signout">, which would log the user out unbidden. The form is hidden and submitted from
+   the menu item. *@
+<form id="@SignOutFormId" method="post" action="/auth/logout" class="hidden">
+    <AntiforgeryToken />
+</form>
 
 @code {
     /// <summary>The signed-in user's display name, shown beside the avatar.</summary>
@@ -70,12 +79,23 @@
     /// <param name="aHref">The route to open.</param>
     private void NavigateTo(string aHref) => objNavigation.NavigateTo(aHref);
 
+    [Inject]
+    private IJSRuntime objJsRuntime { get; set; } = default!;
+
+    /// <summary>Id of the hidden form posted to the sign-out endpoint.</summary>
+    private const string SignOutFormId = "tf-signout-form";
+
     /// <summary>
-    /// Hands over to the sign-out endpoint, which clears the cookie on a real HTTP response.
+    /// Signs the user out by posting the hidden form to <c>/auth/logout</c>.
     /// </summary>
     /// <remarks>
-    /// Cookie sign-out cannot happen inside the circuit, so this is a full navigation to the minimal-API
-    /// endpoint (<c>AuthEndpoints</c>), not an in-app navigation.
+    /// This previously navigated to <c>/signout</c>, which nothing ever mapped — only
+    /// <c>POST /auth/logout</c> exists. The user was sent to a dead route, the cookie survived, and they
+    /// stayed signed in; because this is the only sign-out control in the app, sign-out did not work at
+    /// all. Posting the real form calls <c>AuthService.SignOutAsync</c>, which revokes the AppManager
+    /// refresh token, deletes the server-side session row and clears the cookie.
     /// </remarks>
-    private void OnSignOut() => objNavigation.NavigateTo("/signout", forceLoad: true);
+    /// <returns>A task that completes once the browser has been told to post.</returns>
+    private async Task OnSignOutAsync() =>
+        await objJsRuntime.InvokeVoidAsync("tflens.submitForm", SignOutFormId);
 }

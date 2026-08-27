@@ -40,6 +40,22 @@
                 }
             </p>
         }
+        @if (Sparkline is { Count: > 1 })
+        {
+            @* The mockups put a small trend line in every KPI tile (UI Design §Design system:
+               "A small trend line uses --chart-1 colour"). It was missing from every tile on every
+               page, which is a large part of why the built screens read as flatter than the design.
+               It is decoration, not a figure: no axis, no value, and it is omitted entirely rather
+               than drawn flat when there are fewer than two points to plot. *@
+            <svg class="tflens-spark @AccentClass" viewBox="0 0 100 24" preserveAspectRatio="none"
+                 role="img" aria-label="@SparklineLabel" data-testid="stat-sparkline"
+                 data-points="@Sparkline.Count" focusable="false">
+                <title>@SparklineLabel</title>
+                <polyline points="@SparkPoints" fill="none" stroke="currentColor"
+                          stroke-width="1.6" vector-effect="non-scaling-stroke"
+                          stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        }
     </CardContent>
 </Card>
 
@@ -72,6 +88,28 @@
     [Parameter]
     public StatAccent Accent { get; set; } = StatAccent.Chart1;
 
+    /// <summary>
+    /// Optional trend points for the tile's sparkline, oldest first.
+    /// </summary>
+    /// <remarks>
+    /// Purely decorative — the tile states its figure in text and the sparkline carries no axis and no
+    /// label, so it can never be read as a number. Fewer than two points renders nothing at all rather
+    /// than a misleading flat line.
+    /// </remarks>
+    [Parameter]
+    public IReadOnlyList<double>? Sparkline { get; set; }
+
+    /// <summary>
+    /// A sentence naming exactly what the sparkline plots, e.g. "gates records per day, last 14 days".
+    /// </summary>
+    /// <remarks>
+    /// Required whenever <see cref="Sparkline"/> is supplied, and surfaced as both the SVG title and its
+    /// accessible label. An unlabelled trend line invites the reader to assume it tracks the headline
+    /// figure; saying what it actually counts is what keeps it honest.
+    /// </remarks>
+    [Parameter]
+    public string? SparklineLabel { get; set; }
+
     /// <summary>Anything else the caller sets — <c>data-testid</c> above all — lands on the card.</summary>
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
@@ -88,6 +126,30 @@
         3 => "h-full trblazeui-col-12 trblazeui-col-md-4",
         _ => "h-full trblazeui-col-12 trblazeui-col-md-6 trblazeui-col-lg-3"
     };
+
+    /// <summary>
+    /// The sparkline polyline, normalised into the 100&#215;24 viewBox.
+    /// </summary>
+    /// <remarks>A flat series is drawn along the middle rather than divided by a zero range.</remarks>
+    private string SparkPoints
+    {
+        get
+        {
+            var vPoints = Sparkline!;
+            var vMin = vPoints.Min();
+            var vRange = vPoints.Max() - vMin;
+            var vStep = 100d / (vPoints.Count - 1);
+
+            return string.Join(' ', vPoints.Select((aValue, aIndex) =>
+            {
+                var vX = (aIndex * vStep).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                var vNormalised = vRange <= 0 ? 0.5d : (aValue - vMin) / vRange;
+                // SVG y grows downward, so the highest value must sit nearest the top.
+                var vY = (22d - (vNormalised * 20d)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                return $"{vX},{vY}";
+            }));
+        }
+    }
 
     /// <summary>The scoped class carrying the accent colour for the chip.</summary>
     private string AccentClass => Accent switch

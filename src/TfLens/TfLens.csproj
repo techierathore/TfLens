@@ -17,6 +17,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <!-- Lets a developer keep the connection string and the AppManager pair on their own machine
+         (dotnet user-secrets) instead of in any committed file. -->
+    <UserSecretsId>tflens-dev-secrets</UserSecretsId>
   </PropertyGroup>
 
 </Project>

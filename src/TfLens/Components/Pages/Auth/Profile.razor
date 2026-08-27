@@ -87,10 +87,15 @@
                 else
                 {
                     <div class="overflow-x-auto" data-testid="profile-values">
+                        @* InitialPageSize is required, not cosmetic: ShowPagination="false" only hides
+                           the pager — the table still renders InitialPageSize rows (default 5) and
+                           drops the rest with no error. This table currently has exactly 5 rows, so a
+                           sixth profile field would have vanished silently. *@
                         <DataTable TData="ProfileRow"
                                    Data="@objRows"
                                    ShowToolbar="false"
-                                   ShowPagination="false">
+                                   ShowPagination="false"
+                                   InitialPageSize="32">
                             <Columns>
                                 <DataTableColumn TData="ProfileRow" TValue="string"
                                                  Property="@(aRow => aRow.Field)" Header="Field" />

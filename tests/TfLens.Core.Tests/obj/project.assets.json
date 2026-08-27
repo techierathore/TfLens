@@ -1076,12 +1076,14 @@
         "compile": {
           "lib/net10.0/TrBlazeUI.Components.dll": {
             "related": ".xml"
-          }
+          },
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {}
         },
         "runtime": {
           "lib/net10.0/TrBlazeUI.Components.dll": {
             "related": ".xml"
-          }
+          },
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {}
         },
         "build": {
           "buildTransitive/TrBlazeUI.Components.props": {},
@@ -2815,11 +2817,13 @@
       ]
     },
     "TrBlazeUI.Components/2.0.0": {
-      "sha512": "ZE42c6JfQHkAwYnlBRsKSfUfQxrWDIRI3g8yByMKZA0YgVaFWE04AAiMFexMJvNkwiw7YhK3G6t9YyZvnHq2Uw==",
+      "sha512": "zIl+6RVcRJF/NCKoa+cVEqeksR/duaY8aJjaSyV/zEfFQzRhfA4ypsdGX0FUruvvHmtdipSw61ad3/t5M/NpFQ==",
       "type": "package",
       "path": "trblazeui.components/2.0.0",
       "files": [
         ".nupkg.metadata",
+        ".signature.p7s",
+        "NOTICE",
         "README.md",
         "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
         "build/Microsoft.AspNetCore.StaticWebAssets.props",
@@ -2830,6 +2834,7 @@
         "docs/TrBlazeUI-AI-Reference.md",
         "lib/net10.0/TrBlazeUI.Components.dll",
         "lib/net10.0/TrBlazeUI.Components.xml",
+        "lib/net10.0/TrBlazeUI.Primitives.dll",
         "skills/claude-code-trblazeui.md",
         "skills/opencode-trblazeui.md",
         "staticwebassets/css/trblazeui-input.css",
@@ -2851,11 +2856,13 @@
       ]
     },
     "TrBlazeUI.Icons.Lucide/2.0.0": {
-      "sha512": "XyOkDhpku/u4/BS5fTTGAuTx5vTxAgpZzWkgzX5NoNf5iJWd5kkT8Q23GGTExzh05f5owPfyTxKfZ+edITCsPg==",
+      "sha512": "W0RMPQFd0a+vdwJit7zXPETJcuROf79EkTLIzd8dCgqfyw02FHzNT68gCcMJUzhnlBL8icb3tYTTCsAov+c/cA==",
       "type": "package",
       "path": "trblazeui.icons.lucide/2.0.0",
       "files": [
         ".nupkg.metadata",
+        ".signature.p7s",
+        "NOTICE",
         "README.md",
         "content/lucide.json",
         "contentFiles/any/net10.0/lucide.json",
@@ -2866,11 +2873,13 @@
       ]
     },
     "TrBlazeUI.Primitives/2.0.0": {
-      "sha512": "6g2gZifilrPENL3fKgA1S1/xktKUjAU1nUDkOZkSJzCjU9pFUhoGogHgSewpti5Tw3rV+4G+KcXAugWVODaOKQ==",
+      "sha512": "rBlfKQyMGYZeQRRLuM3DBb1/JOCm21dI31qqV8sDR85R1iFdnu+2ZMriFJ3J+sU0j8r5X91SOGrjIEiMQ6Z5Sw==",
       "type": "package",
       "path": "trblazeui.primitives/2.0.0",
       "files": [
         ".nupkg.metadata",
+        ".signature.p7s",
+        "NOTICE",
         "README.md",
         "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
         "build/Microsoft.AspNetCore.StaticWebAssets.props",
@@ -3058,45 +3067,37 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\srkra\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "/home/srkra/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\1MyCode\\TfLens\\tests\\TfLens.Core.Tests\\TfLens.Core.Tests.csproj",
+      "projectUniqueName": "/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/TfLens.Core.Tests.csproj",
       "projectName": "TfLens.Core.Tests",
-      "projectPath": "C:\\1MyCode\\TfLens\\tests\\TfLens.Core.Tests\\TfLens.Core.Tests.csproj",
-      "packagesPath": "C:\\Users\\srkra\\.nuget\\packages\\",
-      "outputPath": "C:\\1MyCode\\TfLens\\tests\\TfLens.Core.Tests\\obj\\",
+      "projectPath": "/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/TfLens.Core.Tests.csproj",
+      "packagesPath": "/home/srkra/.nuget/packages/",
+      "outputPath": "/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\srkra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/home/srkra/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
-        "https://api.nuget.org/v3/index.json": {},
-        "https://nuget.pkg.github.com/techierathore/index.json": {}
+        "/home/srkra/.dotnet/library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj": {
-              "projectPath": "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj"
+            "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj": {
+              "projectPath": "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj"
             },
-            "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj": {
-              "projectPath": "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj"
+            "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj": {
+              "projectPath": "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj"
             }
           }
         }
@@ -3111,7 +3112,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.400"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net10.0": {
@@ -3155,7 +3156,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/home/srkra/.dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

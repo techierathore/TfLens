@@ -26,5 +26,13 @@ logs/
 
 # Local secrets and runtime state — never commit
 /.env
-/data/
+
+# Runtime state, at ANY depth — not just the repo root. `dotnet run` resolves the default relative
+# TfLensDataRoot against the PROJECT directory, so a dev machine writes src/TfLens/data/, which the
+# old root-anchored `/data/` rule did not cover. That directory holds the raw telemetry archive AND
+# the ASP.NET Data Protection key ring that encrypts the stored AppManager tokens and the auth
+# cookie — none of which may ever be committed.
+data/
+**/data/
+!/database/
 /.vs/TfLens.slnx

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration.Memory;
 using Serilog;
 using TfLens.Components;
 using TfLens.Configuration;
@@ -37,6 +39,29 @@ TaskScheduler.UnobservedTaskException += (aSender, aArgs) =>
 try
 {
     var vBuilder = WebApplication.CreateBuilder(args);
+
+    // A developer who has just cloned the repository has configured nothing, and TfLens refuses to
+    // start without a database (BRD-9) — so out of the box F5 would crash. The local compose database
+    // is therefore seeded as a DEVELOPMENT-ONLY default.
+    //
+    // It is inserted at index 0, which makes it the LOWEST-priority source: appsettings, user secrets
+    // and environment variables all override it. That ordering is the whole point. The first attempt at
+    // this put the value in launchSettings.json instead, which made it an environment variable — the
+    // HIGHEST-priority source — so it silently overrode `dotnet user-secrets set TfLens:DbConnection`,
+    // the very thing the Developer Guide tells people to use. A default that cannot be overridden is
+    // not a default, it is a hard-coding.
+    //
+    // Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.
+    if (vBuilder.Environment.IsDevelopment())
+    {
+        vBuilder.Configuration.Sources.Insert(0, new MemoryConfigurationSource
+        {
+            InitialData = new Dictionary<string, string?>
+            {
+                ["TfLens:DbConnection"] = TfLensOptions.LocalDevelopmentConnection
+            }
+        });
+    }
 
     // PascalCase env vars (TfLensDbConnection) map onto TfLens:* config paths — Coding Standards
     // §Environment Variables. Application code never reads the environment directly.
@@ -85,7 +110,9 @@ try
                 : CookieSecurePolicy.Always;
 
             aCookie.LoginPath = "/login";
-            aCookie.LogoutPath = "/signout";
+            // Nothing maps /signout; sign-out is POST /auth/logout (UserMenu posts it). This value only
+            // affects framework-generated logout links, so it points at a route that exists.
+            aCookie.LogoutPath = "/login";
             aCookie.AccessDeniedPath = "/login";
 
             // BRD-93 fixes the session at a sliding 12 hours.
@@ -129,12 +156,23 @@ try
     await using (var vScope = vApp.Services.CreateAsyncScope())
     {
         var vStore = vScope.ServiceProvider.GetRequiredService<ITelemetryStore>();
-        await vStore.EnsureSchemaAsync();
 
-        if (!await vStore.PingAsync())
+        // Applying the schema is the first thing that actually opens a connection, so it — not the
+        // ping below — is where an unreachable database surfaces. Left unhandled it surfaces as a raw
+        // Npgsql socket stack trace, which tells a developer nothing about what to start or where to
+        // look; the guidance below is the whole point of failing at startup rather than later.
+        try
         {
-            throw new InvalidOperationException(
-                "TfLens cannot start — the database named by TfLensDbConnection is unreachable.");
+            await vStore.EnsureSchemaAsync();
+
+            if (!await vStore.PingAsync())
+            {
+                throw new InvalidOperationException(TfLensOptions.UnreachableDatabaseMessage(null));
+            }
+        }
+        catch (Exception vDbEx) when (vDbEx is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(TfLensOptions.UnreachableDatabaseMessage(vDbEx), vDbEx);
         }
     }
 
@@ -175,6 +213,38 @@ try
 
     await vApp.RunAsync();
     return 0;
+}
+catch (IOException vBindEx) when (vBindEx.InnerException is AddressInUseException)
+{
+    // "address already in use" arrives as a 40-line Kestrel/socket stack trace that never names the
+    // port, the app already holding it, or how to free it. The usual cause is mundane — a previous
+    // debug session, a `dotnet run` in another terminal, or a container publishing the same port —
+    // and all a developer needs is which command to run.
+    Log.Fatal(
+        """
+        TfLens cannot start — the port it listens on is already in use.
+
+        {Detail}
+
+        Something else is already bound to that address. Almost always one of:
+
+          1. An earlier run of TfLens is still alive — a previous F5 session that did not shut down, or
+             a `dotnet run` in another terminal. Stop it and start again.
+
+          2. A container is publishing the same port. `docker ps` will show it; the compose stack
+             publishes the app on 8080, so it does not normally collide with the 5014 dev port.
+
+          3. Something unrelated owns the port:
+               Windows: netstat -ano | findstr :5014     then  taskkill /PID <pid> /F
+               Linux/macOS: lsof -i :5014                then  kill -9 <pid>
+
+        To use a different port instead, change applicationUrl in
+        src/TfLens/Properties/launchSettings.json, or run with:
+          dotnet run --project src/TfLens --urls http://localhost:5099
+        """,
+        vBindEx.Message);
+
+    return 1;
 }
 catch (Exception vEx)
 {

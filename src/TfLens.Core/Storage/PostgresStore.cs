@@ -444,6 +444,94 @@ public sealed class PostgresStore : ITelemetryStore
         return true;
     }
 
+    /// <inheritdoc />
+    public async Task<DailySeries> ReadDailySeriesAsync(
+        int aUserId,
+        string aFramework,
+        StreamKind aStream,
+        int aDays = 14,
+        bool aFailuresOnly = false,
+        CancellationToken aCancellationToken = default)
+    {
+        var vTable = aStream switch
+        {
+            StreamKind.Runs => "Run",
+            StreamKind.Gates => "Gate",
+            StreamKind.Sessions => "Session",
+            StreamKind.Commits => "Commit",
+            StreamKind.Events => "PbEvent",
+            _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream.")
+        };
+
+        if (aFailuresOnly && aStream != StreamKind.Gates)
+        {
+            throw new ArgumentException("Only the gates stream carries a verdict.", nameof(aFailuresOnly));
+        }
+
+        // The window is generated rather than derived from the rows, so a day with no records appears
+        // as a zero instead of being closed up — a quiet week should look quiet, not like a straight
+        // line between the days either side of it. "Ts" is the record's own timestamp, so the series
+        // describes when the work happened rather than when TfLens happened to sync it.
+        var vFailureFilter = aFailuresOnly
+            ? """AND COALESCE(s."Verdict", '') NOT IN ('Verified', 'Done (pre-existing)')"""
+            : string.Empty;
+
+        var vSql = $"""
+            WITH days AS (
+                SELECT generate_series(
+                    (CURRENT_DATE - MAKE_INTERVAL(days => @aDays - 1)),
+                    CURRENT_DATE,
+                    INTERVAL '1 day')::date AS "Day"
+            ),
+            hits AS (
+                SELECT LEFT(s."Ts", 10)::date AS "Day", COUNT(*)::int AS "Count"
+                FROM "{vTable}" s
+                INNER JOIN "UserRepo" u ON u."UserId" = s."UserId" AND u."Repo" = s."Repo"
+                WHERE s."UserId" = @aUserId
+                  AND u."Framework" = @aFramework
+                  AND s."Ts" LIKE '____-__-__%'
+                  AND LEFT(s."Ts", 10)::date > (CURRENT_DATE - MAKE_INTERVAL(days => @aDays))
+                  {vFailureFilter}
+                GROUP BY 1
+            )
+            SELECT d."Day", COALESCE(h."Count", 0) AS "Count"
+            FROM days d LEFT JOIN hits h ON h."Day" = d."Day"
+            ORDER BY d."Day"
+            """;
+
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+
+        var vRows = await vConnection.QueryAsync<DailyCount>(
+            new CommandDefinition(
+                vSql,
+                new { aUserId, aFramework, aDays },
+                cancellationToken: aCancellationToken)).ConfigureAwait(false);
+
+        var vPoints = vRows.ToList();
+
+        // A window of pure zeros is not history, it is absence — say nothing rather than draw a flat line.
+        if (vPoints.Count == 0 || vPoints.All(aP => aP.Count == 0))
+        {
+            return DailySeries.Empty;
+        }
+
+        // The wire names are plural ("gates", "runs"), which reads badly as a noun phrase — the label is
+        // shown to a person, so it says "gate records", not "gates records".
+        var vNoun = aStream switch
+        {
+            StreamKind.Runs => "run",
+            StreamKind.Gates => "gate",
+            StreamKind.Sessions => "session",
+            StreamKind.Commits => "commit",
+            StreamKind.Events => "event",
+            _ => StreamNames.ToName(aStream)
+        };
+
+        var vWhat = aFailuresOnly ? "failure" : vNoun;
+
+        return new DailySeries(vPoints, $"{vWhat} records per day, last {aDays} days");
+    }
+
     /// <summary>
     /// Reads one stream table for a user, narrowed to a framework and optionally to one repository.
     /// </summary>

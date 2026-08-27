@@ -1,34 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj": {}
+    "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj": {}
   },
   "projects": {
-    "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj": {
+    "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj",
+        "projectUniqueName": "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj",
         "projectName": "TfLens.Core",
-        "projectPath": "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj",
-        "packagesPath": "C:\\Users\\srkra\\.nuget\\packages\\",
-        "outputPath": "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\obj\\",
+        "projectPath": "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj",
+        "packagesPath": "/home/srkra/.nuget/packages/",
+        "outputPath": "/mnt/c/1MyCode/TfLens/src/TfLens.Core/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\srkra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/srkra/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.pkg.github.com/techierathore/index.json": {}
+          "/home/srkra/.dotnet/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
@@ -47,7 +40,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.400"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
@@ -95,7 +88,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/home/srkra/.dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -373,39 +366,32 @@
         }
       }
     },
-    "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj": {
+    "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj",
+        "projectUniqueName": "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj",
         "projectName": "TfLens",
-        "projectPath": "C:\\1MyCode\\TfLens\\src\\TfLens\\TfLens.csproj",
-        "packagesPath": "C:\\Users\\srkra\\.nuget\\packages\\",
-        "outputPath": "C:\\1MyCode\\TfLens\\src\\TfLens\\obj\\",
+        "projectPath": "/mnt/c/1MyCode/TfLens/src/TfLens/TfLens.csproj",
+        "packagesPath": "/home/srkra/.nuget/packages/",
+        "outputPath": "/mnt/c/1MyCode/TfLens/src/TfLens/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\srkra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/srkra/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.pkg.github.com/techierathore/index.json": {}
+          "/home/srkra/.dotnet/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj": {
-                "projectPath": "C:\\1MyCode\\TfLens\\src\\TfLens.Core\\TfLens.Core.csproj"
+              "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj": {
+                "projectPath": "/mnt/c/1MyCode/TfLens/src/TfLens.Core/TfLens.Core.csproj"
               }
             }
           }
@@ -420,7 +406,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.400"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
@@ -430,7 +416,7 @@
             "Microsoft.AspNetCore.App.Internal.Assets": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.11, )",
+              "version": "[10.0.10, )",
               "autoReferenced": true
             },
             "Serilog.AspNetCore": {
@@ -473,7 +459,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/home/srkra/.dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

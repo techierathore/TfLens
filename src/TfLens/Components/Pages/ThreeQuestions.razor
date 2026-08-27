@@ -11,6 +11,7 @@
 @page "/three-questions"
 @implements IDisposable
 @inject IMetricsEngine objMetricsEngine
+@inject ITelemetryStore objStore
 @inject ShellPreferences objPreferences
 
 <PageTitle>Three questions · TfLens</PageTitle>
@@ -142,6 +143,8 @@
                             <StatTile Title="Failures scored"
                                       IconName="x"
                                       Accent="StatAccent.Chart4"
+                                      Sparkline="@(objFailureSeries.IsPlottable ? objFailureSeries.Values : null)"
+                                      SparklineLabel="@objFailureSeries.Label"
                                       data-testid="@($"kpi-failures-{vType}")">
                                 <ValueContent>
                                     <div class="flex flex-col gap-1">
@@ -385,6 +388,9 @@
         EscapeRate = Figure.NotApplicable()
     };
 
+    /// <summary>Failure records per day, backing the Failures-scored tile's sparkline.</summary>
+    private DailySeries objFailureSeries = DailySeries.Empty;
+
     private AnalysisResult? objResult;
     private IReadOnlyList<string> objTypes = [];
     private IReadOnlyList<string> objTaintedReqs = [];
@@ -448,6 +454,14 @@
         try
         {
             objResult = await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework);
+
+            // Only the Failures-scored tile gets a sparkline. It states a COUNT of failure records, so
+            // the line plots failure records per day — the same quantity. First-pass rate and escape
+            // rate get none: a rate computed over one day is almost always below MinN, and a line
+            // through a run of `insufficient data` would be precisely the plausible-but-unfounded
+            // picture the provenance rules exist to prevent.
+            objFailureSeries = await objStore.ReadDailySeriesAsync(
+                objUserId.Value, objFramework, StreamKind.Gates, aFailuresOnly: true);
             objTypes = objResult.ProjectTypes;
             objTaintedReqs = objResult.TaintedReqs;
             objLoadError = null;

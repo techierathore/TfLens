@@ -153,21 +153,53 @@ docker build -t tflens:latest .
 
 ---
 
-## Run locally with `dotnet run`
+## Run locally
 
-Start just the database from compose, then run the app on the host:
+You need two things: the **.NET 10 SDK** and a **PostgreSQL 16** database. Nothing else.
 
-```bash
-docker compose up -d postgres          # publishes 5433 via docker-compose.override.yml
+### Visual Studio / Rider (Windows)
 
-export TfLensDbConnection="Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev"
-export TfLensAppManagerApiKey=""       # both blank is a valid configuration; half a pair is not
-export TfLensAppManagerApiSecret=""
-
-dotnet run --project src/TfLens
+```powershell
+copy .env.example .env
+docker compose up -d postgres
 ```
 
-The app listens on <http://localhost:5014> under the `http` launch profile. HTTPS is terminated by
+Then **press F5.** That is the whole setup.
+
+There is **one** launch profile, `TfLens`. It pins no connection string: in Development only, TfLens
+falls back to the local compose database as the **lowest-priority** configuration source, so
+`user-secrets` and environment variables both override it. It opens on <http://localhost:5014>.
+
+### Shell (Linux / macOS / WSL)
+
+```bash
+cp .env.example .env
+docker compose up -d postgres          # publishes 5433 via docker-compose.override.yml
+dotnet run --project src/TfLens        # http://localhost:5014
+```
+
+`dotnet run` uses the same single profile and the same Development fallback.
+
+### Pointing at your own PostgreSQL
+
+Just set the value — no profile switching. `$env:TfLensDbConnection` in PowerShell,
+`export TfLensDbConnection=…` in bash, or, so it commits nothing:
+
+```bash
+dotnet user-secrets set TfLens:DbConnection "Host=…" --project src/TfLens
+```
+
+You do not need to create the schema: `database/001-schema.sql` is idempotent and is applied at every
+startup, so an empty database is enough.
+
+ > **Why the default lives in code, not in the launch profile.** A launch profile sets an *environment
+> variable*, which is the highest-priority configuration source — putting it there silently overrode
+> `dotnet user-secrets`, the documented way to point at your own database. The fallback is seeded as the
+> lowest-priority source instead, in Development only, so everything else wins. No secret lives in
+> `appsettings.json` (BRD-8), and nothing is seeded in a deployment.
+
+**If it does not start, the error message itself lists the fix for your platform.** Fuller
+troubleshooting is in [`docs/TfLens-DevGuide.md`](docs/TfLens-DevGuide.md#troubleshooting). HTTPS is terminated by
 the reverse proxy in a real deployment, never by the app — `ForwardedHeaders` is configured so the
 scheme and client IP arriving from the proxy are honoured.
 

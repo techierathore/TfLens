@@ -36,3 +36,72 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* ------------------------------------------------------------------------
+   TrBlazeUI design tokens that the shipped trblazeui.css does not define
+   (TR-001). Without these, `var(--chart-1)` and `var(--alert-*)` resolve to
+   nothing: charts paint black or transparent, alert tints vanish, and the
+   live/backfilled bars on Three questions lose the blue/purple distinction
+   the mockups rely on to tell the two provenances apart.
+
+   Each page that noticed this declared them locally, which is why some
+   screens matched the mockup and others quietly did not. Declaring them once,
+   globally, is the fix — page-local copies can be removed as they are touched.
+   Values are the OKLCH palette from docs/TfLens-UIDesign.md §Design system.
+   ------------------------------------------------------------------------ */
+:root {
+    --chart-1: oklch(0.646 0.222 264);
+    --chart-2: oklch(0.627 0.245 303);
+    --chart-3: oklch(0.696 0.17 162);
+    --chart-4: oklch(0.769 0.188 70);
+    --chart-5: oklch(0.645 0.246 16);
+
+    --alert-success: oklch(0.696 0.17 162);
+    --alert-info: oklch(0.646 0.222 264);
+    --alert-warning: oklch(0.769 0.188 70);
+    --alert-danger: oklch(0.645 0.246 16);
+}
+
+/* ---------------- shell: the sidebar differences against the mockup -------- */
+
+/* The mockup sets the group labels in small caps with letter-spacing; the code
+   rendered them in plain title case, which reads as body text rather than as a
+   section divider. */
+[data-sidebar="group-label"],
+.tflens-sidebar-group-label {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: .72;
+}
+
+/* The current page had no highlight at all, so the sidebar never showed you
+   where you were — the single most noticeable difference from the mockups. */
+/* TrBlazeUI marks the current item with an EMPTY data-active attribute (data-active="") plus
+   aria-current="page" — not data-active="true", which an earlier attempt at this matched and which
+   therefore never applied. Match on presence. */
+a[data-active],
+a[aria-current="page"] {
+    background: color-mix(in oklab, var(--sidebar-accent, #ffffff) 10%, transparent);
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 0 var(--chart-1);
+}
+
+/* The repo count rendered on its own line beneath the Repos link instead of
+   inline on the row, which looked like a layout bug rather than a badge. */
+/* The badge is already absolutely positioned by the library, but its <li> carries no class or
+   attribute and so establishes no positioning context — the badge resolved against a distant
+   ancestor and landed on the line BELOW the Repos link, looking like a layout bug. Giving the
+   containing item `position: relative` is what actually anchors it to its own row. */
+nav li:has([data-testid="nav-repo-count"]),
+li:has(> [data-testid="nav-repo-count"]) {
+    position: relative;
+}
+
+[data-testid="nav-repo-count"] {
+    top: 50%;
+    right: 10px;
+    bottom: auto;
+    transform: translateY(-50%);
+}

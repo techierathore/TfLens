@@ -26,6 +26,16 @@ window.tflens = {
         }
         return null;
     },
+    // Performs a real HTTP form POST. A cookie can only be set or cleared on a real response, which
+    // an interactive Blazor circuit does not have — sign-out and sign-in therefore leave the circuit.
+    // form.submit() (not requestSubmit()) is deliberate: it bypasses the submit event, so a Blazor
+    // @onsubmit:preventDefault handler on the same form cannot swallow the navigation.
+    submitForm: function (formId) {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.submit();
+        }
+    },
     // Copies text to the clipboard for the SHA and snapshot-path copy buttons.
     copyText: async function (text) {
         try {

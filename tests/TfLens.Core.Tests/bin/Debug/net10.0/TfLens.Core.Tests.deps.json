@@ -552,11 +552,14 @@
           "Blazor-ApexCharts": "6.1.0",
           "HtmlSanitizer": "9.1.949-beta",
           "Markdig": "0.45.0",
-          "TrBlazeUI.Icons.Lucide": "2.0.0",
-          "TrBlazeUI.Primitives": "2.0.0"
+          "TrBlazeUI.Icons.Lucide": "2.0.0"
         },
         "runtime": {
           "lib/net10.0/TrBlazeUI.Components.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          },
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {
             "assemblyVersion": "2.0.0.0",
             "fileVersion": "2.0.0.0"
           }
@@ -565,14 +568,6 @@
       "TrBlazeUI.Icons.Lucide/2.0.0": {
         "runtime": {
           "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
-          }
-        }
-      },
-      "TrBlazeUI.Primitives/2.0.0": {
-        "runtime": {
-          "lib/net10.0/TrBlazeUI.Primitives.dll": {
             "assemblyVersion": "2.0.0.0",
             "fileVersion": "2.0.0.0"
           }
@@ -891,13 +886,6 @@
       "sha512": "sha512-W0RMPQFd0a+vdwJit7zXPETJcuROf79EkTLIzd8dCgqfyw02FHzNT68gCcMJUzhnlBL8icb3tYTTCsAov+c/cA==",
       "path": "trblazeui.icons.lucide/2.0.0",
       "hashPath": "trblazeui.icons.lucide.2.0.0.nupkg.sha512"
-    },
-    "TrBlazeUI.Primitives/2.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-rBlfKQyMGYZeQRRLuM3DBb1/JOCm21dI31qqV8sDR85R1iFdnu+2ZMriFJ3J+sU0j8r5X91SOGrjIEiMQ6Z5Sw==",
-      "path": "trblazeui.primitives/2.0.0",
-      "hashPath": "trblazeui.primitives.2.0.0.nupkg.sha512"
     },
     "xunit/2.9.3": {
       "type": "package",

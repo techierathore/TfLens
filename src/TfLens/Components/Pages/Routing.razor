@@ -20,6 +20,7 @@
 @using TrBlazeUI.Components.Typography
 @implements IDisposable
 @inject IExtraMetrics objExtraMetrics
+@inject ITelemetryStore objStore
 @inject IMetricsEngine objMetricsEngine
 @inject IOptions<TfLensOptions> objOptions
 @inject ShellPreferences objPreferences
@@ -89,7 +90,9 @@
                 <div class="tflens-stack" data-testid="routing-panel-drift">
                     <div class="tflens-kpi-row tflens-kpi-3">
                         <StatGroup Columns="3">
-                            <StatTile Title="Runs with routing fields"
+                            <StatTile Sparkline="@(objRunSeries.IsPlottable ? objRunSeries.Values : null)"
+                                      SparklineLabel="@objRunSeries.Label"
+                                      Title="Runs with routing fields"
                                       Value="@objRouting.RunsWithRoutingFields.ToString("N0", CultureInfo.InvariantCulture)"
                                       Description="@RoutingFieldsDetail"
                                       IconName="route"
@@ -641,6 +644,9 @@
 
     private readonly List<PriceEditRow> objPriceRows = [];
 
+    /// <summary>Run records per day, backing the routing-drift tile's sparkline.</summary>
+    private DailySeries objRunSeries = DailySeries.Empty;
+
     private RoutingAnalysis? objRouting;
     private PooledMetrics? objPooled;
     private bool objIsLoaded;
@@ -878,6 +884,12 @@
         {
             objFramework = objPreferences.Framework;
             objRouting = await objExtraMetrics.AnalyseRoutingAsync(objUserId.Value, objFramework);
+
+            // The drift KPIs count RUN records, so the line plots runs per day — the same quantity.
+            // The repricing cards get none: they are estimates from a rate card, and a trend line
+            // under an estimate reads as measured movement (SCHEMA.md §4).
+            objRunSeries = await objStore.ReadDailySeriesAsync(
+                objUserId.Value, objFramework, StreamKind.Runs);
             objPooled = (await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework)).Pooled;
             objLoadedFramework = objFramework;
         }

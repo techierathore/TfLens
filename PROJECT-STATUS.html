@@ -124,10 +124,23 @@ dl.meta dd{margin:0}
     <p><code>*build-phase</code> ran 2026-08-26&rarr;27 and built the whole app from an empty repo: solution,
     PostgreSQL&nbsp;16 store, AppManager identity, GitHub sync, the metrics engine, the exporter, and all twelve
     screens. <strong>108 REQs are <code>Implemented</code>, 5 are <code>PARTIAL</code>, 1 is <code>N/A</code>;
-    nothing is <code>Not Started</code>.</strong> The build is green and <strong>324/324 tests pass</strong>
-    (263 Core &middot; 45 Guardrails &middot; 16 Integration). The app boots, signs in against the live AppManager,
+    nothing is <code>Not Started</code>.</strong> The build is green and <strong>333/333 tests pass</strong>
+    (263 Core &middot; 52 Guardrails &middot; 18 Integration). The app boots, signs in against the live AppManager,
     and every report page renders real data with no blank cells; the mobile visual gate passes on all seven
     authenticated pages.</p>
+    <p style="border-left:3px solid var(--border); padding-left:12px;"><strong>Correction, 2026-08-27:</strong>
+    this was first reported complete while the clone-and-press-F5 path was still broken. Every smoke had been
+    run with <code>TfLensDbConnection</code> exported in a shell, so nobody exercised the entry point a developer
+    actually uses &mdash; opening the solution and pressing F5 crashed on a bare &ldquo;supply it as a PascalCase
+    environment variable&rdquo;, and no DevGuide existed to look it up in. Fixed: the default launch profile
+    supplies the connection string (F5 now works with no setup), both startup failure messages are actionable and
+    platform-aware, <code>docs/TfLens-DevGuide.md</code> exists, and six guardrail tests pin that first-run path
+    so it cannot regress silently. Running the Docker path and the DevGuide trace for the first time then
+    turned up three more never-exercised defects: <strong>sign-out was completely broken</strong> (the menu
+    pointed at an unmapped route, the cookie survived, the user stayed signed in), the Profile table was one
+    field from silently dropping a row, and <code>src/TfLens/data/</code> &mdash; holding the <strong>Data
+    Protection key ring</strong> &mdash; was not covered by the root-anchored <code>/data/</code> ignore rule.
+    All three fixed and pinned by tests.</p>
     <p><strong>Nothing is <code>Verified</code> yet &mdash; that is correct, not an omission.</strong> A self-smoke&rsquo;s
     ceiling is <code>Implemented</code>; <code>Verified</code> exists only downstream of an executed <code>*verify</code>
     run, which has not happened (<code>docs/.last-verify.json</code> does not exist). Three clusters wrote
@@ -168,7 +181,7 @@ dl.meta dd{margin:0}
       <tbody>
         <tr><td>2026-08-26</td><td>split-brd</td><td>N/A &mdash; no build or verify this phase</td>
             <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
-        <tr><td>2026-08-27</td><td>build-phase</td><td>Build PASS &middot; 324/324 tests &middot; 108 Implemented / 5 PARTIAL &middot; not yet verified</td>
+        <tr><td>2026-08-27</td><td>build-phase</td><td>Build PASS &middot; 333/333 tests &middot; 108 Implemented / 5 PARTIAL &middot; not yet verified</td>
             <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
       </tbody>
     </table>
@@ -187,7 +200,7 @@ dl.meta dd{margin:0}
     <h2 id="standards-compliance">Standards compliance (last check)</h2>
     <ul>
       <li>Underscore fields / test-method underscores / mis-prefixed fields:
-      <code>TfLens.Guardrails.Tests</code> 45/45 pass &mdash; these are enforced as tests, not greps.</li>
+      <code>TfLens.Guardrails.Tests</code> 52/52 pass &mdash; these are enforced as tests, not greps.</li>
     </ul>
 
     <h2 id="deferred-future">Deferred / future</h2>

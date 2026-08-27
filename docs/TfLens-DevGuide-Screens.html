@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens Developer Guide — Screen-by-screen reference</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00-19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+:root{
+  --bg:#faf9f7; --fg:#1f2328; --muted:#5b636d; --border:#e2e0dc; --card:#ffffff;
+  --accent:#0b62c4; --code-bg:#f4f2ef; --quote:#f6f4f1; --shadow:0 1px 2px rgba(0,0,0,.05);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#14171c; --fg:#dde1e7; --muted:#98a1ad; --border:#2a3038; --card:#191d23;
+  --accent:#7cc4ff; --code-bg:#11151a; --quote:#181d24; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.layout{display:flex;gap:32px;max-width:1280px;margin:0 auto;padding:32px 24px 96px}
+nav.side{width:270px;flex:0 0 270px;position:sticky;top:32px;align-self:flex-start;max-height:calc(100vh - 64px);overflow:auto}
+nav.side h1{font-size:17px;margin:0 0 4px;line-height:1.3}
+nav.side .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+nav.side .group{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.side ol{list-style:none;margin:0;padding:0;font-size:13.5px}
+nav.side li{margin:2px 0}
+nav.side li.h3{padding-left:14px;font-size:12.5px}
+nav.side a{color:var(--muted);text-decoration:none;display:block;padding:2px 6px;border-radius:5px}
+nav.side a:hover{color:var(--accent);background:var(--code-bg)}
+main{flex:1;min-width:0;max-width:900px}
+h1,h2,h3,h4{line-height:1.25;scroll-margin-top:24px}
+h1{font-size:30px;margin:0 0 8px}
+h2{font-size:22px;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:17.5px;margin:26px 0 8px}
+h4{font-size:15px;margin:20px 0 6px;color:var(--muted)}
+p{margin:12px 0}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.12em .38em;border-radius:4px}
+.codeblock{position:relative;margin:16px 0}
+.codeblock pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow:auto;margin:0}
+.codeblock pre code{background:none;padding:0;font-size:13px;line-height:1.55}
+.codeblock .copy{position:absolute;top:8px;right:8px;font-size:11px;padding:3px 9px;border-radius:5px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s}
+.codeblock:hover .copy{opacity:1}
+.codeblock .copy:hover{color:var(--accent);border-color:var(--accent)}
+.table-wrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;color:var(--fg)}
+ul,ol{margin:12px 0;padding-left:26px}
+li{margin:4px 0}
+img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);margin:12px 0}
+hr{border:0;border-top:1px solid var(--border);margin:28px 0}
+del{color:var(--muted)}
+.theme-toggle{position:fixed;top:14px;right:16px;z-index:20;font-size:12px;padding:5px 11px;border-radius:6px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+@media(max-width:1000px){.layout{flex-direction:column;padding:20px 16px 64px}nav.side{position:static;width:auto;flex:auto;max-height:none}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">Theme</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
+    <div class="sub"></div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#contents">Contents</a></li>
+      <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
+      <li><a href="#cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</a></li>
+      <li class="h3"><a href="#1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse">1. DataTable truncates to InitialPageSize even with ShowPagination=&quot;false&quot;</a></li>
+      <li class="h3"><a href="#2-lucideicon-resolves-canonical-names-only-aliases-render-an-invisible-placeholder">2. LucideIcon resolves canonical names only — aliases render an invisible placeholder</a></li>
+      <li class="h3"><a href="#3-cookie-names-must-not-contain">3. Cookie names must not contain :</a></li>
+      <li class="h3"><a href="#4-ihttpcontextaccessorhttpcontext-is-null-inside-an-interactive-circuit">4. IHttpContextAccessor.HttpContext is null inside an interactive circuit</a></li>
+      <li class="h3"><a href="#5-memoryanalysiscache-is-keyed-on-the-syncstate-version">5. MemoryAnalysisCache is keyed on the SyncState version</a></li>
+      <li class="h3"><a href="#6-syncstate-counters-and-the-stream-tables-are-two-different-sources-of-truth">6. &quot;SyncState&quot; counters and the stream tables are two different sources of truth</a></li>
+      <li class="h3"><a href="#7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor">7. A Figure may only ever be rendered through Components/Shared/FigureText.razor</a></li>
+      <li class="h3"><a href="#8-missing-using-degrades-to-a-raw-unknown-element-not-a-build-failure">8. Missing @using degrades to a raw unknown element, not a build failure</a></li>
+      <li class="h3"><a href="#9-tabstrigger-captures-no-unmatched-attributes">9. TabsTrigger captures no unmatched attributes</a></li>
+      <li><a href="#the-shell-mainlayout">The shell: MainLayout</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#login">/login</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd">Deviation from docs/TfLens-UIDesign.md</a></li>
+      <li><a href="#register">/register</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd">Deviation from docs/TfLens-UIDesign.md</a></li>
+      <li><a href="#forgot-password">/forgot-password</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#reset-password">/reset-password</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#profile">/profile</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#repos">/repos</a></li>
+      <li class="h3"><a href="#injected-services">Injected services</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#coverage-health">/ — Coverage / health</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#the-sql-behind-the-numbers">The SQL behind the numbers</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd">Deviation from docs/TfLens-UIDesign.md</a></li>
+      <li><a href="#three-questions">/three-questions</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#harness">/harness</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#routing">/routing</a></li>
+      <li class="h3"><a href="#two-engine-calls">Two engine calls</a></li>
+      <li class="h3"><a href="#tab-routing-drift-routing-tab-drift-routing-panel-drift">Tab: Routing drift — routing-tab-drift / routing-panel-drift</a></li>
+      <li class="h3"><a href="#tab-tokens-by-model-routing-tab-models-routing-panel-models">Tab: Tokens by model — routing-tab-models / routing-panel-models</a></li>
+      <li class="h3"><a href="#tab-repricing-estimate-routing-tab-repricing-routing-panel-repricing">Tab: Repricing (estimate) — routing-tab-repricing / routing-panel-repricing</a></li>
+      <li class="h3"><a href="#tab-poolable-metrics-routing-tab-poolable-routing-panel-poolable">Tab: Poolable metrics — routing-tab-poolable / routing-panel-poolable</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd">Deviation from docs/TfLens-UIDesign.md</a></li>
+      <li><a href="#export">/export</a></li>
+      <li class="h3"><a href="#control-data-path">Control → data path</a></li>
+      <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#gotchas">Gotchas</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd">Deviation from docs/TfLens-UIDesign.md</a></li>
+      <li><a href="#the-playbook-axis">The Playbook axis</a></li>
+      <li class="h3"><a href="#deviation-from-docstflens-uidesignmd-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
+      <li><a href="#route-and-file-index">Route and file index</a></li>
+    </ol>
+  </nav>
+  <main>
+<h1 id="tflens-developer-guide-screen-by-screen-reference">TfLens Developer Guide — Screen-by-screen reference</h1>
+<p>This half of the guide is the map a developer follows to get from <em>"this thing on screen is wrong"</em> to <em>"this method computes it"</em>. Everything below is the code <strong>as built</strong>, read out of the <code>.razor</code> and service files and verified against the running app at <code>http://localhost:5014</code> (headless Chromium, 1440×900, signed in as <code>tflensdemo@techierathore.com</code>, AppManager userId <code>2</code>). Where the code and <code>docs/TfLens-UIDesign.md</code> disagree, the disagreement is called out — those lines are the ones worth reading twice.</p>
+<p>Screenshots in <code>docs/devguide-images/</code> are a point-in-time capture. The dev database is shared, so row counts in a shot will not match what you see today; the <em>structure</em> is what the shot is for.</p>
+<hr>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
+<li><a href="#cross-cutting-gotchas--read-these-first">Cross-cutting gotchas — read these first</a></li>
+<li><a href="#the-shell-mainlayout">The shell: <code>MainLayout</code></a></li>
+<li><a href="#login"><code>/login</code></a></li>
+<li><a href="#register"><code>/register</code></a></li>
+<li><a href="#forgot-password"><code>/forgot-password</code></a></li>
+<li><a href="#reset-password"><code>/reset-password</code></a></li>
+<li><a href="#profile"><code>/profile</code></a></li>
+<li><a href="#repos"><code>/repos</code></a></li>
+<li><a href="#--coverage--health"><code>/</code> — Coverage / health</a></li>
+<li><a href="#three-questions"><code>/three-questions</code></a></li>
+<li><a href="#harness"><code>/harness</code></a></li>
+<li><a href="#routing"><code>/routing</code></a></li>
+<li><a href="#export"><code>/export</code></a></li>
+<li><a href="#the-playbook-axis">The Playbook axis</a></li>
+<li><a href="#route-and-file-index">Route and file index</a></li>
+</ul>
+<hr>
+<h2 id="how-to-run-and-drive-it">How to run and drive it</h2>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">export PATH="$HOME/.dotnet:$PATH"
+dotnet run --project src/TfLens          # http://localhost:5014</code></pre></div>
+<p>The default launch profile in <code>src/TfLens/Properties/launchSettings.json</code> supplies <code>TfLensDbConnection</code> (<code>Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev</code>), so no environment setup is needed. PostgreSQL 16 runs as container <code>tflens-postgres</code> on <code>localhost:5433</code>.</p>
+<p>To poke the database directly:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">docker exec tflens-postgres psql -U tflens -d tflens -c '\dt'</code></pre></div>
+<p><strong>Driving it with Playwright.</strong> After clicking <code>[data-testid="login-submit"]</code>, do <strong>not</strong> trust <code>waitForLoadState('networkidle')</code> — a live Blazor circuit keeps the network busy and it resolves before the real form POST navigates. Poll the URL instead:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-js">await p.click('[data-testid="login-submit"]');
+for (let i = 0; i &lt; 16; i++) { await p.waitForTimeout(1500); if (!p.url().includes('/login')) break; }</code></pre></div>
+<p>Working scripts to copy: <code>tests/.artifacts/harness/devguide-shots.mjs</code> (screenshots + per-screen probe), <code>devguide-probe2.mjs</code> (Playbook axis + charts), <code>final-smoke.mjs</code>, <code>visual2.mjs</code>.</p>
+<hr>
+<h2 id="cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</h2>
+<p>Every one of these fails <strong>silently</strong>. None of them produces an error, a warning at runtime, or a failing build.</p>
+<h3 id="1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse">1. <code>DataTable</code> truncates to <code>InitialPageSize</code> even with <code>ShowPagination="false"</code></h3>
+<p><code>ShowPagination="false"</code> hides the pager. It does <strong>not</strong> stop the paging. A fixed-row table with no explicit <code>InitialPageSize</code> renders its first <strong>5</strong> rows and drops the rest with no error at all.</p>
+<p>Always set <code>InitialPageSize</code> above the maximum row count the table can hold:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-razor">&lt;DataTable TData="StreamRow" Data="@vCard.Streams"
+           ShowToolbar="false" ShowPagination="false" InitialPageSize="16" /&gt;</code></pre></div>
+<p>Current values in the codebase — check yours against this list before adding a row:</p>
+<div class="table-wrap"><table><thead><tr><th>File</th><th>Table</th><th><code>InitialPageSize</code></th><th>Rows it can hold</th></tr></thead><tbody><tr><td><code>Coverage.razor</code></td><td><code>repo-streams-{name}</code></td><td>16</td><td>4 (TechieFlow) / 1 (Playbook)</td></tr><tr><td><code>ThreeQuestions.razor</code></td><td><code>gate-dist-{type}</code></td><td>32</td><td>8 (<code>GateOrder</code> 7 + <code>unattributed</code>)</td></tr><tr><td><code>Harness.razor</code></td><td><code>harness-table-{harness}</code></td><td>50</td><td>11</td></tr><tr><td><code>Harness.razor</code></td><td><code>tokens-table</code></td><td>50</td><td>3</td></tr><tr><td><code>Routing.razor</code></td><td><code>drift-table</code></td><td>25</td><td>unbounded (pager on)</td></tr><tr><td><code>Routing.razor</code></td><td><code>model-tokens</code></td><td>100</td><td>one per observed model</td></tr><tr><td><code>Routing.razor</code></td><td><code>edit-prices-table</code></td><td>100</td><td>rate card + observed-unpriced</td></tr><tr><td><code>ExportSurface.razor</code></td><td>all four</td><td>512</td><td>SHAs, snapshots, 3 + 7 facts</td></tr><tr><td><code>Repos.razor</code></td><td><code>repos-table</code></td><td>10</td><td>unbounded (pager on)</td></tr><tr><td><strong><code>Profile.razor</code></strong></td><td><strong><code>profile-values</code></strong></td><td><strong>not set → 5</strong></td><td><strong>exactly 5</strong></td></tr></tbody></table></div>
+<p><code>Profile.razor</code> is the live trap: <code>BuildRows()</code> returns exactly five <code>ProfileRow</code>s, which is exactly the default page size. <strong>Adding a sixth profile field silently drops it</strong> and nothing anywhere reports it.</p>
+<h3 id="2-lucideicon-resolves-canonical-names-only-aliases-render-an-invisible-placeholder">2. <code>LucideIcon</code> resolves canonical names only — aliases render an invisible placeholder</h3>
+<p><code>TrBlazeUI.Icons.Lucide</code> resolves only the canonical Lucide name. The 212 aliases carried in the package's own <code>lucide.json</code> render an <strong>empty placeholder</strong> with no error and no console message.</p>
+<div class="table-wrap"><table><thead><tr><th>Do <strong>not</strong> use (alias)</th><th>Use (canonical)</th></tr></thead><tbody><tr><td><code>alert-triangle</code></td><td><code>triangle-alert</code></td></tr><tr><td><code>check-circle</code></td><td><code>circle-check</code></td></tr><tr><td><code>help-circle</code></td><td><code>circle-question-mark</code></td></tr><tr><td><code>alert-circle</code></td><td><code>circle-alert</code></td></tr><tr><td><code>x-circle</code></td><td><code>circle-x</code></td></tr></tbody></table></div>
+<p>A probe over all twelve routes found <strong>0 blank icons</strong> today, so the codebase is currently clean — this is the rule that keeps it that way. <code>ShellNavigation.Items</code> already uses <code>circle-question-mark</code> for Three questions for exactly this reason.</p>
+<h3 id="3-cookie-names-must-not-contain">3. Cookie names must not contain <code>:</code></h3>
+<p>A cookie <em>name</em> is an RFC 6265 token, in which <code>:</code> is a separator, so <strong>ASP.NET Core silently drops any request cookie containing one</strong>. The browser stores and sends the colon form quite happily, so the failure is invisible from the client. Under the original <code>tflens:theme</code> a light preference could never reach the server and <code>App.razor</code> rendered dark on every fresh load regardless of what the user chose.</p>
+<p>The three preference cookies are therefore hyphenated (<code>src/TfLens/Services/Ui/ThemeState.cs</code>):</p>
+<div class="table-wrap"><table><thead><tr><th>Constant</th><th>Value</th></tr></thead><tbody><tr><td><code>ThemeState.CookieName</code></td><td><code>tflens-theme</code></td></tr><tr><td><code>FrameworkState.CookieName</code></td><td><code>tflens-framework</code></td></tr><tr><td><code>SidebarPreference.CookieName</code></td><td><code>tflens-sidebar</code></td></tr></tbody></table></div>
+<p>Never reintroduce a colon. The auth cookie is <code>TfLensAuth</code> (<code>Program.cs</code>).</p>
+<h3 id="4-ihttpcontextaccessorhttpcontext-is-null-inside-an-interactive-circuit">4. <code>IHttpContextAccessor.HttpContext</code> is <code>null</code> inside an interactive circuit</h3>
+<p>The circuit outlives the request that created it, so the server genuinely cannot see the request's cookies once interactivity starts. <code>ShellPreferences</code>' constructor seeds from <code>IHttpContextAccessor</code>, which works on the static-rendered host page (<code>App.razor</code>) and nowhere else.</p>
+<p>Consequences you must respect:</p>
+<ul>
+<li><strong>Framework preference</strong> is recovered from the browser on the shell's first render via</li>
+</ul>
+<p><code>ShellPreferences.SyncFrameworkFromBrowserAsync()</code> (called from <code>MainLayout.OnAfterRenderAsync</code>). Without it, selecting Playbook wrote the cookie, the page re-queried correctly, and the next circuit read no cookie and silently fell back to TechieFlow.</p>
+<ul>
+<li><strong>This is why <code>FrameworkSwitch</code> deliberately does not <code>forceReload</code>.</strong> A full reload starts a new</li>
+</ul>
+<p>circuit with no <code>HttpContext</code>, which re-seeded the default and threw the re-query away.</p>
+<ul>
+<li><strong>Theme</strong> is reconciled the same way via <code>SyncThemeFromBrowserAsync()</code>, which asks the DOM whether</li>
+</ul>
+<p><code>&lt;html&gt;</code> carries <code>dark</code> rather than reading a cookie.</p>
+<ul>
+<li><strong>Identity</strong> must come from the cascading <code>AuthenticationState</code>, read through</li>
+</ul>
+<p><code>ShellIdentity.UserId/Email/DisplayName/Initials</code> — not from <code>CurrentUser</code>, which resolves through <code>IHttpContextAccessor</code> and is only valid in request-scoped code such as <code>AuthEndpoints</code>.</p>
+<h3 id="5-memoryanalysiscache-is-keyed-on-the-syncstate-version">5. <code>MemoryAnalysisCache</code> is keyed on the <code>SyncState</code> version</h3>
+<p><code>CachingMetricsEngine</code> decorates <code>MetricsEngine</code> and keys the memoised <code>AnalysisResult</code> on <code>$"{userId}|{framework}|{syncVersion}"</code>, where <code>syncVersion</code> is built from each repository's <code>LastSha</code> + <code>LastSyncTs</code> off the <code>"SyncState"</code> rows (<code>CachingMetricsEngine.SyncVersionAsync</code>).</p>
+<p><strong>Seeding rows straight into Postgres without touching <code>"SyncState"</code> serves a stale analysis until restart</strong> (entries also expire after 12h). If you seed test data, either write a <code>"SyncState"</code> row too or call <code>IAnalysisCache.Invalidate(userId)</code>.</p>
+<h3 id="6-syncstate-counters-and-the-stream-tables-are-two-different-sources-of-truth">6. <code>"SyncState"</code> counters and the stream tables are two different sources of truth</h3>
+<p>They disagree all the time and nothing reconciles them:</p>
+<div class="table-wrap"><table><thead><tr><th>Reads <code>"SyncState"</code> counters</th><th>Reads the stream tables directly</th></tr></thead><tbody><tr><td><code>/repos</code> "Records synced" KPI, per-row Records column (<code>RepoListItem.RecordCount</code>)</td><td><code>/</code> Coverage KPI row and every stream table (<code>ITelemetryStore.ReadCoverageFactsAsync</code>)</td></tr><tr><td><code>/export</code> "Scope" fact and Dataset SHAs (<code>ExportSurface.ReloadAsync</code>)</td><td><code>/three-questions</code>, <code>/harness</code>, <code>/routing</code> (<code>IMetricsEngine</code>, <code>IExtraMetrics</code>)</td></tr><tr><td><code>ShellState.RecordCount</code>, header last-sync badge</td><td></td></tr></tbody></table></div>
+<p>Verified live today: <code>"SyncState"</code> reports <code>RunsCount=0, GatesCount=0</code> for every repo of user 2, while the tables hold 28 gates / 12 runs / 8 sessions / 10 commits. On screen that reads as <strong><code>/repos</code> "Records synced 0"</strong> and <strong><code>/export</code> "Scope: 0 records"</strong> beside <strong><code>/</code> "Gate records 28"</strong>. That is not a bug in either page — it is two sources, and only <code>RebuildAsync</code> recomputes the counters (<code>PostgresStore.cs</code>, the <code>UPDATE "SyncState" AS t SET "RunsCount" = (SELECT COUNT(*) …)</code> block).</p>
+<p>A repository can also have a <code>"UserRepo"</code> row and <strong>no</strong> <code>"SyncState"</code> row. <code>Coverage</code> then shows <code>not synced yet</code>; <code>/repos</code> shows status <code>pending</code>; <code>/export</code> omits it from Dataset SHAs entirely.</p>
+<h3 id="7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor">7. A <code>Figure</code> may only ever be rendered through <code>Components/Shared/FigureText.razor</code></h3>
+<p><code>Figure</code> (<code>src/TfLens.Core/Contracts/Figure.cs</code>) is one of three cases — <code>Value</code>, <code>InsufficientData(n)</code> below <code>MetricsConstants.MinN</code> (= 3), or <code>NotApplicable</code>. It deliberately has <strong>no <code>Value</code> accessor that returns a default</strong>: read it with <code>TryGetValue</code>, render it with <code>FigureText</code>.</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-razor">&lt;FigureText Value="@vLive.FirstPassRate" TestId="@($"live-first-pass-{vType}")" /&gt;</code></pre></div>
+<p><code>FigureText</code> prints <code>Value.Display()</code>, which is the number, <code>insufficient data (n=…)</code> in muted italics, or an em dash. Binding <code>@Figure.ToString()</code> or reconstructing a number by hand is how a refusal-to-answer turns into a flattering zero. <code>Figure.Value(...)</code> throws <code>ArgumentOutOfRangeException</code> if you try to build a value with fewer than 3 supporting records, which is the backstop.</p>
+<h3 id="8-missing-using-degrades-to-a-raw-unknown-element-not-a-build-failure">8. Missing <code>@using</code> degrades to a raw unknown element, not a build failure</h3>
+<p>Razor emits <code>RZ10012</code> (a <em>warning</em>) and renders <code>&lt;empty&gt;</code> / <code>&lt;typographyh2&gt;</code> as unstyled unknown tags. <code>Repos.razor</code>'s empty state was invisible for exactly this reason. <code>Components/_Imports.razor</code> now carries both <code>TrBlazeUI.Components.Empty</code> and <code>TrBlazeUI.Components.Typography</code>.</p>
+<p><strong>Stale comments to ignore:</strong> <code>Coverage.razor:28</code> ("TrBlazeUI 2.0.0 ships no Typography components"), <code>ThreeQuestions.razor:20</code> (TR-007, same claim) and <code>Routing.razor:15-18</code> ("These namespaces are NOT in Components/_Imports.razor") all contradict the current <code>_Imports.razor</code>. <code>Repos.razor</code>, <code>Harness.razor</code>, <code>Routing.razor</code> and <code>Export.razor</code> use <code>TypographyH2</code> successfully; <code>Coverage.razor</code> and <code>ThreeQuestions.razor</code> still hand-roll <code>&lt;h1 class="text-2xl font-semibold"&gt;</code>. Both work — just do not believe the comments.</p>
+<h3 id="9-tabstrigger-captures-no-unmatched-attributes">9. <code>TabsTrigger</code> captures no unmatched attributes</h3>
+<p>You cannot put <code>data-testid</code> on a <code>TabsTrigger</code>. Every tab in the app puts it on the <code>&lt;span&gt;</code> the trigger wraps; a click on the span still activates the trigger:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-razor">&lt;TabsTrigger Value="drift"&gt;&lt;span data-testid="routing-tab-drift"&gt;Routing drift&lt;/span&gt;&lt;/TabsTrigger&gt;</code></pre></div>
+<hr>
+<h2 id="the-shell-mainlayout">The shell: <code>MainLayout</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Layout/MainLayout.razor</code> · default layout for every route (<code>Routes.razor</code> sets <code>DefaultLayout="typeof(Layout.MainLayout)"</code>). The four anonymous auth pages override it with <code>@layout AuthLayout</code>.</p>
+<p><img src="./devguide-images/shell-mainlayout.png" alt="The app shell with the user menu open" loading="lazy"></p>
+<p><strong>What it is for.</strong> The collapsible icon sidebar, the header (breadcrumb, Framework switch, Sync now, theme toggle, user menu) and the page container that every authenticated screen renders inside.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Service call</th><th>Behind it</th></tr></thead><tbody><tr><td>Sidebar shell</td><td><code>SidebarProvider CookieKey="@SidebarPreference.CookieName"</code> → <code>Sidebar</code></td><td><code>app-sidebar</code></td><td>—</td><td><code>tflens-sidebar</code> cookie, written by TrBlazeUI</td></tr><tr><td>Nav items</td><td><code>SidebarMenuButton</code> ×6</td><td><code>nav-repos</code>, <code>nav-coverage</code>, <code>nav-three-questions</code>, <code>nav-harness</code>, <code>nav-routing</code>, <code>nav-export</code></td><td>—</td><td><code>ShellNavigation.Items</code> (order, label, Lucide name, section, <code>HasFrameworkSwitch</code> all live here)</td></tr><tr><td>Repo badge</td><td><code>SidebarMenuBadge</code></td><td><code>nav-repo-count</code></td><td><code>ShellState.RepoCount</code></td><td><code>IRepoRegistry.ListAsync(userId)</code> → <code>SELECT * FROM "UserRepo" WHERE "UserId" = @aUserId</code></td></tr><tr><td>Sidebar theme toggle</td><td><code>ThemeToggle</code></td><td><code>theme-toggle-sidebar</code></td><td><code>ShellPreferences.SetThemeAsync</code></td><td>JS <code>tflens.setTheme</code> → <code>tflens-theme</code> cookie + <code>&lt;html class="dark"&gt;</code></td></tr><tr><td>Breadcrumb</td><td><code>Breadcrumb</code> in <code>ShellHeader.razor</code></td><td>—</td><td><code>ShellNavigation.Breadcrumb(path)</code></td><td>static table; <code>/profile</code> comes from <code>ExtraCrumbs</code></td></tr><tr><td>Framework switch</td><td><code>FrameworkSwitch.razor</code> (<code>Tabs</code> as segmented control)</td><td><code>framework-switch</code>, <code>framework-count-techieflow</code>, <code>framework-count-playbook</code></td><td><code>ShellPreferences.SetFrameworkAsync</code> + <code>ShellState.RepoCountFor(fw)</code></td><td><code>tflens-framework</code> cookie; raises <code>Changed</code>, which every report page answers by <strong>re-querying</strong></td></tr><tr><td>Sync now</td><td><code>SyncNowButton.razor</code></td><td><code>sync-now</code></td><td><code>IRepoSyncRunner.SyncAsync(userId)</code></td><td><code>RepoSyncRunner</code> → GitHub GET → <code>PostgresStore.UpsertAsync</code> → <code>WriteSyncStateAsync</code></td></tr><tr><td>Last-sync badge</td><td><code>Badge</code></td><td><code>last-sync-badge</code></td><td><code>RelativeTime.SyncBadge(ShellState.LastSyncUtc, now)</code></td><td>max <code>LastSyncTs</code> over <code>"SyncState"</code> rows with no <code>LastError</code></td></tr><tr><td>Theme toggle</td><td><code>ThemeToggle</code></td><td><code>theme-toggle</code></td><td>as above</td><td>—</td></tr><tr><td>User menu</td><td><code>UserMenu.razor</code> (<code>DropdownMenu</code>)</td><td><code>user-menu</code>, <code>user-menu-name</code>, <code>user-menu-email</code>, <code>user-menu-profile</code>, <code>user-menu-repos</code>, <code>user-menu-signout</code></td><td>claims via <code>ShellIdentity</code></td><td>cascading <code>AuthenticationState</code></td></tr><tr><td>Toasts</td><td><code>ToastProvider Position="BottomRight"</code></td><td>—</td><td><code>ToastService</code></td><td>—</td></tr></tbody></table></div>
+<p><code>ShellHeader.ShowsFrameworkSwitch</code> → <code>ShellNavigation.ShowsFrameworkSwitch(path)</code> → the item's <code>HasFrameworkSwitch</code> flag. It is <strong>true on the five report routes only</strong> — not on <code>/repos</code>, not on <code>/profile</code>. Verified live.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>MainLayout.OnParametersSetAsync</code> awaits the cascading <code>AuthenticationState</code>, then</li>
+</ul>
+<p><code>ShellState.EnsureLoadedAsync(userId)</code>. Until it returns, <code>RepoCount</code> is 0 and the badge shows <code>0</code>.</p>
+<ul>
+<li><strong>Empty</strong> — <code>ShellState.Repos = []</code>. There is no distinct empty rendering; <code>IsLoaded</code> exists so a</li>
+</ul>
+<p>consumer <em>can</em> tell "no repos" from "not read yet", but the shell does not use it.</p>
+<ul>
+<li><strong>Error</strong> — <code>ShellState.RefreshAsync</code> swallows the exception into <code>LoadError</code>, sets both lists empty</li>
+</ul>
+<p>and still raises <code>Changed</code>. <strong><code>LoadError</code> is never rendered anywhere.</strong> A store outage looks exactly like an empty workspace in the shell.</p>
+<ul>
+<li><strong>Unauthenticated</strong> — the fallback authorization policy (<code>AuthRegistration.cs:92</code>) redirects to</li>
+</ul>
+<p><code>/login</code> before the layout renders.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>The repo badge is not framework-filtered.</strong> It is <code>ShellState.RepoCount</code> (all repos, both axes),</li>
+</ul>
+<p>while the Framework-switch badges are <code>RepoCountFor(fw)</code> and Coverage counts only the selected axis. Live today: sidebar <code>8</code>, switch <code>TechieFlow 7</code> / <code>Playbook 1</code>, Coverage "7 repos". All three are correct and all three differ. Do not "fix" one to match another without deciding which question the badge is answering.</p>
+<ul>
+<li><strong>Rendering defect:</strong> <code>SidebarMenuBadge</code> is a sibling of <code>SidebarMenuButton</code> inside <code>SidebarMenuItem</code></li>
+</ul>
+<p>and currently renders on the line <em>below</em> the Repos link rather than inline on the row. Visible in every screenshot.</p>
+<ul>
+<li><code>ShellState</code> resolves <code>IRepoRegistry</code> / <code>ITelemetryStore</code> <strong>lazily</strong> through <code>IServiceProvider</code>, not by</li>
+</ul>
+<p>constructor injection, so a missing registration degrades to an empty workspace instead of a startup failure. That also means a typo'd registration will never throw — it will just show <code>0</code>.</p>
+<ul>
+<li>Every subscriber (<code>MainLayout</code>, <code>Coverage</code>, <code>Repos</code>, <code>Harness</code>, <code>ThemeToggle</code>, <code>FrameworkSwitch</code>,</li>
+</ul>
+<p><code>SyncNowButton</code>) implements <code>IDisposable</code> and unsubscribes from <code>ShellState.Changed</code> / <code>ShellPreferences.Changed</code>. <strong>Add a subscription without a matching <code>Dispose</code> and you leak a handler per navigation.</strong></p>
+<ul>
+<li><strong><code>/signout</code> is broken.</strong> See <a href="#profile"><code>/profile</code></a> — it belongs to the user menu but the bug lives</li>
+</ul>
+<p>in <code>Program.cs</code> / <code>AuthEndpoints.cs</code>.</p>
+<hr>
+<h2 id="login"><code>/login</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/Login.razor</code> · <code>@page "/login"</code> · <code>@layout AuthLayout</code> · <code>@attribute [AllowAnonymous]</code> · <code>@rendermode InteractiveServer</code></p>
+<p><img src="./devguide-images/login.png" alt="The sign-in screen" loading="lazy"></p>
+<p><strong>What it is for.</strong> Sign in with an AppManager account. The credentials are checked <em>from the circuit</em> so a failure keeps what the user typed and costs no page load; a success then posts the same form for real, because only a genuine HTTP response can carry the auth cookie.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>Brand panel</td><td><code>AuthLayout.razor</code> <code>aside.auth-brand</code></td><td><code>auth-brand-panel</code></td><td>—</td><td>four hard-coded <code>Benefits</code> strings</td></tr><tr><td>Email</td><td><code>Field</code> → <code>Input Type=Email</code></td><td><code>login-email</code></td><td><code>@bind-Value="objEmail"</code></td><td>—</td></tr><tr><td>Password</td><td><code>Input Type=@PasswordInputType</code></td><td><code>login-pass</code></td><td><code>@bind-Value="objPassword"</code></td><td>—</td></tr><tr><td>Eye toggle</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>login-pass-toggle</code></td><td><code>TogglePasswordVisibility()</code></td><td>flips <code>InputType.Text</code>/<code>Password</code>; icons <code>eye</code> / <code>eye-off</code></td></tr><tr><td>Submit</td><td><code>Button Type=Submit</code></td><td><code>login-submit</code></td><td><code>OnSubmitAsync()</code></td><td><code>IAppManagerClient.LoginAsync(email, pw)</code> → <code>POST /AuthSvc/login</code>, password RSA-OAEP-256 encrypted first</td></tr><tr><td>Real POST</td><td><code>AuthForms.razor</code> (renders nothing)</td><td>—</td><td><code>objForms.SubmitAsync(FormId)</code></td><td>JS module <code>AuthForms.razor.js</code> → native <code>form.submit()</code> to <code>POST /auth/login</code></td></tr><tr><td>Cookie issue</td><td>—</td><td>—</td><td><code>AuthEndpoints.LoginAsync</code></td><td><code>AuthService.SignInAsync</code> → <code>IAuthSessionStore.CreateAsync</code> (<code>"AuthSession"</code>, tokens Data-Protection-encrypted) → cookie <code>TfLensAuth</code> carrying only the session id + display claims</td></tr><tr><td>Error</td><td><code>Alert Variant=Danger</code></td><td><code>login-error</code></td><td><code>ApplyFailure(isLocked)</code></td><td>two strings only</td></tr><tr><td>Reset confirmation</td><td><code>Alert Variant=Success</code></td><td><code>login-reset-done</code></td><td><code>?reset=1</code> query</td><td>set by <code>/auth/reset-password</code></td></tr><tr><td>Links</td><td><code>Button Variant=Link</code></td><td><code>login-register-link</code></td><td>—</td><td><code>/forgot-password</code>, <code>/register</code></td></tr></tbody></table></div>
+<p><strong>The two-phase submit is the thing to understand.</strong> <code>OnSubmitAsync</code> calls <code>objForms.ReadAsync(FormId)</code> first (<code>SyncFromBrowserAsync</code>) so the rules are judged against what the browser would actually post rather than a stale binding, then calls <code>LoginAsync</code> from the circuit. Only on success does it hand the <em>same</em> form to <code>SubmitAsync</code>, and the spinner stays up until the browser navigates. <code>AuthEndpoints.LoginAsync</code> re-validates the antiforgery token and calls AppManager a second time — the round trip is deliberate, not redundant.</p>
+<p><strong>Landing route</strong> (<code>AuthEndpoints.LandingUrlAsync</code>): the local <code>returnUrl</code> if present, else <code>/repos</code> when <code>ReadUserReposAsync</code> returns nothing, else <code>/</code>.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsSubmitting</code> disables the button and swaps in <code>&lt;Spinner&gt;</code> + "Signing in…".</li>
+<li><strong>Error</strong> — exactly two messages ever render. <code>GenericFailure</code> ("Sign-in failed. Check your email and</li>
+</ul>
+<p>password.") for everything, and <code>LockedMessage</code> ("Account locked — try again later") only for <code>AppManagerException.Codes.AccountLocked</code> (AppManager's 423). The AppManager code is logged and <strong>never</strong> reaches the browser — that is BRD-90, anti-enumeration, not a UX choice.</p>
+<ul>
+<li><strong>Fallback path</strong> — if JS interop is unavailable the endpoint redirects back with <code>?error=invalid</code></li>
+</ul>
+<p>or <code>?error=locked</code>, which <code>OnParametersSet</code> turns into the same two messages.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><code>AuthForms</code> <strong>renders nothing</strong>. If <code>objForms</code> is null (prerender, disconnected circuit) a <em>successful</em></li>
+</ul>
+<p>credential check produces no cookie; the code logs <code>"Sign-in succeeded but the form helper was unavailable"</code> and shows the generic failure. A user who "signed in successfully but stayed on the login page" is this branch.</p>
+<ul>
+<li>Don't <code>waitForLoadState('networkidle')</code> after clicking submit — see</li>
+</ul>
+<p><a href="#how-to-run-and-drive-it">How to run and drive it</a>.</p>
+<ul>
+<li><code>LocalReturnUrl</code> rejects anything that is not a single-slash-rooted path (<code>//evil.example</code>,</li>
+</ul>
+<p><code>/\evil.example</code>) rather than sanitising it. Do not relax that.</p>
+<h3 id="deviation-from-docstflens-uidesignmd">Deviation from <code>docs/TfLens-UIDesign.md</code></h3>
+<p>The design map specifies <code>TypographyH2</code> for the brand wordmark; <code>AuthLayout.razor</code> uses a plain <code>&lt;span class="auth-wordmark"&gt;</code>. Cosmetic, and the layout also supplies the <code>--sidebar</code> / <code>--alert-*</code> design tokens TrBlazeUI 2.0.0 references but never defines (TR-001) — custom properties inherit, so every control below picks them up. Do not delete <code>.auth-split</code> styling assuming it is decoration.</p>
+<hr>
+<h2 id="register"><code>/register</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/Register.razor</code> · <code>@page "/register"</code> · <code>AuthLayout</code> · <code>[AllowAnonymous]</code> · <code>InteractiveServer</code></p>
+<p><img src="./devguide-images/register.png" alt="The registration screen" loading="lazy"></p>
+<p><strong>What it is for.</strong> Create an AppManager account. Every account is a Manager; there is no other role and no licence.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>First / last name</td><td><code>Input</code> in <code>trblazeui-col-6</code></td><td><code>reg-first</code>, <code>reg-last</code></td><td>binds</td><td>—</td></tr><tr><td>Email</td><td><code>Input Type=Email</code></td><td><code>reg-email</code> / error <code>reg-email-error</code></td><td>binds</td><td>—</td></tr><tr><td>Password</td><td><code>Input Type=Password</code></td><td><code>reg-pass</code> / <code>reg-pass-error</code></td><td>binds</td><td>—</td></tr><tr><td>Strength meter</td><td><code>PasswordStrengthMeter.razor</code></td><td><code>password-strength</code></td><td><code>PasswordRules</code> score</td><td>local <code>Progress</code> shim</td></tr><tr><td>Confirm</td><td><code>Input Type=Password</code></td><td><code>reg-confirm</code> / <code>reg-confirm-error</code></td><td>binds</td><td>—</td></tr><tr><td>Manager note</td><td><code>Alert Variant=Info AccentBorder</code></td><td><code>reg-manager-note</code></td><td>—</td><td>always rendered, never conditional</td></tr><tr><td>Submit</td><td><code>Button Type=Submit</code></td><td><code>reg-submit</code></td><td><code>OnSubmitAsync()</code></td><td>local rules → <code>objForms.SubmitAsync</code> → <code>POST /auth/register</code></td></tr><tr><td>Account creation</td><td>—</td><td>—</td><td><code>AuthEndpoints.RegisterAsync</code></td><td><code>AuthService.RegisterAsync</code> → <code>IAppManagerClient.RegisterAsync</code> with <code>applicationRoleCode: "Manager"</code>, then issues the same session a sign-in would</td></tr><tr><td>Form error</td><td><code>Alert Variant=Danger</code></td><td><code>reg-error</code></td><td>—</td><td><code>GenericFailure</code></td></tr></tbody></table></div>
+<p><strong>Rules run locally first.</strong> <code>PasswordRules.Describe(objPassword)</code> (<code>src/TfLens.Core/AppManager/PasswordRules.cs</code>) applies every rule AppManager would apply, so a predictable violation never reaches the API or its log. Confirm mismatch is checked here too. Only a clean form is posted.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsSubmitting</code> → spinner + "Creating account…".</li>
+<li><strong>Field errors</strong> — <code>reg-email-error</code> ("already registered"), <code>reg-pass-error</code> (rule text),</li>
+</ul>
+<p><code>reg-confirm-error</code> ("passwords differ"). <code>Field IsInvalid</code> drives the red styling.</p>
+<ul>
+<li><strong>Server refusal</strong> — <code>AuthEndpoints</code> redirects back with <code>?error=duplicate|weak|&lt;other&gt;</code>;</li>
+</ul>
+<p><code>OnParametersSet</code> maps those onto the same three targets, never onto a raw AppManager code.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li>Unlike <code>/login</code>, this page <strong>does not</strong> call AppManager from the circuit. It validates locally and</li>
+</ul>
+<p>posts straight through, so every server-side refusal costs a page load and arrives as a query parameter. Do not "optimise" this into a circuit call without also solving the cookie problem.</p>
+<ul>
+<li><code>OnParametersSet</code> bails out early if <code>objEmailError</code> or <code>objFormError</code> is already set, so a query-string</li>
+</ul>
+<p>error never overwrites a local one on the same render.</p>
+<h3 id="deviation-from-docstflens-uidesignmd">Deviation from <code>docs/TfLens-UIDesign.md</code></h3>
+<p>§Library gaps says password strength must use TrBlazeUI's <code>PasswordStrength</code> control (<code>Components/PasswordStrength/</code>). It does not exist in the installed TrBlazeUI.Components 2.0.0 (TR-003), so <code>PasswordStrengthMeter.razor</code> composes the documented shape from the library's own <code>Progress</code> — which is the fallback the same section names. Delete the shim the moment the library ships the real one.</p>
+<hr>
+<h2 id="forgot-password"><code>/forgot-password</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/ForgotPassword.razor</code> · <code>@page "/forgot-password"</code> · <code>AuthLayout</code> · <code>[AllowAnonymous]</code> · <code>InteractiveServer</code></p>
+<p><img src="./devguide-images/forgot-password.png" alt="Forgot password" loading="lazy"></p>
+<p><strong>What it is for.</strong> Ask AppManager to email a reset link. It has exactly one outcome.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>Email</td><td><code>Input Type=Email</code></td><td><code>forgot-email</code></td><td>binds</td><td>—</td></tr><tr><td>Submit</td><td><code>Button Type=Submit</code></td><td><code>forgot-submit</code></td><td><code>OnSubmitAsync()</code></td><td><code>IAppManagerClient.ForgotPasswordAsync(email)</code> → <code>POST /AuthSvc/forgot-password</code></td></tr><tr><td>Success</td><td><code>Alert Variant=Success</code> <strong>replacing the form</strong></td><td><code>forgot-sent</code></td><td><code>objIsSent = true</code></td><td>—</td></tr><tr><td>Back link</td><td><code>Button Variant=Link</code></td><td><code>forgot-back</code></td><td>—</td><td><code>/login</code></td></tr></tbody></table></div>
+<h3 id="states">States</h3>
+<p>Loading (spinner + "Sending…"), then <strong>success — always</strong>. <code>IsSent</code> is <code>objIsSent || SentOutcome == "1"</code>, where the query parameter covers the non-interactive <code>POST /auth/forgot-password</code> path.</p>
+<p>There is <strong>no error state</strong>. <code>OnSubmitAsync</code> wraps the call in <code>try/catch</code>, logs a warning and swallows it. That is deliberate: surfacing a failure would tell the caller something about the address, which is the exact leak BRD-92 forbids.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>If reset emails stop arriving, this page will still say "Check your inbox".</strong> Diagnose from the</li>
+</ul>
+<p>server log (<code>logs/tflens-*.log</code>, <code>"Forgot-password request could not be delivered to AppManager"</code>), never from the screen. Do not add a visible error path.</p>
+<ul>
+<li>Nothing on this page branches on whether the address exists — no wording, no layout, no code path.</li>
+</ul>
+<hr>
+<h2 id="reset-password"><code>/reset-password</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/ResetPassword.razor</code> · <code>@page "/reset-password"</code> · <code>AuthLayout</code> · <code>[AllowAnonymous]</code> · <code>InteractiveServer</code></p>
+<div class="table-wrap"><table><thead><tr><th>Form state (<code>?token=…</code>)</th><th>Dead-link state (no token)</th></tr></thead><tbody><tr><td><img src="./devguide-images/reset-password.png" alt="Reset password form" loading="lazy"></td><td><img src="./devguide-images/reset-password-dead.png" alt="Reset password, dead link" loading="lazy"></td></tr></tbody></table></div>
+<p><strong>What it is for.</strong> Complete a password reset against the token from the emailed link.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>New password</td><td><code>Input Type=Password</code> + <code>PasswordStrengthMeter</code></td><td><code>reset-pass</code> / <code>reset-pass-error</code></td><td>binds</td><td><code>PasswordRules.Describe</code></td></tr><tr><td>Confirm</td><td><code>Input Type=Password</code></td><td><code>reset-confirm</code> / <code>reset-confirm-error</code></td><td>binds</td><td>—</td></tr><tr><td>Submit</td><td><code>Button Type=Submit</code></td><td><code>reset-submit</code></td><td><code>OnSubmitAsync()</code></td><td><code>IAppManagerClient.ResetPasswordAsync(token, newPassword)</code></td></tr><tr><td>Success</td><td><code>Alert Variant=Success</code> + <code>Button</code></td><td><code>reset-done</code>, <code>reset-signin</code></td><td><code>objIsDone = true</code></td><td>replaces the form</td></tr><tr><td>Dead link</td><td><code>Alert Variant=Danger</code> + <code>Button Variant=Outline</code></td><td><code>reset-invalid</code>, <code>reset-request-new</code></td><td><code>objIsLinkDead = true</code></td><td>replaces the form</td></tr><tr><td>Form error</td><td><code>Alert Variant=Danger</code></td><td><code>reset-error</code></td><td>—</td><td><code>GenericFailure</code></td></tr></tbody></table></div>
+<h3 id="states">States</h3>
+<p>Three mutually exclusive card bodies, in this precedence: <code>objIsDone</code> → success · <code>objIsLinkDead</code> → dead link · otherwise the form.</p>
+<p><code>objIsLinkDead</code> is set by:</p>
+<ul>
+<li><code>OnParametersSet</code> when <code>Token</code> is null/whitespace (verified: bare <code>/reset-password</code> renders "Link</li>
+</ul>
+<p>expired" immediately, no request made);</p>
+<ul>
+<li><code>?error=expired</code> from the endpoint;</li>
+<li><code>AppManagerException.Codes.InvalidResetToken</code> <strong>or</strong> <code>AppIdMismatch</code>.</li>
+</ul>
+<p>Those last two deliberately collapse onto one sentence, so a wrong-tenant link is indistinguishable from a stale one.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>The token is never rendered.</strong> Not in a value, not in a hidden input, not in a message. It lives in</li>
+</ul>
+<p>a private <code>[SupplyParameterFromQuery]</code> field only. Do not add it to a <code>data-testid</code>, a log line, or a hidden field "for debugging".</p>
+<ul>
+<li><code>InvalidLinkMessage</code> is one constant used by every dead-link path. If you split it into</li>
+</ul>
+<p>per-cause wording you have reintroduced the tenant-enumeration leak.</p>
+<hr>
+<h2 id="profile"><code>/profile</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/Profile.razor</code> · <code>@page "/profile"</code> · <code>@attribute [Authorize]</code> · <code>InteractiveServer</code> · <code>MainLayout</code> (breadcrumb <code>Account › Profile</code>, from <code>ShellNavigation.ExtraCrumbs</code>; <strong>no sidebar item</strong>)</p>
+<p><img src="./devguide-images/profile.png" alt="Profile" loading="lazy"></p>
+<p><strong>What it is for.</strong> Show the AppManager account TfLens reads but never stores, and change its password.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>Identity note</td><td><code>Alert Variant=Info</code></td><td><code>profile-identity-note</code></td><td>—</td><td>always</td></tr><tr><td>Avatar / name / email</td><td><code>Avatar</code> + <code>CardTitle</code> + <code>CardDescription</code></td><td><code>profile-name</code>, <code>profile-email</code></td><td><code>AuthService.GetProfileAsync()</code></td><td><code>IAppManagerClient.GetProfileAsync(accessToken)</code> → <code>GET /UserSvc/profile</code></td></tr><tr><td>Role badge</td><td><code>Badge Variant=Secondary</code></td><td><code>profile-role-badge</code></td><td><code>const ManagerRole = "Manager"</code></td><td><strong>a constant, not a field</strong> — there is no other role</td></tr><tr><td>Values table</td><td><code>DataTable TData=ProfileRow</code></td><td><code>profile-values</code></td><td><code>BuildRows()</code></td><td>Email · Name · Role · Member since · Identity provider</td></tr><tr><td>Current password</td><td><code>Input Type=Password</code></td><td><code>pw-current</code> / <code>pw-current-error</code></td><td>binds</td><td>—</td></tr><tr><td>New password</td><td><code>Input Type=Password</code> + <code>PasswordStrengthMeter</code></td><td><code>pw-new</code> / <code>pw-new-error</code></td><td>binds</td><td><code>PasswordRules.Describe</code></td></tr><tr><td>Confirm</td><td><code>Input Type=Password</code></td><td><code>pw-confirm</code> / <code>pw-confirm-error</code></td><td>binds</td><td>—</td></tr><tr><td>Update</td><td><code>Button Type=Submit</code></td><td><code>pw-submit</code></td><td><code>OnChangePasswordAsync()</code></td><td><code>AuthService.ChangePasswordAsync</code> → <code>POST /UserSvc/change-password</code>, both passwords RSA-encrypted server-side</td></tr><tr><td>Sign out</td><td><code>UserMenu.razor</code> (shell)</td><td><code>user-menu-signout</code></td><td><code>NavigateTo("/signout", forceLoad: true)</code></td><td><strong>see the bug below</strong></td></tr></tbody></table></div>
+<p><code>DisplayName</code> / <code>Email</code> fall back to <code>CurrentUser</code> when AppManager has not answered, so the header of the card is populated from claims even when the body shows the failure alert.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsLoading</code> renders <code>Skeleton</code> circles/lines in the header and <code>profile-skeleton</code> in</li>
+</ul>
+<p>the body. Set false in <code>OnInitializedAsync</code> regardless of outcome.</p>
+<ul>
+<li><strong>Error</strong> — <code>objLoadFailed</code> (i.e. <code>objProfile is null</code>) renders <code>Alert Variant=Warning</code></li>
+</ul>
+<p><code>profile-unavailable</code> — "AppManager did not answer. Reload the page to try again." The exception is logged as a warning, never shown.</p>
+<ul>
+<li><strong>Password success</strong> — fields cleared + <code>ToastService.Success</code>.</li>
+<li><strong>Password failure</strong> — <code>InvalidCurrentPassword</code> → <code>pw-current-error</code>; anything else → <code>pw-new-error</code></li>
+</ul>
+<p>with the rules text; a non-<code>AppManagerException</code> → <code>ToastService.Error</code>.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>The <code>profile-values</code> table is one row from silent truncation.</strong> It is the only <code>DataTable</code> in the</li>
+</ul>
+<p>app with no <code>InitialPageSize</code>, <code>BuildRows()</code> returns exactly 5, and the default page size is 5. Add a sixth field and it vanishes with no error. Set <code>InitialPageSize="16"</code> when you touch this file.</p>
+<ul>
+<li><strong><code>/signout</code> returns 404 and does not sign the user out.</strong> <code>UserMenu.OnSignOut</code> navigates to</li>
+</ul>
+<p><code>/signout</code> with <code>forceLoad: true</code>, and <code>Program.cs:88</code> sets <code>aCookie.LogoutPath = "/signout"</code> — but <code>AuthEndpoints.MapAuthEndpoints</code> only maps <code>POST /auth/logout</code>. There is no <code>GET /signout</code> handler anywhere. Verified live: <code>GET /signout</code> → <strong>404</strong>, and the <code>TfLensAuth</code> cookie is <strong>still present</strong> afterwards. <code>/signout</code> is also absent from <code>AnonymousRoutes.Paths</code>. This is the only sign-out control in the app, so sign-out is currently non-functional. <em>(Reported, not fixed — this is a docs task.)</em></p>
+<ul>
+<li><code>AuthService.SignOutAsync</code> itself is correct: it calls AppManager's authenticated</li>
+</ul>
+<p><code>POST /AuthSvc/logout</code> <strong>with the bearer token</strong> (a call without it is answered 401 and revokes nothing), then deletes the session row and clears the cookie regardless of AppManager's answer (BRD-4). Only the route into it is missing.</p>
+<hr>
+<h2 id="repos"><code>/repos</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Repos.razor</code> · <code>@page "/repos"</code> · authenticated · <code>MainLayout</code> · breadcrumb <code>Workspace › Repos</code> · <strong>no Framework switch</strong></p>
+<p><img src="./devguide-images/repos.png" alt="Repos" loading="lazy"></p>
+<p><strong>What it is for.</strong> The only screen that writes. Connect a public GitHub repo, sync one, remove one.</p>
+<h3 id="injected-services">Injected services</h3>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-razor">@inject IRepoListReader objRepoListReader   // == RepoRegistry (ReposRegistration.cs:46)
+@inject RepoRegistry    objRepoRegistry     // the CONCRETE class, not IRepoRegistry
+@inject IServiceProvider objServices        // IRepoSyncRunner resolved lazily
+@inject ShellState objShellState
+@inject ToastService objToastService</code></pre></div>
+<p><code>RepoRegistry</code> implements both <code>IRepoRegistry</code> and <code>IRepoListReader</code>, and both interfaces are registered as the <em>same</em> scoped instance. The page injects the concrete type because it needs the four-argument <code>ValidateAsync</code>/<code>ConnectAsync</code> overloads that take a <code>kind</code> override — <code>IRepoRegistry</code> only declares the three-argument ones.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>Connect repo</td><td><code>Button</code></td><td><code>connect-repo</code></td><td><code>OpenConnectDialog()</code></td><td>resets dialog state only</td></tr><tr><td>KPI: connected</td><td><code>StatTile</code></td><td><code>kpi-repos</code></td><td><code>objRows.Count</code></td><td><code>RepoRegistry.ListWithCountsAsync(userId)</code></td></tr><tr><td>KPI: records</td><td><code>StatTile</code></td><td><code>kpi-records</code></td><td><code>objRows.Sum(r =&gt; r.RecordCount)</code></td><td><strong><code>"SyncState"</code> counters</strong> — see gotcha 6</td></tr><tr><td>KPI: last sync</td><td><code>StatTile</code></td><td><code>kpi-last-sync</code></td><td><code>RelativeTime.Describe(ShellState.LastSyncUtc, now)</code></td><td>max <code>LastSyncTs</code> with no error</td></tr><tr><td>Grid</td><td><code>DataTable TData=RepoListItem ShowToolbar ShowPagination InitialPageSize="10"</code></td><td><code>repos-table</code></td><td><code>ListWithCountsAsync</code></td><td>joins <code>"UserRepo"</code> to <code>"SyncState"</code> per user</td></tr><tr><td>Status cell</td><td><code>Badge</code> / <code>Tooltip</code></td><td><code>repo-status-{name}</code></td><td><code>RepoListItem.Status</code></td><td><code>pending</code> when <code>Sync is null</code>, <code>error</code> when <code>LastError is not null</code>, else <code>synced</code>; the tooltip carries the <strong>redacted</strong> <code>LastError</code> (<code>SyncErrorRedactor</code>)</td></tr><tr><td>Row sync</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-sync-{name}</code></td><td><code>SyncRepoAsync(row)</code></td><td><code>IRepoSyncRunner.SyncRepoAsync(userId, repo)</code></td></tr><tr><td>Row remove</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-remove-{name}</code></td><td><code>OpenRemoveDialog(row)</code></td><td>—</td></tr><tr><td>Connect input</td><td><code>Input</code></td><td><code>connect-input</code></td><td>binds</td><td><code>RepoInputParser</code> accepts a URL or <code>owner/name</code></td></tr><tr><td>Branch</td><td><code>Input</code></td><td><code>connect-branch</code></td><td>binds</td><td>null → default branch</td></tr><tr><td>Kind</td><td><code>Select</code></td><td><code>connect-kind</code></td><td>binds</td><td><code>auto</code> / <code>techieflow</code> / <code>playbook</code></td></tr><tr><td>Validate</td><td><code>Button Variant=Outline</code></td><td><code>connect-validate</code></td><td><code>ValidateAsync()</code></td><td><code>RepoRegistry.ValidateAsync</code> → <code>IGitHubStreamFetcher.GetRepoAsync</code> + <code>PathExistsAsync</code></td></tr><tr><td>Validation lines</td><td><code>CheckLine.razor</code> ×3</td><td><code>connect-validation</code></td><td><code>RepoValidation.Exists/IsPublic/TelemetryPath</code></td><td>—</td></tr><tr><td>Connect</td><td><code>Button</code></td><td><code>connect-submit</code></td><td><code>ConnectAsync()</code></td><td><code>RepoRegistry.ConnectAsync</code> (re-validates server-side) → <code>WriteUserRepoAsync</code> → queued first sync</td></tr><tr><td>Remove confirm</td><td><code>AlertDialog</code></td><td><code>remove-title</code>, <code>remove-description</code>, <code>remove-cancel</code>, <code>remove-confirm</code></td><td><code>ConfirmRemoveAsync()</code></td><td><code>RepoRegistry.RemoveAsync</code> → <code>ITelemetryStore.DeleteRepoDataAsync</code> + raw archive under <code>data/raw/</code></td></tr><tr><td>Empty</td><td><code>Empty</code></td><td><code>repos-empty</code>, <code>repos-empty-connect</code></td><td>—</td><td>—</td></tr></tbody></table></div>
+<p><strong><code>DeleteRepoDataAsync</code> removes all three layers</strong>, scoped to <code>(userId, repo)</code>: every stream table row (<code>"Run"</code>, <code>"Gate"</code>, <code>"Session"</code>, <code>"Commit"</code>, <code>"PbEvent"</code>), the <code>"SyncState"</code> row, and the <code>"UserRepo"</code> row itself. <code>RepoRegistry.RemoveAsync</code> then removes the raw archive, which the store never touches. Another user's copy of the same public repository is untouched.</p>
+<p><strong>Connect is enabled only on <code>RepoValidation.IsConnectable</code></strong> — <code>Exists &amp;&amp; IsPublic &amp;&amp; TelemetryPath is not null &amp;&amp; !AlreadyConnected</code>.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsLoaded == false</code> renders a <code>Card</code> of three <code>Skeleton</code> lines.</li>
+<li><strong>Empty</strong> — <code>objRows.Count == 0</code> → <code>Empty</code> <code>repos-empty</code>.</li>
+<li><strong>Row syncing</strong> — <code>objSyncingRepos</code> (a <code>HashSet&lt;string&gt;</code>) swaps the status cell and the row button</li>
+</ul>
+<p>for a <code>Spinner</code>.</p>
+<ul>
+<li><strong>Connect progress</strong> — <code>connect-progress</code> with a <code>Progress</code> bar; <code>ConnectAsync</code> sets 15 → 55, then</li>
+</ul>
+<p><code>WaitForFirstSyncAsync</code> polls <code>ListWithCountsAsync</code> <strong>once a second for up to 30 seconds</strong>, walking the bar to 95, until <code>Status != Pending</code>.</p>
+<ul>
+<li><strong>Rate limit</strong> — <code>GitHubRateLimitException</code> → <code>Alert Variant=Warning</code> <code>connect-rate-limit</code>, on both</li>
+</ul>
+<p>Validate and Connect. Checked <em>before</em> the private/problem alerts, so a rate limit never masquerades as a validation failure.</p>
+<ul>
+<li><strong>Private repo</strong> — <code>Alert Variant=Warning</code> <code>connect-private</code> with <code>RepoRegistry.PrivateRepoMessage</code>.</li>
+<li><strong>Other refusal</strong> — <code>Alert</code> <code>connect-problem</code>, <code>Warning</code> when <code>AlreadyConnected</code>, else <code>Danger</code>.</li>
+</ul>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong><code>WaitForFirstSyncAsync</code> blocks the circuit for up to 30 seconds.</strong> If the first sync overruns,</li>
+</ul>
+<p><code>ReportConnectOutcome</code> toasts "connected — the first sync is still running" rather than an error. A connect that "hangs" is this loop.</p>
+<ul>
+<li><code>IRepoSyncRunner</code> is resolved with <code>GetService</code>, not <code>GetRequiredService</code>. If it is not registered,</li>
+</ul>
+<p>the row Sync button toasts <em>"Sync is not available in this build."</em> instead of throwing. Same pattern in <code>SyncNowButton</code>.</p>
+<ul>
+<li>The <code>Records</code> column and <code>kpi-records</code> read <code>"SyncState"</code> counters. Seeded rows show <code>0</code> here while</li>
+</ul>
+<p>Coverage shows the real totals. Not a bug in this page — <a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>.</p>
+<ul>
+<li><code>ReloadAsync</code> also calls <code>ShellState.RefreshAsync(userId)</code>, which is what keeps the sidebar badge and</li>
+</ul>
+<p>the header last-sync badge in step after a connect/remove. Drop that call and the shell goes stale.</p>
+<ul>
+<li><code>data-testid="repo-sync-{name}"</code> uses <code>UserRepo.Name</code> (the segment after <code>/</code>), not <code>owner/name</code>. Two</li>
+</ul>
+<p>connected repos with the same name under different owners collide on that id.</p>
+<hr>
+<h2 id="coverage-health"><code>/</code> — Coverage / health</h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Coverage.razor</code> · <code>@page "/"</code> · authenticated · <code>MainLayout</code> · breadcrumb <code>Reports › Coverage / health</code> · Framework switch <strong>shown</strong></p>
+<p><img src="./devguide-images/coverage.png" alt="Coverage / health" loading="lazy"></p>
+<p><strong>What it is for.</strong> "Every other number is suspect until this page is green." It reads the sync bookkeeping <em>and the stored rows themselves</em> — never a cached summary — so what it shows is what the store holds.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead><tbody><tr><td>Parser badge</td><td><code>Badge Variant=Outline</code></td><td><code>coverage-parser</code></td><td><code>ParserVersion.Current</code>, <code>objCards.Count</code></td><td>—</td></tr><tr><td>Status strip</td><td><code>Alert Success</code>/<code>Warning</code></td><td><code>coverage-status</code></td><td><code>StatusHeadline</code> / <code>StatusDetail</code> ← <code>BuildWarnings()</code></td><td>sync errors, stale streams, undocumented fields, <code>v &gt; 1</code> records — in that order</td></tr><tr><td>KPI: repos synced</td><td><code>StatTile</code></td><td><code>kpi-repos-synced</code></td><td><code>SyncedRepoCount</code> / <code>objCards.Count</code></td><td>cards whose <code>Sync?.LastError is null</code></td></tr><tr><td>KPI: gate records</td><td><code>StatTile</code></td><td><code>kpi-gate-records</code></td><td><code>GateRecordTotal</code>, <code>GateRecordsLive</code>, <code>GateRecordsBackfilled</code></td><td><code>Σ</code> of each card's <code>gates</code> stream row</td></tr><tr><td>KPI: newest age</td><td><code>StatTile</code></td><td><code>kpi-newest-age</code></td><td><code>NewestRecord()</code> → <code>AgeText</code></td><td>max <code>NewestTs</code> across all shown streams</td></tr><tr><td>KPI: sync errors</td><td><code>StatTile</code></td><td><code>kpi-sync-errors</code></td><td><code>SyncErrorCount</code>, <code>LastErrorDetail</code></td><td><code>"SyncState"."LastError"</code></td></tr><tr><td>Repo card</td><td><code>Card</code></td><td><code>repo-card-{name}</code></td><td><code>BuildCard(repo, syncStates)</code></td><td>one per repo on the <strong>selected framework</strong></td></tr><tr><td>SHA badge</td><td><code>&lt;a&gt;</code> + <code>Badge</code></td><td><code>repo-sha-{name}</code></td><td><code>RepoCard.ShortSha</code> / <code>CommitUrl</code></td><td><code>LastSha[..7]</code>, opens <code>github.com/{repo}/commit/{sha}</code></td></tr><tr><td>Status badge</td><td><code>Badge</code></td><td><code>repo-state-{name}</code></td><td><code>RepoCard.StatusText</code></td><td><code>sync error</code> / <code>N streams stale</code> / <code>not synced yet</code> / <code>synced</code></td></tr><tr><td>Stream table</td><td><code>DataTable TData=StreamRow … InitialPageSize="16"</code></td><td><code>repo-streams-{name}</code></td><td><code>BuildRow(repo, stream)</code></td><td>rows come from <code>FrameworkNames.Streams(framework)</code></td></tr><tr><td>Stale badge</td><td><code>Badge Variant=Destructive</code></td><td><code>stale-{name}-{stream}</code></td><td><code>StreamRow.IsStale</code></td><td>cadence stream <strong>and</strong> <code>DaysSince &gt;= StalenessDays</code></td></tr><tr><td>Staleness alert</td><td><code>Alert Warning AccentBorder</code></td><td><code>repo-stale-{name}</code></td><td><code>StalenessMessage(staleStreams)</code></td><td>names the streams and the configured threshold</td></tr><tr><td>Per-repo error</td><td><code>Alert Danger</code></td><td><code>repo-error-{name}</code></td><td><code>Sync.LastError</code></td><td>redacted at write time</td></tr><tr><td>Unknown fields</td><td><code>Collapsible</code></td><td><code>unknown-fields</code>, <code>unknown-fields-trigger</code>, <code>unknown-group-{key}</code>, <code>unknown-fields-none</code></td><td><code>BuildUnknownFields()</code></td><td>field <strong>names only</strong></td></tr><tr><td>Newer-schema alert</td><td><code>Alert Info</code></td><td><code>schema-version-alert</code></td><td><code>objAboveSchemaV1</code></td><td>records with <code>"V" &gt; 1</code></td></tr><tr><td>Rebuild</td><td><code>Card</code> + <code>AlertDialog</code></td><td><code>rebuild-card</code>, <code>rebuild</code>, <code>rebuild-title</code>, <code>rebuild-cancel</code>, <code>rebuild-confirm</code>, <code>rebuild-progress</code>, <code>rebuild-report</code>, <code>rebuild-per-stream</code></td><td><code>ConfirmRebuildAsync()</code></td><td><code>ITelemetryStore.RebuildAsync(userId)</code></td></tr></tbody></table></div>
+<h3 id="the-sql-behind-the-numbers">The SQL behind the numbers</h3>
+<p>All of it is <code>PostgresStore.ReadCoverageFactsAsync</code>, three <code>UNION ALL</code> queries against the stream tables (<strong>not</strong> <code>"SyncState"</code>):</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-sql">-- StreamCoverageSql (records, backfilled, newest per repo+stream)
+SELECT "Repo", 'runs' AS "Stream", COUNT(*)::int AS "Records",
+       COUNT(*) FILTER (WHERE "Backfilled")::int AS "Backfilled", MAX("Ts") AS "NewestTs"
+FROM "Run" WHERE "UserId" = @aUserId GROUP BY "Repo"
+UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"</code></pre></div>
+<ul>
+<li><code>"Ts"</code> is ISO-8601 <strong>text</strong>, whose lexical order is its chronological order, so <code>MAX</code> is the newest</li>
+</ul>
+<p>record without a cast.</p>
+<ul>
+<li>Only <code>"Run"</code> and <code>"Gate"</code> carry a <code>"Backfilled"</code> column. The other three select a literal <code>0</code>, and</li>
+</ul>
+<p><code>StreamRow.BackfilledText</code> renders <code>—</code> for them via <code>CarriesBackfilled</code> — an em dash, not a zero, because the fact was never captured.</p>
+<ul>
+<li>Unknown fields come from <code>LATERAL jsonb_object_keys("Overflow")</code>. The store returns **names only,</li>
+</ul>
+<p>already filtered to what SCHEMA.md does not document** — an <code>Overflow</code> payload must never reach a caller.</p>
+<ul>
+<li>Newer-schema facts come from <code>MAX("V")::int … WHERE "V" &gt; 1</code>.</li>
+</ul>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsLoaded == false</code> → one <code>Card</code> with three <code>Skeleton</code> lines.</li>
+<li><strong>Error</strong> — <code>ReloadAsync</code> catches everything into <code>objLoadError</code> and renders <code>Alert Danger</code></li>
+</ul>
+<p><code>coverage-error</code> with the raw exception message. Cards, unknown fields and warnings are all cleared.</p>
+<ul>
+<li><strong>Empty</strong> — <code>objCards.Count == 0</code> → <code>Empty</code> <code>coverage-empty</code>, titled *"No {framework} repos</li>
+</ul>
+<p>connected"* with a <strong>Manage repos</strong> action. Reached when the user has repos but none on the selected axis.</p>
+<ul>
+<li><strong>Redirect</strong> — if <code>ReadUserReposAsync</code> returns nothing at all (<code>objHasAnyRepo == false</code>),</li>
+</ul>
+<p><code>OnParametersSetAsync</code> navigates to <code>/repos</code>. Coverage is the landing route only for a user who has something to cover.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong><code>ReadCoverageFactsAsync</code> is not framework-filtered.</strong> Its SQL has no <code>"UserRepo"</code> join — it returns</li>
+</ul>
+<p>facts for every repo of the user. The page narrows them by matching repo name inside <code>BuildRow</code>. If you add a call site, do the filtering yourself.</p>
+<ul>
+<li><strong><code>StalenessDays</code> applies to cadence streams only</strong> — <code>CadenceStreams = [sessions, commits]</code>. A</li>
+</ul>
+<p>three-month-old <code>gates</code> stream is never marked stale. <code>StalenessDays</code> comes from <code>TfLensOptions.StalenessDays</code>, floored at 1.</p>
+<ul>
+<li><strong>Rebuild is the only destructive control on a read-only lens.</strong> <code>ConfirmRebuildAsync</code> drops the</li>
+</ul>
+<p>parsed tables and replays the raw archive; the raw archive and the GitHub repos are untouched. The <code>Progress</code> bar is <strong>fake</strong> — it is set to 20 before the call and 100 after, with nothing in between. A long rebuild looks frozen at 20%.</p>
+<ul>
+<li>Rebuild is also the only path that recomputes the <code>"SyncState"</code> counters</li>
+</ul>
+<p>(<a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>).</p>
+<ul>
+<li><code>OnParametersSetAsync</code> bails if <code>objIsLoaded</code>, so it loads <strong>once</strong> per component instance.</li>
+</ul>
+<p>Re-querying on a framework change is <code>OnFrameworkChanged</code>, subscribed to <code>ShellPreferences.Changed</code>, which compares <code>objFramework</code> to <code>objPreferences.Framework</code> and calls <code>ReloadAsync</code>. The figures are re-read on the new axis, never filtered from what is on screen.</p>
+<ul>
+<li><code>SidebarMenuBadge</code> shows all repos; this page's <code>objCards.Count</code> shows one axis. They will differ.</li>
+</ul>
+<h3 id="deviation-from-docstflens-uidesignmd">Deviation from <code>docs/TfLens-UIDesign.md</code></h3>
+<p>The design specifies the first-run empty state as <code>Empty</code> <strong>"No sync yet"</strong> with a <strong>Sync now</strong> action. The code renders <code>Empty</code> <strong>"No {framework} repos connected"</strong> with a <strong>Manage repos</strong> action pointing at <code>/repos</code>, and handles "no repos at all" by redirecting instead. The code's answer is the more useful one — Sync now on zero repos does nothing — but the design doc is stale here.</p>
+<p>The design also says loading is <code>Skeleton</code> <strong>cards</strong> (plural, mirroring the repo grid); the code renders one card with three skeleton lines. Every report page uses that same single-card block.</p>
+<hr>
+<h2 id="three-questions"><code>/three-questions</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/ThreeQuestions.razor</code> · <code>@page "/three-questions"</code> · authenticated · <code>MainLayout</code> · Framework switch <strong>shown</strong></p>
+<p><img src="./devguide-images/three-questions.png" alt="Three questions" loading="lazy"></p>
+<p><strong>What it is for.</strong> The page the product exists for: first-pass rate, escape rate and failures scored, read <strong>one <code>project_type</code> at a time</strong>. There is deliberately no "all" tab and no total row.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<p>Everything on this page comes from a single call:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-csharp">objResult = await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework);</code></pre></div>
+<p><code>IMetricsEngine</code> is registered as <code>CachingMetricsEngine</code> wrapping <code>MetricsEngine</code> (<code>MetricsRegistration.cs</code>). <code>MetricsEngine.AnalyseAsync</code> is the field-for-field port of <code>analyse()</code> in <code>.tfcore/telemetry/tf-metrics.sh</code>, in the reference's own stage order:</p>
+<ol>
+<li>read the streams — <code>ReadGatesAsync</code>, <code>ReadRunsAsync</code>, <code>ReadSessionsAsync</code>, <code>ReadCommitsAsync</code>,</li>
+</ol>
+<p><code>ReadUserReposAsync</code>, <code>ReadPbEventsAsync</code>, then <code>DedupeCommits.PerRepo</code>;</p>
+<ol>
+<li>per-repo facts — <code>PerRepoFactsFor</code>;</li>
+<li>split provenance and compute the taint set — <code>TaintSet.FromBackfilled(gates)</code>;</li>
+<li>figures per <code>(provenance, project type)</code> — <code>SegmentsFor</code> → <code>FiguresFor</code>;</li>
+<li>the pooled block — <code>Pooled.Compute</code>.</li>
+</ol>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Standing note</td><td><code>Alert Info</code></td><td><code>schema-note</code></td><td>constant, always rendered</td></tr><tr><td>Type tabs</td><td><code>Tabs</code> / <code>TabsTrigger</code></td><td><code>type-tabs</code>, <code>type-tab-{type}</code></td><td><code>AnalysisResult.ProjectTypes</code>; badge is <code>LiveOf(type).Records</code></td></tr><tr><td>First-pass rate</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-first-pass-{type}</code>, <code>live-first-pass-{type}</code>, <code>backfilled-first-pass-{type}</code></td><td><code>SegmentFigures.FirstPassRate</code> ← <code>FirstPassRate.Compute(firstPass.Count, reqs.Count)</code></td></tr><tr><td>Escape rate</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-escape-{type}</code>, <code>live-escape-{type}</code>, <code>backfilled-escape-{type}</code></td><td><code>EscapeRate.Compute(escapedReqs.Count, failedReqs.Count)</code></td></tr><tr><td>Failures scored</td><td><code>StatTile</code> (plain span)</td><td><code>kpi-failures-{type}</code>, <code>live-failures-{type}</code>, <code>backfilled-failures-{type}</code></td><td><code>SegmentFigures.GateDistributionN</code> — an <code>int</code>, not a <code>Figure</code></td></tr><tr><td>Segment facts</td><td><code>&lt;p&gt;</code></td><td><code>segment-facts-{type}</code></td><td><code>Records</code>, <code>ReqsScored</code>, <code>ReqsExcludedBackfillTaint</code> per provenance</td></tr><tr><td>Gate distribution</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>gate-dist-{type}</code></td><td><code>GateRowsOf(type)</code></td></tr><tr><td>Distribution note</td><td><code>&lt;p&gt;</code></td><td><code>gate-dist-note-{type}</code></td><td><code>GateDistribution.Note(n)</code> when a provenance has too few failures</td></tr><tr><td>Unlisted note</td><td><code>&lt;p&gt;</code></td><td><code>gate-dist-unlisted-{type}</code></td><td><code>UnlistedNote()</code> — failures naming a gate outside <code>GateOrder</code></td></tr><tr><td>Late-gate coverage</td><td><code>Card</code> → <code>FigureText</code></td><td><code>late-gate-{type}</code>, <code>late-gate-{type}-{gate}</code>, <code>late-gate-rate-{type}-{gate}</code></td><td><code>SegmentFigures.LateGateCoverage</code> ← <code>LateGateCoverageCalculator.Compute</code></td></tr><tr><td>Taint list</td><td><code>Collapsible</code></td><td><code>taint-trigger</code>, <code>taint-list</code></td><td><code>AnalysisResult.TaintedReqs</code></td></tr></tbody></table></div>
+<p><strong>The formulas</strong> (hover text, <code>MetricsConstants</code> / SCHEMA.md §8):</p>
+<ul>
+<li><strong>First-pass rate</strong> — <code>gates where attempt=1 AND verdict=Verified ÷ distinct req_id</code>, live-only, per</li>
+</ul>
+<p><code>project_type</code>.</p>
+<ul>
+<li><strong>Escape rate</strong> — <code>REQs with a gate="escaped" record ÷ REQs with any failure record</code>, live-only.</li>
+<li><strong>Failures scored</strong> — count of gate values across all <code>verdict != Verified</code> records.</li>
+</ul>
+<p><strong>The taint rule (REQ-FN-049)</strong> is the one to remember: a REQ with <em>any</em> backfilled verdict before its first live verdict leaves the live <strong>numerator and denominator</strong>. <code>FiguresFor</code> filters <code>aRecords.Where(r =&gt; !aTainted.Contains(r.ReqId))</code> for the live bucket only, and counts the excluded distinct REQs into <code>ReqsExcludedBackfillTaint</code>.</p>
+<p><strong><code>GateRowsOf</code></strong> walks <code>MetricsConstants.GateOrder.Append(Unattributed)</code> — <code>build</code>, <code>acceptance</code>, <code>render</code>, <code>visual</code>, <code>perf</code>, <code>standards</code>, <code>escaped</code>, <code>unattributed</code> = <strong>8 rows</strong> — and looks each gate up in the live and backfilled distributions independently. The engine <em>omits</em> a gate that caught nothing; the screen shows the whole order so the reader can see a gate caught nothing rather than wonder whether it ran.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — single <code>Card</code> of <code>Skeleton</code> lines.</li>
+<li><strong>Error</strong> — <code>Alert Danger</code> <code>three-questions-error</code> with the exception message.</li>
+<li><strong>Empty</strong> — <code>objTypes.Count == 0</code> → <code>Empty</code> <code>three-questions-empty</code>, "No gate records yet".</li>
+<li><strong>Insufficient data</strong> — any <code>Figure</code> below <code>MinN</code> = 3 renders <code>insufficient data (n=…)</code> through</li>
+</ul>
+<p><code>FigureText</code>. <code>SmallWhenNoNumber</code> shrinks it to <code>text-base font-normal</code> so a refusal-to-answer is never rendered at headline size.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>Nothing on this page may be added up.</strong> No total row, no combined column, no cross-type figure.</li>
+</ul>
+<p><code>AnalysisResult</code> cannot express one (ADR-007) and this page adds nothing that would. If a stakeholder asks for a total, the answer is no.</p>
+<ul>
+<li><strong>Backfilled is a labelled secondary line, never added to the live figure.</strong> The badge + value live</li>
+</ul>
+<p>in the <code>ValueContent</code> slot rather than the description slot, because <code>StatTile</code>'s description slot is a <code>&lt;p&gt;</code> and a <code>Badge</code> renders a <code>&lt;div&gt;</code>, which the browser's parser hoists out of a paragraph. Do not "tidy" it back into the description slot.</p>
+<ul>
+<li><strong><code>Failures scored</code> is not a <code>Figure</code>.</strong> It is <code>GateDistributionN</code>, an <code>int</code>, rendered in a plain</li>
+</ul>
+<p><code>&lt;span&gt;</code>. It has no <code>insufficient data</code> case by design — a count of failures is always honest.</p>
+<ul>
+<li><strong>The tab selection is per-circuit, not persisted.</strong> <code>OnTypeSelectedAsync</code> sets a field and returns</li>
+</ul>
+<p><code>Task.CompletedTask</code>; nothing is re-queried and nothing is written. Reload the page and you are back on the first type. <em>(The design doc says "tab choice persisted per session" — it is not.)</em></p>
+<ul>
+<li><strong>The formula "tooltips" are plain HTML <code>title=</code> attributes</strong>, not TrBlazeUI <code>Tooltip</code> components.</li>
+</ul>
+<p>Playwright cannot read them by hovering; read the <code>title</code> attribute instead. <em>(Design doc says <code>Tooltip</code>.)</em></p>
+<ul>
+<li><code>unclassified</code> is relabelled <em>"unclassified (project_type inferred)"</em> by <code>LabelFor</code>. It is a real</li>
+</ul>
+<p>segment key produced by <code>Segment.KeyFor</code>, not a UI placeholder.</p>
+<ul>
+<li>Late-gate coverage reports <strong>live records only</strong> and states <code>ran</code> beside <code>caught</code> — never a share,</li>
+</ul>
+<p>because a late gate's share of a raw distribution is structurally understated (SCHEMA.md §3.5). <code>MetricsConstants.LateGates</code> currently holds <code>perf → 2026-08-10</code>; keep it in sync with <code>LATE_GATES</code> in <code>tf-metrics.sh</code>.</p>
+<hr>
+<h2 id="harness"><code>/harness</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Harness.razor</code> · <code>@page "/harness"</code> · authenticated · <code>MainLayout</code> · Framework switch <strong>shown</strong></p>
+<p><img src="./devguide-images/harness.png" alt="Harness comparison" loading="lazy"> <img src="./devguide-images/harness-tokens-chart.png" alt="The tokens-by-harness chart and the OpenCode dollars card" loading="lazy"></p>
+<p><strong>What it is for.</strong> The three harnesses side by side. The integrity rules <em>are</em> the feature.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<p>One call: <code>objComparison = await objExtraMetrics.CompareHarnessesAsync(userId, objPreferences.Framework)</code> (<code>src/TfLens.Core/Metrics/ExtraMetrics.cs</code>).</p>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Standing note</td><td><code>Alert Info</code></td><td><code>harness-note</code></td><td>constant, never conditional</td></tr><tr><td>Column</td><td><code>Card</code></td><td><code>harness-col-{harness}</code></td><td><code>HarnessComparison.Columns</code>, ordered by <code>ExtraMetrics.HarnessOrder = ["claude-code","opencode","codex"]</code></td></tr><tr><td>Column rows</td><td><code>DataTable … InitialPageSize="50"</code></td><td><code>harness-table-{harness}</code></td><td><code>RowsFor(column)</code> — 11 rows</td></tr><tr><td>Row values</td><td><code>FigureText</code> or plain span</td><td><code>harness-{h}-runs</code>, <code>-cmds</code>, <code>-gates</code>, <code>-verdicts</code>, <code>-sessions</code>, <code>-tokens-in</code>, <code>-tokens-out</code>, <code>-cache-read</code>, <code>-cache-write</code>, <code>-tokens-per-verified</code>, <code>-cost</code></td><td><code>HarnessColumn.*</code></td></tr><tr><td>Not-detected footnote</td><td><code>div.tflens-footnote</code></td><td><code>harness-null-footnote</code></td><td><code>HarnessComparison.NotDetectedRecords</code></td></tr><tr><td>Tokens chart</td><td><code>ChartContainer</code> → <code>BarChart</code> + <code>ApexPointSeries</code></td><td><code>tokens-chart</code></td><td><code>objChartRows</code> (<code>HarnessTokenTotal</code>)</td></tr><tr><td>Tokens table</td><td><code>DataTable … InitialPageSize="50"</code></td><td><code>tokens-table</code>, <code>tokens-total-{harness}</code></td><td><code>ToTokenRow</code> = in + out + cache read + cache write</td></tr><tr><td>OpenCode dollars</td><td><code>Card</code></td><td><code>opencode-cost</code>, <code>opencode-cost-value</code>, <code>opencode-cost-basis</code>, <code>opencode-cost-note</code></td><td><code>HarnessComparison.OpenCodeCostUsd</code> ← <code>MeasuredOpenCodeCost(runs)</code>, <code>Σ cost_usd</code> over <code>opencode</code> runs</td></tr></tbody></table></div>
+<p><strong>The four rules that shape this file:</strong></p>
+<ol>
+<li><strong>Three columns, always.</strong> <code>HarnessOrder</code> is the detected vocabulary of SCHEMA.md §1, not a display</li>
+</ol>
+<p>preference. A harness that emitted nothing still gets a column, rendering <code>—</code> throughout (<code>CountText(isEmpty, …)</code>). A zero would read as <em>"we measured it and it was nothing"</em> rather than <em>"there was nothing to measure"</em>.</p>
+<ol>
+<li><strong><code>harness: null</code> is a footnote, never a fourth column and never dropped.</strong> Hidden only at n = 0.</li>
+<li><strong>Tokens may be compared across harness; dollars may not.</strong> There is no member on</li>
+</ol>
+<p><code>HarnessComparison</code>, and no markup here, that could hold a cross-harness dollar total. OpenCode is the only harness with a measured <code>cost_usd</code>; the other two say <em>"not measured (null by design)"</em> rather than showing a zero. When OpenCode captured no <code>cost_usd</code> at all, its row says <em>"no cost_usd captured yet"</em> so it never contradicts the card below.</p>
+<ol>
+<li><strong>Any figure below <code>MinN</code> renders through <code>FigureText</code>.</strong> Only <code>Tokens per Verified REQ</code> carries a</li>
+</ol>
+<p><code>Figure</code>; <code>ColumnRow.Value</code> is <code>null</code> for every other row, and the cell falls back to the plain span. <code>TokensPerVerified</code> returns <code>NotApplicable</code> when no tokens were captured at all — because zero would read as a measurement of nothing rather than an absence of measurement.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>Card</code> of <code>Skeleton</code> lines.</li>
+<li><strong>Error</strong> — <code>Alert Danger</code> <code>harness-error</code>.</li>
+<li><strong>Empty column</strong> — <code>IsEmpty(column)</code> (<code>Runs == 0 &amp;&amp; GateRecords == 0 &amp;&amp; Sessions == 0</code>) → <code>—</code> in</li>
+</ul>
+<p>every count cell, and <code>SubtitleFor</code> reads <em>"{Product} · no records"</em>.</p>
+<ul>
+<li><strong>Empty chart</strong> — <code>objTokenRows.All(r =&gt; r.Tokens == 0)</code> → <code>Empty</code> <code>tokens-chart-empty</code>.</li>
+<li><strong>No page-level empty state.</strong> With zero records the page still renders three <code>—</code> columns. That is</li>
+</ul>
+<p>intentional.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>The chart works.</strong> Verified live on TechieFlow: <code>[data-testid="tokens-chart"]</code> contains an</li>
+</ul>
+<p><code>apexcharts-svg</code> with 3 bar paths and 3 x-axis labels, and <code>window.ApexCharts</code> is a function. See the deviation note under <a href="#routing"><code>/routing</code></a> — <code>Routing.razor</code>'s TR-011 comment claiming the ApexCharts runtime is never loaded is <strong>stale and wrong</strong>.</p>
+<ul>
+<li><strong>Cosmetic defect:</strong> the chart's x-axis labels are doubled in the DOM</li>
+</ul>
+<p>(<code>"claude-codeclaude-code"</code>), though they paint once. If you assert on axis text, account for it.</p>
+<ul>
+<li>The chart is <strong>supplementary</strong>: TrBlazeUI's chart API carries no axis or label control, so every value</li>
+</ul>
+<p>it draws is also printed as text in <code>tokens-table</code> beside it. Never remove the table to "clean up".</p>
+<ul>
+<li><code>HarnessTokenTotal</code> carries exactly two properties because TrBlazeUI 2.0.0's chart types infer the</li>
+</ul>
+<p>category and series from the item type's properties. Adding a third property to that record will change what the chart draws.</p>
+<ul>
+<li><code>Verdict mix</code> uses <code>PairsText(…, int.MaxValue)</code> — the whole mix, unbounded. <code>Runs by cmd</code> takes the</li>
+</ul>
+<p>top 3. Both render <code>—</code> when empty.</p>
+<ul>
+<li>This page subscribes to <strong>both</strong> <code>ShellState.Changed</code> and <code>ShellPreferences.Changed</code> and calls the</li>
+</ul>
+<p>same <code>ReloadAsync</code> handler, so a sync <em>and</em> a framework change both re-query.</p>
+<hr>
+<h2 id="routing"><code>/routing</code></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Routing.razor</code> (1,188 lines — the largest page) · <code>@page "/routing"</code> · authenticated · <code>MainLayout</code> · Framework switch <strong>shown</strong></p>
+<p><img src="./devguide-images/routing.png" alt="Routing &amp; economics" loading="lazy"></p>
+<p><strong>What it is for.</strong> Did runs land on the tier they were routed to, and what would the token mix cost at rate-card prices? This is the page the integrity rules bite hardest on.</p>
+<h3 id="two-engine-calls">Two engine calls</h3>
+<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-csharp">objRouting = await objExtraMetrics.AnalyseRoutingAsync(userId, objFramework);
+objPooled  = (await objMetricsEngine.AnalyseAsync(userId, objFramework)).Pooled;</code></pre></div>
+<p><code>AnalyseRoutingAsync</code> <strong>re-reads <code>prices.json</code> every time</strong> (<code>RateCard.LoadAsync(options.PricesPath)</code>), which is what makes the edit dialog's Save show up in the repricing cards without a page reload.</p>
+<h3 id="tab-routing-drift-routing-tab-drift-routing-panel-drift">Tab: Routing drift — <code>routing-tab-drift</code> / <code>routing-panel-drift</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Runs with routing fields</td><td><code>kpi-routing-fields</code></td><td><code>RoutingAnalysis.RunsWithRoutingFields</code>; sub-line <code>of {Pooled.RunsTotal} runs</code></td></tr><tr><td><code>routed:false</code> runs</td><td><code>kpi-unrouted</code></td><td><code>RoutingAnalysis.UnroutedRuns</code>; sub-line <code>MetricsConstants.Pct(unrouted, withFields)</code></td></tr><tr><td>Distinct observed models</td><td><code>kpi-distinct-models</code></td><td><code>RoutingAnalysis.DistinctModels</code>; sub-line lists the models themselves</td></tr><tr><td>Drift table</td><td><code>drift-table</code>, <code>drift-row-count</code></td><td><code>DriftRows</code> — <code>routed:false</code> first (as the service ordered them), then the rest grouped by <code>cmd</code>, newest <code>ts</code> first</td></tr><tr><td>Empty</td><td><code>drift-empty</code></td><td>"no routing fields captured yet"</td></tr></tbody></table></div>
+<p><code>HasRoutingFields(run)</code> decides membership. Null string fields render <code>Missing</code> (<code>—</code>), never a blank cell. <code>ModelCount</code> splits the comma-separated <code>models</code> field and shows the raw list below the count when</p>
+<blockquote>1.</blockquote>
+<h3 id="tab-tokens-by-model-routing-tab-models-routing-panel-models">Tab: Tokens by model — <code>routing-tab-models</code> / <code>routing-panel-models</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Table</td><td><code>model-tokens</code></td><td><code>RoutingAnalysis.TokensByModel</code> ← <code>ExtraMetrics.TokensByModel(runs)</code>, the four §2.5 token classes summed <strong>per model actually observed, not per tier requested</strong></td></tr><tr><td>Bars</td><td><code>model-tokens-bars</code></td><td>hand-rolled <code>div.tflens-bar</code> with an inline <code>height:%</code></td></tr><tr><td>Empty</td><td><code>model-tokens-empty</code></td><td>—</td></tr></tbody></table></div>
+<h3 id="tab-repricing-estimate-routing-tab-repricing-routing-panel-repricing">Tab: Repricing (estimate) — <code>routing-tab-repricing</code> / <code>routing-panel-repricing</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Missing prices</td><td><code>missing-prices</code></td><td><code>RoutingAnalysis.MissingPriceModels</code> — named, <strong>excluded from both estimates, never priced at zero</strong></td></tr><tr><td>Actual mix</td><td><code>repricing-actual</code>, <code>repricing-actual-value</code>, <code>repricing-actual-estimate</code>, <code>repricing-actual-excluded</code></td><td><code>RoutingAnalysis.ActualMixUsd</code></td></tr><tr><td>Counterfactual</td><td><code>repricing-max</code>, <code>repricing-max-value</code>, <code>repricing-max-estimate</code>, <code>repricing-max-excluded</code></td><td><code>RoutingAnalysis.AllAtMaxUsd</code>; title names <code>MostExpensiveModel</code></td></tr><tr><td>Delta</td><td><code>repricing-delta</code>, <code>repricing-delta-value</code>, <code>repricing-delta-share</code>, <code>repricing-delta-estimate</code></td><td><code>RoutingAnalysis.DeltaUsd</code> = max − actual</td></tr><tr><td>Edit prices</td><td><code>edit-prices</code> → dialog <code>edit-prices-dialog</code>, <code>edit-prices-table</code>, `price-{model}-{input\</td><td>output\</td><td>cache-read\</td><td>cache-write}<code>, </code>edit-prices-invalid<code>, </code>edit-prices-cancel<code>, </code>edit-prices-save`</td><td><code>RateCard.LoadAsync</code> / <code>RateCard.SaveAsync(options.PricesPath, models)</code></td></tr></tbody></table></div>
+<p><strong>Every money figure on this page is tokens × the operator's rate card, never measured spend.</strong> Each of the three cards renders <code>RateCard.EstimateLabel</code> verbatim beside its number (<em>"estimate — tokens × rate card, not measured spend"</em>). <code>Reprice</code> prices exactly the same token base twice so the difference is meaningful: a run excluded for want of tokens, or a model the card does not price, is excluded from <strong>both</strong> sides. "Most expensive" is decided by pricing the whole eligible mix at each priced observed model and taking the largest result — the shape of the workload, not a headline rate.</p>
+<p><code>DeltaText</code> renders a saving as a <strong>negative</strong> (<code>−$1.89</code>) because it is money the observed mix did not reach; a zero delta takes no sign.</p>
+<h3 id="tab-poolable-metrics-routing-tab-poolable-routing-panel-poolable">Tab: Poolable metrics — <code>routing-tab-poolable</code> / <code>routing-panel-poolable</code></h3>
+<p>Five <code>StatTile</code>s, each rendering a <code>Figure</code> through <code>FigureText</code>, all from <code>AnalysisResult.Pooled</code> (<code>Pooled.Compute</code>):</p>
+<div class="table-wrap"><table><thead><tr><th>Tile</th><th><code>data-testid</code></th><th>Field</th></tr></thead><tbody><tr><td>Rework ratio</td><td><code>pooled-rework</code> / <code>pooled-rework-value</code></td><td><code>ReworkRatio</code> — fix-mode runs over build-phase runs</td></tr><tr><td>Batch size (median)</td><td><code>pooled-batch</code> / <code>pooled-batch-value</code></td><td><code>BatchSizeMedian</code></td></tr><tr><td>REQ throughput</td><td><code>pooled-throughput</code> / <code>pooled-throughput-value</code></td><td><code>ThroughputMedianReqsPerHour</code></td></tr><tr><td>Tokens per Verified</td><td><code>pooled-tokens-per-verified</code> / <code>-value</code></td><td><code>TokensPerVerifiedReq</code> — all harnesses pooled</td></tr><tr><td>Commit cadence</td><td><code>pooled-commit-cadence</code> / <code>-value</code></td><td><code>CommitsPerActiveDay</code>; sub-line states <code>CommitDuplicatesCollapsed</code></td></tr></tbody></table></div>
+<p>These count <em>events</em> rather than score <em>requirements</em>, which is why the reference pools them across harnesses. <strong><code>PooledMetrics.CostUsd</code> is null by design and is deliberately not rendered anywhere</strong> — do not add it.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>Card</code> of <code>Skeleton</code> lines.</li>
+<li><strong>Error</strong> — <code>Alert Danger AccentBorder</code> <code>routing-error</code>.</li>
+<li><strong>Not signed in</strong> — <code>objLoadError = "Sign in to see the routing view."</code> (the only page that sets a</li>
+</ul>
+<p>load error by hand).</p>
+<ul>
+<li><strong>Per-tab empty</strong> — <code>drift-empty</code>, <code>model-tokens-empty</code>. The repricing and poolable tabs have no empty</li>
+</ul>
+<p>state; they render <code>—</code> / <code>insufficient data (n=…)</code>.</p>
+<ul>
+<li><strong>Save refusal</strong> — <code>HasRateErrors</code> disables Save and shows <code>edit-prices-invalid</code>.</li>
+</ul>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li><strong>A blank rate-card row means "not priced" and is dropped from the file, never saved as zero.</strong></li>
+</ul>
+<p><code>IsRowValid</code> accepts a wholly blank row <em>or</em> four valid rates; a <strong>half-filled row is refused</strong> rather than silently completed with zeros. Saving a zero for an unpriced model is the one thing SCHEMA.md §4 forbids.</p>
+<ul>
+<li><code>OnParametersSetAsync</code> here guards on <code>objIsLoaded &amp;&amp; objLoadedFramework == objFramework</code> — unlike the</li>
+</ul>
+<p>other report pages, which guard on <code>objIsLoaded</code> alone. That is why this page re-queries correctly on a framework change even without the <code>Changed</code> event firing.</p>
+<ul>
+<li><strong><code>TabsList</code> needs <code>.tflens-tabs-scroll</code>.</strong> Four triggers are wider than a 390 px viewport, and</li>
+</ul>
+<p>without that wrapper the shell's page container scrolls sideways. Same reason the drift table sits in <code>overflow-x-auto</code>.</p>
+<ul>
+<li><code>data-testid="price-{model}-input"</code> embeds the raw model id, which contains <code>/</code> for models like</li>
+</ul>
+<p><code>anthropic/claude-opus-5</code>. Quote your selectors.</p>
+<ul>
+<li>Rate inputs are held as <strong>text</strong>, not <code>decimal</code>, so a bad entry can be shown back to the operator.</li>
+</ul>
+<p><code>ParseRate</code> is only called after <code>IsRowValid</code> has passed.</p>
+<h3 id="deviation-from-docstflens-uidesignmd">Deviation from <code>docs/TfLens-UIDesign.md</code></h3>
+<p><strong>The models tab hand-rolls its bars instead of using <code>ChartContainer</code> → <code>BarChart</code>.</strong> The comment at <code>Routing.razor:308-311</code> (TR-011) justifies this: <em>"TrBlazeUI's BarChart renders an empty div in this app — the ApexCharts runtime the package wraps is never loaded."</em></p>
+<p><strong>That claim is no longer true.</strong> <code>/harness</code> renders the same <code>ChartContainer</code> → <code>BarChart</code> + <code>ApexPointSeries</code> and it draws correctly — verified live: 3 <code>.apexcharts-bar-area</code> paths, 3 axis labels, <code>window.ApexCharts</code> is a function. So the app now has <strong>two different answers to the same problem</strong>, and only one of them was ever needed. If you are touching this file, the CSS bars can be replaced with the <code>BarChart</code> the design doc specifies; if you leave them, at least update the comment.</p>
+<p>The design doc also specifies two repricing cards; the code renders three (actual, counterfactual, delta) — the delta got promoted from the separate "Delta" row into the same grid. That is an improvement and matches the screenshot.</p>
+<hr>
+<h2 id="export"><code>/export</code></h2>
+<p><strong>Files:</strong> <code>src/TfLens/Components/Pages/Export.razor</code> (<code>@page "/export"</code>, ~95 lines — decides <em>which state</em>) and <code>src/TfLens/Components/Pages/Export/ExportSurface.razor</code> (<code>@namespace TfLens.Components.Pages.ExportParts</code>, 572 lines — <strong>everything the screen actually does</strong>). Authenticated · <code>MainLayout</code> · Framework switch <strong>shown</strong>.</p>
+<p><img src="./devguide-images/export.png" alt="Snapshot export" loading="lazy"></p>
+<p><strong>What it is for.</strong> Where a number stops being a dashboard reading and becomes something someone might quote — so it is also the page that says whether quoting it is honest.</p>
+<p><code>Export.razor</code> renders <code>&lt;ExportSurface UserId Framework /&gt;</code> for TechieFlow, and the same component wrapped in <code>&lt;PlaybookState&gt;</code> for Playbook. The surface is byte-identical between the two states, which is the point: they cannot drift apart into two slightly different export screens.</p>
+<h3 id="control-data-path">Control → data path</h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead><tbody><tr><td>Parser badge</td><td><code>Badge Variant=Outline</code></td><td><code>export-parser-version</code></td><td><code>ParserVersion.Current</code></td></tr><tr><td>Quotable banner</td><td><code>Alert Success</code>/<code>Warning AccentBorder</code></td><td><code>quotable-banner</code></td><td><code>ParityRecord.StatusFor(parity, ParserVersion.Current)</code></td></tr><tr><td>Export button</td><td><code>Button</code></td><td><code>export-now</code></td><td><code>ISnapshotExporter.ExportAsync(userId, framework, today)</code> → <code>SnapshotExporter</code> writes <code>snapshot.md</code> + <code>tflens.json</code></td></tr><tr><td>Framework note</td><td><code>&lt;p&gt;</code></td><td><code>export-framework-note</code></td><td><code>FrameworkLabel</code></td></tr><tr><td>Target folder</td><td><code>&lt;p&gt;</code></td><td><code>export-target</code></td><td><code>data/reports/{userId}/{yyyy-MM-dd}/{framework}</code></td></tr><tr><td>Export facts</td><td><code>DataTable … InitialPageSize="512"</code></td><td><code>export-facts</code></td><td>Parser · Parity status · Scope (<code>{shaRows.Count} synced repo(s) · {RecordTotal} records</code>)</td></tr><tr><td>Dataset SHAs</td><td><code>DataTable … InitialPageSize="512"</code></td><td><code>dataset-shas</code>, <code>dataset-shas-table</code>, <code>copy-sha-{slug}</code>, <code>dataset-shas-empty</code></td><td><code>ITelemetryStore.ReadSyncStateAsync(userId)</code> → <code>SELECT * FROM "SyncState" WHERE "UserId" = @aUserId ORDER BY "Repo"</code></td></tr><tr><td>Copy SHA</td><td><code>Button Variant=Ghost</code></td><td><code>copy-sha-{slug}</code></td><td><code>IJSRuntime.InvokeAsync&lt;bool&gt;("tflens.copyText", sha)</code></td></tr><tr><td>Past snapshots</td><td><code>DataTable … InitialPageSize="512"</code></td><td><code>snapshots</code>, <code>snapshots-table</code>, <code>snapshot-status-{slug}</code>, <code>snapshot-md-{slug}</code>, <code>snapshot-json-{slug}</code>, <code>snapshots-empty</code></td><td><code>ISnapshotExporter.ListAsync(userId)</code> — read back off the folder tree</td></tr><tr><td>Download links</td><td><code>Button Variant=Link</code></td><td>as above</td><td><code>ExportEndpoints.DownloadUrl(date, framework, file)</code> → <code>GET /api/export/download</code>, <code>RequireAuthorization()</code></td></tr><tr><td>Parity card</td><td><code>Card</code></td><td><code>parity-record</code>, <code>parity-facts</code>, <code>parity-none</code>, <code>parity-output</code></td><td><code>ParityRecord.Read(options.ParityLastPath)</code> = <code>data/parity-last.json</code></td></tr><tr><td>Compare output</td><td><code>CodeBlock.razor</code></td><td><code>parity-output</code></td><td><code>ParityRecord.CompareOutput</code></td></tr></tbody></table></div>
+<p><strong>The quotable banner is the safety device of the whole product.</strong> It is computed from <code>data/parity-last.json</code> against the build's own parser version, and <strong>there is no code path anywhere in TfLens that can make it green by any other means</strong>. While no parity run has been recorded, the honest answer is <code>NOT QUOTABLE</code>, and that is what renders.</p>
+<p><code>BannerReason</code> distinguishes two facts that are both <code>NOT QUOTABLE</code>:</p>
+<div class="table-wrap"><table><thead><tr><th><code>objParityStatus</code></th><th>Reason rendered</th></tr></thead><tbody><tr><td><code>QUOTABLE</code></td><td>"the parity run of {date} covers parser {version}; these figures may be quoted"</td></tr><tr><td><code>NOT QUOTABLE</code></td><td>"parser changed after the last parity run; re-run the parity procedure"</td></tr><tr><td><code>NEVER RUN</code> (default)</td><td>"no parity run has ever been recorded; run the parity procedure before quoting any figure"</td></tr></tbody></table></div>
+<p>Claiming the parser changed after a parity run that never happened would be a false statement about the evidence. <code>NoParityMessage</code> draws the same distinction for the card below, and treats a <em>failed</em> recorded run as exactly equal to no run at all.</p>
+<p><code>BannerLiteral</code> (<code>"{status} — {reason}"</code>) is set as the alert's <code>title</code> attribute so the exact wording is one searchable string in the DOM.</p>
+<h3 id="states">States</h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsLoaded</code> is guarded by <code>objLoadedKey == $"{UserId}|{Framework}"</code>, so a change of</li>
+</ul>
+<p>either re-reads. There is no skeleton on this surface; it renders with empty tables first.</p>
+<ul>
+<li><strong>Empty</strong> — <code>dataset-shas-empty</code> ("no dataset SHAs yet", action → <code>/repos</code>) and <code>snapshots-empty</code></li>
+</ul>
+<p>("no snapshots yet").</p>
+<ul>
+<li><strong>Parity absent / failed</strong> — <code>Alert Warning</code> <code>parity-none</code>.</li>
+<li><strong>Exporting</strong> — <code>objIsExporting</code> disables the button and swaps in a <code>Spinner</code>; success and failure</li>
+</ul>
+<p>both toast, and <code>ReloadAsync</code> runs in <code>finally</code>.</p>
+<h3 id="gotchas">Gotchas</h3>
+<ul>
+<li>**<code>objShaRows</code> and <code>objSnapshots</code> are rebuilt as fresh instances on every reload, never cleared in</li>
+</ul>
+<p>place.** <code>DataTable</code> takes its rows as a parameter, and a parameter whose reference has not changed is not re-processed — mutating these lists would leave a just-written snapshot invisible until the page was navigated away from.</p>
+<ul>
+<li><strong>The parity stamp is re-read on every load, never cached.</strong> A parity run recorded while the page was</li>
+</ul>
+<p>open must turn the banner green on the next refresh, not on a restart.</p>
+<ul>
+<li><strong>All four <code>DataTable</code>s set <code>InitialPageSize="512"</code> deliberately.</strong> Here truncation would be a</li>
+</ul>
+<p><em>correctness</em> failure, not a cosmetic one: a truncated dataset-SHA table describes a dataset the snapshot did not actually cover, and the parity card's facts run to seven rows.</p>
+<ul>
+<li><strong>The Dataset SHAs table and the Scope fact are not framework-filtered.</strong> <code>ReadSyncStateAsync</code> takes</li>
+</ul>
+<p>only a user id, so the table lists every repo on <strong>both</strong> axes while the header says TechieFlow. Verified live: 8 rows shown under a <code>TechieFlow 7 / Playbook 1</code> switch. If that matters for your change, filter by joining <code>"UserRepo"."Framework"</code> — the store has no framework-scoped overload of this read.</p>
+<ul>
+<li><code>RecordTotal</code> sums the <code>"SyncState"</code> counters, so it reads <code>0</code> on seeded data</li>
+</ul>
+<p>(<a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>).</p>
+<ul>
+<li><strong>There is deliberately no <code>/playbook</code> route.</strong> The framework is chosen by the header switch, which</li>
+</ul>
+<p>re-queries every figure on the new axis.</p>
+<ul>
+<li><code>CopyShaAsync</code> depends on <code>tflens.copyText</code> in <code>wwwroot/app.js</code> and reports a refusal honestly</li>
+</ul>
+<p>("The browser refused clipboard access") rather than pretending it worked.</p>
+<ul>
+<li>Download links go through an authorized minimal-API endpoint that **derives the reports root from the</li>
+</ul>
+<p>auth cookie** and takes no user id, so one user cannot fetch another's snapshot by editing a query string.</p>
+<h3 id="deviation-from-docstflens-uidesignmd">Deviation from <code>docs/TfLens-UIDesign.md</code></h3>
+<ul>
+<li>The design's past-snapshots table is <code>date · parser version · parity status · links</code>; the code adds a</li>
+</ul>
+<p><strong>framework</strong> column between date and parser version. Correct — snapshots are per framework.</p>
+<ul>
+<li>The design puts <code>data-testid="snapshots"</code> on the table; the code puts it on the wrapping <code>&lt;div&gt;</code> and</li>
+</ul>
+<p>the table carries <code>snapshots-table</code>. Same pattern for <code>dataset-shas</code> / <code>dataset-shas-table</code>. Assert on the <code>-table</code> id.</p>
+<ul>
+<li>The design says the compare output is a <code>pre</code>; §Library gaps then says it must be <code>CodeBlock</code>. The</li>
+</ul>
+<p>code uses <code>Components/Pages/Export/CodeBlock.razor</code>, a local shim reproducing the documented shape (titled bar, copy action, monospaced scrolling body) because TrBlazeUI 2.0.0 ships no <code>CodeBlock</code> (TR-003). Drop it when the library ships the real one.</p>
+<hr>
+<h2 id="the-playbook-axis">The Playbook axis</h2>
+<p>Selecting <strong>Playbook</strong> in the header switch writes <code>tflens-framework=playbook</code> and raises <code>ShellPreferences.Changed</code>; every report page answers by re-querying the engine on the new axis (ADR-016), never by filtering what it already rendered.</p>
+<p><img src="./devguide-images/export-playbook.png" alt="/export on the Playbook axis" loading="lazy"></p>
+<p><strong>Shared components</strong> (<code>src/TfLens/Components/Shared/Playbook/</code>):</p>
+<div class="table-wrap"><table><thead><tr><th>Component</th><th><code>data-testid</code></th><th>Purpose</th></tr></thead><tbody><tr><td><code>PlaybookState.razor</code></td><td>—</td><td>Loads <code>IPlaybookReportBuilder.BuildAsync(userId)</code> and picks the state</td></tr><tr><td><code>PlaybookAxisNote.razor</code></td><td><code>playbook-axis-note</code></td><td>The standing "Different axes" note (SCHEMA.md §11)</td></tr><tr><td><code>PlaybookEmpty.razor</code></td><td><code>playbook-empty</code>, <code>playbook-empty-connect</code></td><td>The Phase-3 empty state</td></tr><tr><td>—</td><td><code>playbook-provisional</code></td><td>Warning when <code>PlaybookAnalysis.SchemaStatus != Discovered</code></td></tr><tr><td><code>PlaybookPhaseTotals.razor</code>, <code>PlaybookAgentSplitPanel.razor</code>, <code>PlaybookObservedFields.razor</code></td><td>—</td><td>Built, <strong>not currently referenced by any page</strong></td></tr></tbody></table></div>
+<p><code>IPlaybookReportBuilder</code> is a deliberately separate interface from <code>IMetricsEngine</code> so a <code>phase_gate</code> result can never be handed to a component expecting a TechieFlow <code>gate</code>. <code>PlaybookState</code> degrades a failed read to "no data yet" rather than to a broken report page, keeping <code>LoadError</code> on a public property — <strong>which no page renders.</strong></p>
+<h3 id="deviation-from-docstflens-uidesignmd-the-big-one">Deviation from <code>docs/TfLens-UIDesign.md</code> — the big one</h3>
+<p>The design says <em>"Every report page has a Playbook state selected by the header Framework switch"</em> with the axis note <em>always</em> visible. <strong>Only <code>/export</code> wraps its content in <code>&lt;PlaybookState&gt;</code>.</strong> Verified live with the switch on Playbook:</p>
+<div class="table-wrap"><table><thead><tr><th>Route</th><th><code>playbook-axis-note</code></th><th><code>playbook-empty</code></th><th>What actually renders</th></tr></thead><tbody><tr><td><code>/export</code></td><td>✅</td><td>✅</td><td>Axis note, then the Phase-3 empty state</td></tr><tr><td><code>/</code></td><td>❌</td><td>❌</td><td>Normal Coverage layout: the one Playbook repo card, <code>events</code> stream row, "GREEN — 1 repos synced"</td></tr><tr><td><code>/three-questions</code></td><td>❌</td><td>❌</td><td>Normal layout, <code>three-questions-empty</code> ("No gate records yet")</td></tr><tr><td><code>/harness</code></td><td>❌</td><td>❌</td><td>Normal layout, three <code>—</code> columns, <code>tokens-chart-empty</code></td></tr><tr><td><code>/routing</code></td><td>❌</td><td>❌</td><td>Normal layout, <code>drift-empty</code></td></tr></tbody></table></div>
+<p>So on four of five report routes a user on the Playbook axis sees TechieFlow-shaped empty states and <strong>no axis note at all</strong> — the user-facing half of the <code>phase_gate</code> / <code>gate</code> separation rule is missing exactly where a reader is most likely to conflate the two. The <code>PlaybookPhaseTotals</code> and <code>PlaybookAgentSplitPanel</code> components the design specifies for the Three questions and Routing Playbook states exist but are unreferenced.</p>
+<p>Coverage on the Playbook axis does behave correctly in one respect: <code>FrameworkNames.Streams("playbook")</code> returns a single <code>events</code> stream, so the repo card's table renders one row rather than four.</p>
+<hr>
+<h2 id="route-and-file-index">Route and file index</h2>
+<div class="table-wrap"><table><thead><tr><th>Route</th><th>File</th><th>Layout</th><th>Auth</th><th>Framework switch</th></tr></thead><tbody><tr><td><code>/login</code></td><td><code>Components/Pages/Auth/Login.razor</code></td><td><code>AuthLayout</code></td><td><code>[AllowAnonymous]</code></td><td>—</td></tr><tr><td><code>/register</code></td><td><code>Components/Pages/Auth/Register.razor</code></td><td><code>AuthLayout</code></td><td><code>[AllowAnonymous]</code></td><td>—</td></tr><tr><td><code>/forgot-password</code></td><td><code>Components/Pages/Auth/ForgotPassword.razor</code></td><td><code>AuthLayout</code></td><td><code>[AllowAnonymous]</code></td><td>—</td></tr><tr><td><code>/reset-password</code></td><td><code>Components/Pages/Auth/ResetPassword.razor</code></td><td><code>AuthLayout</code></td><td><code>[AllowAnonymous]</code></td><td>—</td></tr><tr><td><code>/profile</code></td><td><code>Components/Pages/Auth/Profile.razor</code></td><td><code>MainLayout</code></td><td><code>[Authorize]</code></td><td>no</td></tr><tr><td><code>/repos</code></td><td><code>Components/Pages/Repos.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr><tr><td><code>/</code></td><td><code>Components/Pages/Coverage.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr><tr><td><code>/three-questions</code></td><td><code>Components/Pages/ThreeQuestions.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr><tr><td><code>/harness</code></td><td><code>Components/Pages/Harness.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr><tr><td><code>/routing</code></td><td><code>Components/Pages/Routing.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr><tr><td><code>/export</code></td><td><code>Components/Pages/Export.razor</code> + <code>Export/ExportSurface.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr><tr><td><code>/not-found</code></td><td><code>Components/Pages/NotFound.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr><tr><td><code>/Error</code></td><td><code>Components/Pages/Error.razor</code></td><td>—</td><td>—</td><td>—</td></tr></tbody></table></div>
+<p><strong>Authorization is a fallback policy, not a per-route attribute</strong> (<code>AuthRegistration.cs:92</code>). A page added tomorrow is protected because nobody opted it in; the only way to be anonymous is to appear in <code>AnonymousRoutes.Paths</code>:</p>
+<div class="codeblock"><button class="copy">Copy</button><pre><code>/login  /register  /forgot-password  /reset-password  /healthz
+/auth/login  /auth/register  /auth/forgot-password  /auth/reset-password</code></pre></div>
+<p>plus the prefixes <code>/_blazor</code>, <code>/_framework</code>, <code>/_content</code>, which the Blazor runtime needs before anybody has signed in — without them the sign-in form cannot be interactive at all.</p>
+<p><strong>Non-page endpoints:</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Endpoint</th><th>Mapped in</th><th>Auth</th></tr></thead><tbody><tr><td><code>POST /auth/login</code>, <code>/auth/register</code>, <code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td><td><code>AuthEndpoints.cs</code></td><td>anonymous</td></tr><tr><td><code>POST /auth/logout</code></td><td><code>AuthEndpoints.cs</code></td><td>authorized</td></tr><tr><td><code>GET /api/export/download</code></td><td><code>ExportEndpoints.cs</code></td><td>authorized</td></tr><tr><td><code>GET /healthz</code></td><td><code>HealthEndpoint.cs</code></td><td>anonymous</td></tr><tr><td><strong><code>GET /signout</code></strong></td><td><strong>nowhere — 404</strong></td><td>—</td></tr></tbody></table></div>
+  </main>
+</div>
+<script>
+var btn = document.getElementById('themeToggle');
+function label(){ var d = document.documentElement.getAttribute('data-theme')==='dark';
+  btn.textContent = d ? 'Light' : 'Dark'; }
+label();
+btn.addEventListener('click', function(){
+  var d = document.documentElement.getAttribute('data-theme')==='dark';
+  var next = d ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('tf-theme', next); }catch(e){}
+  label();
+});
+document.querySelectorAll('.codeblock .copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    var code = b.parentElement.querySelector('code');
+    navigator.clipboard.writeText(code.innerText).then(function(){
+      var old = b.textContent; b.textContent = 'Copied';
+      setTimeout(function(){ b.textContent = old; }, 1200);
+    });
+  });
+});
+</script>
+</body>
+</html>

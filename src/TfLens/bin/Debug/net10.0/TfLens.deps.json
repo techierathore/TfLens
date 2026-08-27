@@ -199,11 +199,14 @@
           "Blazor-ApexCharts": "6.1.0",
           "HtmlSanitizer": "9.1.949-beta",
           "Markdig": "0.45.0",
-          "TrBlazeUI.Icons.Lucide": "2.0.0",
-          "TrBlazeUI.Primitives": "2.0.0"
+          "TrBlazeUI.Icons.Lucide": "2.0.0"
         },
         "runtime": {
           "lib/net10.0/TrBlazeUI.Components.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          },
+          "lib/net10.0/TrBlazeUI.Primitives.dll": {
             "assemblyVersion": "2.0.0.0",
             "fileVersion": "2.0.0.0"
           }
@@ -212,14 +215,6 @@
       "TrBlazeUI.Icons.Lucide/2.0.0": {
         "runtime": {
           "lib/net10.0/TrBlazeUI.Icons.Lucide.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
-          }
-        }
-      },
-      "TrBlazeUI.Primitives/2.0.0": {
-        "runtime": {
-          "lib/net10.0/TrBlazeUI.Primitives.dll": {
             "assemblyVersion": "2.0.0.0",
             "fileVersion": "2.0.0.0"
           }
@@ -367,23 +362,16 @@
     "TrBlazeUI.Components/2.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ZE42c6JfQHkAwYnlBRsKSfUfQxrWDIRI3g8yByMKZA0YgVaFWE04AAiMFexMJvNkwiw7YhK3G6t9YyZvnHq2Uw==",
+      "sha512": "sha512-zIl+6RVcRJF/NCKoa+cVEqeksR/duaY8aJjaSyV/zEfFQzRhfA4ypsdGX0FUruvvHmtdipSw61ad3/t5M/NpFQ==",
       "path": "trblazeui.components/2.0.0",
       "hashPath": "trblazeui.components.2.0.0.nupkg.sha512"
     },
     "TrBlazeUI.Icons.Lucide/2.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-XyOkDhpku/u4/BS5fTTGAuTx5vTxAgpZzWkgzX5NoNf5iJWd5kkT8Q23GGTExzh05f5owPfyTxKfZ+edITCsPg==",
+      "sha512": "sha512-W0RMPQFd0a+vdwJit7zXPETJcuROf79EkTLIzd8dCgqfyw02FHzNT68gCcMJUzhnlBL8icb3tYTTCsAov+c/cA==",
       "path": "trblazeui.icons.lucide/2.0.0",
       "hashPath": "trblazeui.icons.lucide.2.0.0.nupkg.sha512"
-    },
-    "TrBlazeUI.Primitives/2.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-6g2gZifilrPENL3fKgA1S1/xktKUjAU1nUDkOZkSJzCjU9pFUhoGogHgSewpti5Tw3rV+4G+KcXAugWVODaOKQ==",
-      "path": "trblazeui.primitives/2.0.0",
-      "hashPath": "trblazeui.primitives.2.0.0.nupkg.sha512"
     },
     "TfLens.Core/1.0.0": {
       "type": "project",
