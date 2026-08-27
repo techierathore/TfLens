@@ -23,3 +23,8 @@ playwright-report/
 logs/
 /docs/.last-verify.json
 .DS_Store
+
+# Local secrets and runtime state — never commit
+/.env
+/data/
+/.vs/TfLens.slnx
