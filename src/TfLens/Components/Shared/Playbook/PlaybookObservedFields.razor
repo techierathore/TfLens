@@ -1,0 +1,52 @@
+@*
+    REQ-UI-034 — the "Observed fields" collapsible of the Coverage page's Playbook state.
+
+    The REQ-FN-068 evidence, on screen: the field names actually seen in the raw `events.ndjson`, not
+    the names the brief's prose implies. While that list is empty nothing has been read for real, and
+    the panel says so rather than showing an empty row of badges.
+*@
+
+<Collapsible @bind-Open="objIsOpen">
+    <Card>
+        <CardContent Class="p-0">
+            <CollapsibleTrigger>
+                <span class="flex w-full items-center gap-2 p-4 text-sm font-medium"
+                      data-testid="playbook-observed-fields-trigger">
+                    <LucideIcon Name="@(objIsOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                    Observed fields (@Fields.Count)
+                </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div class="flex flex-col gap-3 px-4 pb-4" data-testid="playbook-observed-fields">
+                    <p class="text-sm text-muted-foreground">
+                        Field names discovered in events.ndjson — the adapter's columns are fixed only
+                        after these are parsed for real (ADR-010).
+                    </p>
+                    @if (Fields.Count == 0)
+                    {
+                        <p class="text-sm italic text-muted-foreground">
+                            No events.ndjson has been parsed yet, so no field has been observed.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="flex flex-wrap items-center gap-2">
+                            @foreach (var vField in Fields)
+                            {
+                                <Badge Variant="BadgeVariant.Outline" Class="font-mono">@vField</Badge>
+                            }
+                        </div>
+                    }
+                </div>
+            </CollapsibleContent>
+        </CardContent>
+    </Card>
+</Collapsible>
+
+@code {
+    private bool objIsOpen;
+
+    /// <summary>The field names the probe observed, in probe order.</summary>
+    [Parameter]
+    public IReadOnlyList<string> Fields { get; set; } = [];
+}

@@ -1,0 +1,293 @@
+@page "/register"
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+@using TfLens.Core.AppManager
+@using TrBlazeUI.Components.Typography
+
+<PageTitle>Create your account · TfLens</PageTitle>
+
+@*
+    REQ-UI-002. AppManager's password rules are evaluated here, before anything leaves the browser, so a
+    predictable violation costs no round trip; the account itself is created by POST /auth/register,
+    which signs the new user straight in and therefore needs a real HTTP response for the cookie.
+*@
+
+<Card>
+    <CardHeader>
+        <CardTitle>Create your account</CardTitle>
+        <CardDescription>Registered in AppManager · every account is a Manager</CardDescription>
+    </CardHeader>
+
+    <CardContent>
+        <form id="@FormId"
+              method="post"
+              action="/auth/register"
+              class="flex flex-col gap-4"
+              @onsubmit="OnSubmitAsync"
+              @onsubmit:preventDefault>
+
+            <AntiforgeryToken />
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+
+            <div class="trblazeui-grid gap-4">
+                <div class="trblazeui-col-6">
+                    <Field>
+                        <FieldLabel For="reg-first">First name</FieldLabel>
+                        <FieldContent>
+                            <Input Id="reg-first"
+                                   name="FirstName"
+                                   @bind-Value="objFirstName"
+                                   Required="true"
+                                   data-testid="reg-first" />
+                        </FieldContent>
+                    </Field>
+                </div>
+                <div class="trblazeui-col-6">
+                    <Field>
+                        <FieldLabel For="reg-last">Last name</FieldLabel>
+                        <FieldContent>
+                            <Input Id="reg-last"
+                                   name="LastName"
+                                   @bind-Value="objLastName"
+                                   Required="true"
+                                   data-testid="reg-last" />
+                        </FieldContent>
+                    </Field>
+                </div>
+            </div>
+
+            <Field IsInvalid="@(objEmailError is not null)">
+                <FieldLabel For="reg-email">Email</FieldLabel>
+                <FieldContent>
+                    <Input Id="reg-email"
+                           Type="InputType.Email"
+                           name="Email"
+                           @bind-Value="objEmail"
+                           Required="true"
+                           Placeholder="you@example.com"
+                           data-testid="reg-email" />
+                    @if (objEmailError is not null)
+                    {
+                        <FieldError data-testid="reg-email-error">@objEmailError</FieldError>
+                    }
+                </FieldContent>
+            </Field>
+
+            <Field IsInvalid="@(objPasswordError is not null)">
+                <FieldLabel For="reg-pass">Password</FieldLabel>
+                <FieldContent>
+                    <Input Id="reg-pass"
+                           Type="InputType.Password"
+                           name="Password"
+                           @bind-Value="objPassword"
+                           Required="true"
+                           data-testid="reg-pass" />
+                    <PasswordStrengthMeter Password="@objPassword" />
+                    <FieldDescription>
+                        8+ chars, an uppercase letter, a number, a special character
+                    </FieldDescription>
+                    @if (objPasswordError is not null)
+                    {
+                        <FieldError data-testid="reg-pass-error">@objPasswordError</FieldError>
+                    }
+                </FieldContent>
+            </Field>
+
+            <Field IsInvalid="@(objConfirmError is not null)">
+                <FieldLabel For="reg-confirm">Confirm password</FieldLabel>
+                <FieldContent>
+                    <Input Id="reg-confirm"
+                           Type="InputType.Password"
+                           name="Confirm"
+                           @bind-Value="objConfirm"
+                           Required="true"
+                           data-testid="reg-confirm" />
+                    @if (objConfirmError is not null)
+                    {
+                        <FieldError data-testid="reg-confirm-error">@objConfirmError</FieldError>
+                    }
+                </FieldContent>
+            </Field>
+
+            @* BRD-95 — always on screen, never conditional: there is no other role and no licence. *@
+            <Alert Variant="AlertVariant.Info" AccentBorder="true" data-testid="reg-manager-note">
+                <LucideIcon Name="info" Size="16" />
+                <AlertDescription>
+                    Every TfLens account is a Manager — no licence, no subscription.
+                </AlertDescription>
+            </Alert>
+
+            @if (objFormError is not null)
+            {
+                <Alert Variant="AlertVariant.Danger" data-testid="reg-error">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>Couldn't create the account</AlertTitle>
+                    <AlertDescription>@objFormError</AlertDescription>
+                </Alert>
+            }
+
+            <Button Type="ButtonType.Submit"
+                    Class="w-full"
+                    Disabled="@objIsSubmitting"
+                    data-testid="reg-submit">
+                @if (objIsSubmitting)
+                {
+                    <Spinner Size="SpinnerSize.Small" />
+                    <span>Creating account…</span>
+                }
+                else
+                {
+                    <span>Create account</span>
+                    <LucideIcon Name="arrow-right" Size="16" />
+                }
+            </Button>
+        </form>
+    </CardContent>
+
+    <CardFooter Class="justify-center">
+        <TypographySmall Class="text-muted-foreground">Already have an account?</TypographySmall>
+        <Button Variant="ButtonVariant.Link" Size="ButtonSize.Small" Href="/login" data-testid="reg-login-link">
+            Sign in
+        </Button>
+    </CardFooter>
+</Card>
+
+<TypographyMuted Class="text-xs text-center">
+    On success you are signed in and land on Repos.
+</TypographyMuted>
+
+<AuthForms @ref="objForms" />
+
+@code {
+    /// <summary>Shown for every server-side refusal that is not a duplicate email or a rule violation.</summary>
+    private const string GenericFailure =
+        "Something went wrong talking to AppManager. Your entries are kept — try again.";
+
+    /// <summary>Shown when AppManager rejected the password its own rules would have caught.</summary>
+    private const string WeakPasswordFailure =
+        "AppManager rejected that password. Use 8+ characters with an uppercase letter, a number and a special character.";
+
+    /// <summary>The field error a duplicate email is reported as.</summary>
+    private const string DuplicateEmailError = "already registered";
+
+    /// <summary>The field error a mismatched confirmation is reported as.</summary>
+    private const string ConfirmMismatchError = "passwords differ";
+
+    /// <summary>Id of the form the endpoint is posted through.</summary>
+    private const string FormId = "tf-register-form";
+
+    private AuthForms? objForms;
+    private string objFirstName = string.Empty;
+    private string objLastName = string.Empty;
+    private string objEmail = string.Empty;
+    private string objPassword = string.Empty;
+    private string objConfirm = string.Empty;
+    private string? objEmailError;
+    private string? objPasswordError;
+    private string? objConfirmError;
+    private string? objFormError;
+    private bool objIsSubmitting;
+
+    /// <summary>Where to land after registration, when the user was bounced here from a protected page.</summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    /// <summary>The opaque reason <c>/auth/register</c> redirected back with; never an AppManager code.</summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorReason { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        if (objEmailError is not null || objFormError is not null || string.IsNullOrEmpty(ErrorReason))
+        {
+            return;
+        }
+
+        switch (ErrorReason)
+        {
+            case "duplicate":
+                objEmailError = DuplicateEmailError;
+                break;
+            case "weak":
+                objPasswordError = WeakPasswordFailure;
+                break;
+            default:
+                objFormError = GenericFailure;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Runs the local rules, then hands a clean form to the endpoint that creates the account.
+    /// </summary>
+    /// <returns>A task that completes when the errors are on screen or the browser has been told to post.</returns>
+    private async Task OnSubmitAsync()
+    {
+        if (objIsSubmitting)
+        {
+            return;
+        }
+
+        await SyncFromBrowserAsync();
+
+        objEmailError = null;
+        objPasswordError = null;
+        objConfirmError = null;
+        objFormError = null;
+
+        // Every rule AppManager would apply is applied here first, so a violation it could have
+        // predicted never reaches the API and never reaches its log (REQ-FN-002).
+        objPasswordError = PasswordRules.Describe(objPassword);
+
+        if (!string.Equals(objPassword, objConfirm, StringComparison.Ordinal))
+        {
+            objConfirmError = ConfirmMismatchError;
+        }
+
+        if (objEmail.Length == 0)
+        {
+            objEmailError = "Enter your email address.";
+        }
+
+        if (objEmailError is not null || objPasswordError is not null || objConfirmError is not null)
+        {
+            return;
+        }
+
+        objIsSubmitting = true;
+        StateHasChanged();
+
+        if (objForms is null)
+        {
+            objIsSubmitting = false;
+            objFormError = GenericFailure;
+            return;
+        }
+
+        await objForms.SubmitAsync(FormId);
+    }
+
+    /// <summary>
+    /// Adopts the values the browser would post, so the rules are checked against what the user typed.
+    /// </summary>
+    /// <returns>A task that completes once the fields match the DOM.</returns>
+    private async Task SyncFromBrowserAsync()
+    {
+        if (objForms is null)
+        {
+            return;
+        }
+
+        var vValues = await objForms.ReadAsync(FormId);
+        objFirstName = vValues.TryGetValue("FirstName", out var vFirst) ? vFirst.Trim() : objFirstName;
+        objLastName = vValues.TryGetValue("LastName", out var vLast) ? vLast.Trim() : objLastName;
+        objEmail = vValues.TryGetValue("Email", out var vEmail) ? vEmail.Trim() : objEmail;
+        objPassword = vValues.TryGetValue("Password", out var vPassword) ? vPassword : objPassword;
+        objConfirm = vValues.TryGetValue("Confirm", out var vConfirm) ? vConfirm : objConfirm;
+    }
+}

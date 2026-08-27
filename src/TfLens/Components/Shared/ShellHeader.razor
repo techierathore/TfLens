@@ -1,0 +1,92 @@
+@*
+    The app shell's header — REQ-UI-007, REQ-UI-008, REQ-UI-009, REQ-UI-010.
+
+    Left to right: the sidebar trigger, the "section › page" breadcrumb, the Framework switch (report
+    routes only), then a spacer and the right-hand cluster — Sync now with its last-sync badge, the theme
+    toggle and the user menu. It wraps rather than overflows at narrow widths, so nothing overlaps or
+    leaves the viewport on a phone.
+*@
+@implements IDisposable
+@inject NavigationManager objNavigation
+
+<header class="flex min-h-16 flex-wrap items-center gap-3 border-b bg-background px-4 py-2" data-testid="app-header">
+    <SidebarTrigger data-testid="sidebar-trigger" />
+
+    <Breadcrumb>
+        <BreadcrumbList>
+            <BreadcrumbItem>
+                <span class="text-muted-foreground">@Section</span>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+                <BreadcrumbPage>@Page</BreadcrumbPage>
+            </BreadcrumbItem>
+        </BreadcrumbList>
+    </Breadcrumb>
+
+    @if (ShowsFrameworkSwitch)
+    {
+        <FrameworkSwitch />
+    }
+
+    <div class="flex-1"></div>
+
+    <div class="flex items-center gap-3">
+        <SyncNowButton UserId="@UserId" />
+        <ThemeToggle TestId="theme-toggle" Id="header-theme-toggle" />
+        <UserMenu DisplayName="@DisplayName" Email="@Email" Initials="@Initials" />
+    </div>
+</header>
+
+@code {
+    private string objRelativePath = string.Empty;
+
+    /// <summary>The signed-in user id, handed down so the header's controls agree on the user.</summary>
+    [Parameter]
+    public int? UserId { get; set; }
+
+    /// <summary>The signed-in user's display name.</summary>
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>The signed-in user's email.</summary>
+    [Parameter]
+    public string Email { get; set; } = string.Empty;
+
+    /// <summary>The signed-in user's avatar initials.</summary>
+    [Parameter]
+    public string Initials { get; set; } = "?";
+
+    /// <summary>The breadcrumb's section, from the current route.</summary>
+    private string Section => ShellNavigation.Breadcrumb(objRelativePath).Section;
+
+    /// <summary>The breadcrumb's page, from the current route.</summary>
+    private string Page => ShellNavigation.Breadcrumb(objRelativePath).Page;
+
+    /// <summary>True on the five report routes, where the Framework switch belongs (REQ-UI-010).</summary>
+    private bool ShowsFrameworkSwitch => ShellNavigation.ShowsFrameworkSwitch(objRelativePath);
+
+    /// <summary>Tracks the route so the breadcrumb and the Framework switch follow navigation.</summary>
+    protected override void OnInitialized()
+    {
+        objRelativePath = objNavigation.ToBaseRelativePath(objNavigation.Uri);
+        objNavigation.LocationChanged += OnLocationChanged;
+    }
+
+    /// <summary>
+    /// Re-reads the route when the user navigates.
+    /// </summary>
+    /// <param name="aSender">The navigation manager.</param>
+    /// <param name="aArgs">The new location.</param>
+    private void OnLocationChanged(object? aSender, LocationChangedEventArgs aArgs)
+    {
+        objRelativePath = objNavigation.ToBaseRelativePath(aArgs.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objNavigation.LocationChanged -= OnLocationChanged;
+    }
+}

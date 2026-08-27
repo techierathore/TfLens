@@ -1,0 +1,558 @@
+@*
+    REQ-UI-023 / REQ-UI-024 / REQ-UI-025 / REQ-UI-026 — the Harness comparison screen.
+
+    The integrity rules are the feature here (ADR-017, SCHEMA.md §1 and §4):
+
+      * the columns are the three detected harnesses in the fixed order claude-code · opencode · codex,
+        and a harness that emitted nothing still gets a column showing `—` rather than disappearing;
+      * `harness: null` is a footnote under the columns, never a fourth column and never dropped;
+      * tokens may be compared across harness, dollars may not — the only measured `cost_usd` in the
+        system belongs to OpenCode, and there is no cross-harness dollar total anywhere in this markup;
+      * any figure below the minimum n renders as `insufficient data (n=…)` through FigureText.
+
+    The bar chart is supplementary: TrBlazeUI's chart API carries no axis or label control, so every
+    value it draws is also printed as text in the table beside it.
+*@
+@page "/harness"
+@using System.Globalization
+@using TrBlazeUI.Components.Chart
+@using TrBlazeUI.Components.Empty
+@using TrBlazeUI.Components.Typography
+@using ApexCharts
+@implements IDisposable
+@inject IExtraMetrics objExtraMetrics
+@inject ShellPreferences objPreferences
+@inject ShellState objShellState
+
+<PageTitle>Harness comparison · TfLens</PageTitle>
+
+<div class="tflens-stack">
+
+    <div>
+        <TypographyH2>Harness comparison</TypographyH2>
+        <TypographyMuted>claude-code · opencode · codex, side by side — same rows, no total</TypographyMuted>
+    </div>
+
+    @* REQ-UI-023 — the standing note. It is not conditional: the rule holds on every framework. *@
+    <Alert Variant="AlertVariant.Info" data-testid="harness-note">
+        <LucideIcon Name="info" Size="18" />
+        <AlertTitle>Compare tokens, not dollars</AlertTitle>
+        <AlertDescription>
+            Tokens may be compared across harness; dollars may not. Claude Code and Codex cost is null by design.
+        </AlertDescription>
+    </Alert>
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" data-testid="harness-error">
+            @* TR-008: 2.0.0 ships only the post-rename Lucide names — `alert-triangle` renders nothing. *@
+            <LucideIcon Name="triangle-alert" Size="18" />
+            <AlertTitle>Couldn't build the comparison</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else
+    {
+        @* REQ-UI-023 — three columns, always, in the detected order. *@
+        <div class="tflens-harness-cols" data-testid="harness-columns">
+            @foreach (var vColumn in objComparison.Columns)
+            {
+                <Card Class="h-full" data-testid="@($"harness-col-{vColumn.Harness}")">
+                    <CardHeader>
+                        <div class="flex items-center gap-3">
+                            <span class="tflens-stat-chip @AccentClassFor(vColumn.Harness)">
+                                <LucideIcon Name="git-compare" Size="16" />
+                            </span>
+                            <div>
+                                <CardTitle>@vColumn.Harness</CardTitle>
+                                <CardDescription>@SubtitleFor(vColumn)</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="tflens-kv overflow-x-auto">
+                            @* TR-006: ShowPagination="false" hides the pager but still truncates the data to
+                               InitialPageSize (5), so the page size has to cover every row or rows vanish. *@
+                            <DataTable TData="ColumnRow"
+                                       Data="@RowsFor(vColumn)"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="50"
+                                       AriaLabel="@($"{vColumn.Harness} metrics")"
+                                       data-testid="@($"harness-table-{vColumn.Harness}")">
+                                <Columns>
+                                    <DataTableColumn TData="ColumnRow" TValue="string"
+                                                     Property="@(aRow => aRow.Label)" Header="Metric">
+                                        <CellTemplate Context="vRow">
+                                            <span class="text-muted-foreground">@vRow.Label</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ColumnRow" TValue="string"
+                                                     Property="@(aRow => aRow.Text)" Header="Value"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            @if (vRow.Value is { } vFigure)
+                                            {
+                                                @* ADR-007 — a Figure only ever reaches the screen through FigureText. *@
+                                                <FigureText Value="vFigure"
+                                                            Class="tabular-nums font-medium"
+                                                            TestId="@vRow.TestId" />
+                                            }
+                                            else
+                                            {
+                                                <span class="tabular-nums" data-testid="@vRow.TestId">@vRow.Text</span>
+                                            }
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                    </CardContent>
+                </Card>
+            }
+        </div>
+
+        @* REQ-UI-026 — undetected records are a footnote, never a column; hidden only at n = 0. *@
+        @if (objComparison.NotDetectedRecords > 0)
+        {
+            <div class="tflens-footnote" data-testid="harness-null-footnote">
+                <LucideIcon Name="info" Size="16" />
+                <span class="text-sm text-muted-foreground">
+                    @objComparison.NotDetectedRecords.ToString("N0", CultureInfo.InvariantCulture)
+                    records with harness not detected — excluded from the columns above
+                </span>
+            </div>
+        }
+
+        <div class="tflens-harness-lower">
+
+            @* REQ-UI-023 — the chart is supplementary; the table beside it carries the same numbers as text. *@
+            <Card Class="h-full">
+                <CardHeader>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <CardTitle>Total tokens by harness</CardTitle>
+                            <CardDescription>
+                                in + out + cache read + cache write · every value also appears as text
+                            </CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline">tokens, not dollars</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (objTokenRows.Any(aRow => aRow.Tokens > 0))
+                    {
+                        @* TR-005: the chart types carry no XValue/YValue and draw nothing from `Items` alone,
+                           so the series is declared with the component the wrapper wraps. *@
+                        <div class="tflens-chart" data-testid="tokens-chart">
+                            <ChartContainer>
+                                <BarChart TItem="HarnessTokenTotal"
+                                          Items="@objChartRows"
+                                          Height="260px"
+                                          Width="100%"
+                                          ShowLegend="false"
+                                          ShowTooltip="true">
+                                    <ApexPointSeries TItem="HarnessTokenTotal"
+                                                     Items="@objChartRows"
+                                                     Name="Total tokens"
+                                                     SeriesType="SeriesType.Bar"
+                                                     XValue="@(aRow => aRow.Harness)"
+                                                     YValue="@(aRow => (decimal)aRow.Tokens)"
+                                                     PointColor="@(aRow => ChartColourFor(aRow.Harness))" />
+                                </BarChart>
+                            </ChartContainer>
+                        </div>
+                    }
+                    else
+                    {
+                        <Empty Title="No token data"
+                               Description="No harness has captured token counts on this framework yet."
+                               Size="EmptySize.Small"
+                               data-testid="tokens-chart-empty">
+                            <Icon>
+                                <LucideIcon Name="bar-chart-3" Size="32" />
+                            </Icon>
+                        </Empty>
+                    }
+
+                    <div class="tflens-kv overflow-x-auto">
+                        <DataTable TData="HarnessTokens"
+                                   Data="@objTokenRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="50"
+                                   AriaLabel="Total tokens by harness"
+                                   data-testid="tokens-table">
+                            <Columns>
+                                <DataTableColumn TData="HarnessTokens" TValue="string"
+                                                 Property="@(aRow => aRow.Harness)" Header="Harness">
+                                    <CellTemplate Context="vRow">
+                                        <span class="text-muted-foreground">@vRow.Harness</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="HarnessTokens" TValue="string"
+                                                 Property="@(aRow => aRow.Display)" Header="Total tokens"
+                                                 CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tabular-nums font-medium"
+                                              data-testid="@($"tokens-total-{vRow.Harness}")">@vRow.Display</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+                </CardContent>
+            </Card>
+
+            @* REQ-UI-025 — the only dollars on the page, and only OpenCode's. *@
+            <Card Class="h-full" data-testid="opencode-cost">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="tflens-cost-heading">
+                            <CardTitle>Measured dollars (OpenCode only)</CardTitle>
+                            <CardDescription>
+                                <Badge Variant="BadgeVariant.Secondary">the only measured dollars in the system</Badge>
+                            </CardDescription>
+                        </div>
+                        <span class="tflens-stat-chip tflens-accent-2 shrink-0">
+                            <LucideIcon Name="database" Size="16" />
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (objComparison.OpenCodeCostUsd is { } vCost)
+                    {
+                        <div class="tflens-money tabular-nums" data-testid="opencode-cost-value">
+                            @vCost.ToString("C2", CultureInfo.GetCultureInfo("en-US"))
+                        </div>
+                        <p class="mt-1 text-xs text-muted-foreground" data-testid="opencode-cost-basis">
+                            Σ cost_usd over @OpenCodeRunCount.ToString("N0", CultureInfo.InvariantCulture) opencode runs
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="tflens-money-empty" data-testid="opencode-cost-value">no OpenCode records yet</div>
+                    }
+
+                    <div class="tflens-money-rule">
+                        <Separator />
+                    </div>
+
+                    <p class="text-sm text-muted-foreground" data-testid="opencode-cost-note">
+                        Claude Code and Codex: not measured (null by design)
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>What a value reads when there is nothing to measure at all.</summary>
+    private const string Dash = "—";
+
+    /// <summary>What every harness other than OpenCode reports for measured dollars (BRD-53).</summary>
+    private const string NotMeasured = "not measured (null by design)";
+
+    /// <summary>The one harness that measures its own cost.</summary>
+    private const string OpenCode = "opencode";
+
+    private HarnessComparison objComparison = new([], 0, null);
+    private IReadOnlyList<HarnessTokens> objTokenRows = [];
+    private IReadOnlyList<HarnessTokenTotal> objChartRows = [];
+    private string? objLoadError;
+    private bool objIsLoaded;
+    private int? objUserId;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>How many OpenCode runs the measured total was summed over.</summary>
+    private int OpenCodeRunCount =>
+        objComparison.Columns
+            .FirstOrDefault(aColumn => string.Equals(aColumn.Harness, OpenCode, StringComparison.Ordinal))?.Runs ?? 0;
+
+    /// <summary>
+    /// Re-queries whenever the workspace or the chosen provenance axis changes under this page.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-010 / ADR-016 — the Framework switch raises <c>ShellPreferences.Changed</c>; the page
+    /// answers it by asking the engine again on the new axis rather than by filtering what it already
+    /// rendered, because the two frameworks are separate provenance axes and never pool.
+    /// </remarks>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and builds the comparison on the selected framework.
+    /// </summary>
+    /// <remarks>
+    /// ADR-016 — the framework is a query parameter, never a display filter. The header's Framework
+    /// switch reloads the route, which brings the page back through here and re-queries the engine.
+    /// </remarks>
+    /// <returns>A task that completes when the three columns have their values.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (objIsLoaded || AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    /// <summary>
+    /// Re-reads the comparison for the signed-in user on the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the page has its figures or its error.</returns>
+    private async Task ReloadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // ADR-016 — the framework is read afresh on every load, so a change of axis is a new query
+            // against the engine, never a filter applied to figures already on screen.
+            objComparison = await objExtraMetrics
+                .CompareHarnessesAsync(objUserId.Value, objPreferences.Framework);
+            objTokenRows = objComparison.Columns.Select(ToTokenRow).ToList();
+            objChartRows = objTokenRows
+                .Select(aRow => new HarnessTokenTotal(aRow.Harness, aRow.Tokens))
+                .ToList();
+            objLoadError = null;
+        }
+        catch (Exception vEx)
+        {
+            objComparison = new HarnessComparison([], 0, null);
+            objTokenRows = [];
+            objChartRows = [];
+            objLoadError = vEx.Message;
+        }
+        finally
+        {
+            objIsLoaded = true;
+        }
+    }
+
+    /// <summary>
+    /// Builds one harness column's key/value rows, in the order the mockup lists them.
+    /// </summary>
+    /// <param name="aColumn">The harness column the engine produced.</param>
+    /// <returns>The rows; a harness with no records at all reads <c>—</c> throughout.</returns>
+    private IReadOnlyList<ColumnRow> RowsFor(HarnessColumn aColumn)
+    {
+        var vIsEmpty = IsEmpty(aColumn);
+        var vHarness = aColumn.Harness;
+
+        return
+        [
+            new ColumnRow("Runs", CountText(vIsEmpty, aColumn.Runs), null, $"harness-{vHarness}-runs"),
+            new ColumnRow("Runs by cmd (top 3)", PairsText(aColumn.RunsByCmd, 3), null, $"harness-{vHarness}-cmds"),
+            new ColumnRow("Gate records", CountText(vIsEmpty, aColumn.GateRecords), null, $"harness-{vHarness}-gates"),
+            new ColumnRow("Verdict mix", PairsText(aColumn.VerdictMix, int.MaxValue), null, $"harness-{vHarness}-verdicts"),
+            new ColumnRow("Sessions", CountText(vIsEmpty, aColumn.Sessions), null, $"harness-{vHarness}-sessions"),
+            new ColumnRow("Tokens in", CountText(vIsEmpty, aColumn.TokensIn), null, $"harness-{vHarness}-tokens-in"),
+            new ColumnRow("Tokens out", CountText(vIsEmpty, aColumn.TokensOut), null, $"harness-{vHarness}-tokens-out"),
+            new ColumnRow("Cache read", CountText(vIsEmpty, aColumn.TokensCacheRead), null, $"harness-{vHarness}-cache-read"),
+            new ColumnRow("Cache write", CountText(vIsEmpty, aColumn.TokensCacheWrite), null, $"harness-{vHarness}-cache-write"),
+
+            // REQ-UI-024 — computed per harness, never pooled, and never a number below the minimum n.
+            new ColumnRow(
+                "Tokens per Verified REQ",
+                aColumn.TokensPerVerifiedReq.Display(),
+                aColumn.TokensPerVerifiedReq,
+                $"harness-{vHarness}-tokens-per-verified"),
+
+            // REQ-UI-025 — no dollar figure lives in a column; OpenCode's measured total is in its own
+            // card below, and the other two say why they have none rather than showing a zero.
+            new ColumnRow("Measured dollars", MeasuredDollarsText(vHarness), null, $"harness-{vHarness}-cost")
+        ];
+    }
+
+    /// <summary>
+    /// What a harness column says about measured dollars.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-025 / BRD-53 — no dollar figure appears in a column: Claude Code and Codex have none by
+    /// design and say so rather than showing a zero, and OpenCode points at the one card that holds the
+    /// measurement. When OpenCode captured no <c>cost_usd</c> at all the row says that too, so it never
+    /// contradicts the card beside it.
+    /// </remarks>
+    /// <param name="aHarness">The harness key from the engine.</param>
+    /// <returns>The line for the Measured dollars row.</returns>
+    private string MeasuredDollarsText(string aHarness)
+    {
+        if (!string.Equals(aHarness, OpenCode, StringComparison.Ordinal))
+        {
+            return NotMeasured;
+        }
+
+        return objComparison.OpenCodeCostUsd is null
+            ? "no cost_usd captured yet"
+            : "measured — see the card below";
+    }
+
+    /// <summary>
+    /// Tells whether a harness emitted nothing at all on this framework.
+    /// </summary>
+    /// <param name="aColumn">The harness column.</param>
+    /// <returns><c>true</c> when it has no runs, no gate records and no sessions.</returns>
+    private static bool IsEmpty(HarnessColumn aColumn) =>
+        aColumn.Runs == 0 && aColumn.GateRecords == 0 && aColumn.Sessions == 0;
+
+    /// <summary>
+    /// Renders a count, or <c>—</c> when the harness emitted nothing.
+    /// </summary>
+    /// <remarks>
+    /// ADR-017 — a harness with no records is shown, not hidden, and a zero would read as "we measured
+    /// it and it was nothing" rather than "there was nothing to measure".
+    /// </remarks>
+    /// <param name="aIsEmpty">Whether the whole column is empty.</param>
+    /// <param name="aValue">The count.</param>
+    /// <returns>The grouped number, or the dash.</returns>
+    private static string CountText(bool aIsEmpty, long aValue) =>
+        aIsEmpty ? Dash : aValue.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Renders a label/count list such as the top commands or the verdict mix.
+    /// </summary>
+    /// <param name="aPairs">The pairs, busiest first.</param>
+    /// <param name="aTake">How many to show.</param>
+    /// <returns>A <c>label n · label n</c> line, or the dash when there are none.</returns>
+    private static string PairsText(IReadOnlyList<KeyValuePair<string, int>> aPairs, int aTake) =>
+        aPairs.Count == 0
+            ? Dash
+            : string.Join(" · ", aPairs.Take(aTake).Select(aPair => $"{aPair.Key} {aPair.Value}"));
+
+    /// <summary>
+    /// Totals one harness's tokens for the supplementary chart and its text table.
+    /// </summary>
+    /// <param name="aColumn">The harness column.</param>
+    /// <returns>The chart row.</returns>
+    private static HarnessTokens ToTokenRow(HarnessColumn aColumn)
+    {
+        var vTotal = aColumn.TokensIn + aColumn.TokensOut + aColumn.TokensCacheRead + aColumn.TokensCacheWrite;
+
+        return new HarnessTokens(
+            aColumn.Harness,
+            vTotal,
+            IsEmpty(aColumn) && vTotal == 0 ? Dash : vTotal.ToString("N0", CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// The sub-line under a harness name.
+    /// </summary>
+    /// <param name="aColumn">The harness column.</param>
+    /// <returns>The product name plus its record count, or the honest "no records" line.</returns>
+    private static string SubtitleFor(HarnessColumn aColumn)
+    {
+        var vRecords = aColumn.Runs + aColumn.GateRecords + aColumn.Sessions;
+
+        return vRecords == 0
+            ? $"{ProductNameFor(aColumn.Harness)} · no records"
+            : $"{ProductNameFor(aColumn.Harness)} · {vRecords:N0} records";
+    }
+
+    /// <summary>
+    /// The human name of a harness.
+    /// </summary>
+    /// <param name="aHarness">The harness key from the engine.</param>
+    /// <returns>The product name shown under the column title.</returns>
+    private static string ProductNameFor(string aHarness) => aHarness switch
+    {
+        "claude-code" => "Claude Code CLI",
+        OpenCode => "OpenCode",
+        "codex" => "Codex CLI",
+        _ => aHarness
+    };
+
+    /// <summary>
+    /// The accent chip colour for a harness, matching the chart's own series colours.
+    /// </summary>
+    /// <param name="aHarness">The harness key from the engine.</param>
+    /// <returns>The scoped accent class.</returns>
+    private static string AccentClassFor(string aHarness) => aHarness switch
+    {
+        "claude-code" => "tflens-accent-1",
+        OpenCode => "tflens-accent-2",
+        _ => "tflens-accent-3"
+    };
+
+    /// <summary>
+    /// The bar colour for a harness, matching its column's accent chip.
+    /// </summary>
+    /// <param name="aHarness">The harness key from the engine.</param>
+    /// <returns>The chart token the bar is painted with.</returns>
+    private static string ChartColourFor(string aHarness) => aHarness switch
+    {
+        "claude-code" => ChartColor.Chart1,
+        OpenCode => ChartColor.Chart2,
+        _ => ChartColor.Chart3
+    };
+
+    /// <summary>Re-queries when the workspace changes under the page — a sync, for instance.</summary>
+    private void OnShellChanged() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnShellChanged;
+    }
+
+    /// <summary>One key/value row inside a harness column.</summary>
+    /// <param name="Label">The metric's name, shown in the left cell.</param>
+    /// <param name="Text">The plain rendering of the value, also the column's sort key.</param>
+    /// <param name="Value">The figure when the row carries one, so FigureText can refuse to print a number.</param>
+    /// <param name="TestId">The row value's stable test id.</param>
+    private sealed record ColumnRow(string Label, string Text, Figure? Value, string TestId);
+
+    /// <summary>One bar of the tokens-by-harness chart, and one row of the text table beside it.</summary>
+    /// <param name="Harness">The harness name.</param>
+    /// <param name="Tokens">Input + output + cache read + cache write.</param>
+    /// <param name="Display">The same total as text, or <c>—</c> when the harness emitted nothing.</param>
+    private sealed record HarnessTokens(string Harness, long Tokens, string Display);
+
+    /// <summary>
+    /// The two-property projection the bar chart is given.
+    /// </summary>
+    /// <remarks>
+    /// TR-005 — TrBlazeUI 2.0.0's chart types expose no <c>XValue</c>/<c>YValue</c> and infer the category
+    /// and the series from the item type's properties, so this type carries those two and nothing else.
+    /// </remarks>
+    /// <param name="Harness">The category — the harness name on the x axis.</param>
+    /// <param name="Tokens">The series — input + output + cache read + cache write.</param>
+    private sealed record HarnessTokenTotal(string Harness, double Tokens);
+}

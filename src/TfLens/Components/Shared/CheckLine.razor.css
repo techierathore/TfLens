@@ -1,0 +1,12 @@
+/* The validation lines' pass/fail colours. TrBlazeUI's shipped CSS has no `text-alert-success`
+   utility, so the two colours are taken straight from its own alert tokens here. */
+
+.tflens-check-ok {
+    display: inline-flex;
+    color: var(--alert-success);
+}
+
+.tflens-check-bad {
+    display: inline-flex;
+    color: var(--destructive);
+}

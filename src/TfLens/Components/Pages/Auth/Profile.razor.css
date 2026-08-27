@@ -1,0 +1,98 @@
+/*
+    Two cards side by side on a wide screen, stacked under md. Written by hand because the TrBlazeUI
+    2.0.0 stylesheet ships no responsive (sm:/md:/lg:) utility variants at all, so the breakpoint
+    cannot be expressed in markup (TR-002).
+*/
+
+.profile-page {
+    /*
+        TR-001 — TrBlazeUI 2.0.0 references these tokens from every Alert variant but never defines
+        them, so an Alert would otherwise render with no colour. Custom properties inherit, so
+        declaring them on the page root repairs every TrBlazeUI control rendered inside it.
+    */
+    --alert-success: oklch(72.3% 0.19 149.6);
+    --alert-success-bg: color-mix(in oklab, oklch(72.3% 0.19 149.6) 10%, transparent);
+    --alert-info: oklch(62.3% 0.19 259.8);
+    --alert-info-bg: color-mix(in oklab, oklch(62.3% 0.19 259.8) 10%, transparent);
+    --alert-warning: oklch(76.9% 0.16 70.1);
+    --alert-warning-bg: color-mix(in oklab, oklch(76.9% 0.16 70.1) 10%, transparent);
+    --alert-danger: oklch(63.7% 0.21 25.3);
+    --alert-danger-bg: color-mix(in oklab, oklch(63.7% 0.21 25.3) 10%, transparent);
+
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .profile-page {
+        padding: 2rem;
+    }
+
+    .profile-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+/* Why minmax(0, 1fr) rather than 1fr: a grid item's default `min-width: auto` refuses to shrink
+   below the intrinsic width of its content, so the profile card (which holds a DataTable ~437px
+   wide) pushed the page sideways at a 390px viewport even though the grid had correctly collapsed
+   to one column. Constraining the TRACK fixes it at the container; a `.profile-grid > * { min-width: 0 }`
+   rule does not, because scoped CSS cannot reach a child component's root element. */
+
+/* minmax(0, 1fr) constrains the TRACK, but the grid ITEM still carries `min-width: auto` and can
+   overflow it. The item here is a <Card>, a child component whose root element carries no scope id
+   of this page, so the rule only reaches it through ::deep. Both halves are needed: the track so the
+   column can be narrow, and the item so it actually is. */
+.profile-grid ::deep > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Anything wide inside a card (the profile key/value table) scrolls in its own box rather than
+   widening the card. */
+.profile-grid ::deep table {
+    max-width: 100%;
+}
+
+/* The key/value table inside the profile card has an intrinsic minimum around 344px and sat in no
+   scrolling container, so it — not the card, and not the grid — was the last thing widening the
+   page at 390px.
+   `display: block; overflow-x: auto` on the table itself does NOT fix this: the internal row boxes
+   keep their min-content width and simply overflow the block. A fixed layout is the right tool for
+   a two-column key/value table — the columns compress and long values wrap, so nothing scrolls and
+   nothing is hidden. */
+.profile-grid ::deep table {
+    table-layout: fixed;
+    width: 100%;
+    max-width: 100%;
+}
+
+.profile-grid ::deep th,
+.profile-grid ::deep td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* The card header is a justify-between row: identity on the left, role badge on the right. The email
+   is a single long unbreakable-looking token, and a flex item defaults to `min-width: auto`, so the
+   identity block refused to shrink and pushed the badge past the card edge — the badge was the last
+   thing widening the page at 390px. Letting the block shrink and the text wrap keeps both inside. */
+.profile-identity,
+.profile-identity-text {
+    min-width: 0;
+}
+
+.profile-identity-text ::deep * {
+    overflow-wrap: anywhere;
+}

@@ -1,0 +1,31 @@
+@* Renders a Figure. This is the only way a figure reaches a page, so the
+   "insufficient data" and "not applicable" cases cannot be accidentally
+   rendered as a number (ADR-007). *@
+
+@if (Value.HasValue)
+{
+    <span class="@Class" data-testid="@TestId">@Value.Display()</span>
+}
+else if (Value.Kind == FigureKind.InsufficientData)
+{
+    <span class="text-muted-foreground italic @Class" data-testid="@TestId">@Value.Display()</span>
+}
+else
+{
+    <span class="text-muted-foreground @Class" data-testid="@TestId">@Value.Display()</span>
+}
+
+@code {
+    /// <summary>The figure to render.</summary>
+    [Parameter]
+    [EditorRequired]
+    public Figure Value { get; set; }
+
+    /// <summary>Extra utility classes applied to the rendered span.</summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Stable test id so the verifier's data-render gate can assert the value is non-blank.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

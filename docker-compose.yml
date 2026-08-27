@@ -1,0 +1,77 @@
+# TfLens — two containers, one process each (Architecture §9).
+#
+# The image never contains a secret: the AppManager key/secret, the connection string and the
+# optional GitHub PAT all arrive as PascalCase environment variables (Coding Standards
+# §Environment Variables). Postgres is not published outside the compose network — only the tflens
+# service reaches it — so the database has no inbound exposure at all.
+#
+# TfLens's persistent state is the two bind-mounted volumes: data/ (raw archive, reports,
+# prices.json) and logs/. The Postgres data directory is a named volume, and is deliberately NOT the
+# source of truth — `rebuild` drops every table and replays data/raw/ (ADR-015).
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: tflens-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tflens
+      POSTGRES_USER: tflens
+      # Supplied by the operator via a .env file or the shell; never committed.
+      POSTGRES_PASSWORD: ${TfLensDbPassword:?TfLensDbPassword must be set}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tflens -d tflens"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tflens
+
+  tflens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tflens
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Required — no default, so a misconfigured deploy fails at startup rather than at the first
+      # user's sign-in (BRD-9).
+      TfLensDbConnection: "Host=postgres;Port=5432;Database=tflens;Username=tflens;Password=${TfLensDbPassword}"
+      # Optional pair. AppManager resolves the application from the applicationId the client sends in
+      # every request body, so these may be blank — but a half-configured pair 401s every call, which
+      # the app refuses at startup.
+      TfLensAppManagerApiKey: ${TfLensAppManagerApiKey:-}
+      TfLensAppManagerApiSecret: ${TfLensAppManagerApiSecret:-}
+      # Optional — raises the GitHub rate limit; grants no additional repository access (BRD-100).
+      TfLensGitHubToken: ${TfLensGitHubToken:-}
+      # Non-secret settings.
+      TfLensAppManagerBaseUrl: ${TfLensAppManagerBaseUrl:-https://appmgrapi.techierathore.com}
+      TfLensAppManagerAppId: "1"
+      TfLensDataRoot: /app/data
+      TfLensPollIntervalMinutes: ${TfLensPollIntervalMinutes:-15}
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "${TfLensHostPort:-8080}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - tflens
+
+volumes:
+  pgdata:
+
+networks:
+  tflens:
+    driver: bridge

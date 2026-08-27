@@ -1,0 +1,25 @@
+@*
+    One line of the Connect dialog's three-line validation result (REQ-UI-012):
+    a green check or a red cross followed by the sentence that check proves.
+*@
+
+<div class="flex items-center gap-2">
+    <span class="@(Ok ? "tflens-check-ok" : "tflens-check-bad")">
+        <LucideIcon Name="@(Ok ? "check" : "x")" Size="16" />
+    </span>
+    <span data-testid="@TestId">@Text</span>
+</div>
+
+@code {
+    /// <summary>True when the check passed.</summary>
+    [Parameter]
+    public bool Ok { get; set; }
+
+    /// <summary>The sentence the line states.</summary>
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>Optional test id for the sentence.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

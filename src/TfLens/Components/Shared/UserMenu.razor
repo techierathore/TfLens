@@ -1,0 +1,81 @@
+@*
+    REQ-UI-008 — the header user menu.
+
+    The only sign-out control in the app: there is deliberately no bare sign-out button anywhere else.
+    The trigger is the avatar's initials + display name + a chevron; the menu carries the email as its
+    label, then Profile, Manage repos, a separator and Sign out.
+*@
+
+<DropdownMenu>
+    <DropdownMenuTrigger AsChild="true">
+        <Button Variant="ButtonVariant.Ghost"
+                Size="ButtonSize.Small"
+                Class="gap-2"
+                AriaLabel="Account menu"
+                data-testid="user-menu">
+            <Avatar Size="AvatarSize.Small">
+                <AvatarFallback>@Initials</AvatarFallback>
+            </Avatar>
+            <span class="hidden md:flex" data-testid="user-menu-name">@DisplayName</span>
+            <LucideIcon Name="chevron-down" Size="14" />
+        </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent Align="PopoverAlign.End" Class="min-w-[12rem]">
+        <div data-testid="user-menu-content">
+            <DropdownMenuLabel>
+                <span class="text-xs font-normal text-muted-foreground" data-testid="user-menu-email">@Email</span>
+            </DropdownMenuLabel>
+            <DropdownMenuItem OnClick="@(() => NavigateTo("/profile"))">
+                <span class="flex items-center gap-2" data-testid="user-menu-profile">
+                    <LucideIcon Name="user" Size="16" />
+                    Profile
+                </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem OnClick="@(() => NavigateTo("/repos"))">
+                <span class="flex items-center gap-2" data-testid="user-menu-repos">
+                    <LucideIcon Name="git-branch" Size="16" />
+                    Manage repos
+                </span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem OnClick="OnSignOut">
+                <span class="flex items-center gap-2" data-testid="user-menu-signout">
+                    <LucideIcon Name="log-out" Size="16" />
+                    Sign out
+                </span>
+            </DropdownMenuItem>
+        </div>
+    </DropdownMenuContent>
+</DropdownMenu>
+
+@code {
+    /// <summary>The signed-in user's display name, shown beside the avatar.</summary>
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>The signed-in user's email, shown as the menu's label.</summary>
+    [Parameter]
+    public string Email { get; set; } = string.Empty;
+
+    /// <summary>The avatar's initials.</summary>
+    [Parameter]
+    public string Initials { get; set; } = "?";
+
+    [Inject]
+    private NavigationManager objNavigation { get; set; } = default!;
+
+    /// <summary>
+    /// Navigates to one of the two in-app menu destinations.
+    /// </summary>
+    /// <param name="aHref">The route to open.</param>
+    private void NavigateTo(string aHref) => objNavigation.NavigateTo(aHref);
+
+    /// <summary>
+    /// Hands over to the sign-out endpoint, which clears the cookie on a real HTTP response.
+    /// </summary>
+    /// <remarks>
+    /// Cookie sign-out cannot happen inside the circuit, so this is a full navigation to the minimal-API
+    /// endpoint (<c>AuthEndpoints</c>), not an in-app navigation.
+    /// </remarks>
+    private void OnSignOut() => objNavigation.NavigateTo("/signout", forceLoad: true);
+}

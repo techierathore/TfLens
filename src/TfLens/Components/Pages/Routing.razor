@@ -1,0 +1,1188 @@
+@*
+    REQ-UI-027 / REQ-UI-028 / REQ-UI-029 / REQ-UI-030 / REQ-UI-031 — Routing & economics.
+
+    The page the integrity rules bite hardest on. Every dollar on it is tokens × the operator's rate card,
+    never measured spend (SCHEMA.md §4, ADR-009), so every money figure — the actual mix, the
+    counterfactual and the delta between them — carries RateCard.EstimateLabel verbatim beside it. An
+    observed model the rate card does not price is named in a warning rather than priced at zero, and runs
+    whose `tokens_scope` is `none` are excluded from the estimate with the excluded count stated on screen.
+    `PooledMetrics.CostUsd` is null by design and is deliberately not rendered anywhere.
+*@
+@page "/routing"
+@using System.Globalization
+@using Microsoft.Extensions.Options
+@using TfLens.Core.Metrics
+@* These namespaces are NOT in Components/_Imports.razor, and Razor does not fail the build when a
+   component cannot be resolved — it emits RZ10012 and renders <typographyh2>/<empty> as raw unknown
+   elements with no styling at all. Every page in the app currently has that defect; these usings fix it
+   for this one. _Imports.razor is shared, so the app-wide fix is reported rather than made here. *@
+@using TrBlazeUI.Components.Empty
+@using TrBlazeUI.Components.Typography
+@implements IDisposable
+@inject IExtraMetrics objExtraMetrics
+@inject IMetricsEngine objMetricsEngine
+@inject IOptions<TfLensOptions> objOptions
+@inject ShellPreferences objPreferences
+@inject ToastService objToastService
+
+<PageTitle>Routing &amp; economics · TfLens</PageTitle>
+
+<div class="tflens-stack">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <TypographyH2>Routing &amp; economics</TypographyH2>
+            <TypographyMuted>
+                Did runs land on the tier they were routed to, and what would the token mix cost at
+                rate-card prices?
+            </TypographyMuted>
+        </div>
+        <Badge Variant="BadgeVariant.Outline" data-testid="routing-framework">@objFramework</Badge>
+    </div>
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" AccentBorder="true" data-testid="routing-error">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Couldn't compute the routing view</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objRouting is not null && objPooled is not null)
+    {
+        <Tabs DefaultValue="drift" data-testid="routing-tabs">
+            @* TabsList is an inline-flex row: four triggers are wider than a 390px viewport, and without
+               this the page container itself scrolls sideways. It scrolls inside its own box instead. *@
+            <div class="tflens-tabs-scroll">
+            <TabsList>
+                @* TR-010: TabsTrigger captures no unmatched attributes, so the required test id sits on
+                   the trigger's own label span — a click on it still activates the trigger. *@
+                <TabsTrigger Value="drift">
+                    <span data-testid="routing-tab-drift">Routing drift</span>
+                </TabsTrigger>
+                <TabsTrigger Value="models">
+                    <span data-testid="routing-tab-models">Tokens by model</span>
+                </TabsTrigger>
+                <TabsTrigger Value="repricing">
+                    <span data-testid="routing-tab-repricing">Repricing (estimate)</span>
+                </TabsTrigger>
+                <TabsTrigger Value="poolable">
+                    <span data-testid="routing-tab-poolable">Poolable metrics</span>
+                </TabsTrigger>
+            </TabsList>
+            </div>
+
+            @* ── Routing drift ─────────────────────────────────────────────────────────────── *@
+            <TabsContent Value="drift">
+                <div class="tflens-stack" data-testid="routing-panel-drift">
+                    <div class="tflens-kpi-row tflens-kpi-3">
+                        <StatGroup Columns="3">
+                            <StatTile Title="Runs with routing fields"
+                                      Value="@objRouting.RunsWithRoutingFields.ToString("N0", CultureInfo.InvariantCulture)"
+                                      Description="@RoutingFieldsDetail"
+                                      IconName="route"
+                                      Accent="StatAccent.Chart1"
+                                      data-testid="kpi-routing-fields" />
+                            <StatTile Title="routed:false runs"
+                                      Value="@objRouting.UnroutedRuns.ToString("N0", CultureInfo.InvariantCulture)"
+                                      Description="@UnroutedDetail"
+                                      IconName="triangle-alert"
+                                      Accent="StatAccent.Destructive"
+                                      data-testid="kpi-unrouted" />
+                            <StatTile Title="Distinct observed models"
+                                      Value="@objRouting.DistinctModels.ToString("N0", CultureInfo.InvariantCulture)"
+                                      Description="@ObservedModelsDetail"
+                                      IconName="database"
+                                      Accent="StatAccent.Chart5"
+                                      data-testid="kpi-distinct-models" />
+                        </StatGroup>
+                    </div>
+
+                    @if (DriftRows.Count == 0)
+                    {
+                        <Empty Title="no routing fields captured yet"
+                               Description="Runs carry tier, tier_model, model and routed only once the harness records them; nothing here is missing data, it is data not yet collected."
+                               Size="EmptySize.Default"
+                               data-testid="drift-empty">
+                            <Icon>
+                                <LucideIcon Name="route" Size="40" />
+                            </Icon>
+                        </Empty>
+                    }
+                    else
+                    {
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Routing drift</CardTitle>
+                                @* TR-009: DataTable pages silently, so the row total is stated in the
+                                   description — a reader can always see how many rows the table stands for. *@
+                                <CardDescription>
+                                    <span data-testid="drift-row-count">@DriftRows.Count runs carry routing fields</span>
+                                    — declared tier and tier_model beside the model actually observed.
+                                    <b>routed:false</b> rows are listed first; the rest are grouped by command.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                <div class="overflow-x-auto">
+                                    <DataTable TData="DriftRow"
+                                               Data="@DriftRows"
+                                               ShowToolbar="false"
+                                               ShowPagination="true"
+                                               InitialPageSize="25"
+                                               AriaLabel="Routing drift"
+                                               data-testid="drift-table">
+                                        <Columns>
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => aRow.Cmd ?? Missing)" Header="cmd" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span class="font-mono text-xs">@(vRow.Cmd ?? Missing)</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => aRow.Tier ?? Missing)" Header="tier" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span>@(vRow.Tier ?? Missing)</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => aRow.TierModel ?? Missing)" Header="tier_model" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span class="font-mono text-xs">@(vRow.TierModel ?? Missing)</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => aRow.Model ?? Missing)" Header="observed model" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span class="font-mono text-xs">@(vRow.Model ?? Missing)</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="int"
+                                                             Property="@(aRow => ModelCount(aRow))" Header="models" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span class="flex flex-col">
+                                                        <span class="tabular-nums">@ModelCount(vRow)</span>
+                                                        @if (ModelCount(vRow) > 1)
+                                                        {
+                                                            <span class="font-mono text-xs text-muted-foreground">@vRow.Models</span>
+                                                        }
+                                                    </span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => RoutedText(aRow))" Header="routed" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    @if (vRow.Routed == false)
+                                                    {
+                                                        <span class="flex items-center gap-2">
+                                                            <Badge Variant="BadgeVariant.Destructive">drift</Badge>
+                                                            <span class="font-mono text-xs">routed:false</span>
+                                                        </span>
+                                                    }
+                                                    else if (vRow.Routed == true)
+                                                    {
+                                                        <Badge Variant="BadgeVariant.Secondary">routed:true</Badge>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted-foreground">@Missing</span>
+                                                    }
+                                                </CellTemplate>
+                                            </DataTableColumn>
+
+                                            <DataTableColumn TData="DriftRow" TValue="string"
+                                                             Property="@(aRow => aRow.Ts)" Header="ts" Sortable>
+                                                <CellTemplate Context="vRow">
+                                                    <span class="whitespace-nowrap text-muted-foreground">@vRow.Ts</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+                                        </Columns>
+                                    </DataTable>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    }
+                </div>
+            </TabsContent>
+
+            @* ── Tokens by observed model ──────────────────────────────────────────────────── *@
+            <TabsContent Value="models">
+                <div class="tflens-stack" data-testid="routing-panel-models">
+                    @if (objRouting.TokensByModel.Count == 0)
+                    {
+                        <Empty Title="no token counts captured yet"
+                               Description="No run in this framework reports the four token classes, so there is nothing to total per observed model."
+                               Size="EmptySize.Default"
+                               data-testid="model-tokens-empty">
+                            <Icon>
+                                <LucideIcon Name="database" Size="40" />
+                            </Icon>
+                        </Empty>
+                    }
+                    else
+                    {
+                        <div class="tflens-grid tflens-grid-tokens">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Tokens by observed model</CardTitle>
+                                    <CardDescription>
+                                        All four token classes summed per model actually observed, not per tier requested.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent Class="pt-0">
+                                    <div class="overflow-x-auto">
+                                        <DataTable TData="ModelTokens"
+                                                   Data="@objRouting.TokensByModel"
+                                                   ShowToolbar="false"
+                                                   ShowPagination="false"
+                                                   InitialPageSize="100"
+                                                   AriaLabel="Tokens by observed model"
+                                                   data-testid="model-tokens">
+                                            <Columns>
+                                                <DataTableColumn TData="ModelTokens" TValue="string"
+                                                                 Property="@(aRow => aRow.Model)" Header="model" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="font-mono text-xs">@vRow.Model</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                                <DataTableColumn TData="ModelTokens" TValue="long"
+                                                                 Property="@(aRow => aRow.TokensIn)" Header="in" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="tabular-nums">@Tokens(vRow.TokensIn)</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                                <DataTableColumn TData="ModelTokens" TValue="long"
+                                                                 Property="@(aRow => aRow.TokensOut)" Header="out" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="tabular-nums">@Tokens(vRow.TokensOut)</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                                <DataTableColumn TData="ModelTokens" TValue="long"
+                                                                 Property="@(aRow => aRow.TokensCacheRead)" Header="cache read" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="tabular-nums">@Tokens(vRow.TokensCacheRead)</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                                <DataTableColumn TData="ModelTokens" TValue="long"
+                                                                 Property="@(aRow => aRow.TokensCacheWrite)" Header="cache write" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="tabular-nums">@Tokens(vRow.TokensCacheWrite)</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                                <DataTableColumn TData="ModelTokens" TValue="long"
+                                                                 Property="@(aRow => aRow.Total)" Header="total" Sortable>
+                                                    <CellTemplate Context="vRow">
+                                                        <span class="font-semibold tabular-nums">@Tokens(vRow.Total)</span>
+                                                    </CellTemplate>
+                                                </DataTableColumn>
+                                            </Columns>
+                                        </DataTable>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Total tokens by model</CardTitle>
+                                    <CardDescription>
+                                        Supplementary — every charted value is stated as text in the table beside it.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent Class="pt-0">
+                                    @* TR-011: TrBlazeUI's BarChart renders an empty div in this app — the
+                                       ApexCharts runtime the package wraps is never loaded, so the chart
+                                       component produces a blank box rather than bars. The totals are drawn
+                                       here instead, each labelled with the exact figure the table states. *@
+                                    <div class="tflens-bars" data-testid="model-tokens-bars">
+                                        @foreach (var vPoint in ModelTotals)
+                                        {
+                                            <div class="tflens-bar">
+                                                <span class="text-xs font-semibold tabular-nums">@Tokens((long)vPoint.Total)</span>
+                                                <span class="tflens-bar-fill @AccentOf(vPoint)" style="@BarStyle(vPoint)"></span>
+                                                <span class="text-xs text-muted-foreground">@vPoint.Model</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    }
+                </div>
+            </TabsContent>
+
+            @* ── Counterfactual repricing (estimate) ───────────────────────────────────────── *@
+            <TabsContent Value="repricing">
+                <div class="tflens-stack" data-testid="routing-panel-repricing">
+
+                    @if (objRouting.MissingPriceModels.Count > 0)
+                    {
+                        <Alert Variant="AlertVariant.Warning" AccentBorder="true" data-testid="missing-prices">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                            <AlertTitle>@MissingPriceTitle</AlertTitle>
+                            <AlertDescription>
+                                @MissingPriceDescription
+                            </AlertDescription>
+                        </Alert>
+                    }
+
+                    <div class="tflens-grid tflens-grid-3">
+                        <Card Class="h-full" data-testid="repricing-actual">
+                            <CardHeader Class="flex flex-row items-start justify-between gap-2">
+                                <div>
+                                    <CardTitle>Actual mix</CardTitle>
+                                    <CardDescription>tokens per observed model × prices.json</CardDescription>
+                                </div>
+                                <span class="tflens-stat-chip tflens-accent-1">
+                                    <LucideIcon Name="route" Size="16" />
+                                </span>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                <div class="tflens-money" data-testid="repricing-actual-value">@Money(objRouting.ActualMixUsd)</div>
+                                <div class="mt-2">
+                                    <Badge Variant="BadgeVariant.Outline" data-testid="repricing-actual-estimate">
+                                        @RateCard.EstimateLabel
+                                    </Badge>
+                                </div>
+                                <p class="mt-2 text-xs text-muted-foreground" data-testid="repricing-actual-excluded">
+                                    @ExcludedLine
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card Class="h-full" data-testid="repricing-max">
+                            <CardHeader Class="flex flex-row items-start justify-between gap-2">
+                                <div>
+                                    <CardTitle>@MaxCardTitle</CardTitle>
+                                    <CardDescription>every priced run repriced at the most expensive observed model</CardDescription>
+                                </div>
+                                <span class="tflens-stat-chip tflens-accent-5">
+                                    <LucideIcon Name="route" Size="16" />
+                                </span>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                <div class="tflens-money" data-testid="repricing-max-value">@Money(objRouting.AllAtMaxUsd)</div>
+                                <div class="mt-2">
+                                    <Badge Variant="BadgeVariant.Outline" data-testid="repricing-max-estimate">
+                                        @RateCard.EstimateLabel
+                                    </Badge>
+                                </div>
+                                <p class="mt-2 text-xs text-muted-foreground" data-testid="repricing-max-excluded">
+                                    @ExcludedLine
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card Class="h-full" data-testid="repricing-delta">
+                            <CardHeader Class="flex flex-row items-start justify-between gap-2">
+                                <div>
+                                    <CardTitle>Counterfactual delta</CardTitle>
+                                    <CardDescription>max − actual</CardDescription>
+                                </div>
+                                <span class="tflens-stat-chip tflens-accent-2">
+                                    <LucideIcon Name="activity" Size="16" />
+                                </span>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                <div class="tflens-money tflens-money-saved" data-testid="repricing-delta-value">@DeltaText</div>
+                                <p class="mt-1 text-xs text-muted-foreground" data-testid="repricing-delta-share">@SavedLine</p>
+                                <div class="mt-2">
+                                    <Badge Variant="BadgeVariant.Outline" data-testid="repricing-delta-estimate">
+                                        @RateCard.EstimateLabel
+                                    </Badge>
+                                </div>
+                                <div class="mt-2">
+                                    <Progress Value="@ActualSharePercent" />
+                                </div>
+                                <p class="mt-1 text-xs text-muted-foreground">@ActualShareLine</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <span class="text-sm text-muted-foreground">
+                            Prices from <span class="font-mono text-xs">prices.json</span> ·
+                            @RateCard.Units · a missing price shows a warning naming the model.
+                            Nobody was billed these amounts.
+                        </span>
+                        <Button Variant="ButtonVariant.Outline"
+                                Size="ButtonSize.Small"
+                                OnClick="OpenPricesDialogAsync"
+                                data-testid="edit-prices">
+                            <LucideIcon Name="database" Size="16" />
+                            Edit prices.json
+                        </Button>
+                    </div>
+                </div>
+            </TabsContent>
+
+            @* ── Poolable metrics ──────────────────────────────────────────────────────────── *@
+            <TabsContent Value="poolable">
+                <div class="tflens-stack" data-testid="routing-panel-poolable">
+                    <div class="tflens-kpi-row tflens-kpi-5">
+                        <StatGroup Columns="5">
+                            <StatTile Title="Rework ratio"
+                                      Description="fix-mode runs over build-phase runs"
+                                      IconName="refresh-cw"
+                                      Accent="StatAccent.Chart3"
+                                      data-testid="pooled-rework">
+                                <ValueContent>
+                                    <FigureText Value="@objPooled.ReworkRatio" TestId="pooled-rework-value" />
+                                </ValueContent>
+                            </StatTile>
+                            <StatTile Title="Batch size (median)"
+                                      Description="REQs per build-phase run"
+                                      IconName="database"
+                                      Accent="StatAccent.Chart1"
+                                      data-testid="pooled-batch">
+                                <ValueContent>
+                                    <FigureText Value="@objPooled.BatchSizeMedian" TestId="pooled-batch-value" />
+                                </ValueContent>
+                            </StatTile>
+                            <StatTile Title="REQ throughput"
+                                      Description="median REQs per hour of active run time"
+                                      IconName="activity"
+                                      Accent="StatAccent.Chart2"
+                                      data-testid="pooled-throughput">
+                                <ValueContent>
+                                    <FigureText Value="@objPooled.ThroughputMedianReqsPerHour" TestId="pooled-throughput-value" />
+                                </ValueContent>
+                            </StatTile>
+                            <StatTile Title="Tokens per Verified"
+                                      Description="all harnesses pooled"
+                                      IconName="route"
+                                      Accent="StatAccent.Chart5"
+                                      data-testid="pooled-tokens-per-verified">
+                                <ValueContent>
+                                    <FigureText Value="@objPooled.TokensPerVerifiedReq" TestId="pooled-tokens-per-verified-value" />
+                                </ValueContent>
+                            </StatTile>
+                            <StatTile Title="Commit cadence"
+                                      Description="@CommitCadenceDetail"
+                                      IconName="git-branch"
+                                      Accent="StatAccent.Chart4"
+                                      data-testid="pooled-commit-cadence">
+                                <ValueContent>
+                                    <FigureText Value="@objPooled.CommitsPerActiveDay" TestId="pooled-commit-cadence-value" />
+                                </ValueContent>
+                            </StatTile>
+                        </StatGroup>
+                    </div>
+
+                    <TypographyMuted>
+                        These count events rather than score requirements, so the reference pools them across
+                        harnesses. A metric with fewer than three supporting records states
+                        <i>insufficient data (n=…)</i> instead of a number.
+                    </TypographyMuted>
+                </div>
+            </TabsContent>
+        </Tabs>
+    }
+</div>
+
+@* REQ-UI-030 — the rate card is the source of truth; this dialog edits the file, nothing else. *@
+<Dialog @bind-Open="objIsPricesOpen">
+    <DialogContent data-testid="edit-prices-dialog">
+        <DialogHeader>
+            <DialogTitle>Edit prices.json</DialogTitle>
+            <DialogDescription>
+                USD per 1,000,000 tokens. Saving re-runs the estimate; nothing measured changes.
+                A model listed blank is not priced — fill it in to bring it into the estimate, or blank a
+                whole row to drop it. A blank row is never priced at zero.
+            </DialogDescription>
+        </DialogHeader>
+
+        <div class="overflow-x-auto">
+            <DataTable TData="PriceEditRow"
+                       Data="@objPriceRows"
+                       ShowToolbar="false"
+                       ShowPagination="false"
+                       InitialPageSize="100"
+                       AriaLabel="Rate card"
+                       data-testid="edit-prices-table">
+                <Columns>
+                    <DataTableColumn TData="PriceEditRow" TValue="string"
+                                     Property="@(aRow => aRow.Model)" Header="model">
+                        <CellTemplate Context="vRow">
+                            <span class="flex flex-col">
+                                <span class="font-mono text-xs">@vRow.Model</span>
+                                @if (vRow.IsObservedOnly)
+                                {
+                                    <Badge Variant="BadgeVariant.Outline">observed · not priced</Badge>
+                                }
+                            </span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="PriceEditRow" TValue="string"
+                                     Property="@(aRow => aRow.InputRate)" Header="input">
+                        <CellTemplate Context="vRow">
+                            <Field IsInvalid="@(!IsCellValid(vRow, vRow.InputRate))">
+                                <FieldContent>
+                                    <Input Type="InputType.Number"
+                                           Class="w-14 text-right"
+                                           Value="@vRow.InputRate"
+                                           ValueChanged="@(aValue => SetRate(vRow, PriceColumns.Input, aValue))"
+                                           data-testid="@($"price-{vRow.Model}-input")" />
+                                    @if (!IsCellValid(vRow, vRow.InputRate))
+                                    {
+                                        <FieldError>@RateErrorMessage</FieldError>
+                                    }
+                                </FieldContent>
+                            </Field>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="PriceEditRow" TValue="string"
+                                     Property="@(aRow => aRow.OutputRate)" Header="output">
+                        <CellTemplate Context="vRow">
+                            <Field IsInvalid="@(!IsCellValid(vRow, vRow.OutputRate))">
+                                <FieldContent>
+                                    <Input Type="InputType.Number"
+                                           Class="w-14 text-right"
+                                           Value="@vRow.OutputRate"
+                                           ValueChanged="@(aValue => SetRate(vRow, PriceColumns.Output, aValue))"
+                                           data-testid="@($"price-{vRow.Model}-output")" />
+                                    @if (!IsCellValid(vRow, vRow.OutputRate))
+                                    {
+                                        <FieldError>@RateErrorMessage</FieldError>
+                                    }
+                                </FieldContent>
+                            </Field>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="PriceEditRow" TValue="string"
+                                     Property="@(aRow => aRow.CacheReadRate)" Header="cache read">
+                        <CellTemplate Context="vRow">
+                            <Field IsInvalid="@(!IsCellValid(vRow, vRow.CacheReadRate))">
+                                <FieldContent>
+                                    <Input Type="InputType.Number"
+                                           Class="w-14 text-right"
+                                           Value="@vRow.CacheReadRate"
+                                           ValueChanged="@(aValue => SetRate(vRow, PriceColumns.CacheRead, aValue))"
+                                           data-testid="@($"price-{vRow.Model}-cache-read")" />
+                                    @if (!IsCellValid(vRow, vRow.CacheReadRate))
+                                    {
+                                        <FieldError>@RateErrorMessage</FieldError>
+                                    }
+                                </FieldContent>
+                            </Field>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="PriceEditRow" TValue="string"
+                                     Property="@(aRow => aRow.CacheWriteRate)" Header="cache write">
+                        <CellTemplate Context="vRow">
+                            <Field IsInvalid="@(!IsCellValid(vRow, vRow.CacheWriteRate))">
+                                <FieldContent>
+                                    <Input Type="InputType.Number"
+                                           Class="w-14 text-right"
+                                           Value="@vRow.CacheWriteRate"
+                                           ValueChanged="@(aValue => SetRate(vRow, PriceColumns.CacheWrite, aValue))"
+                                           data-testid="@($"price-{vRow.Model}-cache-write")" />
+                                    @if (!IsCellValid(vRow, vRow.CacheWriteRate))
+                                    {
+                                        <FieldError>@RateErrorMessage</FieldError>
+                                    }
+                                </FieldContent>
+                            </Field>
+                        </CellTemplate>
+                    </DataTableColumn>
+                </Columns>
+            </DataTable>
+        </div>
+
+        <p class="text-xs text-muted-foreground">@RateCard.Units · @RateCard.EstimateLabel</p>
+
+        @if (HasRateErrors)
+        {
+            <Alert Variant="AlertVariant.Danger" data-testid="edit-prices-invalid">
+                <LucideIcon Name="triangle-alert" Size="16" />
+                <AlertTitle>Fix the highlighted rates</AlertTitle>
+                <AlertDescription>@RateErrorMessage</AlertDescription>
+            </Alert>
+        }
+
+        <DialogFooter>
+            <DialogClose AsChild="true">
+                <Button Variant="ButtonVariant.Outline" data-testid="edit-prices-cancel">Cancel</Button>
+            </DialogClose>
+            <Button Disabled="@(HasRateErrors || objIsSavingPrices)"
+                    OnClick="SavePricesAsync"
+                    data-testid="edit-prices-save">
+                @if (objIsSavingPrices)
+                {
+                    <Spinner Size="SpinnerSize.Small" />
+                }
+                Save
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
+
+@code {
+    /// <summary>What a null string field renders as — never a blank cell.</summary>
+    private const string Missing = "—";
+
+    /// <summary>The refusal shown against a rate that is not a number, or is negative.</summary>
+    private const string RateErrorMessage = "Enter a number of zero or more — a rate cannot be blank or negative.";
+
+    private readonly List<PriceEditRow> objPriceRows = [];
+
+    private RoutingAnalysis? objRouting;
+    private PooledMetrics? objPooled;
+    private bool objIsLoaded;
+    private string? objLoadError;
+    private int? objUserId;
+    private string objFramework = FrameworkNames.TechieFlow;
+    private string? objLoadedFramework;
+    private bool objIsPricesOpen;
+    private bool objIsSavingPrices;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>Which rate-card cell an edit landed in.</summary>
+    private enum PriceColumns
+    {
+        /// <summary>USD per million input tokens.</summary>
+        Input = 0,
+
+        /// <summary>USD per million output tokens.</summary>
+        Output = 1,
+
+        /// <summary>USD per million cache-read tokens.</summary>
+        CacheRead = 2,
+
+        /// <summary>USD per million cache-write tokens.</summary>
+        CacheWrite = 3
+    }
+
+    /// <summary>
+    /// The drift rows in presentation order.
+    /// </summary>
+    /// <remarks>
+    /// The service already puts <c>routed:false</c> first (REQ-UI-027 requires the signal at the top of
+    /// the table). Within the routed remainder the rows are grouped by command so a command's runs read
+    /// together, which is the other half of the same acceptance; the unrouted block is left exactly as the
+    /// service ordered it.
+    /// </remarks>
+    private IReadOnlyList<DriftRow> DriftRows
+    {
+        get
+        {
+            if (objRouting is null)
+            {
+                return [];
+            }
+
+            var vUnrouted = objRouting.Drift.Where(aRow => aRow.Routed == false).ToList();
+            var vRest = objRouting.Drift
+                .Where(aRow => aRow.Routed != false)
+                .OrderBy(aRow => aRow.Cmd ?? string.Empty, StringComparer.Ordinal)
+                .ThenByDescending(aRow => aRow.Ts, StringComparer.Ordinal)
+                .ToList();
+
+            return [.. vUnrouted, .. vRest];
+        }
+    }
+
+    /// <summary>The sub-line under the routing-fields tile.</summary>
+    private string RoutingFieldsDetail =>
+        objPooled is null
+            ? "runs that carry tier, tier_model, model and routed"
+            : $"of {objPooled.RunsTotal:N0} runs in this framework";
+
+    /// <summary>The sub-line under the unrouted tile.</summary>
+    private string UnroutedDetail =>
+        objRouting is null || objRouting.RunsWithRoutingFields == 0
+            ? "no runs carry routing fields yet"
+            : $"{MetricsConstants.Pct(objRouting.UnroutedRuns, objRouting.RunsWithRoutingFields)} of runs with routing fields";
+
+    /// <summary>The sub-line under the distinct-models tile — the models themselves, not just the count.</summary>
+    private string ObservedModelsDetail =>
+        objRouting is null || objRouting.TokensByModel.Count == 0
+            ? "no observed model recorded yet"
+            : string.Join(" · ", objRouting.TokensByModel.Select(aModel => aModel.Model));
+
+    /// <summary>The title of the counterfactual card, naming the model it reprices to.</summary>
+    private string MaxCardTitle =>
+        objRouting?.MostExpensiveModel is { } vModel
+            ? $"All runs at {vModel}"
+            : "All runs at most expensive model";
+
+    /// <summary>The excluded-runs line both repricing cards carry.</summary>
+    private string ExcludedLine
+    {
+        get
+        {
+            var vCount = objRouting?.RunsExcludedNoTokenScope ?? 0;
+            return vCount == 1
+                ? "1 run excluded (tokens_scope none)"
+                : $"{vCount:N0} runs excluded (tokens_scope none)";
+        }
+    }
+
+    /// <summary>The delta headline — what routing did not spend, as an estimate.</summary>
+    private string DeltaText => objRouting?.DeltaUsd switch
+    {
+        null => Missing,
+        // A saving is shown as a negative because it is money the observed mix did NOT reach; a zero
+        // delta is not a saving, so it takes no sign.
+        > 0m and var vDelta => $"−{Money(vDelta)}",
+        var vDelta => Money(vDelta)
+    };
+
+    /// <summary>The saving stated as a percentage of the counterfactual.</summary>
+    private string SavedLine
+    {
+        get
+        {
+            if (objRouting?.DeltaUsd is not { } vDelta || objRouting.AllAtMaxUsd is not { } vMax || vMax <= 0m)
+            {
+                return "no counterfactual to compare against yet";
+            }
+
+            var vShare = (double)(vDelta / vMax) * 100.0;
+            var vAgainst = objRouting.MostExpensiveModel ?? "the most expensive model";
+            return $"routing saved {vShare.ToString("F1", CultureInfo.InvariantCulture)}% against the all-{vAgainst} counterfactual";
+        }
+    }
+
+    /// <summary>The actual mix as a percentage of the counterfactual, for the bar.</summary>
+    private double ActualSharePercent
+    {
+        get
+        {
+            if (objRouting?.ActualMixUsd is not { } vActual || objRouting.AllAtMaxUsd is not { } vMax || vMax <= 0m)
+            {
+                return 0d;
+            }
+
+            return Math.Clamp((double)(vActual / vMax) * 100.0, 0d, 100d);
+        }
+    }
+
+    /// <summary>The muted line under the share bar.</summary>
+    private string ActualShareLine =>
+        objRouting?.AllAtMaxUsd is { } vMax && vMax > 0m
+            ? $"the actual mix is {ActualSharePercent.ToString("F0", CultureInfo.InvariantCulture)}% of the counterfactual estimate"
+            : "the actual mix cannot be compared until both estimates exist";
+
+    /// <summary>The warning title naming the unpriced observed models.</summary>
+    private string MissingPriceTitle
+    {
+        get
+        {
+            var vModels = objRouting?.MissingPriceModels ?? [];
+            return vModels.Count == 1
+                ? $"{vModels[0]} has no entry in prices.json"
+                : $"{vModels.Count} observed models have no entry in prices.json";
+        }
+    }
+
+    /// <summary>The warning body — says explicitly that the models are excluded, not priced at zero.</summary>
+    private string MissingPriceDescription
+    {
+        get
+        {
+            var vModels = objRouting?.MissingPriceModels ?? [];
+            return $"{string.Join(", ", vModels)} — their tokens are left out of both estimates rather than "
+                + "priced at zero. Add a line for each in prices.json to bring them into the estimate.";
+        }
+    }
+
+    /// <summary>The commit-cadence sub-line, which has to state the collapsed duplicates.</summary>
+    private string CommitCadenceDetail =>
+        objPooled is null
+            ? "commits per active day"
+            : $"commits/active day · {objPooled.CommitDuplicatesCollapsed:N0} duplicate shas collapsed";
+
+    /// <summary>The chart points — one per observed model, largest total first.</summary>
+    private IReadOnlyList<ModelTotal> ModelTotals =>
+        objRouting is null
+            ? []
+            : objRouting.TokensByModel.Select(aModel => new ModelTotal(aModel.Model, aModel.Total)).ToList();
+
+    /// <summary>True when any half-filled row in the edit dialog holds something that is not a rate.</summary>
+    private bool HasRateErrors => objPriceRows.Any(aRow => !IsRowValid(aRow));
+
+    /// <summary>Re-queries when the header Framework switch changes the axis under this page.</summary>
+    protected override void OnInitialized()
+    {
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and computes the routing view on the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the tabs have their figures.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+        objFramework = objPreferences.Framework;
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            objLoadError = "Sign in to see the routing view.";
+            return;
+        }
+
+        if (objIsLoaded && objLoadedFramework == objFramework)
+        {
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    /// <summary>
+    /// Re-runs both engines for the signed-in user on the selected framework.
+    /// </summary>
+    /// <remarks>
+    /// ADR-016: the framework is a query parameter, so a switch re-computes rather than filters. The
+    /// routing call re-reads <c>prices.json</c> every time, which is what makes the edit dialog's Save
+    /// show up in the repricing cards without a page reload.
+    /// </remarks>
+    /// <returns>A task that completes when the figures are on screen.</returns>
+    private async Task ReloadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        objLoadError = null;
+
+        try
+        {
+            objFramework = objPreferences.Framework;
+            objRouting = await objExtraMetrics.AnalyseRoutingAsync(objUserId.Value, objFramework);
+            objPooled = (await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework)).Pooled;
+            objLoadedFramework = objFramework;
+        }
+        catch (Exception vEx)
+        {
+            objRouting = null;
+            objPooled = null;
+            objLoadError = vEx.Message;
+        }
+        finally
+        {
+            objIsLoaded = true;
+        }
+    }
+
+    /// <summary>
+    /// Loads the rate card off disk into editable rows and opens the dialog.
+    /// </summary>
+    /// <returns>A task that completes when the dialog has its rows.</returns>
+    private async Task OpenPricesDialogAsync()
+    {
+        var vCard = await RateCard.LoadAsync(objOptions.Value.PricesPath);
+
+        objPriceRows.Clear();
+
+        foreach (var vId in vCard.ModelIds)
+        {
+            var vRate = vCard.Find(vId);
+
+            if (vRate is null)
+            {
+                continue;
+            }
+
+            objPriceRows.Add(new PriceEditRow
+            {
+                Model = vId,
+                InputRate = Rate(vRate.InputPerMillion),
+                OutputRate = Rate(vRate.OutputPerMillion),
+                CacheReadRate = Rate(vRate.CacheReadPerMillion),
+                CacheWriteRate = Rate(vRate.CacheWritePerMillion)
+            });
+        }
+
+        // The warning on the repricing tab names the observed models the card does not price; this is
+        // where they get priced. They are listed blank, never as zero — a blank row stays out of the file.
+        foreach (var vModel in objRouting?.MissingPriceModels ?? [])
+        {
+            objPriceRows.Add(new PriceEditRow { Model = vModel, IsObservedOnly = true });
+        }
+
+        objIsPricesOpen = true;
+    }
+
+    /// <summary>
+    /// Writes the edited rate card to <c>prices.json</c> and recomputes the repricing estimate.
+    /// </summary>
+    /// <returns>A task that completes when the file is written and the cards have re-rendered.</returns>
+    private async Task SavePricesAsync()
+    {
+        if (HasRateErrors || objIsSavingPrices)
+        {
+            return;
+        }
+
+        objIsSavingPrices = true;
+
+        try
+        {
+            var vModels = new Dictionary<string, ModelRate>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var vRow in objPriceRows)
+            {
+                if (IsRowBlank(vRow))
+                {
+                    // Not priced. Leaving it out is the honest outcome: TfLens will keep naming the model
+                    // as unpriced rather than pretending its tokens cost nothing.
+                    continue;
+                }
+
+                vModels[vRow.Model] = new ModelRate(
+                    ParseRate(vRow.InputRate),
+                    ParseRate(vRow.OutputRate),
+                    ParseRate(vRow.CacheReadRate),
+                    ParseRate(vRow.CacheWriteRate));
+            }
+
+            await RateCard.SaveAsync(objOptions.Value.PricesPath, vModels);
+
+            objIsPricesOpen = false;
+            await ReloadAsync();
+
+            objToastService.Success(
+                "prices.json saved — the repricing estimate has been recomputed. It is still an estimate.",
+                "Rate card");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't save prices.json");
+        }
+        finally
+        {
+            objIsSavingPrices = false;
+        }
+    }
+
+    /// <summary>
+    /// Applies one edited cell to its row.
+    /// </summary>
+    /// <param name="aRow">The rate-card row being edited.</param>
+    /// <param name="aColumn">Which of the four rates changed.</param>
+    /// <param name="aValue">The raw text the operator typed.</param>
+    private void SetRate(PriceEditRow aRow, PriceColumns aColumn, string? aValue)
+    {
+        var vValue = aValue ?? string.Empty;
+
+        switch (aColumn)
+        {
+            case PriceColumns.Input:
+                aRow.InputRate = vValue;
+                break;
+            case PriceColumns.Output:
+                aRow.OutputRate = vValue;
+                break;
+            case PriceColumns.CacheRead:
+                aRow.CacheReadRate = vValue;
+                break;
+            default:
+                aRow.CacheWriteRate = vValue;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Whether a typed rate is a number of zero or more.
+    /// </summary>
+    /// <param name="aValue">The raw text.</param>
+    /// <returns><c>true</c> when the value may be saved.</returns>
+    private static bool IsRateValid(string? aValue) =>
+        decimal.TryParse(aValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var vValue) && vValue >= 0m;
+
+    /// <summary>
+    /// Whether a whole row of the rate card is in a saveable state.
+    /// </summary>
+    /// <remarks>
+    /// A row with every cell blank means "this model has no price" — it is dropped from the card rather
+    /// than saved as zero, which is the one thing SCHEMA.md §4 forbids. Anything else must be four real
+    /// rates, so a half-filled row is refused rather than silently completed with zeros.
+    /// </remarks>
+    /// <param name="aRow">The row.</param>
+    /// <returns><c>true</c> when the row may be saved or skipped.</returns>
+    private static bool IsRowValid(PriceEditRow aRow) =>
+        IsRowBlank(aRow)
+        || (IsRateValid(aRow.InputRate)
+            && IsRateValid(aRow.OutputRate)
+            && IsRateValid(aRow.CacheReadRate)
+            && IsRateValid(aRow.CacheWriteRate));
+
+    /// <summary>
+    /// Whether every cell of a row is empty — the "not priced" state.
+    /// </summary>
+    /// <param name="aRow">The row.</param>
+    /// <returns><c>true</c> when the model carries no price at all.</returns>
+    private static bool IsRowBlank(PriceEditRow aRow) =>
+        string.IsNullOrWhiteSpace(aRow.InputRate)
+        && string.IsNullOrWhiteSpace(aRow.OutputRate)
+        && string.IsNullOrWhiteSpace(aRow.CacheReadRate)
+        && string.IsNullOrWhiteSpace(aRow.CacheWriteRate);
+
+    /// <summary>
+    /// Whether one cell should show its refusal.
+    /// </summary>
+    /// <param name="aRow">The row the cell belongs to.</param>
+    /// <param name="aValue">The cell's raw text.</param>
+    /// <returns><c>true</c> when the cell is acceptable as it stands.</returns>
+    private static bool IsCellValid(PriceEditRow aRow, string? aValue) =>
+        IsRowBlank(aRow) || IsRateValid(aValue);
+
+    /// <summary>
+    /// Parses a validated rate.
+    /// </summary>
+    /// <param name="aValue">The raw text, already known to be valid.</param>
+    /// <returns>The rate.</returns>
+    private static decimal ParseRate(string? aValue) =>
+        decimal.TryParse(aValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var vValue) ? vValue : 0m;
+
+    /// <summary>
+    /// Renders a rate for the edit dialog's number input.
+    /// </summary>
+    /// <param name="aRate">The rate in USD per million tokens.</param>
+    /// <returns>The invariant text the input binds to.</returns>
+    private static string Rate(decimal aRate) => aRate.ToString("0.####", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Renders a repricing figure.
+    /// </summary>
+    /// <remarks>
+    /// Every caller of this method renders <see cref="RateCard.EstimateLabel"/> beside the result —
+    /// SCHEMA.md §4 allows no dollar figure on this page without it.
+    /// </remarks>
+    /// <param name="aUsd">The estimated USD figure, or <c>null</c> when nothing could be priced.</param>
+    /// <returns>The dollar text, or an em dash.</returns>
+    private static string Money(decimal? aUsd) =>
+        aUsd is { } vUsd ? "$" + vUsd.ToString("N2", CultureInfo.InvariantCulture) : Missing;
+
+    /// <summary>
+    /// Renders a token count in full, so a charted bar always has an exact text twin.
+    /// </summary>
+    /// <param name="aTokens">The token count.</param>
+    /// <returns>The grouped number.</returns>
+    private static string Tokens(long aTokens) => aTokens.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// How many models one run observed.
+    /// </summary>
+    /// <param name="aRow">The drift row.</param>
+    /// <returns>The count of comma-separated entries in <c>models</c>, or 1 when only one was seen.</returns>
+    private static int ModelCount(DriftRow aRow)
+    {
+        if (string.IsNullOrWhiteSpace(aRow.Models))
+        {
+            return string.IsNullOrWhiteSpace(aRow.Model) ? 0 : 1;
+        }
+
+        return aRow.Models.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
+    }
+
+    /// <summary>
+    /// The sortable text behind the routed column.
+    /// </summary>
+    /// <param name="aRow">The drift row.</param>
+    /// <returns><c>routed:false</c>, <c>routed:true</c>, or an em dash.</returns>
+    private static string RoutedText(DriftRow aRow) => aRow.Routed switch
+    {
+        false => "routed:false",
+        true => "routed:true",
+        _ => Missing
+    };
+
+    /// <summary>
+    /// The chart colour one bar takes, cycling the five chart accents.
+    /// </summary>
+    /// <param name="aPoint">The model's total.</param>
+    /// <returns>The bar's accent class.</returns>
+    private string AccentOf(ModelTotal aPoint)
+    {
+        var vIndex = ModelTotals.ToList().FindIndex(aOther => aOther.Model == aPoint.Model);
+        return $"tflens-bar-{(vIndex < 0 ? 0 : vIndex % 5) + 1}";
+    }
+
+    /// <summary>
+    /// The inline height of one bar, as a share of the largest total.
+    /// </summary>
+    /// <param name="aPoint">The model's total.</param>
+    /// <returns>A CSS declaration setting the bar's height.</returns>
+    private string BarStyle(ModelTotal aPoint)
+    {
+        var vMax = ModelTotals.Count == 0 ? 0d : ModelTotals.Max(aOther => aOther.Total);
+        var vShare = vMax <= 0d ? 0d : aPoint.Total / vMax * 100.0;
+        return $"height:{Math.Max(vShare, 2d).ToString("F1", CultureInfo.InvariantCulture)}%";
+    }
+
+    /// <summary>Re-queries when the Framework switch changes the axis.</summary>
+    private void OnPreferencesChanged() => InvokeAsync(async () =>
+    {
+        if (objPreferences.Framework == objLoadedFramework)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+
+    /// <summary>One point of the supplementary totals chart.</summary>
+    /// <param name="Model">The observed model id.</param>
+    /// <param name="Total">All four token classes added together.</param>
+    public sealed record ModelTotal(string Model, double Total);
+
+    /// <summary>One editable line of the rate card, held as text so a bad entry can be shown back.</summary>
+    public sealed class PriceEditRow
+    {
+        /// <summary>The model id, which is the rate card's key and is not editable.</summary>
+        public string Model { get; init; } = string.Empty;
+
+        /// <summary>True for a model the telemetry observed but the rate card does not yet price.</summary>
+        public bool IsObservedOnly { get; init; }
+
+        /// <summary>USD per million input tokens, as typed.</summary>
+        public string InputRate { get; set; } = string.Empty;
+
+        /// <summary>USD per million output tokens, as typed.</summary>
+        public string OutputRate { get; set; } = string.Empty;
+
+        /// <summary>USD per million cache-read tokens, as typed.</summary>
+        public string CacheReadRate { get; set; } = string.Empty;
+
+        /// <summary>USD per million cache-write tokens, as typed.</summary>
+        public string CacheWriteRate { get; set; } = string.Empty;
+    }
+}

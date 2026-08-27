@@ -1,0 +1,95 @@
+@*
+    REQ-UI-032 / REQ-UI-033 / REQ-UI-034 — the Snapshot export screen.
+
+    The page where a number stops being a dashboard reading and becomes something someone might quote,
+    so it is also the page that says whether quoting it is honest. The export surface itself is shared
+    between the two framework states (ExportSurface); this file only decides which state is showing.
+
+    There is deliberately no `/playbook` route: the framework is chosen by the header switch, which
+    re-loads the route so every figure is re-queried on the new axis rather than filtered client-side
+    (ADR-016, BRD-108).
+*@
+@page "/export"
+@using TfLens.Components.Pages.ExportParts
+@using TfLens.Components.Shared.Playbook
+@using TrBlazeUI.Components.Typography
+@implements IDisposable
+@inject ShellPreferences objPreferences
+
+<PageTitle>Snapshot export · TfLens</PageTitle>
+
+<div class="tflens-stack tflens-export">
+
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <TypographyH2>Snapshot export</TypographyH2>
+            <TypographyMuted>@Subtitle</TypographyMuted>
+        </div>
+        <Badge Variant="BadgeVariant.Outline" data-testid="export-parser-version">
+            parser @ParserVersion.Current
+        </Badge>
+    </div>
+
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-034 — the Playbook framework state: the axis note, then either the figures or the
+           Phase-3 empty state. The surface below is byte-identical to the TechieFlow one; only the
+           framework the snapshot is written for changes. *@
+        <PlaybookState UserId="@objUserId">
+            <ChildContent Context="vAnalysis">
+                <ExportSurface UserId="@objUserId" Framework="@FrameworkNames.Playbook" />
+            </ChildContent>
+        </PlaybookState>
+    }
+    else
+    {
+        <ExportSurface UserId="@objUserId" Framework="@FrameworkNames.TechieFlow" />
+    }
+</div>
+
+@code {
+    private int? objUserId;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis.</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook state — freeze the figures you're about to quote, with the dataset SHAs they came from"
+            : "Freeze the figures you're about to quote, with the dataset SHAs they came from";
+
+    /// <summary>Re-renders when the framework preference changes under the page.</summary>
+    protected override void OnInitialized()
+    {
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user, which every read on this page is scoped by (ADR-013).
+    /// </summary>
+    /// <returns>A task that completes when the user id is known.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (objUserId is not null || AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+    }
+
+    /// <summary>Re-renders when a shell preference changes.</summary>
+    private void OnPreferencesChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+}

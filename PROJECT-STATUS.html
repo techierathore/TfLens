@@ -108,83 +108,96 @@ dl.meta dd{margin:0}
 <button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
 <div class="layout no-toc">
   <main>
-    <h1>TfLens — Status</h1>
-    <div class="subtitle">Snapshot · 2026-08-26 · phase: Build</div>
+    <h1>TfLens &mdash; Status</h1>
+    <div class="subtitle">Snapshot &middot; 2026-08-27 &middot; phase: Verify</div>
 
     <dl class="meta">
       <dt>project</dt><dd>TfLens</dd>
-      <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose</dd>
-      <dt>last_updated</dt><dd>2026-08-26</dd>
-      <dt>current_phase</dt><dd>Build — 114 REQs split from the BRD, none built</dd>
-      <dt>last_verified_build</dt><dd>not-run</dd>
-      <dt>last_verified_date</dt><dd>2026-08-26</dd>
+      <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose</dd>
+      <dt>last_updated</dt><dd>2026-08-27</dd>
+      <dt>current_phase</dt><dd>Verify &mdash; all 113 in-scope REQs built; none verified yet</dd>
+      <dt>last_verified_build</dt><dd>PASS</dd>
+      <dt>last_verified_date</dt><dd>2026-08-27</dd>
     </dl>
 
-    <div class="toc-inline">
-      <div>Contents</div>
-      <ol>
-        <li><a href="#where-i-am">Where I am</a></li>
-        <li><a href="#next-command-to-run">Next command to run</a></li>
-        <li><a href="#open-requirements">Open requirements</a></li>
-        <li><a href="#known-blockers">Known blockers</a></li>
-        <li><a href="#verification-log">Verification log</a></li>
-        <li><a href="#library-feedback-summary">Library feedback summary</a></li>
-        <li><a href="#standards-compliance-last-verifier-check">Standards compliance (last verifier check)</a></li>
-        <li><a href="#deferred-future">Deferred / future</a></li>
-      </ol>
-    </div>
+    <h2 id="where-i-am">Where I am</h2>
+    <p><code>*build-phase</code> ran 2026-08-26&rarr;27 and built the whole app from an empty repo: solution,
+    PostgreSQL&nbsp;16 store, AppManager identity, GitHub sync, the metrics engine, the exporter, and all twelve
+    screens. <strong>108 REQs are <code>Implemented</code>, 5 are <code>PARTIAL</code>, 1 is <code>N/A</code>;
+    nothing is <code>Not Started</code>.</strong> The build is green and <strong>324/324 tests pass</strong>
+    (263 Core &middot; 45 Guardrails &middot; 16 Integration). The app boots, signs in against the live AppManager,
+    and every report page renders real data with no blank cells; the mobile visual gate passes on all seven
+    authenticated pages.</p>
+    <p><strong>Nothing is <code>Verified</code> yet &mdash; that is correct, not an omission.</strong> A self-smoke&rsquo;s
+    ceiling is <code>Implemented</code>; <code>Verified</code> exists only downstream of an executed <code>*verify</code>
+    run, which has not happened (<code>docs/.last-verify.json</code> does not exist). Three clusters wrote
+    <code>Verified</code> from their own smokes and those rows were demoted.</p>
 
-    <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-    <p>Day-1 (greenfield) complete on 2026-08-26, docs amended twice the same day after owner review, and <code>*split-brd</code> run the same day. TfLens is a free, multi-user, read-only Blazor Server lens over the telemetry TechieFlow <strong>and</strong> the AI-First-Playbook already emit: users sign in via AppManager (App Id 1, every user <code>Manager</code>), connect their own public GitHub repos, and TfLens pulls the streams into PostgreSQL per user and renders the three questions, harness comparison, routing &amp; repricing and a weekly snapshot export per framework — with the provenance rules (live/backfilled · project_type · framework · user) enforced in the result type and a mandatory parity diff against <code>tf-metrics.sh</code>. Approved docs: BRD (BRD-1..BRD-111; BRD-3, BRD-7 retired), Architecture (ADR-001..017), UI Design + 12 mockups, Coding Standards, UsageGuide. <code>docs/TfLens-Checklist.md</code> now holds <strong>114 REQs</strong> — 34 <code>REQ-UI-*</code>, 70 <code>REQ-FN-*</code>, 0 <code>REQ-RAG-*</code> (ADR-003: no AI features), 10 <code>REQ-NFR-*</code> — every active BRD ID mapped, nothing seeded as done (no prior dev plan existed). No code exists yet; nothing is built or verified. Phase order is hard: 1 → 2 → 3.</p>
-
-    <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
-    <div style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
+    <div style="border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:18px 0;">
       <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *build-phase TfLens</div>
+      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:verifier *verify all TfLens</div>
     </div>
-    <pre><code>/TechieFlow:agents:flow-master *build-phase TfLens      (OpenCode: /flow-master *build-phase TfLens)</code></pre>
-    <p>Start with Phase 1: <code>REQ-UI-001</code>..<code>REQ-UI-013</code>, <code>REQ-FN-001</code>..<code>REQ-FN-045</code>, <code>REQ-NFR-002</code>, <code>REQ-NFR-003</code>, <code>REQ-NFR-005</code>..<code>REQ-NFR-008</code>, <code>REQ-NFR-010</code>.</p>
 
-    <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
+    <h2 id="open-requirements">Open requirements</h2>
     <ul>
-      <li>Phase 1 — shell, auth, repos, sync, parse, ops: <code>REQ-UI-001</code>..<code>REQ-UI-013</code>, <code>REQ-FN-001</code>..<code>REQ-FN-011</code>, <code>REQ-FN-013</code>..<code>REQ-FN-045</code>, <code>REQ-NFR-002</code>, <code>REQ-NFR-003</code>, <code>REQ-NFR-005</code>, <code>REQ-NFR-006</code>, <code>REQ-NFR-007</code>, <code>REQ-NFR-008</code>, <code>REQ-NFR-010</code> — all Not Started</li>
-      <li>Phase 2 — engine, five report pages, export, parity: <code>REQ-UI-014</code>..<code>REQ-UI-033</code>, <code>REQ-FN-046</code>..<code>REQ-FN-064</code>, <code>REQ-NFR-001</code>, <code>REQ-NFR-004</code>, <code>REQ-NFR-009</code> — all Not Started</li>
-      <li>Phase 3 — Playbook as a first-class framework: <code>REQ-UI-034</code>, <code>REQ-FN-065</code>..<code>REQ-FN-070</code> — all Not Started</li>
-      <li>Terminal: <code>REQ-FN-012</code> (GitHub SSO) — <code>N/A</code>, deferred to Phase 2 per BRD-94 / ADR-012</li>
+      <li><code>PARTIAL</code> &mdash; <code>REQ-UI-034</code> Playbook state wired on <code>/export</code> only, not on the
+      other four report pages &middot; <code>REQ-FN-003</code> forgot/reset password not driven end-to-end (needs a real
+      reset email) &middot; <code>REQ-FN-018</code> poller / Sync-now halves not jointly exercised &middot;
+      <code>REQ-FN-067</code> + <code>REQ-FN-070</code> Playbook report set, blocked on a real <code>events.ndjson</code></li>
+      <li><code>Implemented</code> (108) &mdash; awaiting the verifier</li>
+      <li><code>N/A</code> &mdash; <code>REQ-FN-012</code> GitHub SSO, deferred by BRD-94 / ADR-012</li>
     </ul>
 
-    <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
+    <h2 id="known-blockers">Known blockers</h2>
     <ul>
-      <li>No .csproj/.sln yet — create the solution (<code>src/TfLens</code>, <code>src/TfLens.Core</code>, <code>tests/TfLens.Core.Tests</code>) and <code>docker-compose.yml</code> (postgres) before the first build phase.</li>
+      <li><strong>No real <code>events.ndjson</code> exists anywhere reachable</strong>, so the Playbook
+      <code>PbEvent</code> columns stay provisional (ADR-010, DECISIONS.md &sect;7 S-001).
+      <code>REQ-FN-067</code>/<code>REQ-FN-070</code> cannot honestly close until the owner supplies one.</li>
+      <li><strong>No parity run has ever been recorded</strong>, so the export correctly reports
+      <code>NOT QUOTABLE</code>. Running the BRD &sect;13 procedure is the gate before any figure is quotable.</li>
+      <li><strong>AppManager Application&nbsp;1 has no <code>Manager</code> role code</strong> &mdash; registration returns
+      <code>applicationRole: "User"</code>. Harmless (TfLens treats every account as Manager per BRD-95) but it is an
+      AppManager-side config gap the owner may want to close.</li>
+      <li>Optional <code>TfLensAppManagerApiKey</code>/<code>Secret</code> are unset; AppManager resolves the app from the
+      request body, so this is working-as-designed (DECISIONS.md D-006).</li>
     </ul>
 
-    <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
+    <h2 id="verification-log">Verification log</h2>
     <table>
       <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
       <tbody>
-        <tr><td>2026-08-26</td><td>split-brd</td><td>N/A — no build or verify this phase</td><td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
+        <tr><td>2026-08-26</td><td>split-brd</td><td>N/A &mdash; no build or verify this phase</td>
+            <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
+        <tr><td>2026-08-27</td><td>build-phase</td><td>Build PASS &middot; 324/324 tests &middot; 108 Implemented / 5 PARTIAL &middot; not yet verified</td>
+            <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
       </tbody>
     </table>
 
-    <h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
+    <h2 id="library-feedback-summary">Library feedback summary</h2>
     <ul>
-      <li>TrBlazeUI: 0 major, 0 minor — docs/TfLens-TrBlazeUI-Feedback.md</li>
-      <li>TechieRag: 0 major, 0 minor — docs/TfLens-TechieRag-Feedback.md (not used by TfLens)</li>
+      <li><strong>TrBlazeUI:</strong> 13 entries &mdash; <code>docs/TfLens-TrBlazeUI-Feedback.md</code>. Highest impact:
+      <code>DataTable</code> silently truncates to 5 rows even with <code>ShowPagination="false"</code>;
+      <code>LucideIcon</code> ignores the 212 aliases its own <code>lucide.json</code> ships, so
+      <code>alert-triangle</code>/<code>check-circle</code> render nothing; <code>--chart-*</code>/<code>--alert-*</code>
+      tokens undefined; no responsive utility variants.
+      <strong>Numbering has duplicates from concurrent clusters &mdash; needs one reconciliation pass.</strong></li>
+      <li><strong>TechieRag:</strong> 0 &mdash; not used by TfLens (ADR-003).</li>
     </ul>
 
-    <h2 id="standards-compliance-last-verifier-check">Standards compliance (last verifier check)<a class="anchor-link" href="#standards-compliance-last-verifier-check">#</a></h2>
+    <h2 id="standards-compliance">Standards compliance (last check)</h2>
     <ul>
-      <li>Underscore fields: not yet run</li>
-      <li>Test method underscores: not yet run</li>
-      <li>Mis-prefixed fields: not yet run</li>
+      <li>Underscore fields / test-method underscores / mis-prefixed fields:
+      <code>TfLens.Guardrails.Tests</code> 45/45 pass &mdash; these are enforced as tests, not greps.</li>
     </ul>
 
-    <h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
+    <h2 id="deferred-future">Deferred / future</h2>
     <ul>
-      <li>GitHub SSO (BRD-94 → <code>REQ-FN-012</code>) — Phase 2, waits for an AppManager external-login / token-exchange endpoint</li>
-      <li>Private GitHub repos (per-user PAT) — later release</li>
-      <li>Playbook report set (Phase 3, F-FRAMEWORK) — after the TechieFlow set passes parity; <code>events.ndjson</code> adapter waits for a real sample</li>
+      <li>GitHub SSO (BRD-94 &rarr; REQ-FN-012) &mdash; Phase 2, waits on an AppManager external-login endpoint</li>
+      <li>Private GitHub repos (per-user PAT) &mdash; later release</li>
+      <li><code>BarChart</code> on <code>/routing</code> &mdash; the library&rsquo;s chart wrapper needs an
+      <code>ApexPointSeries</code> child (solved on <code>/harness</code>); <code>/routing</code> currently draws a CSS bar row instead</li>
     </ul>
+
   </main>
 </div>
 

@@ -1,0 +1,60 @@
+@inherits LayoutComponentBase
+
+@*
+    The split layout every anonymous screen shares (REQ-UI-001..004): a brand panel on the left and
+    the centred form card on the right, so sign in, register, forgot and reset read as one flow.
+    The layout also supplies the --sidebar / --alert-* design tokens TrBlazeUI 2.0.0 references but
+    never defines (TR-001) — custom properties inherit, so every TrBlazeUI control below picks them up.
+*@
+
+<div class="auth-split">
+    <aside class="auth-brand bg-sidebar" data-testid="auth-brand-panel">
+        <div>
+            <div class="auth-word">
+                <span class="auth-mark bg-primary text-primary-foreground">
+                    <LucideIcon Name="aperture" Size="24" />
+                </span>
+                <span class="auth-wordmark">TfLens</span>
+            </div>
+
+            <p class="auth-tagline text-muted-foreground">
+                A read-only lens over TechieFlow and AI-First-Playbook telemetry
+            </p>
+
+            <ul class="auth-bullets">
+                @foreach (var vBenefit in Benefits)
+                {
+                    <li>
+                        <LucideIcon Name="check" Size="18" Class="auth-tick" />
+                        <span>@vBenefit</span>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <p class="text-xs text-muted-foreground">Free &amp; open source · identity by AppManager</p>
+    </aside>
+
+    <section class="auth-right">
+        <div class="auth-panel">
+            @Body
+        </div>
+    </section>
+</div>
+
+@code {
+    /// <summary>
+    /// The four benefit lines shown beside the form on every anonymous screen.
+    /// </summary>
+    /// <remarks>
+    /// The strings are the approved mockup's, verbatim (docs/TfLens-UIDesign.md, Screen: Login) — they
+    /// are the product's one-line promise and are not paraphrased per screen.
+    /// </remarks>
+    private static readonly string[] Benefits =
+    [
+        "Both frameworks, one dashboard",
+        "Connect any public repo",
+        "Numbers you can quote",
+        "Free & open source"
+    ];
+}

@@ -1,0 +1,149 @@
+{
+  "per_repo": [
+    {
+      "repo": "alpha",
+      "app": "AlphaApp",
+      "project_type": "app",
+      "gates": 13,
+      "gates_backfilled": 3,
+      "runs": 5,
+      "sessions": 3,
+      "commits": 3,
+      "commit_hook": null
+    },
+    {
+      "repo": "beta",
+      "app": "BetaWeb",
+      "project_type": "app",
+      "gates": 3,
+      "gates_backfilled": 0,
+      "runs": 0,
+      "sessions": 0,
+      "commits": 1,
+      "commit_hook": null
+    },
+    {
+      "repo": "gamma",
+      "app": "GammaLib",
+      "project_type": "library",
+      "gates": 6,
+      "gates_backfilled": 0,
+      "runs": 1,
+      "sessions": 1,
+      "commits": 2,
+      "commit_hook": null
+    }
+  ],
+  "tainted_reqs": [
+    "REQ-FN-008",
+    "REQ-FN-020",
+    "REQ-FN-021"
+  ],
+  "live": {
+    "app": {
+      "records": 10,
+      "reqs_scored": 7,
+      "reqs_excluded_backfill_taint": 1,
+      "first_pass_n": 3,
+      "first_pass_rate": "43%",
+      "gate_distribution": {
+        "build": 1,
+        "perf": 1,
+        "escaped": 1,
+        "unattributed": 1
+      },
+      "gate_distribution_n": 4,
+      "gate_distribution_note": null,
+      "late_gate_coverage": {
+        "perf": {
+          "ran": 3,
+          "caught": 1,
+          "since": "2026-08-10"
+        }
+      },
+      "escape_rate": "25%"
+    },
+    "library": {
+      "records": 6,
+      "reqs_scored": 4,
+      "reqs_excluded_backfill_taint": 0,
+      "first_pass_n": 2,
+      "first_pass_rate": "50%",
+      "gate_distribution": {
+        "acceptance": 1,
+        "standards": 1
+      },
+      "gate_distribution_n": 2,
+      "gate_distribution_note": "insufficient data (n=2)",
+      "late_gate_coverage": {
+        "perf": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-10"
+        }
+      },
+      "escape_rate": "insufficient data (n=2)"
+    },
+    "unclassified": {
+      "records": 3,
+      "reqs_scored": 2,
+      "reqs_excluded_backfill_taint": 0,
+      "first_pass_n": 1,
+      "first_pass_rate": "insufficient data (n=2)",
+      "gate_distribution": {
+        "render": 1
+      },
+      "gate_distribution_n": 1,
+      "gate_distribution_note": "insufficient data (n=1)",
+      "late_gate_coverage": {
+        "perf": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-10"
+        }
+      },
+      "escape_rate": "insufficient data (n=1)"
+    }
+  },
+  "backfilled": {
+    "app": {
+      "records": 3,
+      "reqs_scored": 3,
+      "reqs_excluded_backfill_taint": 0,
+      "first_pass_n": 2,
+      "first_pass_rate": "67%",
+      "gate_distribution": {
+        "visual": 1
+      },
+      "gate_distribution_n": 1,
+      "gate_distribution_note": "insufficient data (n=1)",
+      "late_gate_coverage": {
+        "perf": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-10"
+        }
+      },
+      "escape_rate": "insufficient data (n=1)"
+    }
+  },
+  "pooled": {
+    "runs_total": 6,
+    "runs_by_cmd": {
+      "build-phase": 4,
+      "fix-issues": 1,
+      "verify-phase": 1
+    },
+    "rework_ratio": "50%",
+    "throughput_median_reqs_per_hour": 5.0,
+    "batch_size_median": 3.5,
+    "sessions": 4,
+    "tokens_total": 238000,
+    "tokens_per_verified_req": 17000.0,
+    "cost_usd": null,
+    "commits": 6,
+    "commit_duplicates_collapsed": 1,
+    "active_days": 4,
+    "commits_per_active_day": 1.5
+  }
+}

@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FluentAssertions" Version="8.10.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TfLens.Core\TfLens.Core.csproj" />
+    <ProjectReference Include="..\..\src\TfLens\TfLens.csproj" />
+  </ItemGroup>
+
+  <!-- The fixture streams are read from disk by the parser and storage tests, and by the head's
+       TfLensFixtureRoot mode, so they ship beside the test binary. -->
+  <ItemGroup>
+    <Content Include="Fixtures\**\*.jsonl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The Playbook fixture is SYNTHETIC — faithful to the emitter source, not a captured run.
+       See Fixtures/Playbook/README.md and DECISIONS.md S-001. -->
+  <ItemGroup>
+    <Content Include="Fixtures\Playbook\*.ndjson" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- REQ-FN-054: the parity oracle's own output, produced by Fixtures/Engine/make-reference.sh
+       running tf-metrics.sh over the fixture streams. Never hand-edited. -->
+  <ItemGroup>
+    <Content Include="Fixtures\Engine\reference.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- REQ-FN-064: the extras fixture (harness columns, routing drift, repricing) and the oracle's
+       output over it. The extras have no parity oracle, so the reference is here only to prove the
+       export's key layout round-trips; the extras themselves are hand-checked against these same
+       JSONL files. Regenerate with Fixtures/tflens-fixtures/make-reference.sh. -->
+  <ItemGroup>
+    <Content Include="Fixtures\tflens-fixtures\reference.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures\tflens-fixtures\parity-repo\docs\*.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

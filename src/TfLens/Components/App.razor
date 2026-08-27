@@ -1,0 +1,43 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor objHttpContextAccessor
+
+<!DOCTYPE html>
+<html lang="en" class="@ThemeClass">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="_content/TrBlazeUI.Components/trblazeui.css" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["TfLens.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet />
+</head>
+
+<body>
+    @* The shell is interactive end to end — the sidebar trigger, the dropdown menus, the dialogs and the
+       toggles are all TrBlazeUI components that need a circuit. The theme class above is still resolved
+       server-side on this static-rendered host page, so there is no light flash before the circuit starts. *@
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
+
+@code {
+    /// <summary>
+    /// The theme class applied to <c>&lt;html&gt;</c> on the very first byte.
+    /// </summary>
+    /// <remarks>
+    /// BRD-85 / ADR-014 — TfLens is dark-first: a visitor with no stored preference gets
+    /// <c>dark</c>. Resolving it here rather than in JavaScript avoids the light flash a
+    /// client-side toggle would produce on every navigation.
+    /// </remarks>
+    private string ThemeClass =>
+        objHttpContextAccessor.HttpContext?.Request.Cookies[ThemeState.CookieName] == ThemeState.Light
+            ? string.Empty
+            : ThemeState.Dark;
+}

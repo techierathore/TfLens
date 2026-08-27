@@ -1,0 +1,270 @@
+@page "/login"
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+@using TfLens.Core.AppManager
+@using TrBlazeUI.Components.Typography
+
+@inject IAppManagerClient objAppManagerClient
+@inject ILogger<Login> objLogger
+
+<PageTitle>Sign in · TfLens</PageTitle>
+
+@*
+    REQ-UI-001. The credentials are checked from the circuit so a failure keeps the user's typed values
+    and never costs a page load; a success hands the same credentials to POST /auth/login, because a
+    cookie can only be written on a real HTTP response (Architecture §5.3).
+*@
+
+<Card>
+    <CardHeader>
+        <CardTitle>Sign in</CardTitle>
+        <CardDescription>with your AppManager account</CardDescription>
+    </CardHeader>
+
+    <CardContent>
+        <form id="@FormId"
+              method="post"
+              action="/auth/login"
+              class="flex flex-col gap-4"
+              @onsubmit="OnSubmitAsync"
+              @onsubmit:preventDefault>
+
+            <AntiforgeryToken />
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+
+            @if (ShowResetConfirmation)
+            {
+                <Alert Variant="AlertVariant.Success" data-testid="login-reset-done">
+                    <LucideIcon Name="circle-check-big" Size="16" />
+                    <AlertTitle>Password updated.</AlertTitle>
+                    <AlertDescription>Sign in with your new password.</AlertDescription>
+                </Alert>
+            }
+
+            <Field>
+                <FieldLabel For="login-email">Email</FieldLabel>
+                <FieldContent>
+                    <Input Id="login-email"
+                           Type="InputType.Email"
+                           name="Email"
+                           @bind-Value="objEmail"
+                           Required="true"
+                           Placeholder="you@example.com"
+                           data-testid="login-email" />
+                </FieldContent>
+            </Field>
+
+            <Field>
+                <div class="flex items-center justify-between">
+                    <FieldLabel For="login-pass">Password</FieldLabel>
+                    <Button Variant="ButtonVariant.Link"
+                            Size="ButtonSize.Small"
+                            Href="/forgot-password"
+                            Class="text-xs">
+                        Forgot password?
+                    </Button>
+                </div>
+                <FieldContent>
+                    <div class="flex items-center gap-2">
+                        <Input Id="login-pass"
+                               Type="@PasswordInputType"
+                               name="Password"
+                               @bind-Value="objPassword"
+                               Required="true"
+                               Placeholder="Your AppManager password"
+                               Class="flex-1"
+                               data-testid="login-pass" />
+                        <Button Type="ButtonType.Button"
+                                Variant="ButtonVariant.Ghost"
+                                Size="ButtonSize.IconSmall"
+                                OnClick="TogglePasswordVisibility"
+                                AriaLabel="@(objShowPassword ? "Hide password" : "Show password")"
+                                data-testid="login-pass-toggle">
+                            <LucideIcon Name="@(objShowPassword ? "eye-off" : "eye")" Size="16" />
+                        </Button>
+                    </div>
+                </FieldContent>
+            </Field>
+
+            @if (objErrorMessage is not null)
+            {
+                <Alert Variant="AlertVariant.Danger" data-testid="login-error">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>@objErrorTitle</AlertTitle>
+                    <AlertDescription>@objErrorMessage</AlertDescription>
+                </Alert>
+            }
+
+            <Button Type="ButtonType.Submit"
+                    Class="w-full"
+                    Disabled="@objIsSubmitting"
+                    data-testid="login-submit">
+                @if (objIsSubmitting)
+                {
+                    <Spinner Size="SpinnerSize.Small" />
+                    <span>Signing in…</span>
+                }
+                else
+                {
+                    <span>Sign in</span>
+                    <LucideIcon Name="arrow-right" Size="16" />
+                }
+            </Button>
+
+            @* BRD-94 is deferred, so this release ships the note and deliberately no GitHub button. *@
+            <TypographyMuted Class="text-xs text-center">
+                GitHub sign-in: coming in a later release
+            </TypographyMuted>
+        </form>
+    </CardContent>
+
+    <CardFooter Class="justify-center">
+        <TypographySmall Class="text-muted-foreground">New here?</TypographySmall>
+        <Button Variant="ButtonVariant.Link" Size="ButtonSize.Small" Href="/register" data-testid="login-register-link">
+            Create an account
+        </Button>
+    </CardFooter>
+</Card>
+
+<TypographyMuted Class="text-xs text-center">
+    Identity by AppManager · public repos only in this release
+</TypographyMuted>
+
+<AuthForms @ref="objForms" />
+
+@code {
+    /// <summary>Shown for every refusal except a locked account, so no AppManager code ever reaches the browser.</summary>
+    private const string GenericFailure = "Sign-in failed. Check your email and password.";
+
+    /// <summary>The one refusal with a message of its own (AppManager answers 423 for it).</summary>
+    private const string LockedMessage = "Account locked — try again later";
+
+    /// <summary>Id of the form the endpoint is posted through.</summary>
+    private const string FormId = "tf-login-form";
+
+    private AuthForms? objForms;
+    private string objEmail = string.Empty;
+    private string objPassword = string.Empty;
+    private string? objErrorMessage;
+    private string objErrorTitle = "Sign-in failed";
+    private bool objShowPassword;
+    private bool objIsSubmitting;
+
+    /// <summary>Where to land after a successful sign-in, when the user was bounced here from a protected page.</summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    /// <summary>The opaque reason <c>/auth/login</c> redirected back with; never an AppManager code.</summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorReason { get; set; }
+
+    /// <summary>Set by <c>/auth/reset-password</c> after a successful reset, so the user knows it worked.</summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "reset")]
+    public string? ResetOutcome { get; set; }
+
+    /// <summary>True when the page should confirm a completed password reset.</summary>
+    private bool ShowResetConfirmation => ResetOutcome == "1" && objErrorMessage is null;
+
+    /// <summary>The password box's current type, flipped by the eye toggle.</summary>
+    private InputType PasswordInputType => objShowPassword ? InputType.Text : InputType.Password;
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        // A round trip through the endpoint is the fallback path — the circuit normally reports the
+        // failure without navigating at all. Either way only these two messages are ever rendered.
+        if (objErrorMessage is null && !string.IsNullOrEmpty(ErrorReason))
+        {
+            ApplyFailure(ErrorReason == "locked");
+        }
+    }
+
+    /// <summary>
+    /// Flips the password between masked and legible.
+    /// </summary>
+    private void TogglePasswordVisibility() => objShowPassword = !objShowPassword;
+
+    /// <summary>
+    /// Checks the credentials, then hands a good pair to the endpoint that owns the cookie.
+    /// </summary>
+    /// <returns>A task that completes when the failure is on screen or the browser has been told to post.</returns>
+    private async Task OnSubmitAsync()
+    {
+        if (objIsSubmitting)
+        {
+            return;
+        }
+
+        await SyncFromBrowserAsync();
+        objErrorMessage = null;
+
+        if (objEmail.Length == 0 || objPassword.Length == 0)
+        {
+            ApplyFailure(false);
+            return;
+        }
+
+        objIsSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            await objAppManagerClient.LoginAsync(objEmail, objPassword);
+
+            // The credentials are good; only a real HTTP response can carry the auth cookie, so the
+            // same form is now posted for real and the spinner stays up until the browser navigates.
+            if (objForms is not null)
+            {
+                await objForms.SubmitAsync(FormId);
+                return;
+            }
+
+            objLogger.LogError("Sign-in succeeded but the form helper was unavailable, so no cookie was issued.");
+            ApplyFailure(false);
+        }
+        catch (AppManagerException vException)
+        {
+            // The code is logged, never rendered — a failed sign-in must not identify an account (BRD-90).
+            objLogger.LogWarning("Sign-in refused with {Code} ({Status}).", vException.Code, vException.StatusCode);
+            ApplyFailure(vException.Code == AppManagerException.Codes.AccountLocked);
+        }
+        catch (Exception vException)
+        {
+            objLogger.LogError(vException, "Sign-in could not be completed.");
+            ApplyFailure(false);
+        }
+
+        objIsSubmitting = false;
+    }
+
+    /// <summary>
+    /// Puts the failure on screen, keeping whatever the user typed.
+    /// </summary>
+    /// <param name="aIsLocked">True when AppManager reported a locked account.</param>
+    private void ApplyFailure(bool aIsLocked)
+    {
+        objErrorTitle = aIsLocked ? "Account locked" : "Sign-in failed";
+        objErrorMessage = aIsLocked ? LockedMessage : GenericFailure;
+    }
+
+    /// <summary>
+    /// Adopts the values the browser would post, so a re-render never blanks a box the user filled in.
+    /// </summary>
+    /// <returns>A task that completes once the fields match the DOM.</returns>
+    private async Task SyncFromBrowserAsync()
+    {
+        if (objForms is null)
+        {
+            return;
+        }
+
+        var vValues = await objForms.ReadAsync(FormId);
+        objEmail = vValues.TryGetValue("Email", out var vEmail) ? vEmail.Trim() : objEmail;
+        objPassword = vValues.TryGetValue("Password", out var vPassword) ? vPassword : objPassword;
+    }
+}

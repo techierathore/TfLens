@@ -1,0 +1,46 @@
+/*
+    The export surface's own measurements. Hand-written because the shipped trblazeui.css carries no
+    responsive variants at all and `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*`
+    (TR-002), so neither of the two layouts below can be expressed in markup.
+
+    Both grids are one column until there is room for two, which is what keeps the page from ever
+    scrolling horizontally on a phone — the wide tables scroll inside their own containers instead.
+*/
+
+.tflens-export-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+.tflens-parity-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+/* A long target path must wrap rather than widen the card. */
+.tflens-break {
+    overflow-wrap: anywhere;
+}
+
+/*
+    A script hash and a compare command are both longer than the column they sit in. `::deep` is needed
+    because the cells belong to DataTable, not to this component's own markup, and a value that is
+    clipped rather than wrapped reads as a shorter hash than it is.
+*/
+.tflens-facts ::deep td {
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 64rem) {
+    .tflens-export-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    }
+
+    .tflens-parity-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}

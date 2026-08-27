@@ -1,0 +1,333 @@
+@page "/profile"
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@using TfLens.Core.AppManager
+@using TrBlazeUI.Components.Typography
+
+@inject AuthService objAuthService
+@inject CurrentUser objCurrentUser
+@inject ToastService objToastService
+@inject ILogger<Profile> objLogger
+
+<PageTitle>Profile · TfLens</PageTitle>
+
+@*
+    REQ-UI-005. Everything on the left card is read live from AppManager's GET /UserSvc/profile —
+    TfLens stores no profile of its own, so there is nothing here that could drift from the source
+    (BRD-107). The role is a constant rather than a field: every TfLens account is a Manager (BRD-95).
+*@
+
+<div class="profile-page">
+    <div>
+        <TypographyH1 Class="text-2xl">Profile</TypographyH1>
+        <TypographyMuted>Your AppManager account — TfLens reads it, never stores it</TypographyMuted>
+    </div>
+
+    <Alert Variant="AlertVariant.Info" data-testid="profile-identity-note">
+        <LucideIcon Name="info" Size="16" />
+        <AlertTitle>Identity by AppManager</AlertTitle>
+        <AlertDescription>TfLens stores no passwords — your account lives in AppManager.</AlertDescription>
+    </Alert>
+
+    <div class="profile-grid">
+        <Card data-testid="profile-card">
+            <CardHeader>
+                @if (objIsLoading)
+                {
+                    <div class="flex items-center gap-3">
+                        <Skeleton Shape="SkeletonShape.Circular" Class="h-12 w-12" />
+                        <div class="flex flex-col gap-2">
+                            <Skeleton Class="h-4 w-40" />
+                            <Skeleton Class="h-3 w-64" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center justify-between gap-3 profile-identity-row">
+                        <div class="flex items-center gap-3 profile-identity">
+                            <Avatar Size="AvatarSize.Large">
+                                <AvatarFallback>@Initials</AvatarFallback>
+                            </Avatar>
+                            <div class="profile-identity-text">
+                                <CardTitle data-testid="profile-name">@DisplayName</CardTitle>
+                                <CardDescription data-testid="profile-email">@Email</CardDescription>
+                            </div>
+                        </div>
+                        <Badge Variant="BadgeVariant.Secondary" data-testid="profile-role-badge">
+                            <LucideIcon Name="check" Size="12" />
+                            @ManagerRole
+                        </Badge>
+                    </div>
+                }
+            </CardHeader>
+
+            <CardContent>
+                @if (objIsLoading)
+                {
+                    <div class="flex flex-col gap-2" data-testid="profile-skeleton">
+                        <Skeleton Class="h-4 w-full" />
+                        <Skeleton Class="h-4 w-full" />
+                        <Skeleton Class="h-4 w-full" />
+                        <Skeleton Class="h-4 w-full" />
+                        <Skeleton Class="h-4 w-full" />
+                    </div>
+                }
+                else if (objLoadFailed)
+                {
+                    <Alert Variant="AlertVariant.Warning" data-testid="profile-unavailable">
+                        <LucideIcon Name="triangle-alert" Size="16" />
+                        <AlertTitle>Profile unavailable</AlertTitle>
+                        <AlertDescription>
+                            AppManager did not answer. Reload the page to try again.
+                        </AlertDescription>
+                    </Alert>
+                }
+                else
+                {
+                    <div class="overflow-x-auto" data-testid="profile-values">
+                        <DataTable TData="ProfileRow"
+                                   Data="@objRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false">
+                            <Columns>
+                                <DataTableColumn TData="ProfileRow" TValue="string"
+                                                 Property="@(aRow => aRow.Field)" Header="Field" />
+                                <DataTableColumn TData="ProfileRow" TValue="string"
+                                                 Property="@(aRow => aRow.Value)" Header="Value" />
+                            </Columns>
+                        </DataTable>
+                    </div>
+                }
+            </CardContent>
+        </Card>
+
+        <Card data-testid="password-card">
+            <CardHeader>
+                <CardTitle>Change password</CardTitle>
+                <CardDescription>Both passwords are RSA-encrypted before they leave the server</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+                <form id="tf-password-form"
+                      class="flex flex-col gap-4"
+                      @onsubmit="OnChangePasswordAsync"
+                      @onsubmit:preventDefault>
+
+                    <Field IsInvalid="@(objCurrentError is not null)">
+                        <FieldLabel For="pw-current">Current password</FieldLabel>
+                        <FieldContent>
+                            <Input Id="pw-current"
+                                   Type="InputType.Password"
+                                   @bind-Value="objCurrentPassword"
+                                   Required="true"
+                                   data-testid="pw-current" />
+                            @if (objCurrentError is not null)
+                            {
+                                <FieldError data-testid="pw-current-error">@objCurrentError</FieldError>
+                            }
+                        </FieldContent>
+                    </Field>
+
+                    <Field IsInvalid="@(objNewError is not null)">
+                        <FieldLabel For="pw-new">New password</FieldLabel>
+                        <FieldContent>
+                            <Input Id="pw-new"
+                                   Type="InputType.Password"
+                                   @bind-Value="objNewPassword"
+                                   Required="true"
+                                   data-testid="pw-new" />
+                            <PasswordStrengthMeter Password="@objNewPassword" />
+                            <FieldDescription>
+                                8+ chars, an uppercase letter, a number, a special character
+                            </FieldDescription>
+                            @if (objNewError is not null)
+                            {
+                                <FieldError data-testid="pw-new-error">@objNewError</FieldError>
+                            }
+                        </FieldContent>
+                    </Field>
+
+                    <Field IsInvalid="@(objConfirmError is not null)">
+                        <FieldLabel For="pw-confirm">Confirm new password</FieldLabel>
+                        <FieldContent>
+                            <Input Id="pw-confirm"
+                                   Type="InputType.Password"
+                                   @bind-Value="objConfirmPassword"
+                                   Required="true"
+                                   data-testid="pw-confirm" />
+                            @if (objConfirmError is not null)
+                            {
+                                <FieldError data-testid="pw-confirm-error">@objConfirmError</FieldError>
+                            }
+                        </FieldContent>
+                    </Field>
+
+                    <div class="flex justify-end">
+                        <Button Type="ButtonType.Submit"
+                                Disabled="@objIsSaving"
+                                data-testid="pw-submit">
+                            @if (objIsSaving)
+                            {
+                                <Spinner Size="SpinnerSize.Small" />
+                                <span>Updating…</span>
+                            }
+                            else
+                            {
+                                <span>Update password</span>
+                            }
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+    </div>
+</div>
+
+@code {
+    /// <summary>The only role TfLens ever shows, because it is the only role it ever issues (BRD-95).</summary>
+    private const string ManagerRole = "Manager";
+
+    /// <summary>The field error a wrong current password is reported as.</summary>
+    private const string CurrentPasswordError = "That is not your current password.";
+
+    /// <summary>The field error a mismatched confirmation is reported as.</summary>
+    private const string ConfirmMismatchError = "passwords differ";
+
+    private UserProfile? objProfile;
+    private IReadOnlyList<ProfileRow> objRows = [];
+    private bool objIsLoading = true;
+    private bool objLoadFailed;
+
+    private string objCurrentPassword = string.Empty;
+    private string objNewPassword = string.Empty;
+    private string objConfirmPassword = string.Empty;
+    private string? objCurrentError;
+    private string? objNewError;
+    private string? objConfirmError;
+    private bool objIsSaving;
+
+    /// <summary>The signed-in user's display name, from AppManager when it has answered.</summary>
+    private string DisplayName
+    {
+        get
+        {
+            var vName = string.Join(
+                ' ',
+                new[] { objProfile?.FirstName, objProfile?.LastName }
+                    .Where(aPart => !string.IsNullOrWhiteSpace(aPart)));
+
+            return vName.Length > 0 ? vName : objCurrentUser.DisplayName;
+        }
+    }
+
+    /// <summary>The signed-in user's email, from AppManager when it has answered.</summary>
+    private string Email => objProfile?.Email ?? objCurrentUser.Email ?? string.Empty;
+
+    /// <summary>The avatar's initials.</summary>
+    private string Initials
+    {
+        get
+        {
+            var vParts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return vParts.Length switch
+            {
+                0 => "?",
+                1 => vParts[0][..1].ToUpperInvariant(),
+                _ => string.Concat(vParts[0][..1], vParts[^1][..1]).ToUpperInvariant()
+            };
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            objProfile = await objAuthService.GetProfileAsync();
+        }
+        catch (Exception vException)
+        {
+            objLogger.LogWarning(vException, "The AppManager profile could not be read.");
+        }
+
+        objLoadFailed = objProfile is null;
+        objRows = BuildRows();
+        objIsLoading = false;
+    }
+
+    /// <summary>
+    /// Applies the local rules, then asks AppManager to change the password.
+    /// </summary>
+    /// <returns>A task that completes when the outcome is on screen.</returns>
+    private async Task OnChangePasswordAsync()
+    {
+        if (objIsSaving)
+        {
+            return;
+        }
+
+        objCurrentError = objCurrentPassword.Length == 0 ? "Enter your current password." : null;
+        objNewError = PasswordRules.Describe(objNewPassword);
+        objConfirmError = string.Equals(objNewPassword, objConfirmPassword, StringComparison.Ordinal)
+            ? null
+            : ConfirmMismatchError;
+
+        if (objCurrentError is not null || objNewError is not null || objConfirmError is not null)
+        {
+            return;
+        }
+
+        objIsSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await objAuthService.ChangePasswordAsync(objCurrentPassword, objNewPassword);
+
+            objCurrentPassword = string.Empty;
+            objNewPassword = string.Empty;
+            objConfirmPassword = string.Empty;
+            objToastService.Success("Your AppManager password has been changed.", "Password updated");
+        }
+        catch (AppManagerException vException)
+        {
+            objLogger.LogWarning("Password change refused with {Code} ({Status}).", vException.Code, vException.StatusCode);
+
+            if (vException.Code == AppManagerException.Codes.InvalidCurrentPassword)
+            {
+                objCurrentError = CurrentPasswordError;
+            }
+            else
+            {
+                objNewError = "AppManager rejected that password. Use 8+ characters with an uppercase letter, a number and a special character.";
+            }
+        }
+        catch (Exception vException)
+        {
+            objLogger.LogError(vException, "The password change could not be completed.");
+            objToastService.Error("AppManager did not answer. Try again in a moment.", "Password not changed");
+        }
+
+        objIsSaving = false;
+    }
+
+    /// <summary>
+    /// Builds the read-only rows the profile card shows.
+    /// </summary>
+    /// <returns>One row per profile field, with a placeholder only where AppManager has no value.</returns>
+    private IReadOnlyList<ProfileRow> BuildRows() =>
+    [
+        new ProfileRow("Email", Email),
+        new ProfileRow("Name", DisplayName),
+        new ProfileRow("Role", ManagerRole),
+        new ProfileRow("Member since", string.IsNullOrWhiteSpace(objProfile?.MemberSince) ? "—" : objProfile!.MemberSince!),
+        new ProfileRow("Identity provider", string.IsNullOrWhiteSpace(objProfile?.IdentityProvider) ? "AppManager" : objProfile!.IdentityProvider)
+    ];
+
+    /// <summary>One line of the read-only profile card.</summary>
+    /// <param name="Field">The label.</param>
+    /// <param name="Value">The value as AppManager holds it.</param>
+    public sealed record ProfileRow(string Field, string Value);
+}

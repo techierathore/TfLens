@@ -1,0 +1,34 @@
+/* The page's vertical rhythm. TrBlazeUI's shipped CSS carries `gap-4` but no `gap-6`, and the mockup's
+   sections sit 24px apart, so the one measurement the page needs lives here. */
+
+.tflens-stack[b-gf5ckms75x] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Mobile overflow, measured honestly.
+   The DataTable toolbar is a flex row whose search box carries `flex-1`. A flex item defaults to
+   `min-width: auto`, so it refuses to shrink below its content: the row measured 413px inside a
+   390px page container and dragged the whole page sideways. Note this was invisible to a
+   `document.body.scrollWidth` check, because the shell's page container is itself `overflow:auto` —
+   the body can never report the overflow. The honest measure is the page container's own
+   scrollWidth against its clientWidth.
+   `::deep` is required because the toolbar belongs to the DataTable component and carries no scope
+   id of this page. */
+.tflens-stack[b-gf5ckms75x]  [data-testid="repos-table"] {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.tflens-stack[b-gf5ckms75x]  [data-testid="repos-table"] * {
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    /* Let the toolbar wrap rather than overflow at phone width. */
+    .tflens-stack[b-gf5ckms75x]  [data-testid="repos-table"] > div:first-child {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}

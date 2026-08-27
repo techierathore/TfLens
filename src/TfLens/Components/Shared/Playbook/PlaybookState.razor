@@ -1,0 +1,110 @@
+@*
+    REQ-UI-034 — the Playbook framework state of a report page, in one wrapper.
+
+    Every report page has the same two Playbook states: the standing axis note plus real figures, or
+    the standing axis note plus the Phase-3 empty state. Putting the decision here means the five pages
+    cannot drift apart on when "no Playbook data yet" is shown, and no page can render a Playbook figure
+    without the note beside it.
+
+    The Playbook figures are read through IPlaybookReportBuilder — a deliberately separate interface
+    from IMetricsEngine — so nothing on the TechieFlow axis is in scope here and a `phase_gate` result
+    can never be handed to a component expecting a TechieFlow `gate` (SCHEMA.md §11).
+*@
+@inject IPlaybookReportBuilder objReportBuilder
+
+@if (ShowAxisNote)
+{
+    <PlaybookAxisNote />
+}
+
+@if (!objIsLoaded)
+{
+    <Card>
+        <CardContent Class="p-6">
+            <div class="flex flex-col gap-3">
+                <Skeleton Class="h-4 w-full" />
+                <Skeleton Class="h-4 w-3/4" />
+                <Skeleton Class="h-4 w-1/2" />
+            </div>
+        </CardContent>
+    </Card>
+}
+else if (objAnalysis is null || objAnalysis.EventsTotal == 0)
+{
+    <PlaybookEmpty />
+}
+else
+{
+    @if (objAnalysis.SchemaStatus != PlaybookSchemaStatus.Discovered)
+    {
+        <Alert Variant="AlertVariant.Warning" data-testid="playbook-provisional">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Provisional columns</AlertTitle>
+            <AlertDescription>
+                The Playbook column set is @objAnalysis.SchemaStatus.ToString() — it has not yet been
+                confirmed against a captured events.ndjson, so every figure below carries that caveat.
+            </AlertDescription>
+        </Alert>
+    }
+
+    @ChildContent?.Invoke(objAnalysis)
+}
+
+@code {
+    private PlaybookAnalysis? objAnalysis;
+    private bool objIsLoaded;
+    private int? objLoadedUserId;
+
+    /// <summary>The signed-in user whose Playbook figures are shown; nothing loads without one (ADR-013).</summary>
+    [Parameter]
+    [EditorRequired]
+    public int? UserId { get; set; }
+
+    /// <summary>The page's Playbook content, rendered only when there are real events behind it.</summary>
+    [Parameter]
+    public RenderFragment<PlaybookAnalysis>? ChildContent { get; set; }
+
+    /// <summary>Whether this wrapper renders the standing axis note; pages that render it themselves pass false.</summary>
+    [Parameter]
+    public bool ShowAxisNote { get; set; } = true;
+
+    /// <summary>The message from the last failed read, or <c>null</c>; surfaced to the page, never swallowed silently.</summary>
+    public string? LoadError { get; private set; }
+
+    /// <summary>
+    /// Reads the Playbook report set for the current user, once per user.
+    /// </summary>
+    /// <returns>A task that completes when the state knows whether there is anything to show.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (UserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        if (objIsLoaded && objLoadedUserId == UserId)
+        {
+            return;
+        }
+
+        objLoadedUserId = UserId;
+
+        try
+        {
+            objAnalysis = await objReportBuilder.BuildAsync(UserId.Value);
+            LoadError = null;
+        }
+        catch (Exception vEx)
+        {
+            // A Playbook read that fails must degrade to "no data yet", never to a broken report page:
+            // the TechieFlow state of the same page is unaffected and is what most users are here for.
+            objAnalysis = null;
+            LoadError = vEx.Message;
+        }
+        finally
+        {
+            objIsLoaded = true;
+        }
+    }
+}

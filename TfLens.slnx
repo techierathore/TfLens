@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TfLens.Core/TfLens.Core.csproj" />
+    <Project Path="src/TfLens/TfLens.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TfLens.Core.Tests/TfLens.Core.Tests.csproj" />
+    <Project Path="tests/TfLens.Guardrails.Tests/TfLens.Guardrails.Tests.csproj" />
+    <Project Path="tests/TfLens.Integration.Tests/TfLens.Integration.Tests.csproj" />
+  </Folder>
+</Solution>

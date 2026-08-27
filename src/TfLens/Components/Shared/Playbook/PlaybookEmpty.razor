@@ -1,0 +1,26 @@
+@*
+    REQ-UI-034 — the Phase-3 empty state of every report page's Playbook framework state.
+
+    Shown until a real `events.ndjson` has been parsed. It is deliberately an `Empty` with an action
+    rather than a blank panel: the honest answer to "where are my Playbook numbers?" is that the
+    adapter is built after the real file is read (ADR-010), and the only useful next step is to
+    connect a Playbook repository.
+*@
+@using TrBlazeUI.Components.Empty
+
+<Empty Title="No Playbook data yet"
+       Description="Phase 3 — the report set for Playbook repos is built after the real events.ndjson is parsed"
+       Size="EmptySize.Default"
+       data-testid="playbook-empty">
+    <Icon>
+        <LucideIcon Name="book-open" Size="40" />
+    </Icon>
+    <ChildContent>
+        <Button Variant="ButtonVariant.Outline"
+                Href="/repos"
+                data-testid="playbook-empty-connect">
+            <LucideIcon Name="git-branch" Size="16" />
+            Connect a Playbook repo
+        </Button>
+    </ChildContent>
+</Empty>

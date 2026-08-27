@@ -1,0 +1,45 @@
+# Keep the build context to source only.
+#
+# Without this, `COPY src/ src/` drags the host's bin/ and obj/ into the image and overwrites the
+# project.assets.json the restore layer just produced — so `dotnet publish --no-restore` fails with a
+# package "not found" for anything the host restored differently. The image must build identically
+# from a clean clone and from a working developer tree (BRD-77).
+
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+
+# Local state and secrets — never in an image layer.
+.env
+data/
+logs/
+tests/.artifacts/
+test-results/
+test-results-*/
+playwright-report/
+.verify/
+node_modules/
+
+# Version control and framework tooling.
+.git/
+.gitignore
+.gitattributes
+.tfcore/
+.claude/
+.opencode/
+.codex/
+.agents/
+.techierag/
+.trblazeui/
+
+# Nothing here is needed to build or run the app.
+docs/
+*.md
+!database/*.sql
+WORKFLOW.html
+PROJECT-STATUS.html
+opencode.jsonc
+Dockerfile
+docker-compose*.yml

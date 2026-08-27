@@ -1,0 +1,11 @@
+# Local development only. Docker Compose merges this file automatically; the production deploy uses
+# `docker compose -f docker-compose.yml up`, where Postgres stays unreachable from outside the
+# compose network (Architecture §9).
+#
+# Publishing 5433 lets a host-run `dotnet run` (and the verifier's smoke) reach the same database the
+# container would use, without loosening the deployed configuration.
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"

@@ -1,0 +1,940 @@
+@*
+    REQ-UI-014 / REQ-UI-015 / REQ-UI-016 / REQ-UI-017 — the Coverage / health landing page.
+
+    "Every other number is suspect until this page is green." It reads the sync bookkeeping and the
+    stored rows themselves — never a cached summary — so what it shows is what the store holds: one card
+    per connected repository on the selected framework, each with the four (or, for a Playbook repo, one)
+    stream rows, their ages, and any staleness. The framework comes from the header switch, which
+    re-loads the route, so the page re-queries on the chosen axis rather than filtering what it already
+    rendered (ADR-016).
+*@
+@page "/"
+@using Microsoft.Extensions.Options
+@* _Imports.razor does not carry the Empty namespace, so it is imported here rather than shared-file-edited. *@
+@using TrBlazeUI.Components.Empty
+@implements IDisposable
+@inject ITelemetryStore objStore
+@inject ShellState objShellState
+@inject ShellPreferences objPreferences
+@inject NavigationManager objNavigation
+@inject ToastService objToastService
+@inject IOptions<TfLensOptions> objOptionsAccessor
+
+<PageTitle>Coverage / health · TfLens</PageTitle>
+
+<div class="tflens-stack">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        @* TrBlazeUI 2.0.0 ships no Typography components (TR-005), so the page heading is plain markup. *@
+        <div>
+            <h1 class="text-2xl font-semibold">Coverage / health</h1>
+            <p class="mt-1 text-sm text-muted-foreground">Every other number is suspect until this page is green</p>
+        </div>
+        <Badge Variant="BadgeVariant.Outline" data-testid="coverage-parser">
+            parser @ParserVersion.Current · @objCards.Count repos
+        </Badge>
+    </div>
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" data-testid="coverage-error">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Coverage could not be read</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objCards.Count == 0)
+    {
+        <Empty Title="@($"No {FrameworkLabel(objFramework)} repos connected")"
+               Description="@($"You have repos connected, but none of them emit {FrameworkLabel(objFramework)} telemetry. Switch the framework in the header, or connect one.")"
+               Size="EmptySize.Default"
+               data-testid="coverage-empty">
+            <Icon>
+                <LucideIcon Name="activity" Size="40" />
+            </Icon>
+            <ChildContent>
+                <Button Href="/repos">
+                    <LucideIcon Name="git-branch" Size="16" />
+                    Manage repos
+                </Button>
+            </ChildContent>
+        </Empty>
+    }
+    else
+    {
+        @* REQ-UI-014 — the one-line verdict for the whole workspace. *@
+        <Alert Variant="@(objWarnings.Count == 0 ? AlertVariant.Success : AlertVariant.Warning)"
+               data-testid="coverage-status">
+            <LucideIcon Name="@(objWarnings.Count == 0 ? "circle-check" : "triangle-alert")" Size="16" />
+            <AlertTitle>@StatusHeadline</AlertTitle>
+            <AlertDescription>@StatusDetail</AlertDescription>
+        </Alert>
+
+        <StatGroup Columns="4" data-testid="coverage-kpis">
+            <StatTile Title="Repos synced"
+                      Value="@($"{SyncedRepoCount} / {objCards.Count}")"
+                      Description="@($"{SyncErrorCount} sync errors")"
+                      IconName="git-branch"
+                      Accent="StatAccent.Chart1"
+                      data-testid="kpi-repos-synced" />
+            <StatTile Title="Gate records"
+                      Value="@GateRecordTotal.ToString("N0")"
+                      IconName="database"
+                      Accent="StatAccent.Chart2"
+                      data-testid="kpi-gate-records">
+                <DescriptionContent>
+                    <span class="flex flex-wrap items-center gap-1">
+                        <span>live @GateRecordsLive.ToString("N0") ·</span>
+                        <Badge Variant="BadgeVariant.Secondary">backfilled</Badge>
+                        <span>@GateRecordsBackfilled.ToString("N0")</span>
+                    </span>
+                </DescriptionContent>
+            </StatTile>
+            <StatTile Title="Newest record age"
+                      Value="@NewestAgeText"
+                      Description="@NewestAgeDetail"
+                      IconName="clock"
+                      Accent="StatAccent.Chart4"
+                      data-testid="kpi-newest-age" />
+            <StatTile Title="Sync errors"
+                      Value="@SyncErrorCount.ToString("N0")"
+                      Description="@LastErrorDetail"
+                      IconName="triangle-alert"
+                      Accent="StatAccent.Destructive"
+                      data-testid="kpi-sync-errors" />
+        </StatGroup>
+
+        <div class="trblazeui-grid gap-4">
+            @foreach (var vCard in objCards)
+            {
+                <div class="trblazeui-col-12 trblazeui-col-md-6">
+                    <Card Class="h-full" data-testid="@($"repo-card-{vCard.Repo.Name}")">
+                        @* CardHeader is a CSS grid in 2.0.0, so the header row is one flex child of it. *@
+                        <CardHeader>
+                            <div class="flex w-full flex-wrap items-center justify-between gap-2">
+                                <span class="flex min-w-0 flex-wrap items-center gap-2">
+                                    <CardTitle Class="text-base">@vCard.Repo.Repo</CardTitle>
+                                    <Badge Variant="BadgeVariant.Secondary">@vCard.Repo.Kind</Badge>
+                                    @if (vCard.ShortSha is not null)
+                                    {
+                                        <a class="font-mono"
+                                           href="@vCard.CommitUrl"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           title="open commit on GitHub"
+                                           data-testid="@($"repo-sha-{vCard.Repo.Name}")">
+                                            <Badge Variant="BadgeVariant.Outline">@vCard.ShortSha</Badge>
+                                        </a>
+                                    }
+                                </span>
+                                <Badge Variant="@vCard.StatusVariant" data-testid="@($"repo-state-{vCard.Repo.Name}")">
+                                    @vCard.StatusText
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent Class="pt-0">
+                            <p class="text-sm text-muted-foreground">@vCard.SyncLine</p>
+
+                            @if (vCard.Sync?.LastError is not null)
+                            {
+                                <div class="mt-2">
+                                    <Alert Variant="AlertVariant.Danger"
+                                           data-testid="@($"repo-error-{vCard.Repo.Name}")">
+                                        <LucideIcon Name="triangle-alert" Size="16" />
+                                        <AlertTitle>Last sync failed</AlertTitle>
+                                        <AlertDescription>@vCard.Sync.LastError</AlertDescription>
+                                    </Alert>
+                                </div>
+                            }
+
+                            @* Wide table, narrow phone: the table scrolls inside its own box so the page never does. *@
+                            <div class="mt-2 w-full overflow-x-auto">
+                                @* TR-009: ShowPagination="false" only hides the pager — the grid still
+                                   truncates to InitialPageSize, so it is set well above the four rows
+                                   a framework can have. *@
+                                <DataTable TData="StreamRow"
+                                           Data="@vCard.Streams"
+                                           ShowToolbar="false"
+                                           ShowPagination="false"
+                                           InitialPageSize="16"
+                                           AriaLabel="@($"{vCard.Repo.Repo} streams")"
+                                           data-testid="@($"repo-streams-{vCard.Repo.Name}")">
+                                    <Columns>
+                                        <DataTableColumn TData="StreamRow" TValue="string"
+                                                         Property="@(aRow => aRow.Stream)" Header="Stream">
+                                            <CellTemplate Context="vRow">
+                                                <span class="flex items-center gap-2">
+                                                    <span>@vRow.Stream</span>
+                                                    @if (vRow.IsStale)
+                                                    {
+                                                        <Badge Variant="BadgeVariant.Destructive"
+                                                               data-testid="@($"stale-{vCard.Repo.Name}-{vRow.Stream}")">stale</Badge>
+                                                    }
+                                                </span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+
+                                        <DataTableColumn TData="StreamRow" TValue="string"
+                                                         Property="@(aRow => aRow.RecordsText)" Header="Records">
+                                            <CellTemplate Context="vRow">
+                                                <span class="tabular-nums">@vRow.RecordsText</span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+
+                                        <DataTableColumn TData="StreamRow" TValue="string"
+                                                         Property="@(aRow => aRow.BackfilledText)" Header="Backfilled">
+                                            <CellTemplate Context="vRow">
+                                                <span class="tabular-nums">@vRow.BackfilledText</span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+
+                                        <DataTableColumn TData="StreamRow" TValue="string"
+                                                         Property="@(aRow => aRow.NewestText)" Header="Newest">
+                                            <CellTemplate Context="vRow">
+                                                <span class="whitespace-nowrap text-muted-foreground">@vRow.NewestText</span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+
+                                        <DataTableColumn TData="StreamRow" TValue="string"
+                                                         Property="@(aRow => aRow.DaysSinceText)" Header="Days since">
+                                            <CellTemplate Context="vRow">
+                                                <span class="tabular-nums @(vRow.IsStale ? "font-semibold" : string.Empty)">
+                                                    @vRow.DaysSinceText
+                                                </span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+                                    </Columns>
+                                </DataTable>
+                            </div>
+
+                            @* REQ-UI-015 — staleness, stated in words, naming the streams and the configured threshold. *@
+                            @if (vCard.StaleStreams.Count > 0)
+                            {
+                                <div class="mt-4">
+                                    <Alert Variant="AlertVariant.Warning"
+                                           AccentBorder="true"
+                                           data-testid="@($"repo-stale-{vCard.Repo.Name}")">
+                                        <LucideIcon Name="triangle-alert" Size="16" />
+                                        <AlertTitle>Staleness</AlertTitle>
+                                        <AlertDescription>@StalenessMessage(vCard.StaleStreams)</AlertDescription>
+                                    </Alert>
+                                </div>
+                            }
+                        </CardContent>
+                    </Card>
+                </div>
+            }
+
+            @* REQ-UI-017 — the only destructive control on a read-only lens. *@
+            <div class="trblazeui-col-12 trblazeui-col-md-6">
+                <Card Class="h-full" data-testid="rebuild-card">
+                    <CardHeader>
+                        <div class="flex w-full items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Rebuild from raw</CardTitle>
+                                <CardDescription>
+                                    Drops the parsed tables and replays the raw archive with parser @ParserVersion.Current
+                                </CardDescription>
+                            </span>
+                            <span class="tflens-stat-chip tflens-accent-5">
+                                <LucideIcon Name="refresh-cw" Size="16" />
+                            </span>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        @if (objRebuild is null)
+                        {
+                            <p class="text-sm text-muted-foreground" data-testid="rebuild-report">
+                                No rebuild has run in this session. Nothing is dropped until you confirm.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="flex flex-col gap-2 text-sm" data-testid="rebuild-report">
+                                <span>Files replayed: <b class="tabular-nums">@objRebuild.FilesReplayed.ToString("N0")</b></span>
+                                <span>Records stored: <b class="tabular-nums">@objRebuild.RecordsWritten.ToString("N0")</b></span>
+                                <span>Duplicates collapsed: <b class="tabular-nums">@objRebuild.DuplicatesCollapsed.ToString("N0")</b></span>
+                                <span>Invalid lines skipped: <b class="tabular-nums">@objRebuild.InvalidLines.ToString("N0")</b></span>
+                                <span class="text-muted-foreground">Per stream, after the replay:</span>
+                                <span class="flex flex-wrap items-center gap-2" data-testid="rebuild-per-stream">
+                                    @foreach (var vStream in RebuiltStreamTotals())
+                                    {
+                                        <Badge Variant="BadgeVariant.Outline">@vStream.Key @vStream.Value.ToString("N0")</Badge>
+                                    }
+                                </span>
+                            </div>
+                        }
+
+                        @if (objIsRebuilding)
+                        {
+                            <div class="mt-4 flex flex-col gap-2" data-testid="rebuild-progress">
+                                <span class="text-sm text-muted-foreground">Replaying the raw archive…</span>
+                                <Progress Value="@objRebuildProgress" />
+                            </div>
+                        }
+
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs text-muted-foreground">
+                                Confirmation is required — the parsed tables are dropped and re-derived.
+                            </span>
+                            <Button Variant="ButtonVariant.Destructive"
+                                    Size="ButtonSize.Small"
+                                    Disabled="@objIsRebuilding"
+                                    OnClick="OpenRebuildDialog"
+                                    data-testid="rebuild">
+                                <LucideIcon Name="trash-2" Size="16" />
+                                Rebuild…
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+
+        @* REQ-UI-016 — names only. No field value and no Overflow payload is ever rendered. *@
+        <div data-testid="unknown-fields">
+            <Collapsible @bind-Open="objIsUnknownOpen">
+                <Card>
+                    <CardContent Class="p-4">
+                        <CollapsibleTrigger>
+                            <span class="flex items-center gap-2 text-sm font-medium"
+                                  data-testid="unknown-fields-trigger">
+                                <LucideIcon Name="@(objIsUnknownOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                                Fields observed that SCHEMA.md doesn't document (@objUnknownFieldNames.Count)
+                            </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <div class="mt-4 flex flex-col gap-3">
+                                @if (objUnknownFieldNames.Count == 0)
+                                {
+                                    <span class="text-sm text-muted-foreground" data-testid="unknown-fields-none">none</span>
+                                }
+                                else
+                                {
+                                    @foreach (var vGroup in objUnknownGroups)
+                                    {
+                                        <div class="flex flex-wrap items-center gap-2"
+                                             data-testid="@($"unknown-group-{vGroup.Key}")">
+                                            <span class="text-sm text-muted-foreground">@vGroup.Label:</span>
+                                            @foreach (var vField in vGroup.Fields)
+                                            {
+                                                <Badge Variant="BadgeVariant.Outline">
+                                                    <span class="font-mono">@vField</span>
+                                                </Badge>
+                                            }
+                                        </div>
+                                    }
+                                }
+
+                                @foreach (var vVersion in objAboveSchemaV1)
+                                {
+                                    <Alert Variant="AlertVariant.Info" data-testid="schema-version-alert">
+                                        <LucideIcon Name="info" Size="16" />
+                                        <AlertTitle>Records from a newer schema</AlertTitle>
+                                        <AlertDescription>
+                                            @vVersion.Repo · @vVersion.Stream carried @vVersion.Records
+                                            record@(vVersion.Records == 1 ? string.Empty : "s") with v = @vVersion.MaxVersion.
+                                            They are stored whole and read as unknown until SCHEMA.md catches up.
+                                        </AlertDescription>
+                                    </Alert>
+                                }
+                            </div>
+                        </CollapsibleContent>
+                    </CardContent>
+                </Card>
+            </Collapsible>
+        </div>
+    }
+</div>
+
+@* REQ-UI-017 — nothing is dropped until this confirm action is taken; Escape or Cancel aborts. *@
+<AlertDialog @bind-Open="objIsRebuildOpen">
+    <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>
+                <span data-testid="rebuild-title">Drop the parsed tables and reparse?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+                <span data-testid="rebuild-description">
+                    Every parsed row of yours is deleted and re-derived from the raw archive with
+                    parser @ParserVersion.Current. The raw archive and your GitHub repos are untouched, and
+                    nothing else on this page changes until the replay finishes.
+                </span>
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>
+                <Button Variant="ButtonVariant.Outline" data-testid="rebuild-cancel">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction>
+                <Button Variant="ButtonVariant.Destructive"
+                        OnClick="ConfirmRebuildAsync"
+                        data-testid="rebuild-confirm">
+                    <LucideIcon Name="trash-2" Size="16" />
+                    Drop and reparse
+                </Button>
+            </AlertDialogAction>
+        </AlertDialogFooter>
+    </AlertDialogContent>
+</AlertDialog>
+
+@code {
+    /// <summary>The streams whose age says whether a clone is still pushing (BRD-41).</summary>
+    private static readonly string[] CadenceStreams = [StreamNames.Sessions, StreamNames.Commits];
+
+    private IReadOnlyList<RepoCard> objCards = [];
+    private IReadOnlyList<string> objUnknownFieldNames = [];
+    private IReadOnlyList<UnknownFieldGroup> objUnknownGroups = [];
+    private IReadOnlyList<SchemaVersionFact> objAboveSchemaV1 = [];
+    private IReadOnlyList<string> objWarnings = [];
+
+    private CoverageFacts objFacts = CoverageFacts.Empty;
+    private DateTimeOffset objNow = DateTimeOffset.UtcNow;
+    private string objFramework = FrameworkNames.TechieFlow;
+    private string? objLoadError;
+    private bool objIsLoaded;
+    private bool objHasAnyRepo = true;
+    private int? objUserId;
+
+    private bool objIsUnknownOpen = true;
+    private bool objIsRebuildOpen;
+    private bool objIsRebuilding;
+    private double objRebuildProgress;
+    private RebuildReport? objRebuild;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>How old a cadence stream may be before this page calls it stale (REQ-UI-015).</summary>
+    private int StalenessDays => Math.Max(1, objOptionsAccessor.Value.StalenessDays);
+
+    /// <summary>Repositories whose last sync attempt did not record an error.</summary>
+    private int SyncedRepoCount => objCards.Count(aCard => aCard.Sync?.LastError is null);
+
+    /// <summary>Repositories whose last sync attempt failed.</summary>
+    private int SyncErrorCount => objCards.Count(aCard => aCard.Sync?.LastError is not null);
+
+    /// <summary>Gate records stored across the shown repositories.</summary>
+    private int GateRecordTotal => objCards.Sum(aCard => aCard.GateRecords);
+
+    /// <summary>Backfilled gate records — never added to the live count, only shown beside it.</summary>
+    private int GateRecordsBackfilled => objCards.Sum(aCard => aCard.GateRecordsBackfilled);
+
+    /// <summary>Gate records that were emitted live.</summary>
+    private int GateRecordsLive => GateRecordTotal - GateRecordsBackfilled;
+
+    /// <summary>The status strip's headline — the whole page in one line (REQ-UI-014).</summary>
+    private string StatusHeadline =>
+        objWarnings.Count == 0
+            ? $"GREEN — {objCards.Count} repos synced, nothing stale"
+            : $"CHECK — {objWarnings.Count} warning{(objWarnings.Count == 1 ? string.Empty : "s")}";
+
+    /// <summary>The status strip's second line — what each warning actually is.</summary>
+    private string StatusDetail
+    {
+        get
+        {
+            var vGreen = objCards.Count(aCard => aCard.Sync?.LastError is null && aCard.StaleStreams.Count == 0);
+            var vTail = $"{vGreen} of {objCards.Count} repos green.";
+            return objWarnings.Count == 0
+                ? $"Every stream is inside the {StalenessDays}-day threshold and no field is undocumented. {vTail}"
+                : $"{string.Join(" · ", objWarnings)}. {vTail}";
+        }
+    }
+
+    /// <summary>The newest record anywhere in the shown repositories, as an age.</summary>
+    private string NewestAgeText => AgeText(NewestRecord()?.When);
+
+    /// <summary>Which repository and stream the newest record came from.</summary>
+    private string NewestAgeDetail =>
+        NewestRecord() is { } vNewest
+            ? $"{vNewest.Repo} · {vNewest.Stream} stream"
+            : "no records stored yet";
+
+    /// <summary>The sub-line under the sync-errors tile.</summary>
+    private string LastErrorDetail
+    {
+        get
+        {
+            var vFailed = objCards.FirstOrDefault(aCard => aCard.Sync?.LastError is not null);
+            return vFailed is null
+                ? "no repo reported a sync error"
+                : $"{vFailed.Repo.Repo} · {vFailed.Sync!.LastError}";
+        }
+    }
+
+    /// <summary>Re-renders when the shell reloads the workspace under this page.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnFrameworkChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and loads the coverage picture for the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the cards have their rows.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (objIsLoaded || AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        await ReloadAsync();
+
+        // REQ-UI-014: Coverage is the landing route only for a user who has something to cover.
+        if (!objHasAnyRepo)
+        {
+            objNavigation.NavigateTo("/repos");
+        }
+    }
+
+    /// <summary>
+    /// Re-reads the repositories, the sync bookkeeping and the stored-row facts, then rebuilds the cards.
+    /// </summary>
+    /// <returns>A task that completes when the page's model matches the store.</returns>
+    private async Task ReloadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        objFramework = objPreferences.Framework;
+        objNow = DateTimeOffset.UtcNow;
+
+        try
+        {
+            var vRepos = await objStore.ReadUserReposAsync(objUserId.Value);
+            var vSyncStates = await objStore.ReadSyncStateAsync(objUserId.Value);
+            objFacts = await objStore.ReadCoverageFactsAsync(objUserId.Value);
+
+            objHasAnyRepo = vRepos.Count > 0;
+
+            objCards = vRepos
+                .Where(aRepo => string.Equals(aRepo.Framework, objFramework, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(aRepo => aRepo.Repo, StringComparer.OrdinalIgnoreCase)
+                .Select(aRepo => BuildCard(aRepo, vSyncStates))
+                .ToList();
+
+            BuildUnknownFields();
+            BuildWarnings();
+            objLoadError = null;
+        }
+        catch (Exception vEx)
+        {
+            objCards = [];
+            objUnknownGroups = [];
+            objUnknownFieldNames = [];
+            objAboveSchemaV1 = [];
+            objWarnings = [];
+            objLoadError = vEx.Message;
+        }
+
+        objIsLoaded = true;
+    }
+
+    /// <summary>
+    /// Builds one repository's card from its bookkeeping row and its stored-row facts.
+    /// </summary>
+    /// <param name="aRepo">The connected repository.</param>
+    /// <param name="aSyncStates">Every sync bookkeeping row the user has.</param>
+    /// <returns>The card model the markup renders.</returns>
+    private RepoCard BuildCard(UserRepo aRepo, IReadOnlyList<SyncState> aSyncStates)
+    {
+        var vSync = aSyncStates.FirstOrDefault(aState =>
+            string.Equals(aState.Repo, aRepo.Repo, StringComparison.OrdinalIgnoreCase));
+
+        var vRows = FrameworkNames.Streams(aRepo.Framework)
+            .Select(aStream => BuildRow(aRepo.Repo, aStream))
+            .ToList();
+
+        return new RepoCard(aRepo, vSync, vRows, RelativeTime.Describe(RelativeTime.Parse(vSync?.LastSyncTs), objNow));
+    }
+
+    /// <summary>
+    /// Builds one row of a repository's stream table.
+    /// </summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <param name="aStream">The stream's wire name.</param>
+    /// <returns>The row, with an honest em dash wherever the fact was never captured.</returns>
+    private StreamRow BuildRow(string aRepo, string aStream)
+    {
+        var vFact = objFacts.Streams.FirstOrDefault(aItem =>
+            string.Equals(aItem.Repo, aRepo, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(aItem.Stream, aStream, StringComparison.Ordinal));
+
+        var vNewest = RelativeTime.Parse(vFact?.NewestTs);
+        var vDays = vNewest is null ? (int?)null : (int)Math.Floor((objNow - vNewest.Value).TotalDays);
+        var vCarriesBackfilled = aStream is StreamNames.Runs or StreamNames.Gates;
+
+        return new StreamRow
+        {
+            Stream = aStream,
+            Records = vFact?.Records ?? 0,
+            Backfilled = vFact?.Backfilled ?? 0,
+            CarriesBackfilled = vCarriesBackfilled,
+            NewestTs = vNewest,
+            DaysSince = vDays,
+            IsStale = CadenceStreams.Contains(aStream, StringComparer.Ordinal)
+                && vDays is { } vAge
+                && vAge >= StalenessDays
+        };
+    }
+
+    /// <summary>
+    /// Groups the undocumented field names by repository and stream, names only (REQ-UI-016).
+    /// </summary>
+    private void BuildUnknownFields()
+    {
+        var vShown = objCards.Select(aCard => aCard.Repo.Repo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var vFacts = objFacts.UnknownFields.Where(aFact => vShown.Contains(aFact.Repo)).ToList();
+
+        objUnknownFieldNames = vFacts
+            .Select(aFact => aFact.Field)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aField => aField, StringComparer.Ordinal)
+            .ToList();
+
+        objUnknownGroups = vFacts
+            .GroupBy(aFact => (aFact.Repo, aFact.Stream))
+            .OrderBy(aGroup => aGroup.Key.Repo, StringComparer.Ordinal)
+            .ThenBy(aGroup => aGroup.Key.Stream, StringComparer.Ordinal)
+            .Select(aGroup => new UnknownFieldGroup(
+                $"{ShortName(aGroup.Key.Repo)}-{aGroup.Key.Stream}",
+                $"{ShortName(aGroup.Key.Repo)} · {aGroup.Key.Stream}",
+                aGroup.Select(aFact => aFact.Field).Distinct(StringComparer.Ordinal)
+                    .OrderBy(aField => aField, StringComparer.Ordinal).ToList()))
+            .ToList();
+
+        objAboveSchemaV1 = objFacts.AboveSchemaV1
+            .Where(aFact => vShown.Contains(aFact.Repo))
+            .OrderBy(aFact => aFact.Repo, StringComparer.Ordinal)
+            .ThenBy(aFact => aFact.Stream, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>Collects what the status strip has to warn about, in the order it says them.</summary>
+    private void BuildWarnings()
+    {
+        var vWarnings = new List<string>();
+
+        foreach (var vCard in objCards.Where(aCard => aCard.Sync?.LastError is not null))
+        {
+            vWarnings.Add($"{vCard.Repo.Repo}: last sync failed");
+        }
+
+        foreach (var vCard in objCards.Where(aCard => aCard.StaleStreams.Count > 0))
+        {
+            vWarnings.Add($"{vCard.Repo.Repo}: {string.Join(" and ", vCard.StaleStreams)} stale");
+        }
+
+        if (objUnknownFieldNames.Count > 0)
+        {
+            vWarnings.Add(
+                $"{objUnknownFieldNames.Count} undocumented field"
+                + $"{(objUnknownFieldNames.Count == 1 ? string.Empty : "s")} observed "
+                + $"({string.Join(", ", objUnknownFieldNames)})");
+        }
+
+        foreach (var vVersion in objAboveSchemaV1)
+        {
+            vWarnings.Add($"{vVersion.Repo}: {vVersion.Stream} carries v = {vVersion.MaxVersion} records");
+        }
+
+        objWarnings = vWarnings;
+    }
+
+    /// <summary>Opens the rebuild confirmation. Nothing is dropped by opening it.</summary>
+    private void OpenRebuildDialog() => objIsRebuildOpen = true;
+
+    /// <summary>
+    /// Runs the same replay the <c>rebuild</c> verb runs, then refreshes the page in place (REQ-UI-017).
+    /// </summary>
+    /// <returns>A task that completes when the report is on screen and the cards have been re-read.</returns>
+    private async Task ConfirmRebuildAsync()
+    {
+        if (objUserId is null || objIsRebuilding)
+        {
+            return;
+        }
+
+        objIsRebuildOpen = false;
+        objIsRebuilding = true;
+        objRebuildProgress = 20;
+        StateHasChanged();
+
+        try
+        {
+            objRebuild = await objStore.RebuildAsync(objUserId.Value);
+            objRebuildProgress = 100;
+
+            objToastService.Success(
+                $"{objRebuild.FilesReplayed:N0} files replayed · {objRebuild.RecordsWritten:N0} records stored · "
+                + $"{objRebuild.DuplicatesCollapsed:N0} duplicates collapsed",
+                "Rebuild complete");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Rebuild failed");
+        }
+        finally
+        {
+            objIsRebuilding = false;
+            objIsLoaded = false;
+            await ReloadAsync();
+            await objShellState.RefreshAsync(objUserId.Value);
+        }
+    }
+
+    /// <summary>
+    /// Totals the rebuilt rows per stream, so the report says what landed rather than only how much.
+    /// </summary>
+    /// <returns>One entry per stream that holds rows, in report order.</returns>
+    private IReadOnlyList<KeyValuePair<string, int>> RebuiltStreamTotals() =>
+        objFacts.Streams
+            .Where(aFact => objCards.Any(aCard =>
+                string.Equals(aCard.Repo.Repo, aFact.Repo, StringComparison.OrdinalIgnoreCase)))
+            .GroupBy(aFact => aFact.Stream, StringComparer.Ordinal)
+            .Select(aGroup => new KeyValuePair<string, int>(aGroup.Key, aGroup.Sum(aFact => aFact.Records)))
+            .OrderBy(aPair => aPair.Key, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
+    /// The staleness warning, in words, naming the affected streams and the configured threshold.
+    /// </summary>
+    /// <param name="aStreams">The stale streams of one repository.</param>
+    /// <returns>The sentence REQ-UI-015 fixes.</returns>
+    private string StalenessMessage(IReadOnlyList<string> aStreams) =>
+        $"{string.Join("/", aStreams)} stale ≥ {StalenessDays} days — this clone isn't pushing or lacks "
+        + "hooks; run update-framework.sh on it";
+
+    /// <summary>Finds the newest stored record across the shown repositories.</summary>
+    /// <returns>Its repository, stream and instant, or <c>null</c> when nothing is stored.</returns>
+    private NewestFact? NewestRecord()
+    {
+        NewestFact? vBest = null;
+
+        foreach (var vCard in objCards)
+        {
+            foreach (var vRow in vCard.Streams.Where(aRow => aRow.NewestTs is not null))
+            {
+                if (vBest is null || vRow.NewestTs!.Value > vBest.When)
+                {
+                    vBest = new NewestFact(vCard.Repo.Repo, vRow.Stream, vRow.NewestTs!.Value);
+                }
+            }
+        }
+
+        return vBest;
+    }
+
+    /// <summary>
+    /// Renders how long ago an instant was, without the trailing "ago" the KPI tile does not want.
+    /// </summary>
+    /// <param name="aWhen">The instant, or <c>null</c> when there is none.</param>
+    /// <returns>A phrase such as <c>38 min</c>, or an em dash.</returns>
+    private string AgeText(DateTimeOffset? aWhen)
+    {
+        if (aWhen is null)
+        {
+            return "—";
+        }
+
+        var vElapsed = objNow - aWhen.Value;
+
+        if (vElapsed < TimeSpan.Zero)
+        {
+            vElapsed = TimeSpan.Zero;
+        }
+
+        if (vElapsed.TotalMinutes < 1)
+        {
+            return "just now";
+        }
+
+        if (vElapsed.TotalHours < 1)
+        {
+            return $"{(int)vElapsed.TotalMinutes} min";
+        }
+
+        if (vElapsed.TotalDays < 1)
+        {
+            var vHours = (int)vElapsed.TotalHours;
+            return vHours == 1 ? "1 hour" : $"{vHours} hours";
+        }
+
+        var vDays = (int)vElapsed.TotalDays;
+        return vDays == 1 ? "1 day" : $"{vDays} days";
+    }
+
+    /// <summary>Turns a framework key into the label the header switch shows.</summary>
+    /// <param name="aFramework">The provenance axis.</param>
+    /// <returns><c>TechieFlow</c> or <c>Playbook</c>.</returns>
+    private static string FrameworkLabel(string aFramework) =>
+        string.Equals(aFramework, FrameworkNames.Playbook, StringComparison.OrdinalIgnoreCase)
+            ? "Playbook"
+            : "TechieFlow";
+
+    /// <summary>Takes the repository name out of <c>owner/name</c>.</summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <returns>The name segment.</returns>
+    private static string ShortName(string aRepo) => aRepo.Split('/')[^1];
+
+    /// <summary>Re-renders when the shell reloads the workspace.</summary>
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// Re-queries the store when the header Framework switch changes the provenance axis (ADR-016).
+    /// </summary>
+    /// <remarks>
+    /// The figures are re-read on the new axis rather than filtered out of what is already rendered:
+    /// there is no client-side path from a TechieFlow figure to a Playbook one.
+    /// </remarks>
+    private void OnFrameworkChanged() =>
+        InvokeAsync(async () =>
+        {
+            if (objUserId is null || string.Equals(objFramework, objPreferences.Framework, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await ReloadAsync();
+            StateHasChanged();
+        });
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnFrameworkChanged;
+    }
+
+    /// <summary>One repository's card.</summary>
+    /// <param name="Repo">The connected repository.</param>
+    /// <param name="Sync">Its sync bookkeeping, or <c>null</c> when it has never synced.</param>
+    /// <param name="Streams">Its stream rows, in framework report order.</param>
+    /// <param name="LastSyncPhrase">How long ago the last sync attempt completed.</param>
+    private sealed record RepoCard(
+        UserRepo Repo,
+        SyncState? Sync,
+        IReadOnlyList<StreamRow> Streams,
+        string LastSyncPhrase)
+    {
+        /// <summary>The first seven characters of the synced SHA, or <c>null</c> when nothing has synced.</summary>
+        public string? ShortSha =>
+            string.IsNullOrWhiteSpace(Sync?.LastSha)
+                ? null
+                : Sync!.LastSha![..Math.Min(7, Sync.LastSha!.Length)];
+
+        /// <summary>The GitHub commit the short SHA opens.</summary>
+        public string CommitUrl => $"https://github.com/{Repo.Repo}/commit/{Sync?.LastSha}";
+
+        /// <summary>Rows stored across every stream of this repository.</summary>
+        public int Records => Streams.Sum(aRow => aRow.Records);
+
+        /// <summary>Gate records stored for this repository.</summary>
+        public int GateRecords =>
+            Streams.FirstOrDefault(aRow => aRow.Stream == StreamNames.Gates)?.Records ?? 0;
+
+        /// <summary>Backfilled gate records stored for this repository.</summary>
+        public int GateRecordsBackfilled =>
+            Streams.FirstOrDefault(aRow => aRow.Stream == StreamNames.Gates)?.Backfilled ?? 0;
+
+        /// <summary>The cadence streams that have gone stale, in report order.</summary>
+        public IReadOnlyList<string> StaleStreams =>
+            Streams.Where(aRow => aRow.IsStale).Select(aRow => aRow.Stream).ToList();
+
+        /// <summary>The badge in the card header.</summary>
+        public string StatusText =>
+            Sync?.LastError is not null
+                ? "sync error"
+                : StaleStreams.Count > 0
+                    ? $"{StaleStreams.Count} streams stale"
+                    : Sync is null ? "not synced yet" : "synced";
+
+        /// <summary>Which badge variant that status uses.</summary>
+        public BadgeVariant StatusVariant =>
+            Sync?.LastError is not null || StaleStreams.Count > 0
+                ? BadgeVariant.Destructive
+                : Sync is null ? BadgeVariant.Outline : BadgeVariant.Secondary;
+
+        /// <summary>The muted line under the card header.</summary>
+        public string SyncLine =>
+            $"Last sync {LastSyncPhrase} · outcome {(Sync?.LastError is null ? "ok" : "error")} "
+            + $"· {Records:N0} records";
+    }
+
+    /// <summary>One row of a repository's stream table.</summary>
+    private sealed class StreamRow
+    {
+        /// <summary>The stream's wire name.</summary>
+        public required string Stream { get; init; }
+
+        /// <summary>Rows stored for the stream.</summary>
+        public required int Records { get; init; }
+
+        /// <summary>Backfilled rows, when the stream carries the flag at all.</summary>
+        public required int Backfilled { get; init; }
+
+        /// <summary>True when SCHEMA.md puts a <c>backfilled</c> field on this stream's records.</summary>
+        public required bool CarriesBackfilled { get; init; }
+
+        /// <summary>The newest stored record's instant, or <c>null</c> when the stream is empty.</summary>
+        public required DateTimeOffset? NewestTs { get; init; }
+
+        /// <summary>Whole days since the newest record, or <c>null</c> when the stream is empty.</summary>
+        public required int? DaysSince { get; init; }
+
+        /// <summary>True when this is a cadence stream and it has passed the configured threshold.</summary>
+        public required bool IsStale { get; init; }
+
+        /// <summary>The record count as the table prints it.</summary>
+        public string RecordsText => Records.ToString("N0");
+
+        /// <summary>The backfilled count, or an em dash when the stream never carries the flag.</summary>
+        public string BackfilledText => CarriesBackfilled ? Backfilled.ToString("N0") : "—";
+
+        /// <summary>The newest record's timestamp, to the minute, or an em dash.</summary>
+        public string NewestText => NewestTs?.UtcDateTime.ToString("yyyy-MM-dd HH:mm") ?? "—";
+
+        /// <summary>Whole days since the newest record, or an em dash.</summary>
+        public string DaysSinceText => DaysSince?.ToString("N0") ?? "—";
+    }
+
+    /// <summary>Undocumented field names observed in one repository's one stream.</summary>
+    /// <param name="Key">A stable, test-friendly key for the group.</param>
+    /// <param name="Label">The repository and stream, as the panel labels them.</param>
+    /// <param name="Fields">The field names — names only, never values.</param>
+    private sealed record UnknownFieldGroup(string Key, string Label, IReadOnlyList<string> Fields);
+
+    /// <summary>The newest stored record across the page.</summary>
+    /// <param name="Repo"><c>owner/name</c> of the repository that holds it.</param>
+    /// <param name="Stream">The stream it belongs to.</param>
+    /// <param name="When">When it happened.</param>
+    private sealed record NewestFact(string Repo, string Stream, DateTimeOffset When);
+}

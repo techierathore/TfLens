@@ -1,0 +1,220 @@
+@*
+    The TfLens app shell — REQ-UI-006 through REQ-UI-010.
+
+    Every authenticated screen renders inside this: a collapsible icon sidebar whose state is persisted in
+    the `tflens:sidebar` cookie, the header (breadcrumb, Framework switch, Sync now, theme toggle, user
+    menu) and the page container. The navigation order, labels and Lucide icon names come from
+    ShellNavigation so the sidebar, the breadcrumb and the Framework-switch visibility rule cannot drift.
+*@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager objNavigation
+@inject ShellState objShellState
+@inject ShellPreferences objPreferences
+
+<SidebarProvider DefaultOpen="true" HeightClass="h-screen" CookieKey="@SidebarPreference.CookieName">
+    <Sidebar Collapsible="true" data-testid="app-sidebar">
+        <SidebarHeader>
+            <SidebarHeaderContent>
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <LucideIcon Name="aperture" Size="18" />
+                </div>
+                <SidebarHeaderInfo>
+                    <span class="truncate font-semibold">TfLens</span>
+                    <span class="truncate text-xs text-muted-foreground">lens on TechieFlow &amp; Playbook</span>
+                </SidebarHeaderInfo>
+            </SidebarHeaderContent>
+        </SidebarHeader>
+
+        <SidebarContent>
+            <SidebarGroup>
+                <SidebarGroupLabel>@ShellNavigation.WorkspaceSection</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        @foreach (var vItem in WorkspaceItems)
+                        {
+                            <SidebarMenuItem>
+                                <SidebarMenuButton Href="@vItem.Href"
+                                                   Match="@MatchOf(vItem)"
+                                                   Tooltip="@vItem.Label"
+                                                   IsActive="@IsActive(vItem)"
+                                                   data-testid="@TestIdOf(vItem)">
+                                    <LucideIcon Name="@vItem.Icon" Size="16" />
+                                    <span>@vItem.Label</span>
+                                </SidebarMenuButton>
+                                <SidebarMenuBadge data-testid="nav-repo-count">@objShellState.RepoCount</SidebarMenuBadge>
+                            </SidebarMenuItem>
+                        }
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>@ShellNavigation.ReportsSection</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        @foreach (var vItem in ReportItems)
+                        {
+                            <SidebarMenuItem>
+                                <SidebarMenuButton Href="@vItem.Href"
+                                                   Match="@MatchOf(vItem)"
+                                                   Tooltip="@vItem.Label"
+                                                   IsActive="@IsActive(vItem)"
+                                                   data-testid="@TestIdOf(vItem)">
+                                    <LucideIcon Name="@vItem.Icon" Size="16" />
+                                    <span>@vItem.Label</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        }
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter>
+            <div class="flex items-center justify-between gap-2 px-2 py-1">
+                <ThemeToggle TestId="theme-toggle-sidebar" Id="sidebar-theme-toggle" />
+                <span class="truncate text-xs text-muted-foreground">v0.1 · read-only lens</span>
+            </div>
+        </SidebarFooter>
+
+        <SidebarRail />
+    </Sidebar>
+
+    <SidebarInset>
+        <ShellHeader UserId="@objUserId"
+                     DisplayName="@objDisplayName"
+                     Email="@objEmail"
+                     Initials="@objInitials" />
+        <div class="tflens-page flex-1 overflow-auto p-6">
+            @Body
+        </div>
+    </SidebarInset>
+</SidebarProvider>
+
+<ToastProvider Position="ToastPosition.BottomRight" />
+<PortalHost />
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private string objRelativePath = string.Empty;
+    private string objDisplayName = string.Empty;
+    private string objEmail = string.Empty;
+    private string objInitials = "?";
+    private int? objUserId;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>The single Workspace item — Repos, with its repo-count badge.</summary>
+    private static IEnumerable<ShellNavItem> WorkspaceItems =>
+        ShellNavigation.Items.Where(aItem => aItem.Section == ShellNavigation.WorkspaceSection);
+
+    /// <summary>The five report items, in the fixed order.</summary>
+    private static IEnumerable<ShellNavItem> ReportItems =>
+        ShellNavigation.Items.Where(aItem => aItem.Section == ShellNavigation.ReportsSection);
+
+    /// <summary>Tracks the route and subscribes to the shell data so the badge follows a connect.</summary>
+    protected override void OnInitialized()
+    {
+        objRelativePath = objNavigation.ToBaseRelativePath(objNavigation.Uri);
+        objNavigation.LocationChanged += OnLocationChanged;
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and loads their workspace once.
+    /// </summary>
+    /// <returns>A task that completes when the sidebar badge has its count.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        var vPrincipal = vState.User;
+
+        objUserId = ShellIdentity.UserId(vPrincipal);
+        objDisplayName = ShellIdentity.DisplayName(vPrincipal);
+        objEmail = ShellIdentity.Email(vPrincipal);
+        objInitials = ShellIdentity.Initials(objDisplayName);
+
+        if (objUserId is not null)
+        {
+            await objShellState.EnsureLoadedAsync(objUserId.Value);
+        }
+    }
+
+    /// <summary>
+    /// Reconciles the theme toggle with the palette the server already rendered.
+    /// </summary>
+    /// <param name="aIsFirstRender">True on the circuit's first render.</param>
+    /// <returns>A task that completes once the toggle matches the document.</returns>
+    protected override async Task OnAfterRenderAsync(bool aIsFirstRender)
+    {
+        if (!aIsFirstRender)
+        {
+            return;
+        }
+
+        await objPreferences.SyncThemeFromBrowserAsync();
+
+        // The circuit has no HttpContext, so the persisted Framework choice can only be read back from
+        // the browser. Without this the header switch silently reset to TechieFlow on every navigation.
+        await objPreferences.SyncFrameworkFromBrowserAsync();
+    }
+
+    /// <summary>
+    /// Chooses the NavLink match mode: the Coverage landing route matches exactly, everything else by prefix.
+    /// </summary>
+    /// <param name="aItem">The navigation item.</param>
+    /// <returns>The match mode for that item.</returns>
+    private static NavLinkMatch MatchOf(ShellNavItem aItem) =>
+        aItem.IsExact ? NavLinkMatch.All : NavLinkMatch.Prefix;
+
+    /// <summary>
+    /// Builds the stable test id for a navigation item.
+    /// </summary>
+    /// <param name="aItem">The navigation item.</param>
+    /// <returns>A test id such as <c>nav-repos</c> or <c>nav-three-questions</c>.</returns>
+    private static string TestIdOf(ShellNavItem aItem) =>
+        aItem.IsExact ? "nav-coverage" : $"nav-{aItem.Href.Trim('/')}";
+
+    /// <summary>
+    /// Decides whether a navigation item marks the current route.
+    /// </summary>
+    /// <param name="aItem">The navigation item.</param>
+    /// <returns><c>true</c> when the item owns the route being shown.</returns>
+    private bool IsActive(ShellNavItem aItem) => ShellNavigation.Match(objRelativePath) == aItem;
+
+    /// <summary>
+    /// Re-reads the route when the user navigates.
+    /// </summary>
+    /// <param name="aSender">The navigation manager.</param>
+    /// <param name="aArgs">The new location.</param>
+    private void OnLocationChanged(object? aSender, LocationChangedEventArgs aArgs)
+    {
+        objRelativePath = objNavigation.ToBaseRelativePath(aArgs.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Re-renders when the workspace or a preference changes.</summary>
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak handlers.</summary>
+    public void Dispose()
+    {
+        objNavigation.LocationChanged -= OnLocationChanged;
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnShellChanged;
+    }
+}

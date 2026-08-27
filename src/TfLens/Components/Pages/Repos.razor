@@ -1,0 +1,729 @@
+@*
+    REQ-UI-011 / REQ-UI-012 / REQ-UI-013 — the Repos screen.
+
+    The only screen that writes: connect a public GitHub repo, sync one, remove one. Everything it reads
+    is scoped to the signed-in user by parameter, never by filter (ADR-013). The Connect dialog validates
+    before it saves and only enables Connect once all three checks are green.
+*@
+@page "/repos"
+@using TfLens.Core.GitHub
+@using TfLens.Core.Repos
+@implements IDisposable
+@inject IRepoListReader objRepoListReader
+@inject RepoRegistry objRepoRegistry
+@inject IServiceProvider objServices
+@inject ShellState objShellState
+@inject ToastService objToastService
+
+<PageTitle>Repos · TfLens</PageTitle>
+
+<div class="tflens-stack">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <TypographyH2>Repos</TypographyH2>
+            <TypographyMuted>Public GitHub repos you've connected</TypographyMuted>
+        </div>
+        <Button OnClick="OpenConnectDialog" data-testid="connect-repo">
+            <LucideIcon Name="plus" Size="16" />
+            Connect repo
+        </Button>
+    </div>
+
+    <StatGroup Columns="3" data-testid="repos-kpis">
+        <StatTile Title="Connected repos"
+                  Value="@objRows.Count.ToString()"
+                  Description="@KindBreakdown"
+                  IconName="git-branch"
+                  Accent="StatAccent.Chart1"
+                  data-testid="kpi-repos" />
+        <StatTile Title="Records synced"
+                  Value="@objRows.Sum(aRow => aRow.RecordCount).ToString("N0")"
+                  Description="across every stream of every repo"
+                  IconName="database"
+                  Accent="StatAccent.Chart2"
+                  data-testid="kpi-records" />
+        <StatTile Title="Last successful sync"
+                  Value="@RelativeTime.Describe(objShellState.LastSyncUtc, DateTimeOffset.UtcNow)"
+                  Description="@LastSyncDetail"
+                  IconName="clock"
+                  Accent="StatAccent.Chart4"
+                  data-testid="kpi-last-sync" />
+    </StatGroup>
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objRows.Count == 0)
+    {
+        <Empty Title="No repos connected yet"
+               Description="Connect a public GitHub repo that carries TechieFlow or Playbook telemetry."
+               Size="EmptySize.Default"
+               data-testid="repos-empty">
+            <Icon>
+                <LucideIcon Name="git-branch" Size="40" />
+            </Icon>
+            <ChildContent>
+                <Button OnClick="OpenConnectDialog" data-testid="repos-empty-connect">
+                    <LucideIcon Name="plus" Size="16" />
+                    Connect repo
+                </Button>
+            </ChildContent>
+        </Empty>
+    }
+    else
+    {
+        <Card>
+            <CardHeader>
+                <CardTitle>Connected repos</CardTitle>
+                <CardDescription>Per-row Sync and Remove · a failed sync shows its reason on hover</CardDescription>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <DataTable TData="RepoListItem"
+                           Data="@objRows"
+                           ShowToolbar="true"
+                           ShowPagination="true"
+                           InitialPageSize="10"
+                           AriaLabel="Connected repos"
+                           data-testid="repos-table">
+                    <Columns>
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Repo.Repo)" Header="Repo" Sortable Filterable>
+                            <CellTemplate Context="vRow">
+                                <a class="flex items-center gap-2 hover:underline"
+                                   href="@($"https://github.com/{vRow.Repo.Repo}")"
+                                   target="_blank"
+                                   rel="noopener noreferrer">
+                                    <LucideIcon Name="github" Size="14" Class="text-muted-foreground" />
+                                    <span class="font-medium">@vRow.Repo.Repo</span>
+                                </a>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Repo.Branch)" Header="Branch" Sortable>
+                            <CellTemplate Context="vRow">
+                                <span class="font-mono text-xs">@vRow.Repo.Branch</span>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Repo.Kind)" Header="Kind" Sortable>
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="BadgeVariant.Secondary">@vRow.Repo.Kind</Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Repo.IsPublic ? "public" : "private")" Header="Visibility">
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="BadgeVariant.Outline">@(vRow.Repo.IsPublic ? "public" : "private")</Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Status)" Header="Status" Sortable>
+                            <CellTemplate Context="vRow">
+                                @if (objSyncingRepos.Contains(vRow.Repo.Repo))
+                                {
+                                    <span class="flex items-center gap-2">
+                                        <Spinner Size="SpinnerSize.Small" />
+                                        <span class="text-xs text-muted-foreground">syncing…</span>
+                                    </span>
+                                }
+                                else if (vRow.LastError is not null)
+                                {
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Badge Variant="BadgeVariant.Destructive"
+                                                   data-testid="@($"repo-status-{vRow.Repo.Name}")">error</Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>@vRow.LastError</TooltipContent>
+                                    </Tooltip>
+                                }
+                                else
+                                {
+                                    <Badge Variant="@(vRow.Status == RepoSyncStatuses.Synced ? BadgeVariant.Default : BadgeVariant.Secondary)"
+                                           data-testid="@($"repo-status-{vRow.Repo.Name}")">@vRow.Status</Badge>
+                                }
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.LastSyncTs ?? string.Empty)" Header="Last sync" Sortable>
+                            <CellTemplate Context="vRow">
+                                <span class="text-muted-foreground">
+                                    @RelativeTime.Describe(RelativeTime.Parse(vRow.LastSyncTs), DateTimeOffset.UtcNow)
+                                </span>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="int"
+                                         Property="@(aRow => aRow.RecordCount)" Header="Records" Sortable>
+                            <CellTemplate Context="vRow">
+                                <span class="tabular-nums">@vRow.RecordCount.ToString("N0")</span>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => aRow.Repo.Name)" Header="Actions">
+                            <CellTemplate Context="vRow">
+                                <span class="flex items-center gap-1">
+                                    <Button Variant="ButtonVariant.Ghost"
+                                            Size="ButtonSize.IconSmall"
+                                            AriaLabel="@($"Sync {vRow.Repo.Repo}")"
+                                            Disabled="@objSyncingRepos.Contains(vRow.Repo.Repo)"
+                                            OnClick="@(() => SyncRepoAsync(vRow))"
+                                            data-testid="@($"repo-sync-{vRow.Repo.Name}")">
+                                        @if (objSyncingRepos.Contains(vRow.Repo.Repo))
+                                        {
+                                            <Spinner Size="SpinnerSize.Small" />
+                                        }
+                                        else
+                                        {
+                                            <LucideIcon Name="refresh-cw" Size="14" />
+                                        }
+                                    </Button>
+                                    <Button Variant="ButtonVariant.Ghost"
+                                            Size="ButtonSize.IconSmall"
+                                            AriaLabel="@($"Remove {vRow.Repo.Repo}")"
+                                            OnClick="@(() => OpenRemoveDialog(vRow))"
+                                            data-testid="@($"repo-remove-{vRow.Repo.Name}")">
+                                        <LucideIcon Name="trash-2" Size="14" />
+                                    </Button>
+                                </span>
+                            </CellTemplate>
+                        </DataTableColumn>
+                    </Columns>
+                </DataTable>
+            </CardContent>
+        </Card>
+    }
+</div>
+
+@* REQ-UI-012 — Connect a public GitHub repo. *@
+<Dialog @bind-Open="objIsConnectOpen">
+    <DialogContent>
+        <DialogHeader>
+            <DialogTitle>Connect a public GitHub repo</DialogTitle>
+            <DialogDescription>
+                TfLens validates the repo before saving — nothing is written until it passes.
+            </DialogDescription>
+        </DialogHeader>
+
+        <div class="flex flex-col gap-4 py-2">
+            <Field>
+                <FieldLabel>GitHub URL or owner/name</FieldLabel>
+                <FieldContent>
+                    <Input @bind-Value="objConnectInput"
+                           Placeholder="techierathore/TrBlazeUI"
+                           Disabled="@objIsConnecting"
+                           data-testid="connect-input" />
+                </FieldContent>
+            </Field>
+
+            <div class="trblazeui-grid gap-4">
+                <div class="trblazeui-col-12 trblazeui-col-md-6">
+                    <Field>
+                        <FieldLabel>Branch (optional)</FieldLabel>
+                        <FieldContent>
+                            <Input @bind-Value="objConnectBranch"
+                                   Placeholder="default branch"
+                                   Disabled="@objIsConnecting"
+                                   data-testid="connect-branch" />
+                        </FieldContent>
+                    </Field>
+                </div>
+                <div class="trblazeui-col-12 trblazeui-col-md-6">
+                    <Field>
+                        <FieldLabel>Kind</FieldLabel>
+                        <FieldContent>
+                            <Select TValue="string" @bind-Value="objConnectKind" Class="w-full">
+                                <SelectTrigger data-testid="connect-kind">
+                                    <SelectValue Placeholder="Auto-detect" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem TValue="string" Value="@AutoDetectKind" Text="Auto-detect">Auto-detect</SelectItem>
+                                    <SelectItem TValue="string" Value="@FrameworkNames.TechieFlow" Text="techieflow">techieflow</SelectItem>
+                                    <SelectItem TValue="string" Value="@FrameworkNames.Playbook" Text="playbook">playbook</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FieldContent>
+                    </Field>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <Button Variant="ButtonVariant.Outline"
+                        Size="ButtonSize.Small"
+                        Disabled="@(objIsValidating || objIsConnecting || string.IsNullOrWhiteSpace(objConnectInput))"
+                        OnClick="ValidateAsync"
+                        data-testid="connect-validate">
+                    @if (objIsValidating)
+                    {
+                        <Spinner Size="SpinnerSize.Small" />
+                    }
+                    else
+                    {
+                        <LucideIcon Name="search" Size="16" />
+                    }
+                    Validate
+                </Button>
+                <span class="text-xs text-muted-foreground">GitHub API · public reads only</span>
+            </div>
+
+            @if (objValidation is not null)
+            {
+                <div class="flex flex-col gap-1.5 text-sm" data-testid="connect-validation">
+                    <CheckLine Ok="@objValidation.Exists" Text="Repository exists" />
+                    <CheckLine Ok="@objValidation.IsPublic" Text="Public" />
+                    <CheckLine Ok="@(objValidation.TelemetryPath is not null)"
+                               Text="@TelemetryLine(objValidation)" />
+                </div>
+            }
+
+            @if (objRateLimitMessage is not null)
+            {
+                <Alert Variant="AlertVariant.Warning" data-testid="connect-rate-limit">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>GitHub rate limit</AlertTitle>
+                    <AlertDescription>@objRateLimitMessage</AlertDescription>
+                </Alert>
+            }
+            else if (objValidation is not null && objValidation.Exists && !objValidation.IsPublic)
+            {
+                <Alert Variant="AlertVariant.Warning" data-testid="connect-private">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>Private repo</AlertTitle>
+                    <AlertDescription>@RepoRegistry.PrivateRepoMessage</AlertDescription>
+                </Alert>
+            }
+            else if (objValidation is not null && !objValidation.IsConnectable)
+            {
+                <Alert Variant="@(objValidation.AlreadyConnected ? AlertVariant.Warning : AlertVariant.Danger)"
+                       data-testid="connect-problem">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>@(objValidation.AlreadyConnected ? "Already connected" : "Can't connect this repo")</AlertTitle>
+                    <AlertDescription>@objValidation.Message</AlertDescription>
+                </Alert>
+            }
+
+            @if (objIsConnecting)
+            {
+                <div class="flex flex-col gap-2" data-testid="connect-progress">
+                    <span class="text-sm text-muted-foreground">@objConnectPhase</span>
+                    <Progress Value="@objConnectProgress" />
+                </div>
+            }
+        </div>
+
+        <DialogFooter>
+            <DialogClose AsChild="true">
+                <Button Variant="ButtonVariant.Outline" Disabled="@objIsConnecting">Cancel</Button>
+            </DialogClose>
+            <Button Disabled="@(objValidation?.IsConnectable != true || objIsConnecting)"
+                    OnClick="ConnectAsync"
+                    data-testid="connect-submit">
+                <LucideIcon Name="plus" Size="16" />
+                Connect
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
+
+@* REQ-UI-013 — Remove a connected repo. *@
+<AlertDialog @bind-Open="objIsRemoveOpen">
+    <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>
+                <span data-testid="remove-title">Remove @(objRemoveTarget?.Repo.Repo)?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+                <span data-testid="remove-description">
+                    Stops syncing and deletes the parsed rows and raw archive for
+                    @(objRemoveTarget?.Repo.Repo). Your GitHub repo is untouched.
+                </span>
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>
+                <Button Variant="ButtonVariant.Outline" data-testid="remove-cancel">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction>
+                <Button Variant="ButtonVariant.Destructive"
+                        OnClick="ConfirmRemoveAsync"
+                        data-testid="remove-confirm">
+                    <LucideIcon Name="trash-2" Size="16" />
+                    Remove
+                </Button>
+            </AlertDialogAction>
+        </AlertDialogFooter>
+    </AlertDialogContent>
+</AlertDialog>
+
+@code {
+    /// <summary>The Kind select's "let TfLens work it out" option.</summary>
+    private const string AutoDetectKind = "auto";
+
+    private readonly HashSet<string> objSyncingRepos = new(StringComparer.OrdinalIgnoreCase);
+
+    private IReadOnlyList<RepoListItem> objRows = [];
+    private bool objIsLoaded;
+    private int? objUserId;
+
+    private bool objIsConnectOpen;
+    private bool objIsRemoveOpen;
+    private RepoListItem? objRemoveTarget;
+
+    private string? objConnectInput;
+    private string? objConnectBranch;
+    private string objConnectKind = AutoDetectKind;
+    private RepoValidation? objValidation;
+    private string? objRateLimitMessage;
+    private bool objIsValidating;
+    private bool objIsConnecting;
+    private string objConnectPhase = "Connecting…";
+    private double objConnectProgress;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>The sub-line under the repo count — how the repos split across the two frameworks.</summary>
+    private string KindBreakdown
+    {
+        get
+        {
+            var vTechieFlow = objRows.Count(aRow => aRow.Repo.Framework == FrameworkNames.TechieFlow);
+            var vPlaybook = objRows.Count(aRow => aRow.Repo.Framework == FrameworkNames.Playbook);
+            return $"{vTechieFlow} techieflow · {vPlaybook} playbook";
+        }
+    }
+
+    /// <summary>The sub-line under the last-sync tile.</summary>
+    private string LastSyncDetail
+    {
+        get
+        {
+            var vErrors = objRows.Count(aRow => aRow.LastError is not null);
+            return vErrors == 0
+                ? $"{objRows.Count} repos · no sync errors"
+                : $"{objRows.Count} repos · {vErrors} with errors";
+        }
+    }
+
+    /// <summary>Re-renders when the shell reloads the workspace under this page.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and loads their repositories.
+    /// </summary>
+    /// <returns>A task that completes when the grid has its rows.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (objIsLoaded || AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    /// <summary>
+    /// Re-reads the user's repositories and keeps the shell's badge and header in step.
+    /// </summary>
+    /// <returns>A task that completes when the grid and the shell agree.</returns>
+    private async Task ReloadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        objRows = await objRepoListReader.ListWithCountsAsync(objUserId.Value);
+        await objShellState.RefreshAsync(objUserId.Value);
+        objIsLoaded = true;
+    }
+
+    /// <summary>Opens the Connect dialog with a clean slate.</summary>
+    private void OpenConnectDialog()
+    {
+        objConnectInput = null;
+        objConnectBranch = null;
+        objConnectKind = AutoDetectKind;
+        objValidation = null;
+        objRateLimitMessage = null;
+        objIsConnecting = false;
+        objIsConnectOpen = true;
+    }
+
+    /// <summary>
+    /// Runs the three connect-time checks without saving anything.
+    /// </summary>
+    /// <returns>A task that completes when the result is on screen.</returns>
+    private async Task ValidateAsync()
+    {
+        if (objUserId is null || string.IsNullOrWhiteSpace(objConnectInput))
+        {
+            return;
+        }
+
+        objIsValidating = true;
+        objValidation = null;
+        objRateLimitMessage = null;
+
+        try
+        {
+            objValidation = await objRepoRegistry.ValidateAsync(
+                objUserId.Value,
+                objConnectInput!.Trim(),
+                string.IsNullOrWhiteSpace(objConnectBranch) ? null : objConnectBranch!.Trim(),
+                objConnectKind == AutoDetectKind ? null : objConnectKind);
+        }
+        catch (GitHubRateLimitException vEx)
+        {
+            objRateLimitMessage = vEx.Message;
+        }
+        catch (Exception vEx)
+        {
+            objValidation = new RepoValidation(false, false, null, null, null, false, vEx.Message);
+        }
+        finally
+        {
+            objIsValidating = false;
+        }
+    }
+
+    /// <summary>
+    /// Connects the validated repository and reports the first sync's outcome.
+    /// </summary>
+    /// <remarks>
+    /// The registry re-runs the validation server-side and queues the first sync; this waits for that
+    /// pass to land so the toast reports what actually happened rather than "queued".
+    /// </remarks>
+    /// <returns>A task that completes when the dialog has closed or shown its refusal.</returns>
+    private async Task ConnectAsync()
+    {
+        if (objUserId is null || objValidation?.IsConnectable != true)
+        {
+            return;
+        }
+
+        objIsConnecting = true;
+        objConnectPhase = "Connecting…";
+        objConnectProgress = 15;
+        objRateLimitMessage = null;
+
+        try
+        {
+            var vRepo = await objRepoRegistry.ConnectAsync(
+                objUserId.Value,
+                objConnectInput!.Trim(),
+                string.IsNullOrWhiteSpace(objConnectBranch) ? null : objConnectBranch!.Trim(),
+                objConnectKind == AutoDetectKind ? null : objConnectKind);
+
+            objConnectPhase = "Running the first sync…";
+            objConnectProgress = 55;
+            StateHasChanged();
+
+            var vRow = await WaitForFirstSyncAsync(vRepo.Repo);
+
+            objConnectProgress = 100;
+            objIsConnectOpen = false;
+            ReportConnectOutcome(vRepo.Repo, vRow);
+        }
+        catch (GitHubRateLimitException vEx)
+        {
+            objRateLimitMessage = vEx.Message;
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't connect the repo");
+        }
+        finally
+        {
+            objIsConnecting = false;
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Waits for the queued first sync to write its bookkeeping row.
+    /// </summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository just connected.</param>
+    /// <returns>The grid row once the sync has landed, or the last row seen if it has not landed in time.</returns>
+    private async Task<RepoListItem?> WaitForFirstSyncAsync(string aRepo)
+    {
+        RepoListItem? vRow = null;
+
+        for (var vAttempt = 0; vAttempt < 30; vAttempt++)
+        {
+            await Task.Delay(1000);
+
+            objRows = await objRepoListReader.ListWithCountsAsync(objUserId!.Value);
+            vRow = objRows.FirstOrDefault(aRow =>
+                string.Equals(aRow.Repo.Repo, aRepo, StringComparison.OrdinalIgnoreCase));
+
+            objConnectProgress = Math.Min(95, 55 + (vAttempt * 3));
+            StateHasChanged();
+
+            if (vRow is not null && vRow.Status != RepoSyncStatuses.Pending)
+            {
+                return vRow;
+            }
+        }
+
+        return vRow;
+    }
+
+    /// <summary>
+    /// Toasts what the connect and its first sync achieved.
+    /// </summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <param name="aRow">The grid row after the first sync, or <c>null</c> when it has not landed.</param>
+    private void ReportConnectOutcome(string aRepo, RepoListItem? aRow)
+    {
+        if (aRow is null || aRow.Status == RepoSyncStatuses.Pending)
+        {
+            objToastService.Show($"{aRepo} connected — the first sync is still running.", "Connected");
+            return;
+        }
+
+        if (aRow.LastError is not null)
+        {
+            objToastService.Error($"{aRepo} connected, but the first sync failed: {aRow.LastError}", "Connected");
+            return;
+        }
+
+        objToastService.Success($"{aRepo} connected — {aRow.RecordCount:N0} records synced.", "Connected");
+    }
+
+    /// <summary>
+    /// Syncs one repository from its row action.
+    /// </summary>
+    /// <param name="aRow">The row whose repository to sync.</param>
+    /// <returns>A task that completes when the row shows the new counts.</returns>
+    private async Task SyncRepoAsync(RepoListItem aRow)
+    {
+        var vRunner = objServices.GetService<IRepoSyncRunner>();
+
+        if (vRunner is null || objUserId is null)
+        {
+            objToastService.Error("Sync is not available in this build.", "Sync");
+            return;
+        }
+
+        objSyncingRepos.Add(aRow.Repo.Repo);
+        StateHasChanged();
+
+        try
+        {
+            var vResult = await vRunner.SyncRepoAsync(objUserId.Value, aRow.Repo.Repo);
+
+            if (vResult.Outcome == SyncOutcome.Error)
+            {
+                objToastService.Error($"{aRow.Repo.Repo} — {vResult.Error}", "Sync failed");
+            }
+            else
+            {
+                objToastService.Success(
+                    $"{aRow.Repo.Repo} — {vResult.Outcome.ToString().ToLowerInvariant()} ({vResult.RecordsWritten:N0} records)",
+                    "Sync");
+            }
+        }
+        catch (GitHubRateLimitException vEx)
+        {
+            objToastService.Error(vEx.Message, "Sync failed");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Sync failed");
+        }
+        finally
+        {
+            objSyncingRepos.Remove(aRow.Repo.Repo);
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Opens the remove confirmation for one repository.
+    /// </summary>
+    /// <param name="aRow">The row the user asked to remove.</param>
+    private void OpenRemoveDialog(RepoListItem aRow)
+    {
+        objRemoveTarget = aRow;
+        objIsRemoveOpen = true;
+    }
+
+    /// <summary>
+    /// Removes the repository the confirmation named — the only path that deletes anything.
+    /// </summary>
+    /// <returns>A task that completes when the row and its data are gone.</returns>
+    private async Task ConfirmRemoveAsync()
+    {
+        var vTarget = objRemoveTarget;
+
+        if (vTarget is null || objUserId is null)
+        {
+            return;
+        }
+
+        objIsRemoveOpen = false;
+        objRemoveTarget = null;
+
+        try
+        {
+            await objRepoRegistry.RemoveAsync(objUserId.Value, vTarget.Repo.Repo);
+            objToastService.Success($"{vTarget.Repo.Repo} removed — its rows and raw archive are gone.", "Removed");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't remove the repo");
+        }
+        finally
+        {
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Builds the third validation line.
+    /// </summary>
+    /// <param name="aValidation">The validation result.</param>
+    /// <returns>The path and framework when one was found, or the plain refusal.</returns>
+    private static string TelemetryLine(RepoValidation aValidation) =>
+        aValidation.TelemetryPath is null
+            ? "Telemetry path found"
+            : $"Telemetry path found: {aValidation.TelemetryPath} ({aValidation.Framework})";
+
+    /// <summary>Re-renders when the shell reloads the workspace.</summary>
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+    }
+}

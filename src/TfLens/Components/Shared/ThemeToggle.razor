@@ -1,0 +1,57 @@
+@*
+    REQ-UI-009 — the dark-first theme toggle.
+
+    TrBlazeUI has no theme-toggle component, so this is the documented workaround: a `Switch` between a
+    sun and a moon `LucideIcon` that flips `<html class="dark">` and persists the choice in the
+    `tflens:theme` cookie, which App.razor reads before the first byte of the next request.
+*@
+@implements IDisposable
+@inject ShellPreferences objPreferences
+
+<div class="flex items-center gap-2">
+    <LucideIcon Name="sun" Size="14" Class="text-muted-foreground" />
+    <Label For="@Id" Class="sr-only">Dark mode</Label>
+    <Switch Id="@Id"
+            Checked="@objPreferences.IsDark"
+            CheckedChanged="OnCheckedChangedAsync"
+            AriaLabel="Dark mode"
+            data-testid="@TestId" />
+    <LucideIcon Name="moon" Size="14" Class="text-muted-foreground" />
+</div>
+
+@code {
+    /// <summary>The <c>data-testid</c> the toggle carries; the header's is <c>theme-toggle</c>.</summary>
+    [Parameter]
+    public string TestId { get; set; } = "theme-toggle";
+
+    /// <summary>The switch's element id, so its screen-reader label can point at it.</summary>
+    [Parameter]
+    public string Id { get; set; } = "theme-toggle-switch";
+
+    /// <summary>
+    /// Subscribes to the shared preference so the header and sidebar toggles never disagree.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Applies the new choice to the document and the cookie.
+    /// </summary>
+    /// <param name="aIsDark"><c>true</c> when the user switched to the dark palette.</param>
+    /// <returns>A task that completes once the browser has been told.</returns>
+    private async Task OnCheckedChangedAsync(bool aIsDark)
+    {
+        await objPreferences.SetThemeAsync(aIsDark);
+    }
+
+    /// <summary>Re-renders when the other toggle changed the preference.</summary>
+    private void OnPreferencesChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+}

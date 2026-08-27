@@ -1,0 +1,42 @@
+/* The KPI tile's accent chip. TrBlazeUI 2.0.0 ships no Stat component and its CSS carries only the
+   utilities its own components use, so the chip's few rules live here rather than as Tailwind classes
+   that would not exist at runtime. Colours come from the library's own chart tokens. */
+
+.tflens-stat-chip[b-n13f0th1xt] {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: calc(var(--radius) - 2px);
+}
+
+.tflens-accent-1[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--chart-1) 15%, transparent);
+    color: var(--chart-1);
+}
+
+.tflens-accent-2[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--chart-2) 15%, transparent);
+    color: var(--chart-2);
+}
+
+.tflens-accent-3[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--chart-3) 15%, transparent);
+    color: var(--chart-3);
+}
+
+.tflens-accent-4[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--chart-4) 15%, transparent);
+    color: var(--chart-4);
+}
+
+.tflens-accent-5[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--chart-5) 15%, transparent);
+    color: var(--chart-5);
+}
+
+.tflens-accent-danger[b-n13f0th1xt] {
+    background: color-mix(in oklab, var(--destructive) 15%, transparent);
+    color: var(--destructive);
+}

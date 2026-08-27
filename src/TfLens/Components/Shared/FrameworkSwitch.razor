@@ -1,0 +1,76 @@
+@*
+    REQ-UI-010 — the header Framework switch.
+
+    `Tabs` used as a segmented control, one trigger per provenance axis, each carrying that framework's
+    connected-repo count. Choosing a framework writes the `tflens:framework` cookie and then re-loads the
+    route, so every figure on the page is re-queried on the new axis rather than filtered client-side
+    (ADR-016). It renders on the five report routes only — see ShellNavigation.ShowsFrameworkSwitch.
+*@
+@implements IDisposable
+@inject ShellPreferences objPreferences
+@inject ShellState objShellState
+@inject NavigationManager objNavigation
+
+<Tabs Value="@objPreferences.Framework"
+      ValueChanged="OnFrameworkChangedAsync"
+      Class="shrink-0"
+      data-testid="framework-switch">
+    <TabsList>
+        <TabsTrigger Value="@FrameworkNames.TechieFlow">
+            <span class="flex items-center gap-1.5">
+                <span>TechieFlow</span>
+                <Badge Variant="BadgeVariant.Secondary" data-testid="framework-count-techieflow">
+                    @objShellState.RepoCountFor(FrameworkNames.TechieFlow)
+                </Badge>
+            </span>
+        </TabsTrigger>
+        <TabsTrigger Value="@FrameworkNames.Playbook">
+            <span class="flex items-center gap-1.5">
+                <span>Playbook</span>
+                <Badge Variant="BadgeVariant.Secondary" data-testid="framework-count-playbook">
+                    @objShellState.RepoCountFor(FrameworkNames.Playbook)
+                </Badge>
+            </span>
+        </TabsTrigger>
+    </TabsList>
+</Tabs>
+
+@code {
+    /// <summary>Re-renders the counts whenever the workspace changes under it.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Persists the chosen framework and re-loads the route so the page re-queries on the new axis.
+    /// </summary>
+    /// <param name="aFramework">The framework the user selected.</param>
+    /// <returns>A task that completes once the cookie is written and the reload is under way.</returns>
+    private async Task OnFrameworkChangedAsync(string? aFramework)
+    {
+        if (string.IsNullOrWhiteSpace(aFramework) || aFramework == objPreferences.Framework)
+        {
+            return;
+        }
+
+        // SetFrameworkAsync persists the cookie and raises Changed; every report page re-queries on that
+        // event (AnalyseAsync takes the framework), which is what ADR-016 requires — the figures are
+        // recomputed on the new axis, never filtered client-side.
+        //
+        // Deliberately NO forceReload here. A full reload starts a NEW circuit, and a fresh circuit has
+        // no HttpContext to read the cookie from, so it re-seeded the default and bounced the selection
+        // straight back to TechieFlow — the re-query happened and was then thrown away. The persisted
+        // choice is recovered instead by ShellPreferences.SyncFrameworkFromBrowserAsync on first render.
+        await objPreferences.SetFrameworkAsync(aFramework);
+    }
+
+    /// <summary>Re-renders when the repo counts change.</summary>
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+    }
+}

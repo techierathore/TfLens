@@ -1,0 +1,79 @@
+@implements IAsyncDisposable
+@inject IJSRuntime objJsRuntime
+
+@*
+    Renders nothing. It exists so the auth pages can do the two things an interactive Blazor Server
+    circuit genuinely cannot do for itself, without each page repeating the module import:
+
+      ReadAsync   — hands the circuit the values the browser would actually post, so a local rule check
+                    never judges a stale binding and a re-render after a failure puts the user's own
+                    text back instead of blanking the boxes.
+      SubmitAsync — performs the real HTTP POST. Cookie sign-in needs a real response, which a circuit
+                    does not have; that is the whole reason AuthEndpoints exists (Architecture §5.3).
+
+    Pages hold it by @ref and call it after the first render — JavaScript interop is unavailable while
+    a component is prerendering.
+*@
+
+@code {
+    /// <summary>Path the collocated module is served from.</summary>
+    private const string ModulePath = "./Components/Pages/Auth/AuthForms.razor.js";
+
+    private IJSObjectReference? objModule;
+
+    /// <summary>
+    /// Reads the named values a form would post.
+    /// </summary>
+    /// <param name="aFormId">The form element's id.</param>
+    /// <returns>Field name to value; empty when the form is not on the page.</returns>
+    public async Task<IReadOnlyDictionary<string, string>> ReadAsync(string aFormId)
+    {
+        var vModule = await LoadAsync();
+        var vValues = await vModule.InvokeAsync<Dictionary<string, string>?>("readForm", aFormId);
+        return vValues ?? new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// Posts a form for real, leaving the circuit behind.
+    /// </summary>
+    /// <param name="aFormId">The form element's id.</param>
+    /// <returns>A task that completes once the browser has been told to navigate.</returns>
+    public async Task SubmitAsync(string aFormId)
+    {
+        var vModule = await LoadAsync();
+        await vModule.InvokeVoidAsync("submitForm", aFormId);
+    }
+
+    /// <summary>
+    /// Releases the imported module.
+    /// </summary>
+    /// <returns>A task that completes once the module reference is gone.</returns>
+    public async ValueTask DisposeAsync()
+    {
+        if (objModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await objModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away before the page did; there is nothing left to release.
+        }
+
+        objModule = null;
+    }
+
+    /// <summary>
+    /// Imports the module once per instance.
+    /// </summary>
+    /// <returns>The imported module.</returns>
+    private async Task<IJSObjectReference> LoadAsync()
+    {
+        objModule ??= await objJsRuntime.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        return objModule;
+    }
+}

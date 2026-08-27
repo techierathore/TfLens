@@ -1,0 +1,145 @@
+@*
+    REQ-UI-034 — the phase-totals table of the Playbook state, keyed by `phase_gate`.
+
+    Every row is a Playbook **process** gate. Nothing on this table comes from the TechieFlow
+    assertion-gate axis: the row key is a PhaseGateKey, which has no conversion to or from the plain
+    strings the TechieFlow gate members use, so the two axes cannot meet in this table by accident
+    (SCHEMA.md §11).
+
+    Costs that the events never carried render as `—` rather than as $0.00, and the catch/escape
+    figures reach the screen through FigureText, so a gate below the minimum n renders the literal
+    `insufficient data (n=…)`.
+*@
+
+<div class="overflow-x-auto">
+    <DataTable TData="PhaseRow"
+               Data="@Rows"
+               ShowToolbar="false"
+               ShowPagination="false"
+               InitialPageSize="512"
+               AriaLabel="Playbook phase totals"
+               data-testid="@($"pb-phases-{Name}")">
+        <Columns>
+            <DataTableColumn TData="PhaseRow" TValue="string"
+                             Property="@(aRow => aRow.PhaseGate)" Header="phase_gate" Sortable>
+                <CellTemplate Context="vRow">
+                    <span class="font-mono text-xs">@vRow.PhaseGate</span>
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="int"
+                             Property="@(aRow => aRow.Events)" Header="events" Sortable>
+                <CellTemplate Context="vRow">
+                    <span class="tabular-nums">@vRow.Events.ToString("N0")</span>
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="int"
+                             Property="@(aRow => aRow.Sessions)" Header="sessions" Sortable>
+                <CellTemplate Context="vRow">
+                    <span class="tabular-nums">@vRow.Sessions.ToString("N0")</span>
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="string"
+                             Property="@(aRow => aRow.CaughtDisplay)" Header="caught">
+                <CellTemplate Context="vRow">
+                    <FigureText Value="@vRow.Caught" TestId="@($"pb-caught-{vRow.PhaseGate}")" />
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="string"
+                             Property="@(aRow => aRow.EscapedDisplay)" Header="escaped">
+                <CellTemplate Context="vRow">
+                    <FigureText Value="@vRow.Escaped" TestId="@($"pb-escaped-{vRow.PhaseGate}")" />
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="long"
+                             Property="@(aRow => aRow.Tokens)" Header="tokens" Sortable>
+                <CellTemplate Context="vRow">
+                    <span class="tabular-nums">@vRow.Tokens.ToString("N0")</span>
+                </CellTemplate>
+            </DataTableColumn>
+
+            <DataTableColumn TData="PhaseRow" TValue="string"
+                             Property="@(aRow => aRow.CostDisplay)" Header="cost">
+                <CellTemplate Context="vRow">
+                    <span class="tabular-nums @(vRow.CostUsd is null ? "text-muted-foreground" : null)">
+                        @vRow.CostDisplay
+                    </span>
+                </CellTemplate>
+            </DataTableColumn>
+        </Columns>
+    </DataTable>
+</div>
+
+@code {
+    /// <summary>The Playbook report set the rows are projected from.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAnalysis? Analysis { get; set; }
+
+    /// <summary>
+    /// Names this table, so a page showing several of them (one per project type) keeps stable test ids.
+    /// </summary>
+    [Parameter]
+    public string Name { get; set; } = "all";
+
+    /// <summary>The rows, joined from the phase totals and the per-gate questions.</summary>
+    private IReadOnlyList<PhaseRow> Rows => BuildRows(Analysis);
+
+    /// <summary>
+    /// Joins the phase totals with the per-gate questions on the process gate.
+    /// </summary>
+    /// <param name="aAnalysis">The Playbook report set, or <c>null</c>.</param>
+    /// <returns>One row per process gate, busiest first.</returns>
+    private static IReadOnlyList<PhaseRow> BuildRows(PlaybookAnalysis? aAnalysis)
+    {
+        if (aAnalysis is null)
+        {
+            return [];
+        }
+
+        var vQuestions = aAnalysis.PhaseQuestions
+            .ToDictionary(aQ => aQ.PhaseGate.Name, StringComparer.Ordinal);
+
+        return aAnalysis.PhaseTotals
+            .Select(aTotals => new PhaseRow(
+                aTotals.PhaseGate.Name,
+                aTotals.Events,
+                aTotals.Sessions,
+                vQuestions.TryGetValue(aTotals.PhaseGate.Name, out var vQ) ? vQ.CatchShare : Figure.NotApplicable(),
+                vQuestions.TryGetValue(aTotals.PhaseGate.Name, out var vE) ? vE.EscapeRate : Figure.NotApplicable(),
+                aTotals.Tokens,
+                aTotals.CostUsd))
+            .ToList();
+    }
+
+    /// <summary>One process gate's line of the table.</summary>
+    /// <param name="PhaseGate">The process-gate name, never a TechieFlow assertion gate.</param>
+    /// <param name="Events">Event records attributed to it.</param>
+    /// <param name="Sessions">Distinct sessions that touched it.</param>
+    /// <param name="Caught">This gate's share of the defects some gate caught.</param>
+    /// <param name="Escaped">Work no gate caught before it escaped.</param>
+    /// <param name="Tokens">Token total across its events.</param>
+    /// <param name="CostUsd">Measured spend, or <c>null</c> when the events carried none.</param>
+    private sealed record PhaseRow(
+        string PhaseGate,
+        int Events,
+        int Sessions,
+        Figure Caught,
+        Figure Escaped,
+        long Tokens,
+        decimal? CostUsd)
+    {
+        /// <summary>The caught figure as text, so the column can sort and filter on it.</summary>
+        public string CaughtDisplay => Caught.Display();
+
+        /// <summary>The escaped figure as text, so the column can sort and filter on it.</summary>
+        public string EscapedDisplay => Escaped.Display();
+
+        /// <summary>Measured spend, or the em dash that says the events carried no cost at all.</summary>
+        public string CostDisplay => CostUsd is { } vCost ? vCost.ToString("C2") : "—";
+    }
+}

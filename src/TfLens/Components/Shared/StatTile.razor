@@ -1,0 +1,102 @@
+@*
+    One KPI tile — the "StatTile" the UI design calls for.
+
+    TrBlazeUI 2.0.0 (the latest published package) does not ship Components/Stat, so this reproduces
+    the documented StatTile shape on the library's own Card composition — see TR-001 in
+    docs/TfLens-TrBlazeUI-Feedback.md. Drop this shim the moment the library ships the real one.
+*@
+
+<Card Class="@CardClass" @attributes="AdditionalAttributes">
+    <CardHeader Class="flex flex-row items-center justify-between gap-2 pb-2">
+        <CardTitle Class="text-sm font-medium text-muted-foreground">@Title</CardTitle>
+        @if (!string.IsNullOrWhiteSpace(IconName))
+        {
+            <span class="tflens-stat-chip @AccentClass">
+                <LucideIcon Name="@IconName" Size="16" />
+            </span>
+        }
+    </CardHeader>
+    <CardContent Class="pt-0">
+        <div class="text-2xl font-bold tracking-tight tabular-nums" data-slot="stat-value">
+            @if (ValueContent is not null)
+            {
+                @ValueContent
+            }
+            else
+            {
+                @Value
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Description) || DescriptionContent is not null)
+        {
+            <p class="mt-1 text-xs text-muted-foreground">
+                @if (DescriptionContent is not null)
+                {
+                    @DescriptionContent
+                }
+                else
+                {
+                    @Description
+                }
+            </p>
+        }
+    </CardContent>
+</Card>
+
+@code {
+    /// <summary>The metric's name, shown small above the value.</summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>The headline value, rendered large.</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>A rich headline value, used instead of <see cref="Value"/> when supplied.</summary>
+    [Parameter]
+    public RenderFragment? ValueContent { get; set; }
+
+    /// <summary>The muted sub-line under the value.</summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>A rich sub-line, used instead of <see cref="Description"/> when supplied.</summary>
+    [Parameter]
+    public RenderFragment? DescriptionContent { get; set; }
+
+    /// <summary>Lucide icon name shown in the tile's accent chip, kebab-case.</summary>
+    [Parameter]
+    public string? IconName { get; set; }
+
+    /// <summary>Which chart colour the accent chip uses.</summary>
+    [Parameter]
+    public StatAccent Accent { get; set; } = StatAccent.Chart1;
+
+    /// <summary>Anything else the caller sets — <c>data-testid</c> above all — lands on the card.</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>How many columns the enclosing <c>StatGroup</c> shows; zero when the tile stands alone.</summary>
+    [CascadingParameter(Name = "StatGroupColumns")]
+    private int GroupColumns { get; set; }
+
+    /// <summary>The card's classes — full height, plus its responsive span inside a StatGroup.</summary>
+    private string CardClass => GroupColumns switch
+    {
+        0 => "h-full",
+        <= 2 => "h-full trblazeui-col-12 trblazeui-col-md-6",
+        3 => "h-full trblazeui-col-12 trblazeui-col-md-4",
+        _ => "h-full trblazeui-col-12 trblazeui-col-md-6 trblazeui-col-lg-3"
+    };
+
+    /// <summary>The scoped class carrying the accent colour for the chip.</summary>
+    private string AccentClass => Accent switch
+    {
+        StatAccent.Chart2 => "tflens-accent-2",
+        StatAccent.Chart3 => "tflens-accent-3",
+        StatAccent.Chart4 => "tflens-accent-4",
+        StatAccent.Chart5 => "tflens-accent-5",
+        StatAccent.Destructive => "tflens-accent-danger",
+        _ => "tflens-accent-1"
+    };
+}

@@ -1,0 +1,63 @@
+@*
+    REQ-UI-034 — the main-vs-sub-agent token split of the Routing page's Playbook state.
+
+    The split is resolved through the `parentID` chain by PlaybookReportBuilder; this only renders it.
+    A sub-agent session whose parent chain never reached a known root is reported on its own line rather
+    than being quietly promoted to a main session, because "we could not resolve it" and "it was a main
+    session" are different facts.
+
+    Named …Panel rather than …Split so the component type does not shadow the PlaybookAgentSplit
+    contract record it renders: a Razor component and a contract type with the same name cannot both
+    be referred to from the same file.
+*@
+
+<div class="tflens-stack">
+    <StatGroup Columns="2" data-testid="pb-agent-split">
+        <StatTile Title="Main-session tokens"
+                  Value="@Split.MainTokens.ToString("N0")"
+                  Description="@($"events with no parentID · {Split.MainSessions:N0} sessions")"
+                  IconName="route"
+                  Accent="StatAccent.Chart1"
+                  data-testid="pb-main-tokens" />
+        <StatTile Title="Sub-agent tokens"
+                  Value="@Split.SubagentTokens.ToString("N0")"
+                  Description="@($"events with parentID · {Split.SubagentSessions:N0} child sessions")"
+                  IconName="git-branch"
+                  Accent="StatAccent.Chart5"
+                  data-testid="pb-subagent-tokens" />
+    </StatGroup>
+
+    <Card>
+        <CardContent Class="p-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-sm">Share of total tokens</span>
+                <span class="text-xs text-muted-foreground">
+                    sub-agent <FigureText Value="@Split.SubagentTokenShare" TestId="pb-subagent-share" />
+                </span>
+            </div>
+            <Progress Value="@MainSharePercent" Class="mt-3" data-testid="pb-main-vs-sub" />
+            <p class="mt-2 text-xs text-muted-foreground">
+                parentID links a child session to the main session that spawned it;
+                @Split.UnresolvedParentSessions.ToString("N0") session(s) had a parent no event ever reported
+                and are counted as sub-agent.
+            </p>
+        </CardContent>
+    </Card>
+</div>
+
+@code {
+    /// <summary>The split to render.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAgentSplit Split { get; set; } = new(0, 0, null, 0, 0, null, 0);
+
+    /// <summary>
+    /// The main session's share of tokens as a percentage for the bar.
+    /// </summary>
+    /// <remarks>
+    /// Zero when no tokens were reported at all — a bar with nothing behind it is drawn empty rather
+    /// than full, so an absent measurement never reads as "all of it was the main session".
+    /// </remarks>
+    private double MainSharePercent =>
+        Split.TokensTotal <= 0 ? 0d : 100d * Split.MainTokens / Split.TokensTotal;
+}

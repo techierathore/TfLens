@@ -1,0 +1,17 @@
+@*
+    REQ-UI-034 — the standing note every report page shows in its Playbook state.
+
+    SCHEMA.md §11 keeps `phase_gate` (Playbook process-gates) and `gate` (TechieFlow assertion-gates)
+    on separate axes; this note is the user-facing half of that rule, and it is always visible rather
+    than being tucked into a tooltip, because the whole point is that a reader must not mistake one
+    axis for the other while looking at the numbers.
+*@
+
+<Alert Variant="AlertVariant.Info" AccentBorder="true" data-testid="playbook-axis-note">
+    <LucideIcon Name="info" Size="16" />
+    <AlertTitle>Different axes</AlertTitle>
+    <AlertDescription>
+        Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes
+        and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks.
+    </AlertDescription>
+</Alert>

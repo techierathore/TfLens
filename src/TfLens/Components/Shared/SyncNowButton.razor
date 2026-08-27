@@ -1,0 +1,134 @@
+@*
+    REQ-UI-007 — the header "Sync now" button and its adjacent last-sync badge.
+
+    The button runs the signed-in user's sync, disables itself and shows a `Spinner` while the pass is in
+    flight, then raises one toast listing every repository as updated / skipped / error. The badge beside
+    it re-reads `sync_state` through ShellState when the pass ends, so it updates in place without a full
+    page reload.
+*@
+@implements IDisposable
+@inject ShellState objShellState
+@inject IServiceProvider objServices
+@inject ToastService objToastService
+
+<div class="flex items-center gap-2">
+    <Button Variant="ButtonVariant.Outline"
+            Size="ButtonSize.Small"
+            Disabled="@objIsRunning"
+            OnClick="OnSyncAsync"
+            AriaLabel="Sync now"
+            data-testid="sync-now">
+        @if (objIsRunning)
+        {
+            <Spinner Size="SpinnerSize.Small" />
+        }
+        else
+        {
+            <LucideIcon Name="refresh-cw" Size="16" />
+        }
+        <span class="hidden md:flex">@(objIsRunning ? "Syncing…" : "Sync now")</span>
+    </Button>
+    <Badge Variant="BadgeVariant.Outline" data-testid="last-sync-badge">@BadgeText</Badge>
+</div>
+
+@code {
+    private bool objIsRunning;
+
+    /// <summary>The signed-in user, supplied by the shell so every header control agrees on it.</summary>
+    [Parameter]
+    public int? UserId { get; set; }
+
+    /// <summary>The badge's text — "synced 12 min ago", or "never synced" before the first pass.</summary>
+    private string BadgeText => RelativeTime.SyncBadge(objShellState.LastSyncUtc, DateTimeOffset.UtcNow);
+
+    /// <summary>Re-renders the badge whenever the sync bookkeeping changes under it.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Runs the signed-in user's sync and reports the per-repository outcome.
+    /// </summary>
+    /// <returns>A task that completes once the pass has finished and the badge has been refreshed.</returns>
+    private async Task OnSyncAsync()
+    {
+        if (objIsRunning || UserId is null)
+        {
+            return;
+        }
+
+        var vRunner = objServices.GetService<IRepoSyncRunner>();
+
+        if (vRunner is null)
+        {
+            objToastService.Error("Sync is not available in this build.", "Sync now");
+            return;
+        }
+
+        objIsRunning = true;
+        StateHasChanged();
+
+        try
+        {
+            var vReport = await vRunner.SyncAsync(UserId.Value);
+            await objShellState.RefreshAsync(UserId.Value);
+            ReportOutcome(vReport);
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Sync failed");
+        }
+        finally
+        {
+            objIsRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Raises the toast that lists every repository's outcome.
+    /// </summary>
+    /// <param name="aReport">The pass's per-repository results.</param>
+    private void ReportOutcome(SyncReport aReport)
+    {
+        if (aReport.Results.Count == 0)
+        {
+            objToastService.Show("No repos connected yet — connect one first.", "Sync now");
+            return;
+        }
+
+        var vLines = string.Join(
+            " · ",
+            aReport.Results.Select(aResult => $"{aResult.Repo} {Describe(aResult)}"));
+
+        if (aReport.ErrorCount > 0)
+        {
+            objToastService.Error(vLines, "Sync finished with errors");
+            return;
+        }
+
+        objToastService.Success(vLines, "Sync finished");
+    }
+
+    /// <summary>
+    /// Turns one repository's result into the word the toast shows.
+    /// </summary>
+    /// <param name="aResult">The repository's line in the report.</param>
+    /// <returns>"updated", "skipped" or "error".</returns>
+    private static string Describe(RepoSyncResult aResult) => aResult.Outcome switch
+    {
+        SyncOutcome.Updated => $"updated ({aResult.RecordsWritten} records)",
+        SyncOutcome.Skipped => "skipped",
+        _ => $"error — {aResult.Error}"
+    };
+
+    /// <summary>Re-renders when the shell data changes.</summary>
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+    }
+}

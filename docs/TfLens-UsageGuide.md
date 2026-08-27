@@ -8,14 +8,14 @@ TfLens has **no user table** — identity is the owner's AppManager service (App
 
 | # | Username / Email | Password | Role / Permission | Created? | Notes |
 |---|------------------|----------|-------------------|----------|-------|
-| 1 | `TfLensDemo` — `tflensdemo@techierathore.com` | `TfLensDemo!23` | Manager (every TfLens user) — the demo/test account (BRD-96) | ⬜ | Registered in AppManager during Phase 1 build; pre-connected to the `DemoSeedRepos` from `appsettings.json`. Password may be rotated by the owner — update here. |
-| 2 | `tflenstest2@techierathore.com` | `TfLensTest2!23` | Manager — second user for tenant-isolation tests (BRD-102) | ⬜ | Registered via `/register` during verify; connects a different public repo; must never see user 1's repos. |
+| 1 | `TfLensDemo` — `tflensdemo@techierathore.com` | `TfLensDemo!23` | Manager (every TfLens user) — the demo/test account (BRD-96) | ✅ | **AppManager `userId` 2.** Registered 2026-08-26 during the Phase 1 build. Password may be rotated by the owner — update here. AppManager returned `applicationRole: "User"`, not `"Manager"` — Application Id 1 appears to have no `Manager` role code; TfLens treats every account as Manager regardless (BRD-95), so this does not affect behaviour. |
+| 2 | `tflenstest2@techierathore.com` | `TfLensTest2!23` | Manager — second user for tenant-isolation tests (BRD-102) | ✅ | **AppManager `userId` 3.** Registered 2026-08-26 during the Phase 1 build. Connects a different public repo; must never see user 1's repos. Same `applicationRole` note as above. |
 | 3 | *(anonymous)* | — | Unauthenticated visitor — may reach `/login`, `/register`, `/forgot-password`, `/reset-password`, `/healthz` only | n/a | Proves the redirect and the anonymous routes. |
 
 - **Created?** — ✅ = the account exists in AppManager now (verified). ⬜ = planned; create it on first build, but **only after confirming with the owner** (see `_smoke-test-policy.md`). Never auto-create silently.
 - **To add or confirm an account:** edit this table — it is the registry the whole pipeline reads from.
 - **Seeding:** no database seed; accounts live in AppManager. User 1's demo repos are connected by hand through the Repos screen during the Phase 1 build (no configuration seed — amended 2026-08-26).
-- **Secrets for tests:** `TfLensAppManagerApiKey` / `TfLensAppManagerApiSecret` / `TfLensDbConnection` must be set (dev: `dotnet user-secrets`; the AppManager pair is in the owner's gitignored `CLAUDE.md` until then). `TfLensGitHubToken` is optional (public repos only). Fixture mode `TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures` lets the UI be verified without GitHub. Never paste a secret into a doc.
+- **Secrets for tests:** `TfLensDbConnection` must be set (dev: `dotnet user-secrets`). The `TfLensAppManagerApiKey` / `TfLensAppManagerApiSecret` pair turned out to be **optional** — verified against the live API on 2026-08-26: AppManager resolves the application from the `applicationId: 1` the client sends in every request body, so with **no** pair configured every AuthSvc call succeeds, while a **half-configured or wrong** pair returns `401 INVALID_API_KEY` on every call. The app therefore requires the pair whole-or-not-at-all and refuses to start on a half-pair (see `DECISIONS.md`). `TfLensGitHubToken` is optional (public repos only). Fixture mode `TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures` lets the UI be verified without GitHub. Never paste a secret into a doc.
 
 ## How to test — screen by screen / menu by menu
 

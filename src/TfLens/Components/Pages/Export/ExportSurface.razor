@@ -1,0 +1,572 @@
+@*
+    REQ-UI-032 / REQ-UI-033 — everything the Snapshot-export screen actually does.
+
+    It lives in its own component because the TechieFlow state and the Playbook state of /export render
+    the identical surface — only the framework the figures are read on changes (ADR-016) — so the two
+    states cannot drift apart into two slightly different export screens.
+
+    The quotable banner is the safety device of the whole product: it is computed from
+    `data/parity-last.json` against the build's own parser version and there is no code path anywhere in
+    TfLens that can make it green by any other means (BRD-71). While no parity run has been recorded the
+    honest answer is NOT QUOTABLE, and that is what is rendered.
+
+    Every DataTable below sets InitialPageSize explicitly: TrBlazeUI's `ShowPagination="false"` only
+    hides the pager, it does not stop the paging, so a table left on the default would silently render
+    its first five rows and drop the rest with no error at all (TR-009). Here that would be a
+    correctness failure rather than a cosmetic one — a truncated dataset-SHA table describes a dataset
+    the snapshot did not actually cover, and the parity card's facts run to seven rows.
+*@
+@namespace TfLens.Components.Pages.ExportParts
+@using Microsoft.Extensions.Options
+@using TfLens.Core.Export
+@using TfLens.Services.Export
+@using TrBlazeUI.Components.Empty
+@inject ISnapshotExporter objExporter
+@inject ITelemetryStore objStore
+@inject IOptions<TfLensOptions> objOptions
+@inject ToastService objToastService
+@inject IJSRuntime objJsRuntime
+
+@* REQ-UI-033 — the banner. Success only when the recorded run covers this build's parser. *@
+<Alert Variant="@(IsQuotable ? AlertVariant.Success : AlertVariant.Warning)"
+       AccentBorder="true"
+       title="@BannerLiteral"
+       data-testid="quotable-banner">
+    <LucideIcon Name="@(IsQuotable ? "circle-check" : "triangle-alert")" Size="16" />
+    <AlertTitle>@BannerStatus</AlertTitle>
+    <AlertDescription>@BannerReason</AlertDescription>
+</Alert>
+
+<div class="tflens-export-grid">
+
+    @* REQ-UI-032 — the Export card. *@
+    <Card data-testid="export-card">
+        <CardHeader>
+            <CardTitle>Export</CardTitle>
+            <CardDescription>Markdown for humans, JSON for machines</CardDescription>
+        </CardHeader>
+        <CardContent Class="flex flex-col gap-4 pt-0">
+            <Button OnClick="ExportAsync"
+                    Disabled="@(objIsExporting || UserId is null)"
+                    Class="w-full"
+                    data-testid="export-now">
+                @if (objIsExporting)
+                {
+                    <Spinner Size="SpinnerSize.Small" />
+                }
+                else
+                {
+                    <LucideIcon Name="download" Size="16" />
+                }
+                Export snapshot
+            </Button>
+
+            <p class="text-xs text-muted-foreground" data-testid="export-framework-note">
+                one snapshot per framework — currently: <span class="font-medium">@FrameworkLabel</span>
+            </p>
+            <p class="text-xs text-muted-foreground tflens-break" data-testid="export-target">
+                writes <span class="font-mono">@TargetFolder/snapshot.md</span> +
+                <span class="font-mono">tflens.json</span>
+            </p>
+
+            <Separator />
+
+            <div class="overflow-x-auto tflens-facts" data-testid="export-facts">
+                <DataTable TData="FactRow"
+                           Data="@Facts"
+                           ShowToolbar="false"
+                           ShowPagination="false"
+                           InitialPageSize="512"
+                           AriaLabel="Export facts">
+                    <Columns>
+                        <DataTableColumn TData="FactRow" TValue="string"
+                                         Property="@(aRow => aRow.Field)" Header="Field" />
+                        <DataTableColumn TData="FactRow" TValue="string"
+                                         Property="@(aRow => aRow.Value)" Header="Value" />
+                    </Columns>
+                </DataTable>
+            </div>
+        </CardContent>
+    </Card>
+
+    @* REQ-UI-032 — the dataset SHAs, straight off sync_state, so the reference dataset can be pinned. *@
+    <Card>
+        <CardHeader>
+            <CardTitle>Dataset SHAs</CardTitle>
+            <CardDescription>
+                The exact commit each stream was read at — copied into every snapshot
+            </CardDescription>
+        </CardHeader>
+        <CardContent Class="pt-0">
+            <div class="overflow-x-auto" data-testid="dataset-shas">
+                @if (objShaRows.Count == 0)
+                {
+                    <Empty Title="no dataset SHAs yet"
+                           Description="Connect a repo and sync it — a snapshot pins the commit each stream was read at."
+                           Size="EmptySize.Small"
+                           data-testid="dataset-shas-empty">
+                        <Icon>
+                            <LucideIcon Name="git-branch" Size="32" />
+                        </Icon>
+                        <ChildContent>
+                            <Button Variant="ButtonVariant.Outline" Href="/repos">
+                                <LucideIcon Name="git-branch" Size="16" />
+                                Manage repos
+                            </Button>
+                        </ChildContent>
+                    </Empty>
+                }
+                else
+                {
+                    <DataTable TData="ShaRow"
+                               Data="@objShaRows"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="512"
+                               AriaLabel="Dataset SHAs"
+                               data-testid="dataset-shas-table">
+                        <Columns>
+                            <DataTableColumn TData="ShaRow" TValue="string"
+                                             Property="@(aRow => aRow.Repo)" Header="repo" Sortable>
+                                <CellTemplate Context="vRow">
+                                    <span class="font-medium">@vRow.Repo</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="ShaRow" TValue="string"
+                                             Property="@(aRow => aRow.Branch)" Header="branch">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono text-xs">@vRow.Branch</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="ShaRow" TValue="string"
+                                             Property="@(aRow => aRow.Sha)" Header="SHA">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono text-xs">@vRow.ShortSha</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="ShaRow" TValue="string"
+                                             Property="@(aRow => aRow.Synced)" Header="synced">
+                                <CellTemplate Context="vRow">
+                                    <span class="text-muted-foreground">@vRow.Synced</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="ShaRow" TValue="string"
+                                             Property="@(aRow => aRow.Repo)" Header="">
+                                <CellTemplate Context="vRow">
+                                    <Button Variant="ButtonVariant.Ghost"
+                                            Size="ButtonSize.IconSmall"
+                                            AriaLabel="@($"Copy the SHA for {vRow.Repo}")"
+                                            OnClick="@(() => CopyShaAsync(vRow))"
+                                            data-testid="@($"copy-sha-{vRow.Slug}")">
+                                        <LucideIcon Name="copy" Size="14" />
+                                    </Button>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                }
+            </div>
+        </CardContent>
+    </Card>
+</div>
+
+@* REQ-UI-032 — the past snapshots, read back off the folder tree with their own stamps. *@
+<Card>
+    <CardHeader>
+        <CardTitle>Past snapshots</CardTitle>
+        <CardDescription>Your folders under data/reports — each row links to both files</CardDescription>
+    </CardHeader>
+    <CardContent Class="pt-0">
+        <div class="overflow-x-auto" data-testid="snapshots">
+            @if (objSnapshots.Count == 0)
+            {
+                <Empty Title="no snapshots yet"
+                       Description="Press Export snapshot to freeze today's figures with the dataset SHAs they came from."
+                       Size="EmptySize.Small"
+                       data-testid="snapshots-empty">
+                    <Icon>
+                        <LucideIcon Name="download" Size="32" />
+                    </Icon>
+                </Empty>
+            }
+            else
+            {
+                <DataTable TData="SnapshotRow"
+                           Data="@objSnapshots"
+                           ShowToolbar="false"
+                           ShowPagination="false"
+                           InitialPageSize="512"
+                           AriaLabel="Past snapshots"
+                           data-testid="snapshots-table">
+                    <Columns>
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.DateText)" Header="date" Sortable />
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.Framework)" Header="framework">
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="BadgeVariant.Secondary">@vRow.Framework</Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.ParserVersion)" Header="parser version">
+                            <CellTemplate Context="vRow">
+                                <span class="font-mono text-xs">@vRow.ParserVersion</span>
+                            </CellTemplate>
+                        </DataTableColumn>
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.ParityStatus)" Header="parity status">
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="@(vRow.IsQuotable ? BadgeVariant.Default : BadgeVariant.Outline)"
+                                       data-testid="@($"snapshot-status-{vRow.Slug}")">
+                                    @vRow.ParityStatus
+                                </Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.MarkdownUrl)" Header="snapshot.md">
+                            <CellTemplate Context="vRow">
+                                <Button Variant="ButtonVariant.Link"
+                                        Href="@vRow.MarkdownUrl"
+                                        data-testid="@($"snapshot-md-{vRow.Slug}")">
+                                    snapshot.md
+                                </Button>
+                            </CellTemplate>
+                        </DataTableColumn>
+                        <DataTableColumn TData="SnapshotRow" TValue="string"
+                                         Property="@(aRow => aRow.JsonUrl)" Header="tflens.json">
+                            <CellTemplate Context="vRow">
+                                <Button Variant="ButtonVariant.Link"
+                                        Href="@vRow.JsonUrl"
+                                        data-testid="@($"snapshot-json-{vRow.Slug}")">
+                                    tflens.json
+                                </Button>
+                            </CellTemplate>
+                        </DataTableColumn>
+                    </Columns>
+                </DataTable>
+            }
+        </div>
+    </CardContent>
+</Card>
+
+@* REQ-UI-033 — the last parity run, or the honest statement that there has never been one. *@
+<Card data-testid="parity-record">
+    <CardHeader>
+        <CardTitle>Last parity run</CardTitle>
+        <CardDescription>
+            data/parity-last.json — written only when the independent script agreed with the engine
+        </CardDescription>
+    </CardHeader>
+    <CardContent Class="pt-0">
+        @if (objParity is null || !objParity.Passed)
+        {
+            <Alert Variant="AlertVariant.Warning" data-testid="parity-none">
+                <LucideIcon Name="triangle-alert" Size="16" />
+                <AlertTitle>No parity run on file</AlertTitle>
+                <AlertDescription>
+                    @NoParityMessage
+                </AlertDescription>
+            </Alert>
+        }
+        else
+        {
+            <div class="tflens-parity-grid">
+                <div class="overflow-x-auto tflens-facts" data-testid="parity-facts">
+                    <DataTable TData="FactRow"
+                               Data="@ParityFacts"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="512"
+                               AriaLabel="Last parity run">
+                        <Columns>
+                            <DataTableColumn TData="FactRow" TValue="string"
+                                             Property="@(aRow => aRow.Field)" Header="Field" />
+                            <DataTableColumn TData="FactRow" TValue="string"
+                                             Property="@(aRow => aRow.Value)" Header="Value" />
+                        </Columns>
+                    </DataTable>
+                </div>
+                <CodeBlock Title="parity-compare output"
+                           Code="@(objParity.CompareOutput ?? "(the record carries no compare output)")"
+                           data-testid="parity-output" />
+            </div>
+        }
+    </CardContent>
+</Card>
+
+@code {
+    // Rebuilt as fresh instances on every reload rather than cleared in place: DataTable takes its rows
+    // as a parameter, and a parameter whose reference has not changed is not re-processed — mutating
+    // these lists would leave a just-written snapshot invisible until the page was navigated away from.
+    private IReadOnlyList<ShaRow> objShaRows = [];
+    private IReadOnlyList<SnapshotRow> objSnapshots = [];
+
+    private ParityRecord? objParity;
+    private string objParityStatus = ParityStatuses.NeverRun;
+    private bool objIsExporting;
+    private bool objIsLoaded;
+    private string? objLoadedKey;
+
+    /// <summary>The signed-in user whose snapshots and SHAs are shown; nothing loads without one (ADR-013).</summary>
+    [Parameter]
+    [EditorRequired]
+    public int? UserId { get; set; }
+
+    /// <summary>The provenance axis the export is taken on — one snapshot per framework (ADR-016).</summary>
+    [Parameter]
+    [EditorRequired]
+    public string Framework { get; set; } = FrameworkNames.TechieFlow;
+
+    /// <summary>True only when the last recorded parity run covers this build's parser version.</summary>
+    private bool IsQuotable => objParityStatus == ParityStatuses.Quotable;
+
+    /// <summary>The banner's status word.</summary>
+    private string BannerStatus => IsQuotable ? "QUOTABLE" : "NOT QUOTABLE";
+
+    /// <summary>
+    /// The banner's reason, which distinguishes "the parser moved on" from "there has never been a run".
+    /// </summary>
+    /// <remarks>
+    /// Both are NOT QUOTABLE, but they are different facts and are reported as such: claiming the parser
+    /// changed after a parity run that never happened would be a false statement about the evidence.
+    /// </remarks>
+    private string BannerReason => objParityStatus switch
+    {
+        ParityStatuses.Quotable =>
+            $"the parity run of {objParity?.Date ?? "an earlier date"} covers parser {ParserVersion.Current}; these figures may be quoted",
+        ParityStatuses.NotQuotable =>
+            "parser changed after the last parity run; re-run the parity procedure",
+        _ =>
+            "no parity run has ever been recorded; run the parity procedure before quoting any figure"
+    };
+
+    /// <summary>The whole banner sentence, so the exact wording is one searchable string in the DOM.</summary>
+    private string BannerLiteral => $"{BannerStatus} — {BannerReason}";
+
+    /// <summary>What the parity card says when there is no usable record.</summary>
+    private string NoParityMessage =>
+        objParity is null
+            ? "data/parity-last.json does not exist — no parity run has ever been recorded, so no figure in TfLens may be quoted yet. Run the parity procedure and record a green compare first."
+            : "The recorded parity run did not pass, which counts exactly as no run at all: only an empty diff against the reference makes a figure quotable.";
+
+    /// <summary>The framework as the header switch spells it.</summary>
+    private string FrameworkLabel =>
+        Framework == FrameworkNames.Playbook ? "Playbook" : "TechieFlow";
+
+    /// <summary>The folder today's export would be written to, shown muted under the button.</summary>
+    private string TargetFolder =>
+        $"data/reports/{UserId?.ToString() ?? "<you>"}/{DateOnly.FromDateTime(DateTime.UtcNow):yyyy-MM-dd}/{Framework}";
+
+    /// <summary>The three facts shown under the Export button.</summary>
+    private IReadOnlyList<FactRow> Facts =>
+    [
+        new FactRow("Parser", ParserVersion.Current),
+        new FactRow("Parity status", objParityStatus),
+        new FactRow("Scope", $"{objShaRows.Count} synced repo(s) · {RecordTotal:N0} records")
+    ];
+
+    /// <summary>Records stored across every stream of every synced repository.</summary>
+    private int RecordTotal => objShaRows.Sum(aRow => aRow.Records);
+
+    /// <summary>The parity record's fields, in the order the mockup lists them.</summary>
+    private IReadOnlyList<FactRow> ParityFacts =>
+        objParity is null
+            ? []
+            :
+            [
+                new FactRow("Date", objParity.Date ?? "—"),
+                new FactRow("Parser version", $"{objParity.ParserVersion ?? "—"} (build is {ParserVersion.Current})"),
+                new FactRow("Script", objParity.ScriptPath ?? "—"),
+                new FactRow("Script hash", objParity.ScriptHash ?? "—"),
+                new FactRow("Dataset SHAs", DescribeShas(objParity.DatasetShas)),
+                new FactRow("Compare command", objParity.CompareCommand ?? "—"),
+                new FactRow("Recorded", objParity.RecordedTs ?? "—")
+            ];
+
+    /// <summary>
+    /// Loads the SHAs, the snapshots and the parity stamp once per user and framework.
+    /// </summary>
+    /// <returns>A task that completes when the surface has its data.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        var vKey = $"{UserId}|{Framework}";
+
+        if (objIsLoaded && objLoadedKey == vKey)
+        {
+            return;
+        }
+
+        objLoadedKey = vKey;
+        await ReloadAsync();
+    }
+
+    /// <summary>
+    /// Re-reads everything the surface shows.
+    /// </summary>
+    /// <returns>A task that completes when the tables and the banner agree with the disk.</returns>
+    private async Task ReloadAsync()
+    {
+        // The parity stamp is read on every load rather than cached: a parity run recorded while the
+        // page was open must turn the banner green (or amber) on the next refresh, not on a restart.
+        objParity = ParityRecord.Read(objOptions.Value.ParityLastPath);
+        objParityStatus = ParityRecord.StatusFor(objParity, ParserVersion.Current);
+
+        objShaRows = [];
+        objSnapshots = [];
+
+        if (UserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        var vNow = DateTimeOffset.UtcNow;
+
+        objShaRows = (await objStore.ReadSyncStateAsync(UserId.Value))
+            .Select(aState => new ShaRow(
+                aState.Repo,
+                aState.Branch ?? "—",
+                aState.LastSha ?? "—",
+                RelativeTime.Describe(RelativeTime.Parse(aState.LastSyncTs), vNow),
+                aState.RunsCount + aState.GatesCount + aState.SessionsCount
+                    + aState.CommitsCount + aState.EventsCount))
+            .ToList();
+
+        objSnapshots = (await objExporter.ListAsync(UserId.Value))
+            .Select(aSnapshot => new SnapshotRow(
+                aSnapshot.Date,
+                aSnapshot.Framework,
+                aSnapshot.ParserVersion,
+                aSnapshot.ParityStatus))
+            .ToList();
+
+        objIsLoaded = true;
+    }
+
+    /// <summary>
+    /// Writes today's snapshot for the signed-in user and the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the two files are on disk and the list shows them.</returns>
+    private async Task ExportAsync()
+    {
+        if (UserId is null || objIsExporting)
+        {
+            return;
+        }
+
+        objIsExporting = true;
+
+        try
+        {
+            var vResult = await objExporter.ExportAsync(
+                UserId.Value, Framework, DateOnly.FromDateTime(DateTime.UtcNow));
+
+            objToastService.Success(
+                $"{vResult.Date:yyyy-MM-dd} · {vResult.Framework} — parser {vResult.ParserVersion}, {vResult.ParityStatus}.",
+                "Snapshot written");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't write the snapshot");
+        }
+        finally
+        {
+            objIsExporting = false;
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Copies one repository's dataset SHA.
+    /// </summary>
+    /// <param name="aRow">The row whose SHA to copy.</param>
+    /// <returns>A task that completes once the outcome has been reported.</returns>
+    private async Task CopyShaAsync(ShaRow aRow)
+    {
+        var vCopied = await objJsRuntime.InvokeAsync<bool>("tflens.copyText", aRow.Sha);
+
+        if (vCopied)
+        {
+            objToastService.Success($"{aRow.Repo} — {aRow.Sha}", "SHA copied");
+        }
+        else
+        {
+            objToastService.Error("The browser refused clipboard access.", "Couldn't copy");
+        }
+    }
+
+    /// <summary>
+    /// Renders the parity run's pinned dataset as short SHAs.
+    /// </summary>
+    /// <param name="aShas">Repository to SHA pairs.</param>
+    /// <returns>The short SHAs joined by a middle dot, or an em dash when there were none.</returns>
+    private static string DescribeShas(IReadOnlyList<KeyValuePair<string, string>> aShas) =>
+        aShas.Count == 0
+            ? "—"
+            : string.Join(" · ", aShas.Select(aPair => Shorten(aPair.Value)));
+
+    /// <summary>
+    /// Shortens a commit SHA to the seven characters a commit is usually named by.
+    /// </summary>
+    /// <param name="aSha">The full SHA.</param>
+    /// <returns>The first seven characters, or the value itself when it is shorter.</returns>
+    private static string Shorten(string aSha) =>
+        aSha.Length <= 7 ? aSha : aSha[..7];
+
+    /// <summary>
+    /// Turns a value into a token safe to embed in a <c>data-testid</c>.
+    /// </summary>
+    /// <param name="aValue">The value, typically <c>owner/name</c> or a date.</param>
+    /// <returns>The value with every non-alphanumeric character replaced by a hyphen.</returns>
+    private static string Slugify(string aValue) =>
+        string.Concat(aValue.Select(aCh => char.IsLetterOrDigit(aCh) ? char.ToLowerInvariant(aCh) : '-'));
+
+    /// <summary>One key/value line of a small facts table.</summary>
+    /// <param name="Field">The label.</param>
+    /// <param name="Value">The value shown beside it.</param>
+    private sealed record FactRow(string Field, string Value);
+
+    /// <summary>One repository's dataset SHA line.</summary>
+    /// <param name="Repo"><c>owner/name</c> of the repository.</param>
+    /// <param name="Branch">The branch the telemetry is read from.</param>
+    /// <param name="Sha">The commit SHA of the last successful sync.</param>
+    /// <param name="Synced">How long ago that sync completed.</param>
+    /// <param name="Records">Rows stored across every stream for this repository.</param>
+    private sealed record ShaRow(string Repo, string Branch, string Sha, string Synced, int Records)
+    {
+        /// <summary>The SHA as a commit is usually named.</summary>
+        public string ShortSha => Shorten(Sha);
+
+        /// <summary>A test-id-safe form of the repository name.</summary>
+        public string Slug => Slugify(Repo);
+    }
+
+    /// <summary>One written snapshot's line.</summary>
+    /// <param name="Date">The report date, which is also the folder name.</param>
+    /// <param name="Framework">The provenance axis the snapshot was taken on.</param>
+    /// <param name="ParserVersion">The parser version stamped into the snapshot itself.</param>
+    /// <param name="ParityStatus">The stamp the snapshot was written with, not today's.</param>
+    private sealed record SnapshotRow(
+        DateOnly Date,
+        string Framework,
+        string ParserVersion,
+        string ParityStatus)
+    {
+        /// <summary>The date as the folder names it.</summary>
+        public string DateText => Date.ToString("yyyy-MM-dd");
+
+        /// <summary>True when this snapshot was written with a passing, current parity stamp.</summary>
+        public bool IsQuotable => ParityStatus == ParityStatuses.Quotable;
+
+        /// <summary>A test-id-safe form of the date and framework.</summary>
+        public string Slug => Slugify($"{DateText}-{Framework}");
+
+        /// <summary>The authenticated link to this snapshot's Markdown half.</summary>
+        public string MarkdownUrl =>
+            ExportEndpoints.DownloadUrl(Date, Framework, SnapshotExporter.MarkdownFileName);
+
+        /// <summary>The authenticated link to this snapshot's JSON half.</summary>
+        public string JsonUrl =>
+            ExportEndpoints.DownloadUrl(Date, Framework, SnapshotExporter.JsonFileName);
+    }
+}

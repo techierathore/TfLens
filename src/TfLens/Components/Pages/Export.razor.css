@@ -1,0 +1,30 @@
+/*
+    The Snapshot-export screen's own measurements, hand-written because the shipped trblazeui.css
+    carries only the utilities the library itself uses and no responsive variants at all (TR-002).
+*/
+
+.tflens-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tflens-export {
+    /*
+        TR-001 — TrBlazeUI 2.0.0 reads these tokens from every Alert variant but never defines them, so
+        an Alert renders with no colour at all. Custom properties inherit, so declaring them on the page
+        root repairs every TrBlazeUI control rendered inside it — including the ones in child
+        components, which a scoped-CSS rule could not reach.
+
+        On this page that is not cosmetic: the difference between a green QUOTABLE banner and an amber
+        NOT QUOTABLE one is the whole safety device (BRD-71).
+    */
+    --alert-success: oklch(72.3% 0.19 149.6);
+    --alert-success-bg: color-mix(in oklab, oklch(72.3% 0.19 149.6) 10%, transparent);
+    --alert-info: oklch(62.3% 0.19 259.8);
+    --alert-info-bg: color-mix(in oklab, oklch(62.3% 0.19 259.8) 10%, transparent);
+    --alert-warning: oklch(76.9% 0.16 70.1);
+    --alert-warning-bg: color-mix(in oklab, oklch(76.9% 0.16 70.1) 10%, transparent);
+    --alert-danger: oklch(63.7% 0.21 25.3);
+    --alert-danger-bg: color-mix(in oklab, oklch(63.7% 0.21 25.3) 10%, transparent);
+}

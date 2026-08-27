@@ -1,0 +1,62 @@
+@*
+    The `CodeBlock` the UI design mandates for the parity-compare output (REQ-UI-033).
+
+    TrBlazeUI 2.0.0 does not ship Components/CodeBlock — see TR-003 in docs/TfLens-TrBlazeUI-Feedback.md
+    — so this reproduces the documented shape (titled bar, copy action, monospaced scrolling body) on
+    the library's own Button and icon set. Drop this shim the moment the library ships the real one.
+
+    The body scrolls inside itself so a long compare line can never widen the page.
+*@
+@namespace TfLens.Components.Pages.ExportParts
+@inject IJSRuntime objJsRuntime
+@inject ToastService objToastService
+
+<div class="tflens-codeblock" @attributes="AdditionalAttributes">
+    <div class="tflens-codeblock-bar">
+        <span class="font-mono text-xs text-muted-foreground">@Title</span>
+        <Button Variant="ButtonVariant.Ghost"
+                Size="ButtonSize.IconSmall"
+                AriaLabel="@($"Copy {Title}")"
+                OnClick="CopyAsync">
+            <LucideIcon Name="copy" Size="14" />
+        </Button>
+    </div>
+    <pre class="tflens-codeblock-body"><code>@Code</code></pre>
+</div>
+
+@code {
+    /// <summary>The label shown in the block's bar.</summary>
+    [Parameter]
+    public string Title { get; set; } = "output";
+
+    /// <summary>The text rendered verbatim inside the block.</summary>
+    [Parameter]
+    public string? Code { get; set; }
+
+    /// <summary>Anything else the caller sets — <c>data-testid</c> above all — lands on the block.</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>
+    /// Copies the block's text to the clipboard.
+    /// </summary>
+    /// <returns>A task that completes once the outcome has been reported to the user.</returns>
+    private async Task CopyAsync()
+    {
+        if (string.IsNullOrEmpty(Code))
+        {
+            return;
+        }
+
+        var vCopied = await objJsRuntime.InvokeAsync<bool>("tflens.copyText", Code);
+
+        if (vCopied)
+        {
+            objToastService.Success($"{Title} copied to the clipboard.", "Copied");
+        }
+        else
+        {
+            objToastService.Error("The browser refused clipboard access.", "Couldn't copy");
+        }
+    }
+}

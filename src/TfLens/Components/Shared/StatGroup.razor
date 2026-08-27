@@ -1,0 +1,31 @@
+@*
+    A responsive KPI row — the "StatGroup" the UI design calls for, on TrBlazeUI's own 12-column grid.
+
+    The shipped trblazeui.css carries only the utility classes the library's own components use, so the
+    `md:grid-cols-*` classes the shadcn KPI pattern assumes do not exist at runtime; the library's
+    `trblazeui-grid` / `trblazeui-col-*` classes do, and they are what make this row collapse to one
+    column under `md` (the visual gate's mobile width). The column count is cascaded so each StatTile
+    can claim the right span without the caller repeating it.
+*@
+
+<CascadingValue Value="Columns" Name="StatGroupColumns" IsFixed="true">
+    <div class="trblazeui-grid gap-4" @attributes="AdditionalAttributes">
+        @ChildContent
+    </div>
+</CascadingValue>
+
+@code {
+    /// <summary>The tiles in the row.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// How many columns the row shows at the wide breakpoints; it is always one column on mobile.
+    /// </summary>
+    [Parameter]
+    public int Columns { get; set; } = 4;
+
+    /// <summary>Anything else the caller sets — <c>data-testid</c> above all — lands on the row.</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+}
