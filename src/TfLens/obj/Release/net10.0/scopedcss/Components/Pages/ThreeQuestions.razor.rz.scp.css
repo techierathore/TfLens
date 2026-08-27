@@ -1,0 +1,31 @@
+/* The two measurements the Three-questions page needs that the shipped trblazeui.css does not carry:
+   the fixed width of a distribution share bar, and the vertical rhythm inside a tab body. */
+
+.tflens-share-bar[b-0eykuzz3e6] {
+    display: block;
+    width: 6.5rem;
+    flex: none;
+}
+
+.tflens-tab-body[b-0eykuzz3e6] {
+    margin-top: 1rem;
+}
+
+.tflens-taint-trigger[b-0eykuzz3e6]  button {
+    justify-content: flex-start;
+    text-align: left;
+    height: auto;
+    min-height: 2.25rem;
+    white-space: normal;
+}
+
+/* The project-type tab strip is a single inline-flex row that grows with the number of types, so at
+   a 390px viewport it measured 412px and dragged the whole page container sideways. It scrolls
+   inside itself instead — the same treatment the wide tables already get. Scoped CSS does not cross
+   into a child component's markup, hence ::deep to reach TabsList. */
+[b-0eykuzz3e6] [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}

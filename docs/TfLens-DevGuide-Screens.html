@@ -79,6 +79,7 @@ del{color:var(--muted)}
     <div class="sub"></div>
     <div class="group">Contents</div>
     <ol>
+      <li><a href="#runtime-verified-2026-08-27-as-tflensdemotechierathorecom-userid-2-manager">Runtime-verified 2026-08-27 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
       <li><a href="#contents">Contents</a></li>
       <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
       <li><a href="#cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</a></li>
@@ -121,6 +122,7 @@ del{color:var(--muted)}
       <li class="h3"><a href="#injected-services">Injected services</a></li>
       <li class="h3"><a href="#control-data-path">Control → data path</a></li>
       <li class="h3"><a href="#states">States</a></li>
+      <li class="h3"><a href="#known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</a></li>
       <li class="h3"><a href="#gotchas">Gotchas</a></li>
       <li><a href="#coverage-health">/ — Coverage / health</a></li>
       <li class="h3"><a href="#control-data-path">Control → data path</a></li>
@@ -159,6 +161,24 @@ del{color:var(--muted)}
 <h1 id="tflens-developer-guide-screen-by-screen-reference">TfLens Developer Guide — Screen-by-screen reference</h1>
 <p>This half of the guide is the map a developer follows to get from <em>"this thing on screen is wrong"</em> to <em>"this method computes it"</em>. Everything below is the code <strong>as built</strong>, read out of the <code>.razor</code> and service files and verified against the running app at <code>http://localhost:5014</code> (headless Chromium, 1440×900, signed in as <code>tflensdemo@techierathore.com</code>, AppManager userId <code>2</code>). Where the code and <code>docs/TfLens-UIDesign.md</code> disagree, the disagreement is called out — those lines are the ones worth reading twice.</p>
 <p>Screenshots in <code>docs/devguide-images/</code> are a point-in-time capture. The dev database is shared, so row counts in a shot will not match what you see today; the <em>structure</em> is what the shot is for.</p>
+<hr>
+<h2 id="runtime-verified-2026-08-27-as-tflensdemotechierathorecom-userid-2-manager">Runtime-verified 2026-08-27 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)</h2>
+<p>Observed, not inferred. A full <code>*verify all</code> pass drove every screen below on a <strong>Release</strong> build at <code>http://localhost:5099</code> with headless Chromium at <strong>1280×800 and 390×844</strong>, applying the data-render gate (does every control listed in its <em>Control → data path</em> table actually render its data?) and the visual-truth gate (does the screen look right — no overlap, no clipping, nothing off-canvas, no horizontal page scroll?). Evidence: <code>tests/.artifacts/gates/render-visual.json</code> and the paired screenshots <code>tests/.artifacts/gates/{screen}-{1280,390}.png</code>.</p>
+<div class="table-wrap"><table><thead><tr><th>Screen</th><th>Controls checked</th><th>Data render</th><th>Looks right</th></tr></thead><tbody><tr><td><code>/login</code></td><td>8</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/register</code></td><td>12</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/forgot-password</code></td><td>4</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/reset-password</code></td><td>11</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/profile</code></td><td>21</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/repos</code></td><td>43</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/</code> — Coverage / health</td><td>52</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/three-questions</code></td><td>29</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/harness</code></td><td>27</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/routing</code> (4 tabs)</td><td>62</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td><code>/export</code></td><td>29</td><td>renders ✓</td><td>looks-right ✓</td></tr><tr><td>Playbook axis of all five report pages</td><td>45</td><td>renders ✓</td><td>looks-right ✓</td></tr></tbody></table></div>
+<p><strong>Zero</strong> render-empty controls and <strong>zero</strong> visual failures across all 19 screen-states. Defects found were behavioural, not rendering — they are listed against their screens below and in <code>docs/TfLens-Checklist.md</code>.</p>
+<p>Three things a reader should know before trusting a screen here:</p>
+<ul>
+<li><strong><code>/repos</code>, <code>/routing</code> and <code>/export</code> are horizontally scrollable at 390 px by design.</strong> Their wide</li>
+</ul>
+<p>tables and the routing tab strip live in <code>overflow-x-auto</code> boxes, so controls sit outside the viewport and are reached by scrolling <em>that region</em>. The page body itself never scrolls sideways.</p>
+<ul>
+<li><strong>Escape does not dismiss two dialogs.</strong> The remove-repo <code>AlertDialog</code> (<code>/repos</code>) ignores Escape</li>
+</ul>
+<p>entirely — only <strong>Cancel</strong> closes it, which contradicts REQ-UI-013's acceptance. The connect-repo <code>Dialog</code> honours Escape until a validation result is on screen, then stops. Both are recorded as Known issues on <code>/repos</code>.</p>
+<ul>
+<li><strong>The Playbook axis is finished on <code>/export</code> only.</strong> <code>playbook-axis-note</code> / <code>playbook-empty</code> render</li>
+</ul>
+<p>there and nowhere else; <code>/</code>, <code>/three-questions</code>, <code>/harness</code> and <code>/routing</code> re-query on the Playbook axis but reuse the TechieFlow surface with no axis note. <code>pb-phases-*</code> is not rendered by any page. The separation rule itself holds — no <code>gate-dist-*</code> table is ever populated on the Playbook axis, so <code>phase_gate</code> and <code>gate</code> never share a table.</p>
 <hr>
 <h2 id="contents">Contents</h2>
 <ul>
@@ -472,6 +492,23 @@ for (let i = 0; i &lt; 16; i++) { await p.waitForTimeout(1500); if (!p.url().inc
 <li><strong>Private repo</strong> — <code>Alert Variant=Warning</code> <code>connect-private</code> with <code>RepoRegistry.PrivateRepoMessage</code>.</li>
 <li><strong>Other refusal</strong> — <code>Alert</code> <code>connect-problem</code>, <code>Warning</code> when <code>AlreadyConnected</code>, else <code>Danger</code>.</li>
 </ul>
+<h3 id="known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</h3>
+<ul>
+<li><strong>The remove-repo <code>AlertDialog</code> ignores Escape.</strong> <code>remove-title</code> is still present after an Escape</li>
+</ul>
+<p>press and only disappears on <strong>Cancel</strong>. REQ-UI-013's acceptance says "Escape/Cancel aborts", so this is a real gap, not a deliberate destructive-dialog hardening — or if it <em>is</em> deliberate, the acceptance wording needs to change. Nothing is deleted either way; the guard itself holds.</p>
+<ul>
+<li><strong>The connect-repo <code>Dialog</code> stops honouring Escape once a validation result is on screen.</strong> Escape</li>
+</ul>
+<p>closes it from a clean open, but not after <code>connect-validate</code> has rendered <code>connect-validation</code>. Cancel and the ✕ both still work.</p>
+<ul>
+<li><strong>The <code>Actions</code> column renders no text by design</strong> — the row Sync and Remove controls are icon-only</li>
+</ul>
+<p>buttons. A cell-level "is it blank?" check will report one blank cell per row on <code>repos-table</code>; that is the Actions column, not a data defect.</p>
+<ul>
+<li><strong>The demo account carries five <code>tflenstest/Store*</code> rows that are not real GitHub repos</strong>, left</li>
+</ul>
+<p>behind by a build-phase store harness. They surface here and on Coverage as repos whose sync fails, and they inflate <code>Connected repos</code> to 8. They are database pollution, not user data — see the checklist's <code>*verify all</code> findings.</p>
 <h3 id="gotchas">Gotchas</h3>
 <ul>
 <li><strong><code>WaitForFirstSyncAsync</code> blocks the circuit for up to 30 seconds.</strong> If the first sync overruns,</li>
@@ -828,6 +865,7 @@ objPooled  = (await objMetricsEngine.AnalyseAsync(userId, objFramework)).Pooled;
 <hr>
 <h2 id="the-playbook-axis">The Playbook axis</h2>
 <p>Selecting <strong>Playbook</strong> in the header switch writes <code>tflens-framework=playbook</code> and raises <code>ShellPreferences.Changed</code>; every report page answers by re-querying the engine on the new axis (ADR-016), never by filtering what it already rendered.</p>
+<blockquote><strong>Runtime-verified 2026-08-27 — partially wired.</strong> Driving the switch to Playbook and visiting all five report pages: only <strong><code>/export</code></strong> renders the Playbook state (<code>playbook-axis-note</code>, <code>playbook-empty</code>, <code>playbook-empty-connect</code>). <code>/</code>, <code>/three-questions</code>, <code>/harness</code> and <code>/routing</code> re-query correctly but reuse the TechieFlow surface and render <strong>no axis note</strong> — <code>/</code> shows the AI-First-Playbook repo card, <code>/three-questions</code> falls through to <code>three-questions-empty</code>, <code>/harness</code> renders all three columns from the Playbook axis, <code>/routing</code> shows <code>drift-empty</code>. <code>pb-phases-*</code> is rendered by no page at all. The <strong>separation rule holds</strong>: no <code>gate-dist-*</code> table is populated while the Playbook axis is selected, so <code>phase_gate</code> and <code>gate</code> never share a table or chart. Open against REQ-UI-034, REQ-FN-067 and REQ-FN-070.</blockquote>
 <p><img src="./devguide-images/export-playbook.png" alt="/export on the Playbook axis" loading="lazy"></p>
 <p><strong>Shared components</strong> (<code>src/TfLens/Components/Shared/Playbook/</code>):</p>
 <div class="table-wrap"><table><thead><tr><th>Component</th><th><code>data-testid</code></th><th>Purpose</th></tr></thead><tbody><tr><td><code>PlaybookState.razor</code></td><td>—</td><td>Loads <code>IPlaybookReportBuilder.BuildAsync(userId)</code> and picks the state</td></tr><tr><td><code>PlaybookAxisNote.razor</code></td><td><code>playbook-axis-note</code></td><td>The standing "Different axes" note (SCHEMA.md §11)</td></tr><tr><td><code>PlaybookEmpty.razor</code></td><td><code>playbook-empty</code>, <code>playbook-empty-connect</code></td><td>The Phase-3 empty state</td></tr><tr><td>—</td><td><code>playbook-provisional</code></td><td>Warning when <code>PlaybookAnalysis.SchemaStatus != Discovered</code></td></tr><tr><td><code>PlaybookPhaseTotals.razor</code>, <code>PlaybookAgentSplitPanel.razor</code>, <code>PlaybookObservedFields.razor</code></td><td>—</td><td>Built, <strong>not currently referenced by any page</strong></td></tr></tbody></table></div>

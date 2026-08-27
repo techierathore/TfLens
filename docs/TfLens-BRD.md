@@ -90,25 +90,25 @@ Plan context (from `docs/ravi-90day-positioning-plan-v2.4.2.md`): TfLens is the 
 
 ## 4. Development status
 
-**Snapshot as of 2026-08-26.** Live, per-requirement status: see `PROJECT-STATUS.md` and the **Requirements Status** table in `docs/TfLens-Checklist.md` (created by `*split-brd`).
+**Snapshot as of 2026-08-27**, rolled up from the graded `*verify all` run. Live, per-requirement status: see `PROJECT-STATUS.md` and the **Requirements Status** table in `docs/TfLens-Checklist.md` (created by `*split-brd`).
 
 | Feature (F-code) | Phase | Status | % | Notes |
 |------------------|-------|--------|---|-------|
-| F-SHELL: App shell and navigation | 1 | Planned | 0 | Collapsible icon sidebar (Repos first), header with Sync now + user menu, dark-first theme |
-| F-AUTH: AppManager identity — login, registration, sessions | 1 (SSO: 2, deferred) | Planned | 0 | `/login`, `/register`, `/forgot-password`, `/reset-password` via AppManager App Id 1; `TfLensDemo` user; GitHub SSO deferred |
-| F-REPOS: Repo management — connect public GitHub repos per user | 1 | Planned | 0 | `/repos` list + Connect dialog with public/telemetry-path validation; remove = purge; per-user isolation |
-| F-SYNC: Repo puller — background sync and Sync now | 1 | Planned | 0 | `BackgroundService`, SHA-skip, per-repo error isolation |
-| F-RAW: Raw archive and rebuild | 1 | Planned | 0 | `data/raw/<repo>/<stream>-<sha>.jsonl`; `rebuild` verb + button |
-| F-PARSE: Parser to PostgreSQL with dedupe and overflow | 1 | Planned | 0 | One table per stream + `sync_state`; natural-key dedupe; Npgsql + Dapper |
-| F-ENGINE: Metrics engine with provenance rules | 2 | Planned | 0 | Port of `tf-metrics.sh analyse()`; `Figure` type with `InsufficientData` |
-| F-COVER: Coverage / health page | 2 | Planned | 0 | Landing page; staleness per stream; unknown-fields report |
-| F-3Q: The three questions page | 2 | Planned | 0 | Per `project_type`, live vs backfilled columns, taint list |
-| F-HARN: Harness comparison page | 2 | Planned | 0 | claude-code / opencode / null; OpenCode-only dollars |
-| F-ROUTE: Routing and economics page | 2 | Planned | 0 | Drift, tokens by model, repricing from `prices.json`, poolables |
-| F-EXPORT: Weekly snapshot export | 2 | Planned | 0 | Button + `export` verb → markdown + JSON |
-| F-PARITY: Parity check against tf-metrics.sh | 2 | Planned | 0 | `tflens.json` layout, `tools/parity-compare.py`, DECISIONS.md stamp |
-| F-FRAMEWORK: Playbook as a first-class framework — full report set | 3 | Planned | 0 | Framework switch on every report page; schema-v1 path reuses everything; `events.ndjson` adapter schema-discovery first; `phase_gate` never shares `gate` |
-| F-OPS: Container, configuration, health, docs and decisions | 1 | Planned | 0 | Dockerfile + compose with PostgreSQL 16, settings/secrets, schema script, `/healthz`, README, DECISIONS.md |
+| F-SHELL: App shell and navigation | 1 | Done | 100 | Collapsible icon sidebar (Repos first), header with Sync now + user menu, dark-first theme |
+| F-AUTH: AppManager identity — login, registration, sessions | 1 (SSO: 2, deferred) | Partial | 95 | `/login`, `/register`, `/reset-password`, sessions and sign-out all verified; `REQ-FN-003` forgot/reset cannot be driven end-to-end. GitHub SSO deferred (`REQ-FN-012`, N/A) |
+| F-REPOS: Repo management — connect public GitHub repos per user | 1 | Partial | 92 | List, Connect+Validate, purge and per-user isolation verified; `REQ-UI-013` open — Escape does not dismiss the remove dialog |
+| F-SYNC: Repo puller — background sync and Sync now | 1 | Done | 100 | `BackgroundService`, SHA-skip and per-repo error isolation all exercised live (2 of 7 repos failed in isolation) |
+| F-RAW: Raw archive and rebuild | 1 | Done | 100 | Verified by a real run: 14 raw files replayed → 279 rows, 1 duplicate collapsed, 0 invalid lines |
+| F-PARSE: Parser to PostgreSQL with dedupe and overflow | 1 | Done | 100 | One table per stream + `sync_state`; natural-key dedupe; Npgsql + Dapper |
+| F-ENGINE: Metrics engine with provenance rules | 2 | Done | 100 | Port of `tf-metrics.sh analyse()`; `Figure` type with `InsufficientData`; fixture parity test green |
+| F-COVER: Coverage / health page | 2 | Done | 100 | Landing page; staleness per stream; unknown-fields report |
+| F-3Q: The three questions page | 2 | Done | 100 | Per `project_type`, live vs backfilled columns, taint list |
+| F-HARN: Harness comparison page | 2 | Done | 100 | claude-code / opencode / codex; OpenCode-only dollars, no cross-harness total |
+| F-ROUTE: Routing and economics page | 2 | Done | 100 | Drift, tokens by model, repricing from `prices.json`, poolables |
+| F-EXPORT: Weekly snapshot export | 2 | Done | 100 | Button + `export` verb → markdown + JSON, both written for real |
+| F-PARITY: Parity check against tf-metrics.sh | 2 | Partial | 50 | `tflens.json` layout and `tools/parity-compare.py` verified both ways; **no parity run has ever passed and `tf-metrics.sh` is absent from this tree**, so the DECISIONS.md stamp (`REQ-FN-063`) and the extras spot-check (`REQ-FN-064`) remain open. Nothing is quotable until this closes |
+| F-FRAMEWORK: Playbook as a first-class framework — full report set | 3 | Partial | 65 | `events.ndjson` fetch/parse, axis separation and schema-v1 reuse verified; the Playbook *state* renders on `/export` only, and no page renders `pb-phases-*` (`REQ-UI-034`, `REQ-FN-067`, `REQ-FN-070`) |
+| F-OPS: Container, configuration, health, docs and decisions | 1 | Done | 100 | Dockerfile + compose with PostgreSQL 16, settings/secrets, schema script, `/healthz`, README, DECISIONS.md |
 
 **Legend:** **Done** = shipped & working · **In progress** = actively being built · **Partial** = some sub-features done, others pending · **Planned** = not started. (Maps to the checklist's `Done (pre-existing)` / `In Progress` / `PARTIAL` / `Not Started`.)
 

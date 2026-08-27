@@ -6,7 +6,7 @@
 <title>TfLens — Status</title>
 <script>
 /* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
-   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+   pick by time of day — light 07:00-19:00 local, softened dark at night. */
 (function(){
   try{
     var t = localStorage.getItem('tf-theme');
@@ -16,364 +16,148 @@
 })();
 </script>
 <style>
-/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
 :root{
-  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
-  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
-  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
-  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
-  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --bg:#faf9f7; --fg:#1f2328; --muted:#5b636d; --border:#e2e0dc; --card:#ffffff;
+  --accent:#0b62c4; --code-bg:#f4f2ef; --quote:#f6f4f1; --shadow:0 1px 2px rgba(0,0,0,.05);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
 }
-/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
-html[data-theme="dark"]{
-  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
-  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
-  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
-  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
-  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+:root[data-theme="dark"]{
+  --bg:#14171c; --fg:#dde1e7; --muted:#98a1ad; --border:#2a3038; --card:#191d23;
+  --accent:#7cc4ff; --code-bg:#11151a; --quote:#181d24; --shadow:none;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
-pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
-pre code{background:none;border:none;padding:0}
-.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
-.copy:hover{color:var(--accent);border-color:var(--accent)}
-/* floating light/dark toggle (top-right) */
-.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.layout{display:flex;gap:32px;max-width:1280px;margin:0 auto;padding:32px 24px 96px}
+nav.side{width:270px;flex:0 0 270px;position:sticky;top:32px;align-self:flex-start;max-height:calc(100vh - 64px);overflow:auto}
+nav.side h1{font-size:17px;margin:0 0 4px;line-height:1.3}
+nav.side .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+nav.side .group{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.side ol{list-style:none;margin:0;padding:0;font-size:13.5px}
+nav.side li{margin:2px 0}
+nav.side li.h3{padding-left:14px;font-size:12.5px}
+nav.side a{color:var(--muted);text-decoration:none;display:block;padding:2px 6px;border-radius:5px}
+nav.side a:hover{color:var(--accent);background:var(--code-bg)}
+main{flex:1;min-width:0;max-width:900px}
+h1,h2,h3,h4{line-height:1.25;scroll-margin-top:24px}
+h1{font-size:30px;margin:0 0 8px}
+h2{font-size:22px;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:17.5px;margin:26px 0 8px}
+h4{font-size:15px;margin:20px 0 6px;color:var(--muted)}
+p{margin:12px 0}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.12em .38em;border-radius:4px}
+.codeblock{position:relative;margin:16px 0}
+.codeblock pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow:auto;margin:0}
+.codeblock pre code{background:none;padding:0;font-size:13px;line-height:1.55}
+.codeblock .copy{position:absolute;top:8px;right:8px;font-size:11px;padding:3px 9px;border-radius:5px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s}
+.codeblock:hover .copy{opacity:1}
+.codeblock .copy:hover{color:var(--accent);border-color:var(--accent)}
+.table-wrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;color:var(--fg)}
+ul,ol{margin:12px 0;padding-left:26px}
+li{margin:4px 0}
+img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);margin:12px 0}
+hr{border:0;border-top:1px solid var(--border);margin:28px 0}
+del{color:var(--muted)}
+.theme-toggle{position:fixed;top:14px;right:16px;z-index:20;font-size:12px;padding:5px 11px;border-radius:6px;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
 .theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
-
-.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-.layout.no-toc{grid-template-columns:1fr}
-nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
-nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
-nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
-nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
-nav.side li{font-size:13px;margin:2px 0}
-nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
-nav.side li a:hover{background:var(--panel2);text-decoration:none}
-nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
-nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
-
-main{padding:28px 40px 80px;max-width:1100px}
-.layout.no-toc main{margin:0 auto}
-
-h1{font-size:28px;margin:0 0 6px}
-h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
-h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
-h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
-.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
-p{margin:6px 0 10px}
-blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
-ul,ol{padding-left:22px}
-li{margin:2px 0}
-
-table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
-th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-th{background:var(--panel2);color:var(--h3);font-weight:600}
-tr:nth-child(even) td{background:var(--row-alt)}
-
-hr{border:none;border-top:1px solid var(--line);margin:24px 0}
-.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
-h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
-
-/* inline TOC at top of main content */
-.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
-.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
-.toc-inline li{font-size:13px;margin:1px 0}
-.toc-inline a{color:var(--h3)}
-
-/* mermaid diagram wrapper + toolbar */
-.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
-.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
-.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
-.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
-.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
-.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
-.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
-.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
-
-@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
-dl.meta{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0 20px;font-size:13.5px}
-dl.meta dt{color:var(--muted);font-family:var(--mono);font-size:12.5px}
-dl.meta dd{margin:0}
+@media(max-width:1000px){.layout{flex-direction:column;padding:20px 16px 64px}nav.side{position:static;width:auto;flex:auto;max-height:none}}
 </style>
 </head>
 <body>
-<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
-<div class="layout no-toc">
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">Theme</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Status</h1>
+    <div class="sub"></div>
+    <div class="group">Contents</div>
+    <ol>
+      <li><a href="#where-i-am">Where I am</a></li>
+      <li><a href="#next-command-to-run">Next command to run</a></li>
+      <li><a href="#open-requirements">Open requirements</a></li>
+      <li><a href="#known-blockers">Known blockers</a></li>
+      <li><a href="#verification-log">Verification log</a></li>
+      <li><a href="#library-feedback-summary">Library feedback summary</a></li>
+      <li><a href="#standards-compliance-last-check">Standards compliance (last check)</a></li>
+      <li><a href="#deferred-future">Deferred / future</a></li>
+    </ol>
+  </nav>
   <main>
-    <h1>TfLens &mdash; Status</h1>
-    <div class="subtitle">Snapshot &middot; 2026-08-27 &middot; phase: Verify</div>
-
-    <dl class="meta">
-      <dt>project</dt><dd>TfLens</dd>
-      <dt>stack</dt><dd>.NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose</dd>
-      <dt>last_updated</dt><dd>2026-08-27</dd>
-      <dt>current_phase</dt><dd>Verify &mdash; all 113 in-scope REQs built; none verified yet</dd>
-      <dt>last_verified_build</dt><dd>PASS</dd>
-      <dt>last_verified_date</dt><dd>2026-08-27</dd>
-    </dl>
-
-    <h2 id="where-i-am">Where I am</h2>
-    <p><code>*build-phase</code> ran 2026-08-26&rarr;27 and built the whole app from an empty repo: solution,
-    PostgreSQL&nbsp;16 store, AppManager identity, GitHub sync, the metrics engine, the exporter, and all twelve
-    screens. <strong>108 REQs are <code>Implemented</code>, 5 are <code>PARTIAL</code>, 1 is <code>N/A</code>;
-    nothing is <code>Not Started</code>.</strong> The build is green and <strong>333/333 tests pass</strong>
-    (263 Core &middot; 52 Guardrails &middot; 18 Integration). The app boots, signs in against the live AppManager,
-    and every report page renders real data with no blank cells; the mobile visual gate passes on all seven
-    authenticated pages.</p>
-    <p style="border-left:3px solid var(--border); padding-left:12px;"><strong>Correction, 2026-08-27:</strong>
-    this was first reported complete while the clone-and-press-F5 path was still broken. Every smoke had been
-    run with <code>TfLensDbConnection</code> exported in a shell, so nobody exercised the entry point a developer
-    actually uses &mdash; opening the solution and pressing F5 crashed on a bare &ldquo;supply it as a PascalCase
-    environment variable&rdquo;, and no DevGuide existed to look it up in. Fixed: the default launch profile
-    supplies the connection string (F5 now works with no setup), both startup failure messages are actionable and
-    platform-aware, <code>docs/TfLens-DevGuide.md</code> exists, and six guardrail tests pin that first-run path
-    so it cannot regress silently. Running the Docker path and the DevGuide trace for the first time then
-    turned up three more never-exercised defects: <strong>sign-out was completely broken</strong> (the menu
-    pointed at an unmapped route, the cookie survived, the user stayed signed in), the Profile table was one
-    field from silently dropping a row, and <code>src/TfLens/data/</code> &mdash; holding the <strong>Data
-    Protection key ring</strong> &mdash; was not covered by the root-anchored <code>/data/</code> ignore rule.
-    All three fixed and pinned by tests.</p>
-    <p><strong>Nothing is <code>Verified</code> yet &mdash; that is correct, not an omission.</strong> A self-smoke&rsquo;s
-    ceiling is <code>Implemented</code>; <code>Verified</code> exists only downstream of an executed <code>*verify</code>
-    run, which has not happened (<code>docs/.last-verify.json</code> does not exist). Three clusters wrote
-    <code>Verified</code> from their own smokes and those rows were demoted.</p>
-
-    <div style="border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:18px 0;">
-      <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:verifier *verify all TfLens</div>
-    </div>
-
-    <h2 id="open-requirements">Open requirements</h2>
-    <ul>
-      <li><code>PARTIAL</code> &mdash; <code>REQ-UI-034</code> Playbook state wired on <code>/export</code> only, not on the
-      other four report pages &middot; <code>REQ-FN-003</code> forgot/reset password not driven end-to-end (needs a real
-      reset email) &middot; <code>REQ-FN-018</code> poller / Sync-now halves not jointly exercised &middot;
-      <code>REQ-FN-067</code> + <code>REQ-FN-070</code> Playbook report set, blocked on a real <code>events.ndjson</code></li>
-      <li><code>Implemented</code> (108) &mdash; awaiting the verifier</li>
-      <li><code>N/A</code> &mdash; <code>REQ-FN-012</code> GitHub SSO, deferred by BRD-94 / ADR-012</li>
-    </ul>
-
-    <h2 id="known-blockers">Known blockers</h2>
-    <ul>
-      <li><strong>No real <code>events.ndjson</code> exists anywhere reachable</strong>, so the Playbook
-      <code>PbEvent</code> columns stay provisional (ADR-010, DECISIONS.md &sect;7 S-001).
-      <code>REQ-FN-067</code>/<code>REQ-FN-070</code> cannot honestly close until the owner supplies one.</li>
-      <li><strong>No parity run has ever been recorded</strong>, so the export correctly reports
-      <code>NOT QUOTABLE</code>. Running the BRD &sect;13 procedure is the gate before any figure is quotable.</li>
-      <li><strong>AppManager Application&nbsp;1 has no <code>Manager</code> role code</strong> &mdash; registration returns
-      <code>applicationRole: "User"</code>. Harmless (TfLens treats every account as Manager per BRD-95) but it is an
-      AppManager-side config gap the owner may want to close.</li>
-      <li>Optional <code>TfLensAppManagerApiKey</code>/<code>Secret</code> are unset; AppManager resolves the app from the
-      request body, so this is working-as-designed (DECISIONS.md D-006).</li>
-    </ul>
-
-    <h2 id="verification-log">Verification log</h2>
-    <table>
-      <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
-      <tbody>
-        <tr><td>2026-08-26</td><td>split-brd</td><td>N/A &mdash; no build or verify this phase</td>
-            <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
-        <tr><td>2026-08-27</td><td>build-phase</td><td>Build PASS &middot; 333/333 tests &middot; 108 Implemented / 5 PARTIAL &middot; not yet verified</td>
-            <td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="library-feedback-summary">Library feedback summary</h2>
-    <ul>
-      <li><strong>TrBlazeUI:</strong> 13 entries &mdash; <code>docs/TfLens-TrBlazeUI-Feedback.md</code>. Highest impact:
-      <code>DataTable</code> silently truncates to 5 rows even with <code>ShowPagination="false"</code>;
-      <code>LucideIcon</code> ignores the 212 aliases its own <code>lucide.json</code> ships, so
-      <code>alert-triangle</code>/<code>check-circle</code> render nothing; <code>--chart-*</code>/<code>--alert-*</code>
-      tokens undefined; no responsive utility variants.
-      <strong>Numbering has duplicates from concurrent clusters &mdash; needs one reconciliation pass.</strong></li>
-      <li><strong>TechieRag:</strong> 0 &mdash; not used by TfLens (ADR-003).</li>
-    </ul>
-
-    <h2 id="standards-compliance">Standards compliance (last check)</h2>
-    <ul>
-      <li>Underscore fields / test-method underscores / mis-prefixed fields:
-      <code>TfLens.Guardrails.Tests</code> 52/52 pass &mdash; these are enforced as tests, not greps.</li>
-    </ul>
-
-    <h2 id="deferred-future">Deferred / future</h2>
-    <ul>
-      <li>GitHub SSO (BRD-94 &rarr; REQ-FN-012) &mdash; Phase 2, waits on an AppManager external-login endpoint</li>
-      <li>Private GitHub repos (per-user PAT) &mdash; later release</li>
-      <li><code>BarChart</code> on <code>/routing</code> &mdash; the library&rsquo;s chart wrapper needs an
-      <code>ApexPointSeries</code> child (solved on <code>/harness</code>); <code>/routing</code> currently draws a CSS bar row instead</li>
-    </ul>
-
+<hr>
+<p>project: TfLens stack: .NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose last_updated: 2026-08-27 current_phase: Verify — 106 of 113 Verified; tail is Playbook axis + the unrun parity gate last_verified_build: PASS last_verified_date: 2026-08-27</p>
+<hr>
+<h1 id="tflens-status">TfLens — Status</h1>
+<h2 id="where-i-am">Where I am</h2>
+<p><code>*verify all</code> ran 2026-08-27 against a Release build on <code>:5099</code> (Blazor Server + PostgreSQL 16 + the live AppManager) and graded all 113 in-scope REQs. <strong>106 are now <code>Verified</code>, 5 <code>PARTIAL</code>, 1 <code>Needs re-verify</code>, 1 <code>Implemented</code>, 1 <code>N/A</code>.</strong> Evidence: <strong>337/337 .NET tests</strong>, <strong>38 Playwright acceptance tests (37 pass)</strong>, and a full render + visual sweep of <strong>19 screen-states at 1280 and 390</strong> that found <strong>zero blank controls and zero visual failures</strong>. The perf gate passed — REQ-NFR-001's <code>p95 load &lt;= 1500ms</code> measured <strong>p95 357 ms</strong>. Live runs also proved the recovery and isolation paths: <code>rebuild --user 2</code> replayed 14 raw files into 279 rows and left users 3 and 9001 untouched, and header <strong>Sync now</strong> synced the caller's repos with 2 of 7 failing in isolation.</p>
+<p><strong>What is not done is the acceptance gate itself.</strong> BRD §13 makes a passing parity diff against <code>tf-metrics.sh --rollup --json</code> the condition for any figure being quotable — <strong>no parity run has ever been recorded, and the oracle <code>tf-metrics.sh</code> is not present anywhere in this tree</strong>, so it could not be run here. <code>/export</code> honestly reads <code>NOT QUOTABLE</code>. Until that gate passes, no number this app renders is quotable, however green the rows above are.</p>
+<p><strong>Two findings the owner should see.</strong> A real recovery hazard: user 2's three repos held a recorded <code>LastSha</code> with <strong>zero stream rows</strong>, and because an unchanged SHA skips a repo entirely, the poller could never restore them — only <code>rebuild</code> did. And the demo account carries five <code>tflenstest/Store*</code> rows that are not real GitHub repos, left behind by a build-phase harness; they surface as failing repos and inflate <code>Connected repos</code> to 8.</p>
+<h2 id="next-command-to-run">Next command to run</h2>
+<div class="codeblock"><button class="copy">Copy</button><pre><code>/TechieFlow:agents:flow-master *build-phase TfLens     (OpenCode: /flow-master *build-phase TfLens)</code></pre></div>
+<p>Target the open rows: <code>REQ-UI-013</code>, <code>REQ-UI-034</code>, <code>REQ-FN-003</code>, <code>REQ-FN-064</code>, <code>REQ-FN-067</code>, <code>REQ-FN-070</code> — then <code>*verify all</code> again. <code>REQ-FN-063</code> needs the owner to supply <code>tf-metrics.sh</code> and run the BRD §13 parity procedure.</p>
+<h2 id="open-requirements">Open requirements</h2>
+<ul>
+<li><code>Needs re-verify</code> — <code>REQ-UI-013</code> Escape does not dismiss the remove-repo <code>AlertDialog</code> (Cancel does); acceptance names Escape</li>
+<li><code>PARTIAL</code> — <code>REQ-UI-034</code> + <code>REQ-FN-070</code> Playbook axis state renders on <code>/export</code> only · <code>REQ-FN-067</code> no page renders <code>pb-phases-*</code> · <code>REQ-FN-003</code> forgot/reset not drivable end-to-end · <code>REQ-FN-064</code> the no-oracle extras spot-check has never been recorded in <code>DECISIONS.md</code></li>
+<li><code>Implemented</code> — <code>REQ-FN-063</code> parity record; not gradeable until a parity run passes (oracle absent from this tree)</li>
+<li><code>N/A</code> — <code>REQ-FN-012</code> GitHub SSO, deferred by BRD-94 / ADR-012</li>
+</ul>
+<h2 id="known-blockers">Known blockers</h2>
+<ul>
+<li><strong>No real <code>events.ndjson</code> exists anywhere reachable</strong>, so the Playbook <code>PbEvent</code> columns stay provisional (ADR-010, DECISIONS.md §7 S-001). <code>REQ-FN-067</code>/<code>REQ-FN-070</code> cannot honestly close until the owner supplies one.</li>
+<li><strong>No parity run has ever been recorded, and <code>tf-metrics.sh</code> is not in this tree</strong>, so the BRD §13 gate could not be run by the verifier. The export correctly reports <code>NOT QUOTABLE</code>; no figure is quotable until the owner supplies the oracle and the diff comes back empty. Blocks <code>REQ-FN-063</code> and <code>REQ-FN-064</code>.</li>
+<li><strong>The demo account holds five <code>tflenstest/Store*</code> rows that are not real GitHub repos</strong> (plus one under user 3 and three <code>acme/*</code> under synthetic user 9001), left by build-phase store harnesses. They render as repos whose sync fails and inflate <code>Connected repos</code> to 8. Owner cleanup — the app renders them faithfully; it is the data that is wrong.</li>
+<li><strong>Sync cannot recover a repo whose rows are gone.</strong> Hit for real this run: a recorded <code>LastSha</code> with zero stream rows makes every later poll skip the repo (REQ-FN-021, as specified), so only <code>rebuild</code> restores it. Nothing reconciles "SHA recorded" against "rows present".</li>
+<li><strong>AppManager Application 1 has no <code>Manager</code> role code</strong> — registration returns <code>applicationRole: "User"</code>. Harmless (TfLens treats every account as Manager per BRD-95) but it is an AppManager-side config gap the owner may want to close.</li>
+<li><del>The clone-and-press-F5 path crashed with an unhelpful message and there was no DevGuide</del> — <strong>fixed 2026-08-27</strong> (default launch profile, actionable startup errors, <code>docs/TfLens-DevGuide.md</code>, 6 guardrail tests).</li>
+<li>Optional <code>TfLensAppManagerApiKey</code>/<code>Secret</code> are unset; AppManager resolves the app from the request body, so this is working-as-designed (DECISIONS.md D-006).</li>
+</ul>
+<h2 id="verification-log">Verification log</h2>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead><tbody><tr><td>2026-08-26</td><td>split-brd</td><td>N/A — no build or verify this phase</td><td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr><tr><td>2026-08-27</td><td>build-phase</td><td>Build PASS · 333/333 tests · 108 Implemented / 5 PARTIAL · not yet verified</td><td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr><tr><td>2026-08-27</td><td>verify-phase (<code>*verify all</code>)</td><td>Build PASS · 337/337 .NET · 37/38 Playwright · render+visual gates clean on 19 screen-states · perf p95 357ms vs 1500ms · <strong>106 Verified / 5 PARTIAL / 1 Needs re-verify / 1 Implemented / 1 N/A</strong></td><td><a href="docs/TfLens-Checklist.md#requirements-status">Requirements Status</a></td></tr></tbody></table></div>
+<h2 id="library-feedback-summary">Library feedback summary</h2>
+<ul>
+<li>TrBlazeUI: 13 entries — docs/TfLens-TrBlazeUI-Feedback.md. Highest impact: <code>DataTable</code> silently truncates to 5 rows even with <code>ShowPagination="false"</code>; <code>LucideIcon</code> ignores the 212 aliases its own <code>lucide.json</code> ships, so <code>alert-triangle</code>/<code>check-circle</code> render nothing; <code>--chart-*</code>/<code>--alert-*</code> tokens undefined; no responsive utility variants. <strong>Numbering has duplicates from concurrent clusters — needs one reconciliation pass.</strong></li>
+<li>TechieRag: 0 — not used by TfLens (ADR-003).</li>
+</ul>
+<h2 id="standards-compliance-last-check">Standards compliance (last check)</h2>
+<ul>
+<li>Underscore fields / test-method underscores / mis-prefixed fields: <code>TfLens.Guardrails.Tests</code> 52/52 pass — these are enforced as tests, not greps.</li>
+</ul>
+<h2 id="deferred-future">Deferred / future</h2>
+<ul>
+<li>GitHub SSO (BRD-94 → REQ-FN-012) — Phase 2, waits on an AppManager external-login endpoint</li>
+<li>Private GitHub repos (per-user PAT) — later release</li>
+<li><code>BarChart</code> on <code>/routing</code> — the library's chart wrapper needs an <code>ApexPointSeries</code> child (solved on <code>/harness</code>); <code>/routing</code> currently draws a CSS bar row instead</li>
+</ul>
   </main>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <script>
-// Light/dark toggle. The initial theme was already applied flash-free by the
-// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
-// choice, and reloads so Mermaid re-renders in the matching theme.
-(function(){
-  var btn = document.getElementById('themeToggle');
-  if(!btn) return;
-  var relabel = function(){
-    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    btn.textContent = dark ? '☀ Light' : '☾ Dark';
-  };
-  relabel();
-  btn.addEventListener('click', function(){
-    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    try{ localStorage.setItem('tf-theme', next); }catch(e){}
-    location.reload();
-  });
-})();
-
-// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
-// mermaid reads the <pre>'s textContent as the diagram source, so a button
-// appended here glues "copy" onto the last line and breaks the parse
-// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
-// Mermaid blocks get copy/export from their own .diagram toolbar instead.
-document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
-  const btn = document.createElement('button');
-  btn.className = 'copy';
-  btn.textContent = 'copy';
-  btn.addEventListener('click', () => {
-    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'copied';
-      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+var btn = document.getElementById('themeToggle');
+function label(){ var d = document.documentElement.getAttribute('data-theme')==='dark';
+  btn.textContent = d ? 'Light' : 'Dark'; }
+label();
+btn.addEventListener('click', function(){
+  var d = document.documentElement.getAttribute('data-theme')==='dark';
+  var next = d ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('tf-theme', next); }catch(e){}
+  label();
+});
+document.querySelectorAll('.codeblock .copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    var code = b.parentElement.querySelector('code');
+    navigator.clipboard.writeText(code.innerText).then(function(){
+      var old = b.textContent; b.textContent = 'Copied';
+      setTimeout(function(){ b.textContent = old; }, 1200);
     });
   });
-  pre.appendChild(btn);
 });
-
-// Mermaid init — theme follows the resolved light/dark theme
-if (window.mermaid) {
-  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
-  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
-}
-
-// Mermaid toolbar wiring — run after mermaid renders
-function wireMermaidToolbars() {
-  document.querySelectorAll('.diagram').forEach(dia => {
-    if (dia.dataset.wired) return;
-    const merm = dia.querySelector('.mermaid');
-    const svg = merm && merm.querySelector('svg');
-    if (!svg) return;
-    dia.dataset.wired = '1';
-    let scale = 1;
-    const label = dia.querySelector('.zlabel');
-    const apply = () => {
-      svg.style.transform = `scale(${scale})`;
-      svg.style.transformOrigin = 'top left';
-      if (label) label.textContent = Math.round(scale * 100) + '%';
-    };
-    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
-    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
-    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
-    dia.querySelector('[data-fit]').onclick = () => {
-      svg.style.transform = '';
-      svg.removeAttribute('width');
-      svg.style.maxWidth = '100%';
-      svg.style.height = 'auto';
-      scale = 1;
-      if (label) label.textContent = 'Fit';
-    };
-    dia.querySelector('[data-one]').onclick = () => {
-      svg.style.transform = '';
-      svg.style.maxWidth = 'none';
-      svg.style.width = '';
-      svg.style.height = '';
-      scale = 1;
-      if (label) label.textContent = '100%';
-    };
-    dia.querySelector('[data-fs]').onclick = () => {
-      dia.classList.toggle('fs');
-      if (dia.classList.contains('fs')) {
-        document.addEventListener('keydown', escFs);
-      } else {
-        document.removeEventListener('keydown', escFs);
-      }
-    };
-    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
-    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
-    // Ctrl+wheel zoom
-    merm.addEventListener('wheel', (e) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
-    }, { passive: false });
-  });
-}
-
-function openInNewTab(svg) {
-  const svgSource = new XMLSerializer().serializeToString(svg);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
-<style>
-  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
-  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
-  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
-  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
-  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
-  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
-  #stage svg{width:100%;height:100%}
-</style>
-</head><body>
-<div class="bar">
-  <button onclick="zpz.zoomIn()">+</button>
-  <button onclick="zpz.zoomOut()">−</button>
-  <button onclick="zpz.fit();zpz.center()">Fit</button>
-  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
-  <button onclick="window.print()">Print</button>
-  <button onclick="dlPng()">PNG</button>
-  <button onclick="dlSvg()">SVG</button>
-  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
-</div>
-<div id="stage">${svgSource}</div>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
-<script>
-  const el = document.querySelector('#stage svg');
-  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
-  document.addEventListener('keydown', e => {
-    if (e.key === '+' || e.key === '=') zpz.zoomIn();
-    if (e.key === '-' || e.key === '_') zpz.zoomOut();
-    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
-  });
-  function dlSvg() {
-    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
-  }
-  function dlPng() {
-    const src = new XMLSerializer().serializeToString(el);
-    const img = new Image();
-    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
-      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
-      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
-    };
-    img.src = url;
-  }
-<\/script>
-</body></html>`;
-  const w = window.open();
-  w.document.write(html);
-  w.document.close();
-}
-
-// Run wiring after mermaid finishes (it renders async)
-if (window.mermaid) {
-  setTimeout(wireMermaidToolbars, 400);
-  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
-}
 </script>
 </body>
 </html>

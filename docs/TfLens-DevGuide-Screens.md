@@ -12,6 +12,51 @@ counts in a shot will not match what you see today; the *structure* is what the 
 
 ---
 
+## Runtime-verified 2026-08-27 as `tflensdemo@techierathore.com` (userId 2, Manager)
+
+Observed, not inferred. A full `*verify all` pass drove every screen below on a **Release** build at
+`http://localhost:5099` with headless Chromium at **1280×800 and 390×844**, applying the data-render
+gate (does every control listed in its *Control → data path* table actually render its data?) and the
+visual-truth gate (does the screen look right — no overlap, no clipping, nothing off-canvas, no
+horizontal page scroll?). Evidence: `tests/.artifacts/gates/render-visual.json` and the paired
+screenshots `tests/.artifacts/gates/{screen}-{1280,390}.png`.
+
+| Screen | Controls checked | Data render | Looks right |
+|---|---|---|---|
+| `/login` | 8 | renders ✓ | looks-right ✓ |
+| `/register` | 12 | renders ✓ | looks-right ✓ |
+| `/forgot-password` | 4 | renders ✓ | looks-right ✓ |
+| `/reset-password` | 11 | renders ✓ | looks-right ✓ |
+| `/profile` | 21 | renders ✓ | looks-right ✓ |
+| `/repos` | 43 | renders ✓ | looks-right ✓ |
+| `/` — Coverage / health | 52 | renders ✓ | looks-right ✓ |
+| `/three-questions` | 29 | renders ✓ | looks-right ✓ |
+| `/harness` | 27 | renders ✓ | looks-right ✓ |
+| `/routing` (4 tabs) | 62 | renders ✓ | looks-right ✓ |
+| `/export` | 29 | renders ✓ | looks-right ✓ |
+| Playbook axis of all five report pages | 45 | renders ✓ | looks-right ✓ |
+
+**Zero** render-empty controls and **zero** visual failures across all 19 screen-states. Defects found
+were behavioural, not rendering — they are listed against their screens below and in
+`docs/TfLens-Checklist.md`.
+
+Three things a reader should know before trusting a screen here:
+
+- **`/repos`, `/routing` and `/export` are horizontally scrollable at 390 px by design.** Their wide
+  tables and the routing tab strip live in `overflow-x-auto` boxes, so controls sit outside the
+  viewport and are reached by scrolling *that region*. The page body itself never scrolls sideways.
+- **Escape does not dismiss two dialogs.** The remove-repo `AlertDialog` (`/repos`) ignores Escape
+  entirely — only **Cancel** closes it, which contradicts REQ-UI-013's acceptance. The connect-repo
+  `Dialog` honours Escape until a validation result is on screen, then stops. Both are recorded as
+  Known issues on `/repos`.
+- **The Playbook axis is finished on `/export` only.** `playbook-axis-note` / `playbook-empty` render
+  there and nowhere else; `/`, `/three-questions`, `/harness` and `/routing` re-query on the Playbook
+  axis but reuse the TechieFlow surface with no axis note. `pb-phases-*` is not rendered by any page.
+  The separation rule itself holds — no `gate-dist-*` table is ever populated on the Playbook axis, so
+  `phase_gate` and `gate` never share a table.
+
+---
+
 ## Contents
 
 - [How to run and drive it](#how-to-run-and-drive-it)
@@ -613,6 +658,23 @@ not null && !AlreadyConnected`.
 - **Private repo** — `Alert Variant=Warning` `connect-private` with `RepoRegistry.PrivateRepoMessage`.
 - **Other refusal** — `Alert` `connect-problem`, `Warning` when `AlreadyConnected`, else `Danger`.
 
+### Known issues (runtime-observed 2026-08-27)
+
+- **The remove-repo `AlertDialog` ignores Escape.** `remove-title` is still present after an Escape
+  press and only disappears on **Cancel**. REQ-UI-013's acceptance says "Escape/Cancel aborts", so this
+  is a real gap, not a deliberate destructive-dialog hardening — or if it *is* deliberate, the
+  acceptance wording needs to change. Nothing is deleted either way; the guard itself holds.
+- **The connect-repo `Dialog` stops honouring Escape once a validation result is on screen.** Escape
+  closes it from a clean open, but not after `connect-validate` has rendered `connect-validation`.
+  Cancel and the ✕ both still work.
+- **The `Actions` column renders no text by design** — the row Sync and Remove controls are icon-only
+  buttons. A cell-level "is it blank?" check will report one blank cell per row on `repos-table`; that
+  is the Actions column, not a data defect.
+- **The demo account carries five `tflenstest/Store*` rows that are not real GitHub repos**, left
+  behind by a build-phase store harness. They surface here and on Coverage as repos whose sync fails,
+  and they inflate `Connected repos` to 8. They are database pollution, not user data — see the
+  checklist's `*verify all` findings.
+
 ### Gotchas
 
 - **`WaitForFirstSyncAsync` blocks the circuit for up to 30 seconds.** If the first sync overruns,
@@ -1131,6 +1193,16 @@ is one searchable string in the DOM.
 Selecting **Playbook** in the header switch writes `tflens-framework=playbook` and raises
 `ShellPreferences.Changed`; every report page answers by re-querying the engine on the new axis
 (ADR-016), never by filtering what it already rendered.
+
+> **Runtime-verified 2026-08-27 — partially wired.** Driving the switch to Playbook and visiting all
+> five report pages: only **`/export`** renders the Playbook state (`playbook-axis-note`,
+> `playbook-empty`, `playbook-empty-connect`). `/`, `/three-questions`, `/harness` and `/routing`
+> re-query correctly but reuse the TechieFlow surface and render **no axis note** — `/` shows the
+> AI-First-Playbook repo card, `/three-questions` falls through to `three-questions-empty`, `/harness`
+> renders all three columns from the Playbook axis, `/routing` shows `drift-empty`. `pb-phases-*` is
+> rendered by no page at all. The **separation rule holds**: no `gate-dist-*` table is populated while
+> the Playbook axis is selected, so `phase_gate` and `gate` never share a table or chart. Open against
+> REQ-UI-034, REQ-FN-067 and REQ-FN-070.
 
 ![/export on the Playbook axis](./devguide-images/export-playbook.png)
 

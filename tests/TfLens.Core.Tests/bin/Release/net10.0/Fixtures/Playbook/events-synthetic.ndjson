@@ -1,0 +1,9 @@
+{"kind":"phase-start","command":"verify","sessionID":"ses-main-01","arguments":"REQ-FN-070","ts":"2026-08-26T09:00:00.000Z"}
+{"kind":"turn","sessionID":"ses-main-01","parentID":null,"messageID":"msg-01","model":"anthropic/claude-sonnet-5","tokens":{"input":100,"output":50,"reasoning":10,"cache":{"read":20,"write":5}},"cost":0.01,"ts":"2026-08-26T09:00:05.000Z"}
+{"kind":"turn","sessionID":"ses-main-01","parentID":null,"messageID":"msg-01","model":"anthropic/claude-sonnet-5","tokens":{"input":100,"output":200,"reasoning":40,"cache":{"read":20,"write":5}},"cost":0.04,"ts":"2026-08-26T09:00:11.000Z"}
+{"kind":"turn","sessionID":"ses-sub-01","parentID":"ses-main-01","messageID":"msg-02","model":"anthropic/claude-haiku-5","tokens":{"input":60,"output":80,"reasoning":0,"cache":{"read":0,"write":0}},"cost":0.005,"ts":"2026-08-26T09:00:18.000Z"}
+{"kind":"phase-end","sessionID":"ses-main-01","ts":"2026-08-26T09:00:24.000Z"}
+this line is not json and must be counted and skipped, never fatal
+{"kind":"phase-start","command":"plan-review","sessionID":"ses-main-02","arguments":"","ts":"2026-08-26T10:00:00.000Z"}
+{"kind":"turn","sessionID":"ses-main-02","parentID":null,"messageID":"msg-03","model":"anthropic/claude-sonnet-5","tokens":{"input":200,"output":100,"reasoning":0,"cache":{"read":50,"write":10}},"cost":0.02,"ts":"2026-08-26T10:00:07.000Z"}
+{"kind":"phase-end","sessionID":"ses-main-02","ts":"2026-08-26T10:00:12.000Z"}
