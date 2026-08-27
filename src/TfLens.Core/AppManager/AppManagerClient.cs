@@ -403,6 +403,45 @@ public sealed class AppManagerClient : IAppManagerClient
     }
 
     /// <summary>
+    /// Whether the API-key pair is sent on this path — <c>true</c> for <c>/AuthSvc/*</c> only.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The pair identifies the calling <b>application</b>, and the guide (§Authentication) makes it one
+    /// of two interchangeable ways to supply that: the headers, or an explicit <c>applicationId</c>. It
+    /// is therefore only needed where AppManager must resolve an application and the body cannot say so.
+    /// Measured against the live API on 2026-08-27, whole pair versus none:
+    /// </para>
+    /// <list type="table">
+    ///   <item><term><c>/AuthSvc/forgot-password</c></term>
+    ///     <description>none → <c>400 APPLICATION_ID_REQUIRED</c>; pair → <c>200</c>. <b>Requires it.</b></description></item>
+    ///   <item><term><c>/AuthSvc/reset-password</c></term>
+    ///     <description>none → <c>400 APPLICATION_ID_REQUIRED</c>; pair → real token validation
+    ///     (<c>INVALID_RESET_TOKEN</c>). <b>Requires it.</b> These two are the only endpoints that refuse
+    ///     a body <c>applicationId</c>, which is why the pair is not optional for this app.</description></item>
+    ///   <item><term><c>/UserSvc/profile</c></term>
+    ///     <description>none → <c>200</c>; pair → <c>403 NO_APP_ACCESS</c>. <b>Broken by it.</b></description></item>
+    ///   <item><term>login · validate · change-password</term>
+    ///     <description>identical either way — login already carries <c>applicationId</c> in its body, so
+    ///     licence and role stay scoped (guide §4.2) with nothing lost by omitting the headers.</description></item>
+    /// </list>
+    /// <para>
+    /// <b>Why <c>/UserSvc/*</c> is excluded.</b> Those calls are already scoped by the bearer token, which
+    /// names the user. Adding an application identity turns the request into "does THIS user have access
+    /// to THIS application", and AppManager answers <c>NO_APP_ACCESS</c> for the demo account — the same
+    /// account whose login returns an empty <c>applicationRole</c>. That is an AppManager-side grant that
+    /// Application 1 does not hold for this user, not a TfLens defect: sending the pair everywhere simply
+    /// made an existing gap fatal on a page that had always worked. Granting the user access to
+    /// Application 1 in the AppManager admin UI is the root fix, and this rule is correct regardless —
+    /// an application credential has no business on a user-scoped, token-authenticated read.
+    /// </para>
+    /// </remarks>
+    /// <param name="aPath">The AppManager path being called.</param>
+    /// <returns><c>true</c> when the pair should be attached.</returns>
+    private static bool SendsApiKeyHeaders(string aPath) =>
+        aPath.StartsWith("/AuthSvc/", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Builds one request, applying the header rule and the always-present application id.
     /// </summary>
     /// <param name="aMethod">The HTTP method.</param>
@@ -420,7 +459,8 @@ public sealed class AppManagerClient : IAppManagerClient
         vRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         // Whole pair or nothing: a half or bogus pair is answered INVALID_API_KEY on every call.
-        if (objOptions.HasAppManagerApiCredentials)
+        // And only where the endpoint needs the APPLICATION resolved — see SendsApiKeyHeaders.
+        if (objOptions.HasAppManagerApiCredentials && SendsApiKeyHeaders(aPath))
         {
             vRequest.Headers.TryAddWithoutValidation("X-Api-Key", objOptions.AppManagerApiKey);
             vRequest.Headers.TryAddWithoutValidation("X-Api-Secret", objOptions.AppManagerApiSecret);

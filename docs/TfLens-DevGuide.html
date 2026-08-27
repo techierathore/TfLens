@@ -6,7 +6,7 @@
 <title>TfLens — Developer Guide</title>
 <script>
 /* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
-   pick by time of day — light 07:00-19:00 local, softened dark at night. */
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
 (function(){
   try{
     var t = localStorage.getItem('tf-theme');
@@ -16,266 +16,563 @@
 })();
 </script>
 <style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
 :root{
-  --bg:#faf9f7; --fg:#1f2328; --muted:#5b636d; --border:#e2e0dc; --card:#ffffff;
-  --accent:#0b62c4; --code-bg:#f4f2ef; --quote:#f6f4f1; --shadow:0 1px 2px rgba(0,0,0,.05);
-  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
-:root[data-theme="dark"]{
-  --bg:#14171c; --fg:#dde1e7; --muted:#98a1ad; --border:#2a3038; --card:#191d23;
-  --accent:#7cc4ff; --code-bg:#11151a; --quote:#181d24; --shadow:none;
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);
-  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-.layout{display:flex;gap:32px;max-width:1280px;margin:0 auto;padding:32px 24px 96px}
-nav.side{width:270px;flex:0 0 270px;position:sticky;top:32px;align-self:flex-start;max-height:calc(100vh - 64px);overflow:auto}
-nav.side h1{font-size:17px;margin:0 0 4px;line-height:1.3}
-nav.side .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-nav.side .group{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
-nav.side ol{list-style:none;margin:0;padding:0;font-size:13.5px}
-nav.side li{margin:2px 0}
-nav.side li.h3{padding-left:14px;font-size:12.5px}
-nav.side a{color:var(--muted);text-decoration:none;display:block;padding:2px 6px;border-radius:5px}
-nav.side a:hover{color:var(--accent);background:var(--code-bg)}
-main{flex:1;min-width:0;max-width:900px}
-h1,h2,h3,h4{line-height:1.25;scroll-margin-top:24px}
-h1{font-size:30px;margin:0 0 8px}
-h2{font-size:22px;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-h3{font-size:17.5px;margin:26px 0 8px}
-h4{font-size:15px;margin:20px 0 6px;color:var(--muted)}
-p{margin:12px 0}
-a{color:var(--accent)}
-code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.12em .38em;border-radius:4px}
-.codeblock{position:relative;margin:16px 0}
-.codeblock pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow:auto;margin:0}
-.codeblock pre code{background:none;padding:0;font-size:13px;line-height:1.55}
-.codeblock .copy{position:absolute;top:8px;right:8px;font-size:11px;padding:3px 9px;border-radius:5px;
-  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s}
-.codeblock:hover .copy{opacity:1}
-.codeblock .copy:hover{color:var(--accent);border-color:var(--accent)}
-.table-wrap{overflow-x:auto;margin:16px 0}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}
-th{background:var(--code-bg);font-weight:600}
-blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;color:var(--fg)}
-ul,ol{margin:12px 0;padding-left:26px}
-li{margin:4px 0}
-img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);margin:12px 0}
-hr{border:0;border-top:1px solid var(--border);margin:28px 0}
-del{color:var(--muted)}
-.theme-toggle{position:fixed;top:14px;right:16px;z-index:20;font-size:12px;padding:5px 11px;border-radius:6px;
-  border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
-@media(max-width:1000px){.layout{flex-direction:column;padding:20px 16px 64px}nav.side{position:static;width:auto;flex:auto;max-height:none}}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
 </style>
 </head>
 <body>
-<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">Theme</button>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Developer Guide</h1>
-    <div class="sub">2026-08-27 · a developer who has just cloned this repository and needs to run it, change it, and fix bugs in it.</div>
+    <div class="sub">Last rendered: 2026-08-27</div>
     <div class="group">Contents</div>
     <ol>
-      <li><a href="#table-of-contents">Table of Contents</a></li>
-      <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
-      <li class="h3"><a href="#the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</a></li>
-      <li class="h3"><a href="#the-short-version-shell-linuxmacoswsl">The short version (shell, Linux/macOS/WSL)</a></li>
-      <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
-      <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
-      <li class="h3"><a href="#signing-in">Signing in</a></li>
-      <li><a href="#configuration-reference">Configuration reference</a></li>
-      <li class="h3"><a href="#where-to-put-each-one">Where to put each one</a></li>
-      <li><a href="#troubleshooting">Troubleshooting</a></li>
-      <li class="h3"><a href="#tflens-cannot-start-the-database-connection-string-is-not-configured">TfLens cannot start — the database connection string is not configured</a></li>
-      <li class="h3"><a href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">TfLens cannot start — the database named by TfLensDbConnection is unreachable</a></li>
-      <li class="h3"><a href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</a></li>
-      <li class="h3"><a href="#sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</a></li>
-      <li class="h3"><a href="#a-page-shows-a-table-with-fewer-rows-than-the-database-has">A page shows a table with fewer rows than the database has</a></li>
-      <li class="h3"><a href="#an-icon-is-missing-and-there-is-no-error">An icon is missing and there is no error</a></li>
-      <li class="h3"><a href="#a-per-user-preference-does-not-stick">A per-user preference does not stick</a></li>
-      <li class="h3"><a href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</a></li>
-      <li class="h3"><a href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">rebuild in the container replays 0 files, but works on the dev machine</a></li>
-      <li class="h3"><a href="#the-export-says-not-quotable">The export says NOT QUOTABLE</a></li>
-      <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
-      <li><a href="#command-verbs">Command verbs</a></li>
-      <li><a href="#tests">Tests</a></li>
-      <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
+        <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
+        <li class="h3"><a href="#the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</a></li>
+        <li class="h3"><a href="#the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)</a></li>
+        <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
+        <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
+        <li class="h3"><a href="#signing-in">Signing in</a></li>
+        <li><a href="#configuration-reference">Configuration reference</a></li>
+        <li class="h3"><a href="#where-to-put-each-one">Where to put each one</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-the-database-connection-string-is-not-configured">TfLens cannot start — the database connection string is not configured</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">TfLens cannot start — the database named by TfLensDbConnection is unreachable</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</a></li>
+        <li class="h3"><a href="#sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</a></li>
+        <li class="h3"><a href="#a-page-shows-a-table-with-fewer-rows-than-the-database-has">A page shows a table with fewer rows than the database has</a></li>
+        <li class="h3"><a href="#an-icon-is-missing-and-there-is-no-error">An icon is missing and there is no error</a></li>
+        <li class="h3"><a href="#a-per-user-preference-does-not-stick">A per-user preference does not stick</a></li>
+        <li class="h3"><a href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</a></li>
+        <li class="h3"><a href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">rebuild in the container replays 0 files, but works on the dev machine</a></li>
+        <li class="h3"><a href="#the-export-says-not-quotable">The export says NOT QUOTABLE</a></li>
+        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
+        <li><a href="#command-verbs">Command verbs</a></li>
+        <li><a href="#tests">Tests</a></li>
+        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
     </ol>
   </nav>
   <main>
-<h1 id="tflens-developer-guide">TfLens — Developer Guide</h1>
-<p><strong>Last updated:</strong> 2026-08-27 <strong>Audience:</strong> a developer who has just cloned this repository and needs to run it, change it, and fix bugs in it.</p>
-<blockquote><strong>Start here if the app won't start.</strong> Jump straight to <a href="#running-tflens-locally">Running TfLens locally</a>, or to <a href="#troubleshooting">Troubleshooting</a> if you already have an error on screen.</blockquote>
-<h2 id="table-of-contents">Table of Contents</h2>
+    <h1>TfLens — Developer Guide</h1>
+    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-DevGuide.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
+        <li class="h3"><a href="#the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</a></li>
+        <li class="h3"><a href="#the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)</a></li>
+        <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
+        <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
+        <li class="h3"><a href="#signing-in">Signing in</a></li>
+        <li><a href="#configuration-reference">Configuration reference</a></li>
+        <li class="h3"><a href="#where-to-put-each-one">Where to put each one</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-the-database-connection-string-is-not-configured">TfLens cannot start — the database connection string is not configured</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">TfLens cannot start — the database named by TfLensDbConnection is unreachable</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</a></li>
+        <li class="h3"><a href="#sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</a></li>
+        <li class="h3"><a href="#a-page-shows-a-table-with-fewer-rows-than-the-database-has">A page shows a table with fewer rows than the database has</a></li>
+        <li class="h3"><a href="#an-icon-is-missing-and-there-is-no-error">An icon is missing and there is no error</a></li>
+        <li class="h3"><a href="#a-per-user-preference-does-not-stick">A per-user preference does not stick</a></li>
+        <li class="h3"><a href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</a></li>
+        <li class="h3"><a href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">rebuild in the container replays 0 files, but works on the dev machine</a></li>
+        <li class="h3"><a href="#the-export-says-not-quotable">The export says NOT QUOTABLE</a></li>
+        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
+        <li><a href="#command-verbs">Command verbs</a></li>
+        <li><a href="#tests">Tests</a></li>
+        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
+      </ol>
+    </div>
+<p><strong>Last updated:</strong> 2026-08-27
+<strong>Audience:</strong> a developer who has just cloned this repository and needs to run it, change it, and fix bugs in it.</p>
+<blockquote>
+<p><strong>Start here if the app won't start.</strong> Jump straight to <a href="#running-tflens-locally">Running TfLens locally</a>,
+or to <a href="#troubleshooting">Troubleshooting</a> if you already have an error on screen.</p>
+</blockquote>
+<h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
-<li><a href="#running-tflens-locally">Running TfLens locally</a></li>
-<li><a href="#configuration-reference">Configuration reference</a></li>
-<li><a href="#troubleshooting">Troubleshooting</a></li>
-<li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
-<li><a href="#command-verbs">Command verbs</a></li>
-<li><a href="#tests">Tests</a></li>
-<li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
+<li><a href="#running-tflens-locally">Running TfLens locally</a>
+</li>
+<li><a href="#configuration-reference">Configuration reference</a>
+</li>
+<li><a href="#troubleshooting">Troubleshooting</a>
+</li>
+<li><a href="#how-the-solution-fits-together">How the solution fits together</a>
+</li>
+<li><a href="#command-verbs">Command verbs</a>
+</li>
+<li><a href="#tests">Tests</a>
+</li>
+<li><a href="#screen-by-screen-reference">Screen-by-screen reference</a>
+</li>
 </ol>
 <hr>
-<h2 id="running-tflens-locally">Running TfLens locally</h2>
+<h2 id="running-tflens-locally">Running TfLens locally<a class="anchor-link" href="#running-tflens-locally">#</a></h2>
 <p>TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing else.</p>
-<h3 id="the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</h3>
+<h3 id="the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)<a class="anchor-link" href="#the-short-version-visual-studio-rider-windows">#</a></h3>
 <ol>
-<li><strong>Start the database once</strong>, from the repository root:</li>
+<li><strong>Start the database once</strong>, from the repository root:
+</li>
 </ol>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-powershell">   copy .env.example .env
-   docker compose up -d postgres</code></pre></div>
+<pre><code class="language-powershell">   copy .env.example .env
+   docker compose up -d postgres</code></pre>
 <p>This runs PostgreSQL 16 as the container <code>tflens-postgres</code> and publishes it on <strong>localhost:5433</strong>.</p>
 <ol>
-<li><strong>Press F5.</strong></li>
+<li><strong>Press F5.</strong>
+</li>
 </ol>
-<p>That is the whole setup. There is <strong>one</strong> launch profile, <code>TfLens</code>. It pins no connection string — TfLens falls back to the local compose database <strong>in Development only</strong>, as the lowest-priority configuration source, so anything you set overrides it. It opens on &lt;http://localhost:5014&gt;.</p>
-<h3 id="the-short-version-shell-linuxmacoswsl">The short version (shell, Linux/macOS/WSL)</h3>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">cp .env.example .env
+<p>That is the whole setup. There is <strong>one</strong> launch profile, <code>TfLens</code>. It pins no connection string —
+TfLens falls back to the local compose database <strong>in Development only</strong>, as the lowest-priority
+configuration source, so anything you set overrides it. It opens on &lt;http://localhost:5014&gt;.</p>
+<h3 id="the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)<a class="anchor-link" href="#the-short-version-shell-linux-macos-wsl">#</a></h3>
+<pre><code class="language-bash">cp .env.example .env
 docker compose up -d postgres
-dotnet run --project src/TfLens          # http://localhost:5014</code></pre></div>
+dotnet run --project src/TfLens          # http://localhost:5014</code></pre>
 <p><code>dotnet run</code> uses the same single profile and the same Development fallback.</p>
-<h3 id="where-the-development-default-comes-from">Where the development default comes from</h3>
-<p>TfLens <strong>refuses to start without a database</strong> rather than starting and failing at the first user's sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on where a new developer's connection string comes from — so in Development, and only in Development, <code>TfLensOptions.LocalDevelopmentConnection</code> is seeded as the <strong>lowest-priority</strong> configuration source.</p>
+<h3 id="where-the-development-default-comes-from">Where the development default comes from<a class="anchor-link" href="#where-the-development-default-comes-from">#</a></h3>
+<p>TfLens <strong>refuses to start without a database</strong> rather than starting and failing at the first user's
+sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on
+where a new developer's connection string comes from — so in Development, and only in Development,
+<code>TfLensOptions.LocalDevelopmentConnection</code> is seeded as the <strong>lowest-priority</strong> configuration source.</p>
 <p>Priority, lowest to highest:</p>
-<div class="table-wrap"><table><thead><tr><th>#</th><th>Source</th><th>Overrides the one above</th></tr></thead><tbody><tr><td>1</td><td>The Development fallback (code)</td><td>—</td></tr><tr><td>2</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>yes</td></tr><tr><td>3</td><td><code>dotnet user-secrets</code></td><td>yes</td></tr><tr><td>4</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td></tr></tbody></table></div>
-<p>So <code>dotnet user-secrets set TfLens:DbConnection …</code> works, and an environment variable beats even that. Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.</p>
-<blockquote><strong>Why not put it in the launch profile?</strong> That was the first attempt and it was wrong. A launch profile sets an <em>environment variable</em> — the highest-priority source — so it silently overrode <code>user-secrets</code>, meaning the documented way to point at your own database did nothing at all. It also needed a second "own database" profile that existed only in order to fail. One profile, and a default that anything can override, is the smaller and more honest design.</blockquote>
-<h3 id="using-your-own-postgresql-instead">Using your own PostgreSQL instead</h3>
+<table>
+<thead><tr><th>#</th><th>Source</th><th>Overrides the one above</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>The Development fallback (code)</td><td>—</td></tr>
+<tr><td>2</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>yes</td></tr>
+<tr><td>3</td><td><code>dotnet user-secrets</code></td><td>yes</td></tr>
+<tr><td>4</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td></tr>
+</tbody>
+</table>
+<p>So <code>dotnet user-secrets set TfLens:DbConnection …</code> works, and an environment variable beats even that.
+Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.</p>
+<blockquote>
+<p><strong>Why not put it in the launch profile?</strong> That was the first attempt and it was wrong. A launch
+profile sets an <em>environment variable</em> — the highest-priority source — so it silently overrode
+<code>user-secrets</code>, meaning the documented way to point at your own database did nothing at all. It also
+needed a second "own database" profile that existed only in order to fail. One profile, and a default
+that anything can override, is the smaller and more honest design.</p>
+</blockquote>
+<h3 id="using-your-own-postgresql-instead">Using your own PostgreSQL instead<a class="anchor-link" href="#using-your-own-postgresql-instead">#</a></h3>
 <p>Just set the value — no profile switching. Any of these beats the Development fallback:</p>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-powershell"># PowerShell, this session only
+<pre><code class="language-powershell"># PowerShell, this session only
 $env:TfLensDbConnection = "Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src\TfLens</code></pre></div>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash"># bash
+dotnet run --project src\TfLens</code></pre>
+<pre><code class="language-bash"># bash
 export TfLensDbConnection="Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src/TfLens</code></pre></div>
+dotnet run --project src/TfLens</code></pre>
 <p>Or store it on your machine only, never committed:</p>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">dotnet user-secrets set TfLens:DbConnection "Host=…" --project src/TfLens</code></pre></div>
-<p>You do <strong>not</strong> need to create the schema. <code>database/001-schema.sql</code> is idempotent and is applied at every startup (ADR-015); an empty database is enough.</p>
-<h3 id="signing-in">Signing in</h3>
-<p>Identity is <strong>AppManager</strong> (Application Id 1) — TfLens stores no users and no passwords (ADR-011). The documented test accounts live in <a href="./TfLens-UsageGuide.md"><code>docs/TfLens-UsageGuide.md</code></a>:</p>
-<div class="table-wrap"><table><thead><tr><th>Account</th><th>Password</th><th>AppManager <code>userId</code></th></tr></thead><tbody><tr><td><code>tflensdemo@techierathore.com</code></td><td><code>TfLensDemo!23</code></td><td>2</td></tr><tr><td><code>tflenstest2@techierathore.com</code></td><td><code>TfLensTest2!23</code></td><td>3</td></tr></tbody></table></div>
-<p>Sign-in reaches the live AppManager API over the internet, so it needs network access. It does <strong>not</strong> need the <code>TfLensAppManagerApiKey</code>/<code>Secret</code> pair — see the note in the configuration table.</p>
+<pre><code class="language-bash">dotnet user-secrets set TfLens:DbConnection "Host=…" --project src/TfLens</code></pre>
+<p>You do <strong>not</strong> need to create the schema. <code>database/001-schema.sql</code> is idempotent and is applied at
+every startup (ADR-015); an empty database is enough.</p>
+<h3 id="signing-in">Signing in<a class="anchor-link" href="#signing-in">#</a></h3>
+<p>Identity is <strong>AppManager</strong> (Application Id 1) — TfLens stores no users and no passwords (ADR-011). The
+documented test accounts live in <a href="./TfLens-UsageGuide.md"><code>docs/TfLens-UsageGuide.md</code></a>:</p>
+<table>
+<thead><tr><th>Account</th><th>Password</th><th>AppManager <code>userId</code></th></tr></thead>
+<tbody>
+<tr><td><code>tflensdemo@techierathore.com</code></td><td><code>TfLensDemo!23</code></td><td>2</td></tr>
+<tr><td><code>tflenstest2@techierathore.com</code></td><td><code>TfLensTest2!23</code></td><td>3</td></tr>
+</tbody>
+</table>
+<p>Sign-in reaches the live AppManager API over the internet, so it needs network access. It does <strong>not</strong>
+need the <code>TfLensAppManagerApiKey</code>/<code>Secret</code> pair — see the note in the configuration table.</p>
 <hr>
-<h2 id="configuration-reference">Configuration reference</h2>
-<p>Every setting is <strong>PascalCase with no separators</strong>: <code>TfLensDbConnection</code>, never <code>TFLENS_DB_CONNECTION</code> and never <code>TfLens__DbConnection</code>. A custom configuration provider (<code>src/TfLens/Configuration/PascalCaseEnvironmentConfigurationSource.cs</code>) maps <code>TfLens*</code> environment variables onto <code>TfLens:*</code> configuration keys, which is why application code reads <code>IConfiguration["TfLens:DbConnection"]</code> and never calls <code>Environment.GetEnvironmentVariable</code>.</p>
-<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Required</th><th>What it is</th></tr></thead><tbody><tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong></td><td>Npgsql connection string. Startup fails without it, and fails again if the database is unreachable.</td></tr><tr><td><code>TfLensAppManagerApiKey</code></td><td>No*</td><td>AppManager API key.</td></tr><tr><td><code>TfLensAppManagerApiSecret</code></td><td>No*</td><td>AppManager API secret.</td></tr><tr><td><code>TfLensGitHubToken</code></td><td>No</td><td>GitHub PAT. <strong>Raises the rate limit only</strong> (60/hr → 5,000/hr); it grants no access a public request would not have.</td></tr><tr><td><code>TfLensAppManagerBaseUrl</code></td><td>No</td><td>Defaults to <code>https://appmgrapi.techierathore.com</code>.</td></tr><tr><td><code>TfLensAppManagerAppId</code></td><td>No</td><td>Defaults to <code>1</code>.</td></tr><tr><td><code>TfLensDataRoot</code></td><td>No</td><td>Defaults to <code>data</code>. Holds <code>raw/</code>, <code>reports/</code>, <code>prices.json</code>.</td></tr><tr><td><code>TfLensPollIntervalMinutes</code></td><td>No</td><td>Defaults to <code>15</code>.</td></tr><tr><td><code>TfLensStalenessDays</code></td><td>No</td><td>Defaults to <code>7</code>. Drives the Coverage staleness warning.</td></tr></tbody></table></div>
-<blockquote>**\* The AppManager key/secret pair is optional, but must be supplied _whole or not at all_.<strong> AppManager resolves the application from the <code>applicationId</code> the client sends in every request body, so with </strong>no<strong> pair configured every call succeeds. A </strong>half-configured or wrong** pair is rejected with <code>401 INVALID_API_KEY</code> on every call, so <code>TfLensOptions.Validate()</code> refuses that configuration at startup rather than letting every sign-in fail mysteriously. Recorded as <code>D-006</code> in <a href="../DECISIONS.md"><code>DECISIONS.md</code></a>.</blockquote>
-<h3 id="where-to-put-each-one">Where to put each one</h3>
-<div class="table-wrap"><table><thead><tr><th>Context</th><th>Mechanism</th></tr></thead><tbody><tr><td>Visual Studio / Rider</td><td>The launch profile (<code>src/TfLens/Properties/launchSettings.json</code>), or <em>Debug &gt; TfLens Debug Properties &gt; Environment variables</em></td></tr><tr><td>Shell</td><td><code>export</code> / <code>$env:</code> before <code>dotnet run</code></td></tr><tr><td>Your machine, not committed</td><td><code>dotnet user-secrets set TfLens:DbConnection "…" --project src/TfLens</code></td></tr><tr><td>Docker / deployment</td><td>Environment variables on the container — see <code>docker-compose.yml</code> and <code>.env.example</code></td></tr></tbody></table></div>
+<h2 id="configuration-reference">Configuration reference<a class="anchor-link" href="#configuration-reference">#</a></h2>
+<p>Every setting is <strong>PascalCase with no separators</strong>: <code>TfLensDbConnection</code>, never <code>TFLENS_DB_CONNECTION</code>
+and never <code>TfLens__DbConnection</code>. A custom configuration provider
+(<code>src/TfLens/Configuration/PascalCaseEnvironmentConfigurationSource.cs</code>) maps <code>TfLens*</code> environment
+variables onto <code>TfLens:*</code> configuration keys, which is why application code reads
+<code>IConfiguration["TfLens:DbConnection"]</code> and never calls <code>Environment.GetEnvironmentVariable</code>.</p>
+<table>
+<thead><tr><th>Setting</th><th>Required</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong></td><td>Npgsql connection string. Startup fails without it, and fails again if the database is unreachable.</td></tr>
+<tr><td><code>TfLensAppManagerApiKey</code></td><td>No*</td><td>AppManager API key.</td></tr>
+<tr><td><code>TfLensAppManagerApiSecret</code></td><td>No*</td><td>AppManager API secret.</td></tr>
+<tr><td><code>TfLensGitHubToken</code></td><td>No</td><td>GitHub PAT. <strong>Raises the rate limit only</strong> (60/hr → 5,000/hr); it grants no access a public request would not have.</td></tr>
+<tr><td><code>TfLensAppManagerBaseUrl</code></td><td>No</td><td>Defaults to <code>https://appmgrapi.techierathore.com</code>.</td></tr>
+<tr><td><code>TfLensAppManagerAppId</code></td><td>No</td><td>Defaults to <code>1</code>.</td></tr>
+<tr><td><code>TfLensDataRoot</code></td><td>No</td><td>Defaults to <code>data</code>. Holds <code>raw/</code>, <code>reports/</code>, <code>prices.json</code>.</td></tr>
+<tr><td><code>TfLensPollIntervalMinutes</code></td><td>No</td><td>Defaults to <code>15</code>.</td></tr>
+<tr><td><code>TfLensStalenessDays</code></td><td>No</td><td>Defaults to <code>7</code>. Drives the Coverage staleness warning.</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>\* The AppManager key/secret pair is optional, but must be supplied <em>whole or not at all</em>.</strong>
+AppManager resolves the application from the <code>applicationId</code> the client sends in every request body,
+so with <strong>no</strong> pair configured every call succeeds. A <strong>half-configured or wrong</strong> pair is rejected
+with <code>401 INVALID_API_KEY</code> on every call, so <code>TfLensOptions.Validate()</code> refuses that configuration at
+startup rather than letting every sign-in fail mysteriously. Recorded as <code>D-006</code> in
+<a href="../DECISIONS.md"><code>DECISIONS.md</code></a>.</p>
+</blockquote>
+<h3 id="where-to-put-each-one">Where to put each one<a class="anchor-link" href="#where-to-put-each-one">#</a></h3>
+<table>
+<thead><tr><th>Context</th><th>Mechanism</th></tr></thead>
+<tbody>
+<tr><td>Visual Studio / Rider</td><td>The launch profile (<code>src/TfLens/Properties/launchSettings.json</code>), or <em>Debug &gt; TfLens Debug Properties &gt; Environment variables</em></td></tr>
+<tr><td>Shell</td><td><code>export</code> / <code>$env:</code> before <code>dotnet run</code></td></tr>
+<tr><td>Your machine, not committed</td><td><code>dotnet user-secrets set TfLens:DbConnection "…" --project src/TfLens</code></td></tr>
+<tr><td>Docker / deployment</td><td>Environment variables on the container — see <code>docker-compose.yml</code> and <code>.env.example</code></td></tr>
+</tbody>
+</table>
 <hr>
-<h2 id="troubleshooting">Troubleshooting</h2>
-<h3 id="tflens-cannot-start-the-database-connection-string-is-not-configured"><code>TfLens cannot start — the database connection string is not configured</code></h3>
-<p>The app has no <code>TfLensDbConnection</code>. Either you are on the <code>TfLens (own database)</code> launch profile, or you are running the binary directly without an environment. The error message itself lists the exact commands for your platform. See <a href="#running-tflens-locally">Running TfLens locally</a>.</p>
-<h3 id="tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable"><code>TfLens cannot start — the database named by TfLensDbConnection is unreachable</code></h3>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor-link" href="#troubleshooting">#</a></h2>
+<h3 id="tflens-cannot-start-the-database-connection-string-is-not-configured"><code>TfLens cannot start — the database connection string is not configured</code><a class="anchor-link" href="#tflens-cannot-start-the-database-connection-string-is-not-configured">#</a></h3>
+<p>The app has no <code>TfLensDbConnection</code>. Either you are on the <code>TfLens (own database)</code> launch profile, or
+you are running the binary directly without an environment. The error message itself lists the exact
+commands for your platform. See <a href="#running-tflens-locally">Running TfLens locally</a>.</p>
+<h3 id="tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable"><code>TfLens cannot start — the database named by TfLensDbConnection is unreachable</code><a class="anchor-link" href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">#</a></h3>
 <p>The connection string is set but nothing answered. In order of likelihood:</p>
 <ol>
-<li><strong>The container isn't running.</strong> <code>docker compose up -d postgres</code>, then check with</li>
+<li><strong>The container isn't running.</strong> <code>docker compose up -d postgres</code>, then check with <code>docker ps --filter name=tflens-postgres</code>.
+</li>
+<li><strong><code>.env</code> is missing</strong>, so Compose could not interpolate <code>TfLensDbPassword</code> and never started the service. Copy <code>.env.example</code> to <code>.env</code>.
+</li>
+<li><strong>Port 5433 isn't published.</strong> Production compose deliberately keeps Postgres off the host network; <code>docker-compose.override.yml</code> publishes <code>5433:5432</code> for local development and Compose merges it automatically. If you ran <code>docker compose -f docker-compose.yml up</code>, the override was skipped.
+</li>
+<li><strong>Windows + Docker in WSL.</strong> <code>localhost:5433</code> normally works from Windows thanks to WSL2 port forwarding. If it does not, confirm the container is up inside WSL and that Docker Desktop's WSL integration is enabled.
+</li>
+<li><strong>Something else owns 5433.</strong> <code>docker ps</code> and look for another Postgres.
+</li>
 </ol>
-<p><code>docker ps --filter name=tflens-postgres</code>.</p>
-<ol>
-<li><strong><code>.env</code> is missing</strong>, so Compose could not interpolate <code>TfLensDbPassword</code> and never started the</li>
-</ol>
-<p>service. Copy <code>.env.example</code> to <code>.env</code>.</p>
-<ol>
-<li><strong>Port 5433 isn't published.</strong> Production compose deliberately keeps Postgres off the host network;</li>
-</ol>
-<p><code>docker-compose.override.yml</code> publishes <code>5433:5432</code> for local development and Compose merges it automatically. If you ran <code>docker compose -f docker-compose.yml up</code>, the override was skipped.</p>
-<ol>
-<li><strong>Windows + Docker in WSL.</strong> <code>localhost:5433</code> normally works from Windows thanks to WSL2 port</li>
-</ol>
-<p>forwarding. If it does not, confirm the container is up inside WSL and that Docker Desktop's WSL integration is enabled.</p>
-<ol>
-<li><strong>Something else owns 5433.</strong> <code>docker ps</code> and look for another Postgres.</li>
-</ol>
-<h3 id="tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together"><code>TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</code></h3>
-<p>You supplied one half of the pair. Supply both or neither — see the note in <a href="#configuration-reference">Configuration reference</a>.</p>
-<h3 id="sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</h3>
-<p>Sign-in calls the live AppManager API, so it needs outbound network access. The UI deliberately shows one generic message for every failure except <code>ACCOUNT_LOCKED</code> — a failed sign-in must not reveal whether an account exists (BRD-90). <strong>The real AppManager error code is in the log</strong>, never on screen: look for <code>Sign-in refused with {Code}</code> in <code>logs/tflens-*.log</code>.</p>
-<h3 id="a-page-shows-a-table-with-fewer-rows-than-the-database-has">A page shows a table with fewer rows than the database has</h3>
-<p>Almost certainly <code>DataTable</code> truncation. <code>ShowPagination="false"</code> only hides the pager — the table still renders <code>InitialPageSize</code> rows (default <strong>5</strong>) and drops the rest silently. Set <code>InitialPageSize</code> explicitly on every fixed-row table.</p>
-<h3 id="an-icon-is-missing-and-there-is-no-error">An icon is missing and there is no error</h3>
-<p><code>LucideIcon</code> resolves only canonical Lucide names. The package's own <code>lucide.json</code> ships 212 aliases, but the component ignores them and renders an invisible placeholder. <code>alert-triangle</code>, <code>check-circle</code>, <code>help-circle</code>, <code>alert-circle</code> and <code>x-circle</code> are all aliases — use <code>triangle-alert</code>, <code>circle-check</code>, <code>circle-question-mark</code>, <code>circle-alert</code>, <code>circle-x</code>.</p>
-<h3 id="a-per-user-preference-does-not-stick">A per-user preference does not stick</h3>
+<h3 id="tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together"><code>TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</code><a class="anchor-link" href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">#</a></h3>
+<p>You supplied one half of the pair. Supply both or neither — see the note in
+<a href="#configuration-reference">Configuration reference</a>.</p>
+<h3 id="sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password<a class="anchor-link" href="#sign-in-fails-for-a-known-good-password">#</a></h3>
+<p>Sign-in calls the live AppManager API, so it needs outbound network access. The UI deliberately shows
+one generic message for every failure except <code>ACCOUNT_LOCKED</code> — a failed sign-in must not reveal
+whether an account exists (BRD-90). <strong>The real AppManager error code is in the log</strong>, never on screen:
+look for <code>Sign-in refused with {Code}</code> in <code>logs/tflens-*.log</code>.</p>
+<h3 id="a-page-shows-a-table-with-fewer-rows-than-the-database-has">A page shows a table with fewer rows than the database has<a class="anchor-link" href="#a-page-shows-a-table-with-fewer-rows-than-the-database-has">#</a></h3>
+<p>Almost certainly <code>DataTable</code> truncation. <code>ShowPagination="false"</code> only hides the pager — the table still
+renders <code>InitialPageSize</code> rows (default <strong>5</strong>) and drops the rest silently. Set <code>InitialPageSize</code>
+explicitly on every fixed-row table.</p>
+<h3 id="an-icon-is-missing-and-there-is-no-error">An icon is missing and there is no error<a class="anchor-link" href="#an-icon-is-missing-and-there-is-no-error">#</a></h3>
+<p><code>LucideIcon</code> resolves only canonical Lucide names. The package's own <code>lucide.json</code> ships 212 aliases,
+but the component ignores them and renders an invisible placeholder. <code>alert-triangle</code>, <code>check-circle</code>,
+<code>help-circle</code>, <code>alert-circle</code> and <code>x-circle</code> are all aliases — use <code>triangle-alert</code>, <code>circle-check</code>,
+<code>circle-question-mark</code>, <code>circle-alert</code>, <code>circle-x</code>.</p>
+<h3 id="a-per-user-preference-does-not-stick">A per-user preference does not stick<a class="anchor-link" href="#a-per-user-preference-does-not-stick">#</a></h3>
 <p>Two traps, both already worked around, both worth knowing:</p>
 <ol>
-<li><strong>A cookie name may not contain <code>:</code>.</strong> ASP.NET Core silently drops such cookies from the request —</li>
+<li><strong>A cookie name may not contain <code>:</code>.</strong> ASP.NET Core silently drops such cookies from the request — the browser stores and sends them quite happily, so the failure is invisible from the client. The cookies are <code>tflens-theme</code>, <code>tflens-framework</code>, <code>tflens-sidebar</code>.
+</li>
+<li><strong><code>IHttpContextAccessor.HttpContext</code> is null inside an interactive Blazor Server circuit</strong>, because the circuit outlives the request that created it. Preferences are therefore read back from the browser (<code>ShellPreferences.SyncFrameworkFromBrowserAsync</code>), not from the request.
+</li>
 </ol>
-<p>the browser stores and sends them quite happily, so the failure is invisible from the client. The cookies are <code>tflens-theme</code>, <code>tflens-framework</code>, <code>tflens-sidebar</code>.</p>
-<ol>
-<li><strong><code>IHttpContextAccessor.HttpContext</code> is null inside an interactive Blazor Server circuit</strong>, because</li>
-</ol>
-<p>the circuit outlives the request that created it. Preferences are therefore read back from the browser (<code>ShellPreferences.SyncFrameworkFromBrowserAsync</code>), not from the request.</p>
-<h3 id="a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</h3>
-<p><code>MemoryAnalysisCache</code> is keyed on the <code>SyncState</code> version. If you insert stream rows straight into Postgres without touching <code>SyncState</code>, the cached analysis stays stale. Restart the app, or sync/rebuild.</p>
-<h3 id="rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine"><code>rebuild</code> in the container replays 0 files, but works on the dev machine</h3>
+<h3 id="a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database<a class="anchor-link" href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">#</a></h3>
+<p><code>MemoryAnalysisCache</code> is keyed on the <code>SyncState</code> version. If you insert stream rows straight into
+Postgres without touching <code>SyncState</code>, the cached analysis stays stale. Restart the app, or sync/rebuild.</p>
+<h3 id="rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine"><code>rebuild</code> in the container replays 0 files, but works on the dev machine<a class="anchor-link" href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">#</a></h3>
 <p><code>TfLensDataRoot</code> defaults to the <strong>relative</strong> path <code>data</code>, which each host resolves differently:</p>
-<div class="table-wrap"><table><thead><tr><th>How you run it</th><th>Where the raw archive actually lives</th></tr></thead><tbody><tr><td><code>dotnet run --project src/TfLens</code></td><td><code>src/TfLens/data/</code> — relative to the <strong>project</strong> directory</td></tr><tr><td>Docker / compose</td><td><code>/app/data</code>, bind-mounted to <code>./data</code> at the <strong>repository root</strong></td></tr></tbody></table></div>
-<p>So a dev machine and a container do not share a raw archive unless you point them at the same place — set <code>TfLensDataRoot</code> explicitly if you want that. This matters because <strong>the raw archive, not the database, is the source of truth</strong>: <code>rebuild</code> replays whatever is under <code>raw/</code>, so replaying in a container that has never synced legitimately reports "0 files replayed".</p>
-<blockquote><strong>Both locations are gitignored, and one of them must stay that way.</strong> <code>data/keys/</code> holds the ASP.NET Data Protection key ring that encrypts the stored AppManager tokens and the auth cookie. The original ignore rule was root-anchored (<code>/data/</code>) and did <strong>not</strong> cover <code>src/TfLens/data/</code>, so a dev machine was writing key material into a non-ignored directory. The rule is now <code>data/</code> + <code>**/data/</code>. If you cloned before 2026-08-27, check whether any <code>key-*.xml</code> was ever committed — and if so, rotate by deleting the ring; existing sessions will simply be re-issued on next sign-in.</blockquote>
-<h3 id="the-export-says-not-quotable">The export says NOT QUOTABLE</h3>
-<p>Correct, and not a bug. No parity run has been recorded yet (<code>data/parity-last.json</code> does not exist). Run the BRD §13 parity procedure; the banner turns green only when a passing run covers the current <code>ParserVersion.Current</code>.</p>
+<table>
+<thead><tr><th>How you run it</th><th>Where the raw archive actually lives</th></tr></thead>
+<tbody>
+<tr><td><code>dotnet run --project src/TfLens</code></td><td><code>src/TfLens/data/</code> — relative to the <strong>project</strong> directory</td></tr>
+<tr><td>Docker / compose</td><td><code>/app/data</code>, bind-mounted to <code>./data</code> at the <strong>repository root</strong></td></tr>
+</tbody>
+</table>
+<p>So a dev machine and a container do not share a raw archive unless you point them at the same place —
+set <code>TfLensDataRoot</code> explicitly if you want that. This matters because <strong>the raw archive, not the
+database, is the source of truth</strong>: <code>rebuild</code> replays whatever is under <code>raw/</code>, so replaying in a
+container that has never synced legitimately reports "0 files replayed".</p>
+<blockquote>
+<p><strong>Both locations are gitignored, and one of them must stay that way.</strong> <code>data/keys/</code> holds the ASP.NET
+Data Protection key ring that encrypts the stored AppManager tokens and the auth cookie. The original
+ignore rule was root-anchored (<code>/data/</code>) and did <strong>not</strong> cover <code>src/TfLens/data/</code>, so a dev machine
+was writing key material into a non-ignored directory. The rule is now <code>data/</code> + <code>**/data/</code>. If you
+cloned before 2026-08-27, check whether any <code>key-*.xml</code> was ever committed — and if so, rotate by
+deleting the ring; existing sessions will simply be re-issued on next sign-in.</p>
+</blockquote>
+<h3 id="the-export-says-not-quotable">The export says NOT QUOTABLE<a class="anchor-link" href="#the-export-says-not-quotable">#</a></h3>
+<p>Correct, and not a bug. No parity run has been recorded yet (<code>data/parity-last.json</code> does not exist).
+Run the BRD §13 parity procedure; the banner turns green only when a passing run covers the current
+<code>ParserVersion.Current</code>.</p>
 <hr>
-<h2 id="how-the-solution-fits-together">How the solution fits together</h2>
-<div class="codeblock"><button class="copy">Copy</button><pre><code>src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
+<h2 id="how-the-solution-fits-together">How the solution fits together<a class="anchor-link" href="#how-the-solution-fits-together">#</a></h2>
+<pre><code>src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
 src/TfLens.Core     the engine: AppManager client, repo registry, GitHub fetch, parse, store,
                     metrics, export, Playbook adapter. No web dependency, unit-testable alone.
 tests/              Core.Tests (263) · Guardrails.Tests (45) · Integration.Tests (16)
 database/           001-schema.sql — idempotent, applied at every startup
 tools/              parity-compare.py — key-by-key diff against tf-metrics.sh
-data/               raw/ (rebuild source of truth) · reports/ · prices.json</code></pre></div>
+data/               raw/ (rebuild source of truth) · reports/ · prices.json</code></pre>
 <p>Two rules shape almost every file, and are worth internalising before changing anything:</p>
 <ul>
-<li><strong><code>UserId</code> is a parameter, never a filter.</strong> Every store read, every engine call, the raw-archive path</li>
+<li><strong><code>UserId</code> is a parameter, never a filter.</strong> Every store read, every engine call, the raw-archive path and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather than a forgotten <code>WHERE</code>.
+</li>
+<li><strong>The result type forbids the wrong number.</strong> <code>AnalysisResult</code> has no member that can hold a cross-<code>project_type</code> or cross-provenance rate, and <code>Figure</code> has no way to print a number for its <code>InsufficientData</code> / <code>NotApplicable</code> cases (ADR-007). Always render a figure through <code>Components/Shared/FigureText.razor</code>.
+</li>
 </ul>
-<p>and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather than a forgotten <code>WHERE</code>.</p>
-<ul>
-<li><strong>The result type forbids the wrong number.</strong> <code>AnalysisResult</code> has no member that can hold a</li>
-</ul>
-<p>cross-<code>project_type</code> or cross-provenance rate, and <code>Figure</code> has no way to print a number for its <code>InsufficientData</code> / <code>NotApplicable</code> cases (ADR-007). Always render a figure through <code>Components/Shared/FigureText.razor</code>.</p>
 <hr>
-<h2 id="command-verbs">Command verbs</h2>
+<h2 id="command-verbs">Command verbs<a class="anchor-link" href="#command-verbs">#</a></h2>
 <p>The same binary that serves the UI runs the verbs, so a parity run exercises production code (ADR-005):</p>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">dotnet run --project src/TfLens -- sync    --user 2
+<pre><code class="language-bash">dotnet run --project src/TfLens -- sync    --user 2
 dotnet run --project src/TfLens -- rebuild --user 2
-dotnet run --project src/TfLens -- export  --user 2 --framework techieflow</code></pre></div>
-<p>In a container: <code>docker exec tflens dotnet TfLens.dll rebuild --user 2</code>. Visual Studio ships <code>sync verb</code> and <code>rebuild verb</code> launch profiles for the same thing.</p>
+dotnet run --project src/TfLens -- export  --user 2 --framework techieflow</code></pre>
+<p>In a container: <code>docker exec tflens dotnet TfLens.dll rebuild --user 2</code>.
+Visual Studio ships <code>sync verb</code> and <code>rebuild verb</code> launch profiles for the same thing.</p>
 <hr>
-<h2 id="tests">Tests</h2>
-<div class="codeblock"><button class="copy">Copy</button><pre><code class="language-bash">dotnet test                                     # all three projects
+<h2 id="tests">Tests<a class="anchor-link" href="#tests">#</a></h2>
+<pre><code class="language-bash">dotnet test                                     # all three projects
 dotnet test tests/TfLens.Core.Tests             # engine, parser, store
 dotnet test tests/TfLens.Guardrails.Tests       # coding standards + secret-leak checks, as tests
-dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP</code></pre></div>
-<p>The integration and store tests need the live PostgreSQL. They read <code>TfLensDbConnection</code> and otherwise fall back to the documented local compose service.</p>
+dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP</code></pre>
+<p>The integration and store tests need the live PostgreSQL. They read <code>TfLensDbConnection</code> and otherwise
+fall back to the documented local compose service.</p>
 <hr>
-<h2 id="screen-by-screen-reference">Screen-by-screen reference</h2>
-<p>See <a href="./TfLens-DevGuide-Screens.md"><code>TfLens-DevGuide-Screens.md</code></a> for the per-screen trace: every route, its controls, the service and SQL behind each, its states, and its known gotchas.</p>
+<h2 id="screen-by-screen-reference">Screen-by-screen reference<a class="anchor-link" href="#screen-by-screen-reference">#</a></h2>
+<p>See <a href="./TfLens-DevGuide-Screens.md"><code>TfLens-DevGuide-Screens.md</code></a> for the per-screen trace: every route,
+its controls, the service and SQL behind each, its states, and its known gotchas.</p>
   </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <script>
-var btn = document.getElementById('themeToggle');
-function label(){ var d = document.documentElement.getAttribute('data-theme')==='dark';
-  btn.textContent = d ? 'Light' : 'Dark'; }
-label();
-btn.addEventListener('click', function(){
-  var d = document.documentElement.getAttribute('data-theme')==='dark';
-  var next = d ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  try{ localStorage.setItem('tf-theme', next); }catch(e){}
-  label();
-});
-document.querySelectorAll('.codeblock .copy').forEach(function(b){
-  b.addEventListener('click', function(){
-    var code = b.parentElement.querySelector('code');
-    navigator.clipboard.writeText(code.innerText).then(function(){
-      var old = b.textContent; b.textContent = 'Copied';
-      setTimeout(function(){ b.textContent = old; }, 1200);
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
     });
   });
+  pre.appendChild(btn);
 });
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
 </script>
 </body>
 </html>

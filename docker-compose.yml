@@ -42,12 +42,15 @@ services:
       # Required — no default, so a misconfigured deploy fails at startup rather than at the first
       # user's sign-in (BRD-9).
       TfLensDbConnection: "Host=postgres;Port=5432;Database=tflens;Username=tflens;Password=${TfLensDbPassword}"
-      # Optional pair. AppManager resolves the application from the applicationId the client sends in
-      # every request body, so these may be blank — but a half-configured pair 401s every call, which
-      # the app refuses at startup.
+      # Required in practice, whole or not at all. Most endpoints resolve the application from the
+      # applicationId in the request body, but /AuthSvc/forgot-password and /AuthSvc/reset-password take
+      # the app scope ONLY from these headers and 400 without them, so password reset is dead unset.
+      # A half-configured pair 401s every call, which the app refuses at startup (DECISIONS.md D-006).
       TfLensAppManagerApiKey: ${TfLensAppManagerApiKey:-}
       TfLensAppManagerApiSecret: ${TfLensAppManagerApiSecret:-}
-      # Optional — raises the GitHub rate limit; grants no additional repository access (BRD-100).
+      # Strongly recommended — raises the GitHub read limit from 60/h to 5,000/h; grants no extra
+      # repository access (BRD-100). Without it a sync over more than ~2 repos exhausts the anonymous
+      # quota and repositories finish `error`. See docs/TfLens-Deployment-Checklist.md §3.
       TfLensGitHubToken: ${TfLensGitHubToken:-}
       # Non-secret settings.
       TfLensAppManagerBaseUrl: ${TfLensAppManagerBaseUrl:-https://appmgrapi.techierathore.com}

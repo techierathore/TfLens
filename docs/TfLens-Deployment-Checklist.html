@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Deployment Checklist</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Deployment Checklist</h1>
+    <div class="sub">Last rendered: 2026-08-27</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#table-of-contents">Table of contents</a></li>
+        <li><a href="#prerequisites">1. Prerequisites</a></li>
+        <li><a href="#configuration-and-secrets">2. Configuration and secrets</a></li>
+        <li><a href="#tflensgithubtoken-create-it-first">3. TfLensGitHubToken — create it first</a></li>
+        <li class="h3"><a href="#creating-the-token">Creating the token</a></li>
+        <li class="h3"><a href="#verify-it">Verify it</a></li>
+        <li><a href="#appmanager-credentials">4. AppManager credentials</a></li>
+        <li><a href="#deploy-with-docker-compose">5. Deploy with Docker Compose</a></li>
+        <li><a href="#deploy-for-local-development">6. Deploy for local development</a></li>
+        <li><a href="#first-run-verification">7. First-run verification</a></li>
+        <li><a href="#before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run</a></li>
+        <li><a href="#operating-commands">9. Operating commands</a></li>
+        <li><a href="#backup-and-restore">10. Backup and restore</a></li>
+        <li><a href="#known-constraints">11. Known constraints</a></li>
+        <li><a href="#upgrading">12. Upgrading</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — Deployment Checklist</h1>
+    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-Deployment-Runbook.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#table-of-contents">Table of contents</a></li>
+        <li><a href="#prerequisites">1. Prerequisites</a></li>
+        <li><a href="#configuration-and-secrets">2. Configuration and secrets</a></li>
+        <li><a href="#tflensgithubtoken-create-it-first">3. TfLensGitHubToken — create it first</a></li>
+        <li class="h3"><a href="#creating-the-token">Creating the token</a></li>
+        <li class="h3"><a href="#verify-it">Verify it</a></li>
+        <li><a href="#appmanager-credentials">4. AppManager credentials</a></li>
+        <li><a href="#deploy-with-docker-compose">5. Deploy with Docker Compose</a></li>
+        <li><a href="#deploy-for-local-development">6. Deploy for local development</a></li>
+        <li><a href="#first-run-verification">7. First-run verification</a></li>
+        <li><a href="#before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run</a></li>
+        <li><a href="#operating-commands">9. Operating commands</a></li>
+        <li><a href="#backup-and-restore">10. Backup and restore</a></li>
+        <li><a href="#known-constraints">11. Known constraints</a></li>
+        <li><a href="#upgrading">12. Upgrading</a></li>
+      </ol>
+    </div>
+<p>Everything needed to stand TfLens up on a new machine, in order, with the reason each step exists. Work
+top to bottom; every section ends with something you can check rather than assume.</p>
+<p><strong>Last updated:</strong> 2026-08-27
+<strong>Audience:</strong> whoever deploys and operates TfLens (today: the owner)</p>
+<p>TfLens is one process plus a PostgreSQL 16 database. It is <strong>read-only against every external system</strong> —
+it never writes to GitHub, and it never calls AppManager's licensing, feature-flag, payment or issue
+services. Its persistent state is two directories, <code>data/</code> and <code>logs/</code>; the database is disposable and
+can be rebuilt from <code>data/</code> at any time (<code>DECISIONS.md</code> D-002).</p>
+<hr>
+<h2 id="table-of-contents">Table of contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
+<ol>
+<li><a href="#1-prerequisites">Prerequisites</a>
+</li>
+<li><a href="#2-configuration-and-secrets">Configuration and secrets</a>
+</li>
+<li><a href="#3-tflensgithubtoken--create-it-first"><code>TfLensGitHubToken</code> — create it first</a>
+</li>
+<li><a href="#4-appmanager-credentials">AppManager credentials</a>
+</li>
+<li><a href="#5-deploy-with-docker-compose">Deploy with Docker Compose</a>
+</li>
+<li><a href="#6-deploy-for-local-development">Deploy for local development</a>
+</li>
+<li><a href="#7-first-run-verification">First-run verification</a>
+</li>
+<li><a href="#8-before-quoting-any-number--the-parity-run">Before quoting any number — the parity run</a>
+</li>
+<li><a href="#9-operating-commands">Operating commands</a>
+</li>
+<li><a href="#10-backup-and-restore">Backup and restore</a>
+</li>
+<li><a href="#11-known-constraints">Known constraints</a>
+</li>
+<li><a href="#12-upgrading">Upgrading</a>
+</li>
+</ol>
+<hr>
+<h2 id="prerequisites">1. Prerequisites<a class="anchor-link" href="#prerequisites">#</a></h2>
+<table>
+<thead><tr><th>Need</th><th>Version</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Docker + Compose</td><td>any current</td><td>The shipped deployment path (<code>docker-compose.yml</code>)</td></tr>
+<tr><td>PostgreSQL</td><td><strong>16</strong></td><td>The schema uses <code>jsonb</code> and expression indexes; the compose file pins <code>postgres:16</code></td></tr>
+<tr><td>.NET SDK</td><td><strong>10.0.302+</strong></td><td>Local development and running the CLI verbs outside the container</td></tr>
+<tr><td>Python 3</td><td>any current</td><td><code>tools/parity-compare.py</code> and the framework's <code>tf-metrics.sh</code></td></tr>
+<tr><td>Node 20 + Playwright</td><td>any current</td><td>Only for the verification harness; not needed to run the app</td></tr>
+</tbody>
+</table>
+<p>A GitHub account able to create a personal access token — see §3.</p>
+<p>☑ <strong>Check:</strong> <code>docker --version &amp;&amp; docker compose version &amp;&amp; dotnet --version &amp;&amp; python3 --version</code></p>
+<hr>
+<h2 id="configuration-and-secrets">2. Configuration and secrets<a class="anchor-link" href="#configuration-and-secrets">#</a></h2>
+<p>Every setting reaches the process through the <strong>PascalCase environment-variable provider</strong> — the name in
+the environment is the option name prefixed with <code>TfLens</code>. Secrets are never read from a file in the
+repository (BRD-8).</p>
+<table>
+<thead><tr><th>Variable</th><th>Required?</th><th>What happens without it</th></tr></thead>
+<tbody>
+<tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong></td><td><strong>Startup fails.</strong> Deliberate — a misconfigured deploy should fail immediately, not at the first user's sign-in (BRD-9).</td></tr>
+<tr><td><code>TfLensAppManagerApiKey</code></td><td><strong>Pair — yes in practice</strong></td><td>Password reset is dead. <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code> accept the application scope <strong>only</strong> from this header and answer <code>400 APPLICATION_ID_REQUIRED</code> without it. Login, registration and sessions still work.</td></tr>
+<tr><td><code>TfLensAppManagerApiSecret</code></td><td><strong>Pair — yes in practice</strong></td><td>As above. <strong>Set both or neither</strong>: a half pair makes AppManager return <code>401 INVALID_API_KEY</code> on <em>every</em> call, so TfLens refuses to start (<code>DECISIONS.md</code> D-006).</td></tr>
+<tr><td><code>TfLensGitHubToken</code></td><td><strong>Strongly recommended</strong></td><td>Sync is limited to <strong>60 GitHub requests/hour</strong> and cannot complete a pass over more than one or two repositories. See §3.</td></tr>
+<tr><td><code>TfLensDbPassword</code></td><td>Compose only</td><td>Interpolated into <code>TfLensDbConnection</code> and into the <code>postgres</code> service. Compose refuses to start without it.</td></tr>
+<tr><td><code>TfLensAppManagerBaseUrl</code></td><td>No</td><td>Defaults to <code>https://appmgrapi.techierathore.com</code>.</td></tr>
+<tr><td><code>TfLensAppManagerAppId</code></td><td>No</td><td>Defaults to <code>1</code>.</td></tr>
+<tr><td><code>TfLensDataRoot</code></td><td>No</td><td>Defaults to <code>data/</code>, resolved against the working directory. The container sets <code>/app/data</code>.</td></tr>
+<tr><td><code>TfLensPollIntervalMinutes</code></td><td>No</td><td>Defaults to <code>15</code>. How often the background poller sweeps every user's repositories.</td></tr>
+<tr><td><code>TfLensStalenessDays</code></td><td>No</td><td>Defaults to <code>7</code>. Drives the Coverage page's "this clone isn't pushing" warning.</td></tr>
+<tr><td><code>TfLensReferenceScriptPath</code></td><td>No</td><td>Path to <code>tf-metrics.sh</code> for the quotable banner's script-hash check. The default probes <code>.tfcore/telemetry/tf-metrics.sh</code> from the working directory upward, which finds it in a normal checkout. Set it explicitly if the framework lives elsewhere.</td></tr>
+<tr><td><code>TfLensHostPort</code></td><td>Compose only</td><td>Host port for the container. Defaults to <code>8080</code>.</td></tr>
+</tbody>
+</table>
+<p>Put secrets in a <code>.env</code> file beside <code>docker-compose.yml</code>. <strong><code>.env</code> is gitignored — keep it that way.</strong></p>
+<pre><code class="language-dotenv">TfLensDbPassword=&lt;choose a strong password&gt;
+TfLensAppManagerApiKey=ak_live_xxxxxxxxxxxxxxxxxxxx
+TfLensAppManagerApiSecret=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TfLensGitHubToken=github_pat_xxxxxxxxxxxxxxxxxxxx</code></pre>
+<p>☑ <strong>Check:</strong> <code>grep -c . .env</code> returns 4, and <code>git check-ignore .env</code> prints <code>.env</code>.</p>
+<hr>
+<h2 id="tflensgithubtoken-create-it-first">3. <code>TfLensGitHubToken</code> — create it first<a class="anchor-link" href="#tflensgithubtoken-create-it-first">#</a></h2>
+<p><strong>This is the setting most likely to make a fresh deployment look broken.</strong> Without it TfLens reads
+GitHub anonymously, which GitHub caps at <strong>60 requests per hour, per IP</strong>. A single sync pass costs
+several requests per repository (a commit-SHA lookup plus one fetch per stream), so connecting and
+syncing four repositories exhausts the hour's quota outright. Repositories then show <code>error</code> with
+<code>GitHub rate limit reached — try again in N minutes</code>, and the Coverage page reports failed syncs. The
+app is behaving correctly; it has simply run out of anonymous quota.</p>
+<p>With a token the limit is <strong>5,000 requests/hour</strong> — comfortably more than the poller will ever use.</p>
+<h3 id="creating-the-token">Creating the token<a class="anchor-link" href="#creating-the-token">#</a></h3>
+<p>TfLens only ever reads <strong>public</strong> repositories, so the token needs no repository access at all beyond
+public data, and <strong>no write scope of any kind</strong>. Either form works:</p>
+<p><strong>Fine-grained token (preferred — least privilege):</strong></p>
+<ol>
+<li>GitHub → <strong>Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong> → <em>Generate new token</em>.
+</li>
+<li><strong>Token name:</strong> <code>TfLens read-only</code>.
+</li>
+<li><strong>Expiration:</strong> your choice; note the date, because sync starts failing silently-ish when it lapses (you will see the rate-limit message again).
+</li>
+<li><strong>Repository access:</strong> <strong>Public Repositories (read-only)</strong>. Do <strong>not</strong> grant access to private repositories — TfLens refuses to connect a private repo anyway (BRD-100, REQ-FN-015), and a test asserts a configured token cannot be used to reach one.
+</li>
+<li><strong>Permissions:</strong> leave everything at the default <em>no access</em>; public-repository read needs nothing extra. If your UI insists on a repository permission, set <strong>Contents: Read-only</strong> and nothing else.
+</li>
+<li>Generate, copy the value (it is shown once), and put it in <code>.env</code> as <code>TfLensGitHubToken</code>.
+</li>
+</ol>
+<p><strong>Classic token (acceptable):</strong> create one with <strong>no scopes ticked at all</strong>. An unscoped classic token
+still authenticates you for public-data reads and lifts the limit to 5,000/h, while granting nothing.</p>
+<h3 id="verify-it">Verify it<a class="anchor-link" href="#verify-it">#</a></h3>
+<pre><code class="language-bash">set -a; . ./.env; set +a
+curl -s -H "Authorization: Bearer $TfLensGitHubToken" https://api.github.com/rate_limit \
+  | python3 -c "import json,sys; d=json.load(sys.stdin)['resources']['core']; print(f\"limit={d['limit']} remaining={d['remaining']}\")"</code></pre>
+<p>☑ <strong>Check:</strong> <code>limit=5000</code>. If it prints <code>limit=60</code>, the token was not sent or is invalid.</p>
+<blockquote>
+<p><strong>Rotation.</strong> Replace the value in <code>.env</code> and restart the container. Nothing is cached across a
+restart, and the token is never written to the database or the raw archive.</p>
+</blockquote>
+<hr>
+<h2 id="appmanager-credentials">4. AppManager credentials<a class="anchor-link" href="#appmanager-credentials">#</a></h2>
+<p>Identity is AppManager (Application Id <strong>1</strong>); TfLens has no user table of its own. Get the API key and
+secret from the AppManager admin UI, under that application's settings.</p>
+<ul>
+<li><strong>Whole pair or neither.</strong> One without the other fails startup by design.
+</li>
+<li>The pair is sent on <code>/AuthSvc/*</code> only, never on <code>/UserSvc/*</code> — see <code>DECISIONS.md</code> D-006.
+</li>
+</ul>
+<p>Verify the pair reaches AppManager (this sends no mail — the address does not exist):</p>
+<pre><code class="language-bash">set -a; . ./.env; set +a
+curl -s -X POST "$TfLensAppManagerBaseUrl/AuthSvc/forgot-password" \
+  -H 'Content-Type: application/json' \
+  -H "X-Api-Key: $TfLensAppManagerApiKey" -H "X-Api-Secret: $TfLensAppManagerApiSecret" \
+  -d '{"email":"tflens-probe-nonexistent@example.invalid"}'</code></pre>
+<p>☑ <strong>Check:</strong> <code>{"success":true,...}</code>. <code>APPLICATION_ID_REQUIRED</code> means the headers did not arrive;
+<code>INVALID_API_KEY</code> means the pair is wrong or half-configured.</p>
+<blockquote>
+<p><strong>Known AppManager-side gap.</strong> Application 1 currently defines no <code>Manager</code> role, so registration's
+<code>applicationRoleCode: "Manager"</code> is silently downgraded to <code>User</code>, and <code>GET /UserSvc/profile</code> answers
+<code>403 NO_APP_ACCESS</code> when an app context is resolved. TfLens is unaffected — it issues its own
+<code>Manager</code> claim (BRD-95) and scopes the key pair away from <code>/UserSvc/*</code>. Details and reproduction:
+<code>docs/TfLens-AppManager-Feedback.md</code> (AM-001, AM-002).</p>
+</blockquote>
+<hr>
+<h2 id="deploy-with-docker-compose">5. Deploy with Docker Compose<a class="anchor-link" href="#deploy-with-docker-compose">#</a></h2>
+<pre><code class="language-bash">git clone &lt;repo&gt; &amp;&amp; cd TfLens
+# create .env per §2
+docker compose up -d
+docker compose ps
+docker compose logs -f tflens</code></pre>
+<p>What this starts:</p>
+<table>
+<thead><tr><th>Service</th><th>Image</th><th>Port</th><th>Volume</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>postgres:16</code></td><td>not published (compose network only)</td><td>named volume <code>pgdata</code></td></tr>
+<tr><td><code>tflens</code></td><td>built from <code>Dockerfile</code></td><td><code>${TfLensHostPort:-8080}</code> → <code>8080</code></td><td><code>./data</code>, <code>./logs</code> bind-mounted</td></tr>
+</tbody>
+</table>
+<p>The schema script <code>database/001-schema.sql</code> is applied <strong>idempotently at every startup</strong> — there is no
+migration framework and no migration history to manage (<code>DECISIONS.md</code> D-003).</p>
+<p>To publish Postgres locally for inspection, use <code>docker-compose.override.yml</code>; it is deliberately kept
+out of the deploy file (<code>DECISIONS.md</code> D-007).</p>
+<p>☑ <strong>Check:</strong> <code>curl -s localhost:8080/healthz</code> returns JSON with database reachability and last-sync age.</p>
+<hr>
+<h2 id="deploy-for-local-development">6. Deploy for local development<a class="anchor-link" href="#deploy-for-local-development">#</a></h2>
+<pre><code class="language-bash">docker compose up -d postgres          # or point at your own PostgreSQL 16
+set -a; . ./.env; set +a
+export TfLensDbConnection="Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=$TfLensDbPassword"
+dotnet build TfLens.slnx -c Release
+dotnet run --project src/TfLens/TfLens.csproj -c Release --urls http://localhost:5099</code></pre>
+<p>Two things that will bite otherwise:</p>
+<ul>
+<li><strong><code>TfLensDataRoot</code> defaults to <code>data/</code> relative to the working directory.</strong> <code>dotnet run --project src/TfLens</code> runs with the working directory at <code>src/TfLens</code>, so the archive lives at <code>src/TfLens/data/</code>. <strong>Run every CLI verb from <code>src/TfLens</code></strong> or <code>rebuild</code> will find an empty archive, truncate the tables and replay nothing.
+</li>
+<li><strong>Run tests with <code>-m:1</code>.</strong> <code>dotnet test TfLens.slnx -c Release -m:1</code>. Without it, projects run in parallel against one shared database and produce spurious failures.
+</li>
+</ul>
+<p>☑ <strong>Check:</strong> <code>/healthz</code> answers 200 and <code>/login</code> renders.</p>
+<hr>
+<h2 id="first-run-verification">7. First-run verification<a class="anchor-link" href="#first-run-verification">#</a></h2>
+<p>Walk this once on any new deployment. Test accounts are listed in <code>docs/TfLens-UsageGuide.md</code> — use
+those, never invented ones.</p>
+<ol>
+<li><strong>Sign in</strong> at <code>/login</code> (or register a new account at <code>/register</code>).
+</li>
+<li><strong>Connect a repository</strong> on <code>/repos</code> → <em>Connect</em>. Paste a public GitHub URL or <code>owner/name</code> and press <strong>Validate</strong>. All three checks must pass — <em>Repository exists · Public · Telemetry path found</em> — before <em>Connect</em> enables. The kind is auto-detected: <code>docs/metrics</code> → <strong>techieflow</strong>, <code>verification/telemetry</code> → <strong>playbook</strong>.
+</li>
+<li><strong>Sync</strong> with the header's <strong>Sync now</strong>.
+</li>
+<li><strong>Coverage (<code>/</code>)</strong> should show one card per repository with a short SHA and non-empty stream counts.
+</li>
+<li><strong>Check the reports</strong> — <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code> all render.
+</li>
+<li><strong>Export</strong> from <code>/export</code>; confirm <code>data/reports/&lt;userId&gt;/&lt;date&gt;/&lt;framework&gt;/</code> now holds <code>snapshot.md</code> and <code>tflens.json</code>.
+</li>
+</ol>
+<p>☑ <strong>Check:</strong> Coverage is green (or its warnings are ones you recognise), and no repository shows
+<code>error</code>. A rate-limit error here means §3 was skipped.</p>
+<hr>
+<h2 id="before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run<a class="anchor-link" href="#before-quoting-any-number-the-parity-run">#</a></h2>
+<p><strong>No figure TfLens renders may be quoted until a parity run passes.</strong> Two independent implementations —
+the framework's <code>tf-metrics.sh</code> and TfLens — compute the same metrics from the same files and must agree
+exactly. <code>/export</code> shows this as a <strong>QUOTABLE / NOT QUOTABLE</strong> banner, and it is the product's central
+safety device (BRD §13).</p>
+<p>Re-run it <strong>after every parser or engine change, and after every framework update</strong>, because the record
+stores the reference script's hash and a changed script invalidates the stamp.</p>
+<pre><code class="language-bash"># 1. Materialise the dataset from the raw archive (it is byte-identical to what was fetched)
+PD=tests/.artifacts/parity; rm -rf $PD; mkdir -p $PD
+for d in src/TfLens/data/raw/&lt;userId&gt;/*/; do
+  name=$(basename "$d" | sed 's/^[^_]*__//')
+  mkdir -p "$PD/$name/docs/metrics" "$PD/$name/.tfcore"
+  for s in runs gates sessions commits; do cat "$d"${s}-*.jsonl &gt; "$PD/$name/docs/metrics/${s}.jsonl" 2&gt;/dev/null || : &gt; "$PD/$name/docs/metrics/${s}.jsonl"; done
+  # the oracle reads project_type from the repo's own config; copy the real repo's value
+  printf 'metrics:\n  project_type: &lt;app|library|docs|framework&gt;\n' &gt; "$PD/$name/.tfcore/core-config.yaml"
+done
+
+# 2. The reference
+bash .tfcore/telemetry/tf-metrics.sh --rollup $PD/*/ --json &gt; $PD/reference.json
+
+# 3. TfLens, for the same data — run from src/TfLens
+(cd src/TfLens &amp;&amp; dotnet bin/Release/net10.0/TfLens.dll export --user &lt;userId&gt; --framework techieflow)
+cp src/TfLens/data/reports/&lt;userId&gt;/&lt;date&gt;/techieflow/tflens.json $PD/tflens.json
+
+# 4. Compare
+python3 tools/parity-compare.py $PD/reference.json $PD/tflens.json --allow-environment-keys</code></pre>
+<p>☑ <strong>Check:</strong> exit code 0 and <code>PASS — the two implementations agree key for key</code>. Only then record the
+run in <code>DECISIONS.md</code> §6 and confirm <code>/export</code> reads <strong>QUOTABLE</strong>.</p>
+<p><strong>Any mismatch is by definition a bug in TfLens, not in the reference</strong> — the script is never edited to
+match the app. <code>--allow-environment-keys</code> downgrades only the documented path-vs-<code>owner/name</code> naming
+difference; nothing else may be waved through.</p>
+<hr>
+<h2 id="operating-commands">9. Operating commands<a class="anchor-link" href="#operating-commands">#</a></h2>
+<p>Run from <code>src/TfLens</code> locally, or <code>docker exec tflens dotnet TfLens.dll &lt;verb&gt;</code> in the container.</p>
+<table>
+<thead><tr><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>rebuild --user &lt;id&gt;</code></td><td>Truncates that user's stream tables and replays the whole raw archive. The recovery path for any parser bug.</td></tr>
+<tr><td><code>sync</code></td><td>One poll pass over every connected repository, exactly as the background poller does.</td></tr>
+<tr><td><code>export --user &lt;id&gt; [--framework techieflow|playbook] [--date yyyy-MM-dd]</code></td><td>Writes the snapshot pair. With no <code>--framework</code>, writes one per framework.</td></tr>
+</tbody>
+</table>
+<p><strong><code>rebuild</code> is also the fix for a repository stuck showing stale or missing data.</strong> Sync skips a
+repository whose recorded SHA has not changed, so if its rows are lost the poller will never restore
+them — only <code>rebuild</code> will.</p>
+<hr>
+<h2 id="backup-and-restore">10. Backup and restore<a class="anchor-link" href="#backup-and-restore">#</a></h2>
+<p><strong>Back up <code>data/</code>. Do not bother backing up PostgreSQL.</strong></p>
+<p>Every fetched file is archived byte-for-byte under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code> <em>before</em> it is
+parsed, so the archive is the source of truth and the database is a derived cache (<code>DECISIONS.md</code> D-002).
+<code>data/</code> also holds <code>reports/</code> (exported snapshots), <code>prices.json</code> (the repricing rate card) and
+<code>parity-last.json</code> (the quotable stamp).</p>
+<p>Restore: put <code>data/</code> back, start the app, run <code>rebuild --user &lt;id&gt;</code> for each user.</p>
+<p>☑ <strong>Check:</strong> after a restore, per-stream counts on Coverage match what they were before.</p>
+<hr>
+<h2 id="known-constraints">11. Known constraints<a class="anchor-link" href="#known-constraints">#</a></h2>
+<ul>
+<li><strong>Public repositories only.</strong> Private repositories are refused at validation; a configured <code>TfLensGitHubToken</code> does not and must not change that (BRD-100).
+</li>
+<li><strong>60 requests/hour without a token.</strong> See §3 — this is the single most common cause of a deployment that looks broken.
+</li>
+<li><strong>Password reset needs the AppManager key pair</strong> (§4). Everything else in the auth flow works without it.
+</li>
+<li><strong>The Playbook axis needs a repository that publishes <code>verification/telemetry/events.ndjson</code>.</strong> None currently does, so the Playbook state of every report page correctly shows its empty state.
+</li>
+<li><strong>Nothing is quotable until §8 passes</strong>, and a framework update invalidates the stamp by design.
+</li>
+</ul>
+<hr>
+<h2 id="upgrading">12. Upgrading<a class="anchor-link" href="#upgrading">#</a></h2>
+<ol>
+<li>Pull the new code.
+</li>
+<li><code>docker compose build tflens &amp;&amp; docker compose up -d</code> (the schema script re-applies itself; no migration step).
+</li>
+<li><strong>Re-run the parity procedure (§8)</strong> — a parser or engine change invalidates the previous stamp, and so does a change to the framework's <code>tf-metrics.sh</code>. <code>/export</code> will read <code>NOT QUOTABLE</code> with the reason until you do.
+</li>
+</ol>
+<p>☑ <strong>Check:</strong> <code>/healthz</code> green, Coverage renders, <code>/export</code> banner reflects a fresh parity run.</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

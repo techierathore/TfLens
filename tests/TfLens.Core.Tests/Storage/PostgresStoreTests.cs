@@ -25,12 +25,27 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     private const string DefaultConnection =
         "Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev";
 
+    /// <summary>Valid session records in the TrSetup fixture — one further line is deliberately malformed.</summary>
+    private const int FixtureSessionRecords = 7;
+
+    /// <summary>Distinct session ids among those records; the rest are the snapshots BRD-27 expects.</summary>
+    private const int FixtureDistinctSessions = 4;
+
     private readonly StreamParser objParser = new();
     private readonly ITestOutputHelper objOutput;
     private readonly string objDataRoot = Path.Combine(
         Path.GetTempPath(), "tflens-store-tests", Guid.NewGuid().ToString("N"));
 
     private PostgresStore objStore = null!;
+
+    /// <summary>
+    /// Every <c>(user, repo)</c> pair this class has written to, so teardown can purge exactly those.
+    /// </summary>
+    /// <remarks>
+    /// Populated by <see cref="ResetAsync"/> rather than by a hard-coded list, so a fixture repo added
+    /// by a future test is cleaned up without anyone having to remember this set exists.
+    /// </remarks>
+    private readonly HashSet<(int UserId, string Repo)> objTouched = [];
 
     /// <summary>
     /// Creates the test class.
@@ -46,16 +61,54 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         await objStore.EnsureSchemaAsync();
     }
 
-    /// <summary>Removes the temporary raw archive this class created.</summary>
-    /// <returns>A task that completes when the directory is gone.</returns>
-    public Task DisposeAsync()
+    /// <summary>
+    /// Removes everything this class wrote — the database rows as well as the temporary raw archive.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>These tests run against the real shared database, so they must leave it as they found it.</b>
+    /// Each test calls <see cref="ResetAsync"/>, which clears the repo <i>before</i> it runs and then
+    /// writes a <c>"UserRepo"</c> row for it — so before this teardown existed the rows simply survived
+    /// the run. That had two visible consequences on the owner's live app, both real: the demo account
+    /// showed <b>8 connected repositories instead of 3</b> (five phantom <c>tflenstest/Store*</c> entries
+    /// whose sync always failed, because they are not real GitHub repositories), and the OpenCode
+    /// measured-dollars figure on <c>/harness</c> was inflated by the <c>cost_usd</c> these fixtures
+    /// carry — the "only measured dollars in the system" reading roughly <c>$1.02</c> instead of the true
+    /// <c>$0.04</c>. Cleaning up before a test is not enough; a test suite has to clean up after itself.
+    /// </para>
+    /// <para>
+    /// <see cref="ITelemetryStore.DeleteRepoDataAsync"/> is the whole job: it removes the stream rows,
+    /// the <c>"SyncState"</c> row and the <c>"UserRepo"</c> row for exactly one <c>(user, repo)</c> pair,
+    /// so another user's copy of the same repository is untouched (ADR-013). Every pair passed through
+    /// <see cref="ResetAsync"/> is tracked in <see cref="objTouched"/>, which means a test added later
+    /// that introduces a new fixture repo is cleaned up automatically without anyone remembering to
+    /// extend a hard-coded list.
+    /// </para>
+    /// <para>
+    /// Teardown never fails the run: a cleanup error is reported through the test output and swallowed,
+    /// because a green suite that could not tidy up is a housekeeping problem, and turning it into a
+    /// spurious test failure would hide whatever the tests actually proved.
+    /// </para>
+    /// </remarks>
+    /// <returns>A task that completes when the rows and the directory are gone.</returns>
+    public async Task DisposeAsync()
     {
+        foreach (var (vUserId, vRepo) in objTouched)
+        {
+            try
+            {
+                await objStore.DeleteRepoDataAsync(vUserId, vRepo);
+            }
+            catch (Exception vEx)
+            {
+                objOutput.WriteLine($"cleanup: could not purge user {vUserId} repo {vRepo} — {vEx.Message}");
+            }
+        }
+
         if (Directory.Exists(objDataRoot))
         {
             Directory.Delete(objDataRoot, recursive: true);
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary>The schema script is found and applied, and the database answers (REQ-FN-045).</summary>
@@ -72,13 +125,13 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     public async Task UpsertIsIdempotentAcrossRepeatedParses()
     {
         const string vRepo = "tflenstest/StoreIdempotence";
-        await ResetAsync(Fixtures.DemoUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
 
-        var vFirst = await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
-        var vCountsAfterFirst = await CountAsync(Fixtures.DemoUserId, vRepo);
+        var vFirst = await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+        var vCountsAfterFirst = await CountAsync(Fixtures.StoreTestUserId, vRepo);
 
-        var vSecond = await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
-        var vCountsAfterSecond = await CountAsync(Fixtures.DemoUserId, vRepo);
+        var vSecond = await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+        var vCountsAfterSecond = await CountAsync(Fixtures.StoreTestUserId, vRepo);
 
         vFirst.Should().BeGreaterThan(0);
         vSecond.Should().Be(0, "every row already exists under its unique index");
@@ -90,14 +143,14 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     public async Task CrossUserIsolationKeepsRowsApart()
     {
         const string vRepo = "tflenstest/StoreIsolation";
-        await ResetAsync(Fixtures.DemoUserId, vRepo);
-        await ResetAsync(Fixtures.SecondUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestSecondUserId, vRepo);
 
-        await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
-        await StoreEveryStreamAsync(Fixtures.SecondUserId, vRepo, Fixtures.TrBlazeUiRepo);
+        await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+        await StoreEveryStreamAsync(Fixtures.StoreTestSecondUserId, vRepo, Fixtures.TrBlazeUiRepo);
 
-        var vDemo = await CountAsync(Fixtures.DemoUserId, vRepo);
-        var vSecond = await CountAsync(Fixtures.SecondUserId, vRepo);
+        var vDemo = await CountAsync(Fixtures.StoreTestUserId, vRepo);
+        var vSecond = await CountAsync(Fixtures.StoreTestSecondUserId, vRepo);
 
         vDemo.Runs.Should().Be(6);
         vSecond.Runs.Should().Be(2, "the second user stored the smaller fixture, and only that one");
@@ -105,8 +158,8 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         vSecond.Commits.Should().Be(2);
 
         var vDemoSessions = await objStore.ReadSessionsAsync(
-            Fixtures.DemoUserId, FrameworkNames.TechieFlow, vRepo);
-        vDemoSessions.Should().OnlyContain(aS => aS.UserId == Fixtures.DemoUserId);
+            Fixtures.StoreTestUserId, FrameworkNames.TechieFlow, vRepo);
+        vDemoSessions.Should().OnlyContain(aS => aS.UserId == Fixtures.StoreTestUserId);
     }
 
     /// <summary>Reads are scoped to one framework, so a figure cannot pool across them (ADR-016).</summary>
@@ -114,12 +167,12 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     public async Task ReadsAreScopedToOneFramework()
     {
         const string vRepo = "tflenstest/StoreFramework";
-        await ResetAsync(Fixtures.DemoUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
 
-        await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
+        await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
 
-        var vTechieFlow = await objStore.ReadRunsAsync(Fixtures.DemoUserId, FrameworkNames.TechieFlow, vRepo);
-        var vPlaybook = await objStore.ReadRunsAsync(Fixtures.DemoUserId, FrameworkNames.Playbook, vRepo);
+        var vTechieFlow = await objStore.ReadRunsAsync(Fixtures.StoreTestUserId, FrameworkNames.TechieFlow, vRepo);
+        var vPlaybook = await objStore.ReadRunsAsync(Fixtures.StoreTestUserId, FrameworkNames.Playbook, vRepo);
 
         vTechieFlow.Should().NotBeEmpty();
         vPlaybook.Should().BeEmpty("the repository is registered as techieflow");
@@ -130,11 +183,11 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     public async Task NullAndZeroSurviveTheRoundTrip()
     {
         const string vRepo = "tflenstest/StoreNullVsZero";
-        await ResetAsync(Fixtures.DemoUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
 
-        await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
+        await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
 
-        var vRuns = await objStore.ReadRunsAsync(Fixtures.DemoUserId, FrameworkNames.TechieFlow, vRepo);
+        var vRuns = await objStore.ReadRunsAsync(Fixtures.StoreTestUserId, FrameworkNames.TechieFlow, vRepo);
         var vTriage = vRuns.Single(aR => aR.Cmd == "triage-issues");
 
         vTriage.FilesWritten.Should().Be(0);
@@ -155,15 +208,15 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         var vStore = NewStore(vDataRoot);
         const string vRepo = "tflenstest/StoreRebuild";
 
-        await ResetAsync(Fixtures.DemoUserId, vRepo, vStore);
-        await WriteRawArchiveAsync(vDataRoot, Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await WriteRawArchiveAsync(vDataRoot, Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
 
         // The live sync path: parse each archived file and upsert it.
-        await StoreEveryStreamAsync(Fixtures.DemoUserId, vRepo, Fixtures.TrSetupRepo, vStore);
-        var vLive = await CountAsync(Fixtures.DemoUserId, vRepo, vStore);
+        await StoreEveryStreamAsync(Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo, vStore);
+        var vLive = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
-        var vReport = await vStore.RebuildAsync(Fixtures.DemoUserId);
-        var vRebuilt = await CountAsync(Fixtures.DemoUserId, vRepo, vStore);
+        var vReport = await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+        var vRebuilt = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
         vReport.FilesReplayed.Should().Be(4);
         vRebuilt.Should().Be(vLive, "a rebuild reads only data/raw and must land on the same numbers");
@@ -171,16 +224,95 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         vReport.DuplicatesCollapsed.Should().Be(7);
     }
 
+    /// <summary>
+    /// A rebuild persists how many session records ingest collapsed, and repeating it does not double
+    /// the figure (REQ-FN-063).
+    /// </summary>
+    /// <remarks>
+    /// This is the number the export reports as <c>pooled.session_duplicates_collapsed</c>. It cannot be
+    /// recovered by reading the store — the duplicates were never written — so a rebuild has to leave it
+    /// behind in <c>"SyncState"</c> or the figure is lost. A rebuild replays the whole archive, so it is
+    /// authoritative and <b>sets</b> the count; running it twice must therefore land on the same number,
+    /// which is the half of the contract an accumulate-on-every-pass implementation would fail.
+    /// </remarks>
+    [Fact]
+    public async Task RebuildRecordsSessionCollapsesAndRepeatingItDoesNotDoubleThem()
+    {
+        var vDataRoot = Path.Combine(objDataRoot, "collapses");
+        var vStore = NewStore(vDataRoot);
+        const string vRepo = "tflenstest/StoreSessionCollapses";
+
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await SeedSyncStateAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await WriteRawArchiveAsync(vDataRoot, Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+
+        await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+        var vFirst = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        var vStored = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+
+        // The fixture's sessions.jsonl holds 7 valid records over 4 distinct session ids.
+        vStored.Sessions.Should().Be(FixtureDistinctSessions);
+        vFirst.Should().Be(
+            FixtureSessionRecords - FixtureDistinctSessions,
+            "the collapse count is what ingest threw away: records presented minus rows kept");
+
+        await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+        var vSecond = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+
+        vSecond.Should().Be(vFirst, "a rebuild is authoritative and sets the count; it never accumulates");
+    }
+
+    /// <summary>
+    /// The collapse count includes duplicates spread across two archived snapshots (REQ-FN-063).
+    /// </summary>
+    /// <remarks>
+    /// This is the case that forces the measurement to be <i>records presented minus rows stored</i>
+    /// rather than a sum of what each parse collapsed. A session id that appears once in each of two
+    /// snapshots is not a duplicate inside either file — no parse can see it — and is collapsed only by
+    /// the store's <c>UcSessionUserRepoId</c> index. It is exactly the shape of the one duplicate the
+    /// TechieFlow dataset carries across its two archived <c>sessions.jsonl</c> fetches.
+    /// </remarks>
+    [Fact]
+    public async Task RebuildCountsSessionDuplicatesSpreadAcrossArchivedSnapshots()
+    {
+        var vDataRoot = Path.Combine(objDataRoot, "snapshots");
+        var vStore = NewStore(vDataRoot);
+        const string vRepo = "tflenstest/StoreSessionSnapshots";
+        const string vSecondSha = "a2b3c4d";
+
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await SeedSyncStateAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await WriteRawArchiveAsync(vDataRoot, Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+
+        // A second fetch of the same sessions stream, as the poller would archive it under a new SHA.
+        var vDirectory = Path.Combine(
+            vDataRoot, "raw", Fixtures.StoreTestUserId.ToString(), vRepo.Replace("/", "__", StringComparison.Ordinal));
+        await File.WriteAllTextAsync(
+            Path.Combine(vDirectory, $"{StreamNames.Sessions}-{vSecondSha}.jsonl"),
+            Fixtures.Read(Fixtures.TrSetupRepo, StreamKind.Sessions));
+
+        await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+
+        var vStored = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        var vCollapsed = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+
+        vStored.Sessions.Should().Be(
+            FixtureDistinctSessions, "the second snapshot carries no session id the first did not");
+        vCollapsed.Should().Be(
+            (2 * FixtureSessionRecords) - FixtureDistinctSessions,
+            "every record the second snapshot presented was collapsed by the unique index, and no parse saw it");
+    }
+
     /// <summary>Sync bookkeeping round-trips per user and repository (REQ-FN-025).</summary>
     [Fact]
     public async Task SyncStateRoundTrips()
     {
         const string vRepo = "tflenstest/StoreSyncState";
-        await ResetAsync(Fixtures.DemoUserId, vRepo);
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
 
         await objStore.WriteSyncStateAsync(new SyncState
         {
-            UserId = Fixtures.DemoUserId,
+            UserId = Fixtures.StoreTestUserId,
             Repo = vRepo,
             Kind = FrameworkNames.TechieFlow,
             Branch = "main",
@@ -194,15 +326,15 @@ public sealed class PostgresStoreTests : IAsyncLifetime
             EventsCount = 0
         });
 
-        var vRows = await objStore.ReadSyncStateAsync(Fixtures.DemoUserId);
+        var vRows = await objStore.ReadSyncStateAsync(Fixtures.StoreTestUserId);
         var vRow = vRows.Single(aS => aS.Repo == vRepo);
 
         vRow.LastSha.Should().Be(Fixtures.SourceSha);
         vRow.LastError.Should().BeNull();
         vRow.GatesCount.Should().Be(14);
 
-        await objStore.DeleteRepoDataAsync(Fixtures.DemoUserId, vRepo);
-        (await objStore.ReadSyncStateAsync(Fixtures.DemoUserId)).Should().NotContain(aS => aS.Repo == vRepo);
+        await objStore.DeleteRepoDataAsync(Fixtures.StoreTestUserId, vRepo);
+        (await objStore.ReadSyncStateAsync(Fixtures.StoreTestUserId)).Should().NotContain(aS => aS.Repo == vRepo);
     }
 
     /// <summary>
@@ -217,7 +349,7 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         const string vBusyRepo = "tflenstest/SmokeTrSetup";
         const string vStaleRepo = "tflenstest/SmokeTrBlazeUI";
 
-        foreach (var vUserId in new[] { Fixtures.DemoUserId, Fixtures.SecondUserId })
+        foreach (var vUserId in new[] { Fixtures.StoreTestUserId, Fixtures.StoreTestSecondUserId })
         {
             await ResetAsync(vUserId, vBusyRepo, vStore);
             await ResetAsync(vUserId, vStaleRepo, vStore);
@@ -226,7 +358,7 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         }
 
         var vFirstPass = 0;
-        foreach (var vUserId in new[] { Fixtures.DemoUserId, Fixtures.SecondUserId })
+        foreach (var vUserId in new[] { Fixtures.StoreTestUserId, Fixtures.StoreTestSecondUserId })
         {
             vFirstPass += await StoreEveryStreamAsync(vUserId, vBusyRepo, Fixtures.TrSetupRepo, vStore);
             vFirstPass += await StoreEveryStreamAsync(vUserId, vStaleRepo, Fixtures.TrBlazeUiRepo, vStore);
@@ -236,7 +368,7 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         await PrintCountsAsync("after pass 1", vBusyRepo, vStaleRepo, vStore);
 
         var vSecondPass = 0;
-        foreach (var vUserId in new[] { Fixtures.DemoUserId, Fixtures.SecondUserId })
+        foreach (var vUserId in new[] { Fixtures.StoreTestUserId, Fixtures.StoreTestSecondUserId })
         {
             vSecondPass += await StoreEveryStreamAsync(vUserId, vBusyRepo, Fixtures.TrSetupRepo, vStore);
             vSecondPass += await StoreEveryStreamAsync(vUserId, vStaleRepo, Fixtures.TrBlazeUiRepo, vStore);
@@ -245,16 +377,16 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         objOutput.WriteLine($"PASS 2 rows written = {vSecondPass} (idempotence: must be 0)");
         var vBeforeRebuild = await PrintCountsAsync("after pass 2", vBusyRepo, vStaleRepo, vStore);
 
-        var vReport = await vStore.RebuildAsync(Fixtures.DemoUserId);
+        var vReport = await vStore.RebuildAsync(Fixtures.StoreTestUserId);
         objOutput.WriteLine(
-            $"REBUILD user {Fixtures.DemoUserId}: files={vReport.FilesReplayed} records={vReport.RecordsWritten} "
+            $"REBUILD user {Fixtures.StoreTestUserId}: files={vReport.FilesReplayed} records={vReport.RecordsWritten} "
             + $"duplicatesCollapsed={vReport.DuplicatesCollapsed} invalidLines={vReport.InvalidLines}");
         var vAfterRebuild = await PrintCountsAsync("after rebuild", vBusyRepo, vStaleRepo, vStore);
 
         vSecondPass.Should().Be(0);
         vAfterRebuild.Should().Be(vBeforeRebuild, "REQ-FN-029: a rebuild reproduces the live-sync counts");
 
-        foreach (var vUserId in new[] { Fixtures.DemoUserId, Fixtures.SecondUserId })
+        foreach (var vUserId in new[] { Fixtures.StoreTestUserId, Fixtures.StoreTestSecondUserId })
         {
             await vStore.DeleteRepoDataAsync(vUserId, vBusyRepo);
             await vStore.DeleteRepoDataAsync(vUserId, vStaleRepo);
@@ -274,7 +406,7 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     {
         var vTotal = 0;
         objOutput.WriteLine($"--- {aLabel} -------------------------------------------");
-        foreach (var vUserId in new[] { Fixtures.DemoUserId, Fixtures.SecondUserId })
+        foreach (var vUserId in new[] { Fixtures.StoreTestUserId, Fixtures.StoreTestSecondUserId })
         {
             foreach (var vRepo in new[] { aBusyRepo, aStaleRepo })
             {
@@ -316,6 +448,11 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     private async Task ResetAsync(int aUserId, string aRepo, PostgresStore? aStore = null)
     {
         var vStore = aStore ?? objStore;
+
+        // Record the pair before writing it: DisposeAsync purges exactly what this class touched, so the
+        // shared database is left as it was found (see the remarks on DisposeAsync).
+        objTouched.Add((aUserId, aRepo));
+
         await vStore.DeleteRepoDataAsync(aUserId, aRepo);
         await vStore.WriteUserRepoAsync(new UserRepo
         {
@@ -392,6 +529,49 @@ public sealed class PostgresStoreTests : IAsyncLifetime
             (await vStore.ReadGatesAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count,
             (await vStore.ReadSessionsAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count,
             (await vStore.ReadCommitsAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count);
+    }
+
+    /// <summary>
+    /// Gives a repository the <c>"SyncState"</c> row a sync would have left, so a rebuild has something
+    /// to recompute into.
+    /// </summary>
+    /// <remarks>
+    /// The stream counts are seeded deliberately <b>wrong</b> — a rebuild recomputes all of them, and
+    /// <see cref="SyncState.SessionDuplicatesCollapsed"/> is seeded non-zero so a rebuild that added to
+    /// the stored figure instead of replacing it would be caught rather than flattered by a zero start.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aRepo">The repository key.</param>
+    /// <param name="aStore">The store to write through.</param>
+    /// <returns>A task that completes when the row exists.</returns>
+    private static Task SeedSyncStateAsync(int aUserId, string aRepo, PostgresStore aStore) =>
+        aStore.WriteSyncStateAsync(new SyncState
+        {
+            UserId = aUserId,
+            Repo = aRepo,
+            Kind = FrameworkNames.TechieFlow,
+            Branch = "main",
+            LastSha = Fixtures.SourceSha,
+            LastSyncTs = "2026-08-27T00:00:00Z",
+            RunsCount = 999,
+            GatesCount = 999,
+            SessionsCount = 999,
+            CommitsCount = 999,
+            EventsCount = 999,
+            SessionDuplicatesCollapsed = 999
+        });
+
+    /// <summary>
+    /// Reads back the session-collapse count ingest recorded for one user and repository.
+    /// </summary>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aRepo">The repository key.</param>
+    /// <param name="aStore">The store to use, defaulting to the class-level one.</param>
+    /// <returns>The stored collapse count, or zero when the repository has no state row.</returns>
+    private async Task<int> SessionCollapsesAsync(int aUserId, string aRepo, PostgresStore? aStore = null)
+    {
+        var vRows = await (aStore ?? objStore).ReadSyncStateAsync(aUserId);
+        return vRows.FirstOrDefault(aRow => aRow.Repo == aRepo)?.SessionDuplicatesCollapsed ?? 0;
     }
 
     /// <summary>Row counts per stream for one user and repository.</summary>

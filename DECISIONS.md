@@ -56,6 +56,7 @@ it is operated. Architectural decisions with an `ADR-nnn` id live in
 | D-010 | Cut for the timebox | 2026-08-26 | What was deliberately not built in this release |
 | D-011 | Dedupe keys | 2026-08-26 | The Playbook `events.ndjson` dedupe key, superseding the provisional row in D-004 |
 | S-001 | Playbook schema discovery | 2026-08-26 | No `events.ndjson` found; shape taken from the emitter source instead |
+| P-002 | Parity runs | 2026-08-27 | Parity re-run and re-recorded at parser 1.1.0 after the metric addition |
 
 ---
 
@@ -185,7 +186,12 @@ stamped into the build and into **every** export.
 | **Minor** | A field is newly recognised (moves out of `"Overflow"` into a column), or a metric is added. Old exports stay comparable for the metrics they carry. |
 | **Patch** | A defect fix that changes no correct output — or changes an output that was wrong. |
 
-**Current:** `1.0.0` — the first shipping parser.
+**Current:** `1.1.0`.
+
+| Version | Date | Why |
+|---------|------|-----|
+| `1.0.0` | 2026-08-26 | The first shipping parser. |
+| `1.1.0` | 2026-08-27 | **Minor — a metric was added:** `pooled.session_duplicates_collapsed`. The reference gained the same figure when `tf-metrics.sh` learned to de-duplicate the sessions stream (SCHEMA.md §4), and TfLens must emit every key the reference emits or the compare fails on a MISSING key. Nothing stored changed meaning and no dedupe key moved, so this is not a major bump; old exports stay comparable for the metrics they carry. Per the rule below the bump un-quoted every export until parity was re-run — see §6 P-002. |
 
 **The rule that makes the version worth stamping:** the weekly snapshot export is quotable only if
 the last parity run on record (§6) postdates the last parser-version bump. The `/export` page renders
@@ -206,13 +212,35 @@ re-run, which is exactly the intent.
 `TfLensAppManagerApiKey` and `TfLensAppManagerApiSecret` are validated as a **pair**. Both set is
 valid. Both unset is valid. Exactly one set fails startup with a redacted message.
 
-**Reason — verified against the live AppManager API, not inferred from the guide.** The
-`X-Api-Key` / `X-Api-Secret` headers are optional on the AppManager side, because the client also
-sends `applicationId: 1` in every request body and AppManager resolves the application from that. So
-*no* pair works. What does **not** work is half a pair: AppManager rejects a key without its matching
-secret with `401 INVALID_API_KEY` on every call, which would turn every sign-in, registration and
-password reset into an authentication failure that looks like a user error. That is precisely the
-silent misconfiguration BRD-9 exists to prevent, so it is refused at startup instead.
+**Reason — verified against the live AppManager API, not inferred from the guide.** Half a pair does
+not work: AppManager rejects a key without its matching secret with `401 INVALID_API_KEY` on every
+call, which would turn every sign-in, registration and password reset into an authentication failure
+that looks like a user error. That is precisely the silent misconfiguration BRD-9 exists to prevent,
+so it is refused at startup instead.
+
+**Amended 2026-08-27 — "the pair is optional" was too broad, and the pair is now configured.** The
+original entry said the headers were optional because the client sends `applicationId: 1` in every
+request body. That is true for *most* endpoints and false for exactly two. Measured live, whole pair
+versus none:
+
+| Endpoint | No pair | With pair |
+|---|---|---|
+| `/AuthSvc/login`, `/AuthSvc/validate`, `/UserSvc/change-password` | `200` / unchanged | identical |
+| `/AuthSvc/forgot-password` | `400 APPLICATION_ID_REQUIRED` | **`200`** |
+| `/AuthSvc/reset-password` | `400 APPLICATION_ID_REQUIRED` | **reaches real token validation** |
+| `/UserSvc/profile` | `200` | **`403 NO_APP_ACCESS`** |
+
+Two consequences. First, the pair is **required** for this app, not optional: the forgot/reset
+endpoints refuse a body `applicationId` and accept the app scope *only* from the header, so without
+the pair those two features cannot work at all (REQ-FN-003 was blocked on exactly this until the owner
+supplied credentials on 2026-08-27). Second, the pair must **not** be sent everywhere: attaching an
+application identity to a token-scoped user read turns it into an application-access check, and
+AppManager answers `NO_APP_ACCESS` for the demo account. `AppManagerClient.SendsApiKeyHeaders` therefore
+sends the pair on `/AuthSvc/*` only. That is right on its own terms — an application credential does
+not belong on a request the bearer token already scopes — and it also sidesteps an AppManager-side
+grant gap (the demo user holds no access row for Application 1, the same gap that makes its
+`applicationRole` come back empty). Granting that access in the AppManager admin UI is the root fix and
+is recorded under PROJECT-STATUS "Known blockers".
 
 **Known tension to re-open if the acceptance is read strictly.** REQ-FN-010's acceptance line reads
 "a missing key or secret fails startup (REQ-FN-038)". Read literally that would make both variables
@@ -335,9 +363,191 @@ none of them is a "someday" item without one.
 - **Verdict:**                   PASS (empty diff)
 ```
 
-*No parity run has been recorded yet. The export is **not quotable** until one is.*
+### P-001 — Parity run 2026-08-27
+
+- **Date (UTC):**                2026-08-27
+- **Framework:**                 techieflow
+- **User id:**                   2
+- **Dataset (repo → SHA):**      `techierathore/TechieBlog` → `30e66161343661d94b8bd4b01e97c63a30b1c579`
+- **Dataset (repo → SHA):**      `techierathore/TechieFlow` → `708fcffbdf1c61cf327fc3e0038291bce40091d6`
+- **Dataset (repo → SHA):**      `techierathore/TechieRag` → `4f6f0a3796481e01c408b6d93eb72d90ecb0176b`
+- **Dataset (repo → SHA):**      `techierathore/TrBlazeUI` → `49cf7a73f3f78219abccd1ecab49db797315a16c`
+- **tf-metrics.sh sha256:**      `sha256:960d12b497f5093e98f696800805e8ceb70efb63c2560489d99fa96fe5c03f3c`
+- **TfLens parser version:**     1.0.0
+- **Reference file:**            `tests/.artifacts/parity/reference.json`
+- **TfLens export:**             `src/TfLens/data/reports/2/2026-08-27/techieflow/tflens.json`
+- **Compare output:**
+
+```
+parity-compare: reference=tests/.artifacts/parity/reference.json
+parity-compare: tflens   =tests/.artifacts/parity/tflens.json
+
+  (19 INFO lines: 4 × ENV-OK per_repo[*].repo — the reference echoes the filesystem path it was
+   handed, TfLens uses owner/name; 12 × ADDED-OK per_repo[*].{framework,events,source_sha};
+   1 × KEYED per_repo; 2 × ADDED-OK extras / parity)
+
+parity-compare: 0 finding(s), 19 allowed difference(s).
+parity-compare: PASS -- the two implementations agree key for key.
+```
+
+- **Extras spot-checked:**       no — unchanged since the REQ-FN-064 hand-check; `extras` carries no
+                                 oracle and is ADDED-OK on this run as on every other.
+- **Verdict:**                   PASS (empty diff). `src/TfLens/data/parity-last.json` written, and
+                                 `/export` now reads **QUOTABLE**.
+
+**What closed it.** Two things, in this order.
+
+1. **The framework fixed the oracle.** `.tfcore/telemetry/tf-metrics.sh` moved from
+   `326b586e…4412` to `960d12b4…3f3c`, gaining a `dedupe_sessions()` that implements the SCHEMA.md §4
+   consumer rule (highest `output_tokens` per `session_id`, ties on latest `ts`) and a new
+   `pooled.session_duplicates_collapsed`. Its own docstring now records that the §5 wording *"reasoned
+   about one source of duplication and concluded there were none at all, which silently overstated
+   every session and token figure."* **That is exactly the owner decision the failed run below asked
+   for, resolved in the reference's favour — option (a).** BRD-27 stands; the two implementations now
+   agree that this dataset holds 56 sessions.
+2. **TfLens implemented the one genuine gap.** The reference dedupes sessions at *read* time and can
+   therefore report what it collapsed. TfLens dedupes at *write* time — `UcSessionUserRepoId` plus
+   `ON CONFLICT DO NOTHING` — so by the time the engine reads the store the duplicates are gone and a
+   read-time count would be `0`. The figure is a property of **ingest**, so it is now persisted as one:
+   a new `"SyncState"."SessionDuplicatesCollapsed"` column, measured as *session records presented
+   minus rows stored*. That formulation is what catches the TechieFlow duplicate, which is spread
+   across two archived `sessions.jsonl` snapshots and is invisible to any single parse. `rebuild`
+   replays the whole archive and therefore **sets** the count (so running it twice does not double it);
+   an incremental sync **adds** its own pass. `MetricsEngine` sums it over the framework's repositories
+   only, and `SnapshotJson` emits it immediately after `commit_duplicates_collapsed`. Nothing was added
+   to `tools/parity-compare.py`'s allow-lists — a MISSING key always fails, by design, and this one was
+   closed by implementing it.
+
+The dataset was rebuilt from the REQ-FN-027 raw archive and each repository given a
+`.tfcore/core-config.yaml` carrying its true `project_type` (TechieBlog `app`, TechieFlow `framework`,
+TechieRag `app`, TrBlazeUI `library`), which also cleared the two `per_repo[*].project_type` findings
+the earlier stand-in dataset produced. The four `per_repo[*].repo` differences are the documented
+environment keys and were accepted with `--allow-environment-keys`, as `ENVIRONMENT_KEYS` provides for.
+
+**One environment note, not a finding.** `TfLensOptions.ReferenceScriptPath` defaults to the relative
+`.tfcore/telemetry/tf-metrics.sh` and is resolved against the process working directory, which for
+TfLens is `src/TfLens` — the directory that makes the equally relative `DataRoot` land on
+`src/TfLens/data`. The oracle lives at the repository root, so from there the default path names no
+file and a genuinely passing stamp degrades to NOT QUOTABLE with reason `script-unavailable`. The
+smoke therefore boots with `TfLensReferenceScriptPath` set to the absolute path, which is what the
+option exists for. Two relative paths anchored at one working directory cannot both be right when the
+files they name live at different roots; whether the default should change is an owner call and was
+left alone here, because `AbsentReferenceScriptIsNotQuotableAndDoesNotThrow` deliberately fixes the
+current behaviour.
 
 ---
+
+<!-- The block below is NOT a P-entry. §6 records passing runs only; this is the run log of a
+     FAILED attempt. SUPERSEDED by P-001 above, which resolves it: the owner decision it asks for
+     was taken upstream, in the reference's favour. Kept rather than deleted because it is the
+     record of how the disagreement was found and what it cost. -->
+
+**Run log — 2026-08-27, BRD §13 executed, did NOT pass (no P-entry, no `parity-last.json`).
+⚠ SUPERSEDED — see P-001 above; the blocker described here is resolved.**
+
+The procedure was run end to end for the first time. The oracle is present at
+`.tfcore/telemetry/tf-metrics.sh` (sha256
+`326b586e19cffedaeefd614125039085c574a1c5c2ae325ae26d69a839ca4412`); its `--rollup` mode is
+read-only, so it was runnable here. The earlier claim in `PROJECT-STATUS.md` that the script "is not
+present anywhere in this tree" was wrong.
+
+- **Framework / user:** techieflow, user 2.
+- **Dataset (repo → SHA, from `SyncState.LastSha`):**
+  - `techierathore/TechieFlow` → `708fcffbdf1c61cf327fc3e0038291bce40091d6`
+  - `techierathore/TrBlazeUI` → `49cf7a73f3f78219abccd1ecab49db797315a16c`
+  - the five zero-record `tflenstest/Store*` repositories user 2 also has connected (no SHA — never synced)
+- **Dataset construction:** `git clone` is not available to an agent, and it is not needed — REQ-FN-027
+  archives every fetched stream verbatim *before* parsing, so the archive under
+  `src/TfLens/data/raw/2/**` **is** the dataset. Each `<stream>-<sha>.jsonl` was materialised as
+  `tests/.artifacts/parity/<Name>/docs/metrics/<stream>.jsonl`, concatenating every archived SHA for a
+  stream because the store holds their union (verified: the concatenated record counts, after the
+  documented BRD-26/27/28 dedupe keys, reproduce the database counts exactly — runs 42, gates 77,
+  sessions 35). `.tfcore/core-config.yaml` and `docs/<App>-Checklist.md` stubs were written so the
+  reference's `project_type()` and `app_name()` read the values the records already declare.
+- **Result: 4 findings, 31 allowed differences. NOT an empty diff, so nothing was recorded and the
+  banner correctly still reads NOT QUOTABLE.**
+
+Five further findings (`per_repo[Store*].app` — reference `"StoreFramework"`, TfLens `null`) were a
+genuine TfLens bug and were **fixed**, not allow-listed: the reference's `app_name()` falls back to
+the repository's own directory name, and TfLens emitted `null` for any repository with no records.
+`MetricsEngine.PerRepoFactsFor` now falls back to `UserRepo.Name`. Nothing was added to
+`tools/parity-compare.py`'s allow-lists.
+
+**The 4 remaining findings are one root cause, and it is a conflict between the reference and its own
+SCHEMA.md — it needs an owner decision, not a code change.**
+
+```
+FAIL DIFF per_repo[TechieFlow].sessions        reference=21       tflens=20
+FAIL DIFF pooled.sessions                      reference=36       tflens=35
+FAIL DIFF pooled.tokens_total                  reference=7810195  tflens=7762638
+FAIL DIFF pooled.tokens_per_verified_req       reference=156203.9 tflens=155252.8
+```
+
+`sessions-708fcffbdf1c61cf327fc3e0038291bce40091d6.jsonl` contains the **same line twice** (lines 9
+and 10, byte-identical, `session_id` `cb2d3e32-ebbb-4cd6-8c64-1e8d81566179`, `input_tokens` 4361,
+`output_tokens` 43196). The entire divergence is that one line: 21 − 20 = 1 session, and
+7810195 − 7762638 = **47557 = 4361 + 43196** exactly.
+
+- **TfLens collapses it** — BRD-27, and the `UcSessionUserRepoId` unique index, keep one record per
+  `session_id`. That is a verbatim port of **SCHEMA.md §4**: *"the plugin appends a CUMULATIVE
+  snapshot at every root-session idle … so several records may share a `session_id` — consumers take
+  the record with the highest `output_tokens` (or the latest `ts`) per `session_id`"* (added
+  2026-08-20).
+- **`tf-metrics.sh` counts both** — `analyse()` dedupes `commits` only. Its `dedupe_commits()`
+  docstring still asserts the older **SCHEMA.md §5** claim that *"runs/gates/sessions … cannot be
+  independently reconstructed elsewhere, so a union merge has no way to manufacture a second copy of
+  them"*. This dataset falsifies that claim.
+
+So the reference does not implement its own §4 rule, and the two documents (§4 and §5) contradict
+each other. BRD §13 step 5 says the script is never changed and any disagreement is a TfLens bug; but
+making TfLens agree would repeal BRD-27, break the unique index and break idempotent replay
+(re-running `rebuild` would double the count). `parity-compare.py`'s own contract forbids the third
+option — `pooled.sessions` and `pooled.tokens_total` are **figures**, and *"no figure may ever be
+added to this list"*.
+
+**Owner decision required:** either (a) SCHEMA.md §5 is corrected and `tf-metrics.sh` is taught the §4
+consumer rule — which only the owner may do, and which makes the diff empty; or (b) BRD-27 is
+repealed. Until one of those happens, no TfLens figure is quotable, which is the correct and honest
+state.
+
+> **✅ RESOLVED 2026-08-27 — option (a) was taken, upstream.** `tf-metrics.sh` gained `dedupe_sessions()`
+> and now implements the §4 consumer rule itself; its hash moved `326b586e…4412` → `960d12b4…3f3c`.
+> BRD-27, the `UcSessionUserRepoId` index and idempotent replay all stand unchanged. The remaining gap
+> was on the TfLens side — the reference also began emitting `pooled.session_duplicates_collapsed`,
+> which TfLens did not — and that was implemented, not allow-listed. See **P-001** above for the
+> passing run.
+
+---
+
+### P-002 — Parity run 2026-08-27 (re-run at parser 1.1.0)
+
+- **Date (UTC):**                2026-08-27
+- **Framework:**                 techieflow
+- **User id:**                   2
+- **Dataset (repo → SHA):**      unchanged from P-001 — `TechieBlog` → `30e66161…`, `TechieFlow` → `708fcffb…`, `TechieRag` → `4f6f0a37…`, `TrBlazeUI` → `49cf7a73…`
+- **tf-metrics.sh sha256:**      `sha256:960d12b497f5093e98f696800805e8ceb70efb63c2560489d99fa96fe5c03f3c` (unchanged)
+- **TfLens parser version:**     **1.1.0** (bumped from 1.0.0 — §3)
+- **Compare output:**
+
+```
+parity-compare: 0 finding(s), 19 allowed difference(s).
+parity-compare: PASS -- the two implementations agree key for key.
+```
+
+- **Figures agreed, key for key:** sessions 56 · tokens_total 14,846,715 · tokens_per_verified_req
+                                 65,985.4 · commits 181 · session_duplicates_collapsed 2 ·
+                                 commit_duplicates_collapsed 0.
+- **Verdict:**                   PASS (empty diff). `src/TfLens/data/parity-last.json` re-written at
+                                 parser 1.1.0; `/export` reads **QUOTABLE** again.
+
+**Why this run exists.** P-001 passed at parser `1.0.0`, but the change that made it pass — emitting
+`pooled.session_duplicates_collapsed` — is itself a metric addition, which D-005 makes a **minor**
+bump. Leaving the constant at `1.0.0` would have left a stamp claiming a parity run that predated the
+parser which produced the export. The bump was applied, and it did exactly what D-005 says it should:
+the very next export read `parity NOT QUOTABLE` despite an otherwise-valid record on disk, because the
+run on file no longer postdated the parser. Re-running the procedure and re-recording restored
+**QUOTABLE**. The mechanism is therefore not merely implemented but demonstrated end to end, which is
+the third clause of REQ-FN-063's acceptance.
 
 ## §7 Playbook schema discovery
 
@@ -404,6 +614,29 @@ repository itself. Searched, all negative:
 **To upgrade this entry to `Discovered`, someone must run a Playbook-managed project under OpenCode
 with `PLAYBOOK_TELEMETRY=1` and commit — or hand over — the `verification/telemetry/events.ndjson`
 it writes.** That is the one outstanding ask; nothing else about Phase 3 is blocked on anything else.
+
+**2026-08-27 — the file in the raw archive is a build-harness fixture, NOT a captured run.**
+`src/TfLens/data/raw/2/techierathore__AI-First-Playbook/events-0d7e6a3b….jsonl` exists and replays
+cleanly into 45 `"PbEvent"` rows, so it is easy to mistake for the captured file this entry has been
+waiting for. It is not one, and `PlaybookSchemaState.Status` therefore stays
+`EmitterSourceDerived`. What gives it away, on inspection of the 45 records:
+
+- Nine sessions `pb-ses-000` … `pb-ses-008`, each with the identical three turns and the identical
+  token counts (`input` 40000 / 40900 / 41800, `output` 5200 / 5290 / 5380, `reasoning` 800,
+  `cache.read` 22000, `cache.write` 3100) and the identical costs (0.42 / 0.47 / 0.52). Real turns
+  do not repeat to the token across nine sessions.
+- **No record carries `parentID` at all** — the field is absent from every line, so the fixture
+  exercises no sub-agent chain. The `parentID` resolution required by REQ-FN-067 is therefore
+  covered by unit tests (`PlaybookReportBuilderTests`: nested chain, orphan chain, minimum-n) and
+  not by this archive.
+- One process gate only (`/build-phase`), so the four gates BRD-75 names (plan review, verify, gap
+  report, post-verification bugs) are unobserved here too.
+- The archive is named `events-{sha}.jsonl`, whereas `PlaybookAdapter.ArchiveAsync` writes
+  `events-{sha}.ndjson`: the file was placed by the demo seed, not fetched by the adapter.
+
+The consequence for the pages and the export is only that the Playbook figures are thin, not that
+they are wrong: 45 events, 9 sessions, 1 process gate, 1 946 430 tokens, $12.69 measured, and a
+main-vs-sub-agent split of 9 / 0 — which is the correct answer for a stream that reports no parent.
 
 - **Field names observed (verbatim, in emission order):** `kind`, `command`, `sessionID`,
   `arguments`, `parentID`, `messageID`, `model`, `tokens`, `cost`, `ts`.
@@ -552,3 +785,60 @@ Counterfactual, pricing the pooled token base (841 in / 107,384 out / 2,626,036 
   `RunsExcludedNoTokenScope` 1, `MissingPriceModels` `["gpt-5-codex"]`, all matching the hand figures.
 - **Standing note:** every figure above is **tokens × rate card, not measured spend**, and is rendered
   and exported with `RateCard.EstimateLabel` beside it (SCHEMA.md §4).
+
+### X-002 — Harness comparison, routing drift and repricing on the REAL dataset, 2026-08-27
+
+X-001 checked repricing against a 10-record test fixture. This is the check REQ-FN-064 actually asks
+for: the three no-oracle extras, on the live dataset the BRD §13 run above was executed against.
+
+- **Metrics:** `extras.harness`, `extras.routing`, `extras.repricing` (REQ-FN-058, BRD-51..BRD-62).
+  `tf-metrics.sh` computes none of them, so they have no parity oracle and cannot appear in §6.
+- **Repo / SHA (the raw files read):** `techierathore/TechieFlow` →
+  `708fcffbdf1c61cf327fc3e0038291bce40091d6` and `techierathore/TrBlazeUI` →
+  `49cf7a73f3f78219abccd1ecab49db797315a16c`, i.e. every
+  `src/TfLens/data/raw/2/techierathore__{TechieFlow,TrBlazeUI}/{runs,gates,sessions}-*.jsonl`.
+- **Compared against:** `data/reports/2/2026-08-27/techieflow/tflens.json`.
+- **Method:** the raw JSONL read with `python3`, the BRD-26/27/28 dedupe keys applied by hand, and each
+  figure recomputed from the record fields — never from the C# path. Base record counts after dedupe:
+  **runs 42, gates 77, sessions 35**, which match the `Run`/`Gate`/`Session` tables exactly.
+
+**Harness comparison — every figure matched.** Tokens are summed over **run** records (not sessions),
+which is what `ExtraMetrics.BuildColumn` defines them as:
+
+| Harness | runs | gate records | sessions | tokens in / out / cache-read / cache-write | tokens per Verified REQ |
+|---|---|---|---|---|---|
+| `claude-code` | 26 | 68 | 32 | 3,074,400 / 361,920 / 1,440,000 / 192,000 | 3,436,320 ÷ 46 = **74,702.6** |
+| `opencode` | 12 | 0 | 2 | 1,521,000 / 178,800 / 720,000 / 96,000 | *insufficient data (n=0)* — 0 Verified gates |
+| `codex` | 4 | 8 | 1 | 0 / 0 / 0 / 0 | *—* — no token base |
+
+Verdict mixes matched too (`claude-code` Verified 46 / Failed 22; `codex` Verified 4 / FAIL 2 / Needs
+re-verify 2). `not_detected_records` = **1** is right: exactly one gate record carries no `harness`,
+and it is excluded from all three columns rather than folded into one.
+
+**Routing drift — every figure matched.** `runs_with_routing_fields` **36**, `unrouted_runs` **8**
+(runs whose `routed` is literally `false`), `distinct_models` **1**, drift table **36 rows**.
+`tokens_by_model` for `claude-opus-4`: in 4,595,400 / out 540,720 / cache-read 2,160,000 /
+cache-write 288,000, **total 7,584,120** — reproduced to the token.
+
+**Repricing — matched, including the two "suspicious" values, which are both correct.**
+`missing_price_models` = `["claude-opus-4"]` is right: `data/prices.json` carries `claude-opus-4-8`,
+`claude-opus-5` and `claude-fable-5`, but no plain `claude-opus-4`, so nothing was priceable and the
+three USD estimates are `null` rather than 0. `runs_excluded_no_token_scope` = **0** is also right
+even though 6 of the 42 runs have no token base: `Reprice` counts exclusions among runs that carry an
+observed `model`, and all 6 of those runs carry `model: null`, so they are out of scope by definition
+rather than silently dropped.
+
+**One finding — `extras.harness.opencode_cost_usd` is structurally always `null`.**
+`ExtraMetrics.MeasuredOpenCodeCost` sums `cost_usd` over **run** records. In this dataset **no run
+record carries `cost_usd` at all**; the measured OpenCode dollars are on the **session** records —
+`0.017749` and `0.019918`, i.e. a real measured **$0.04** that the page reports as "not measured".
+SCHEMA.md §4 is explicit that this is the documented source: the OpenCode plugin *"emits into this
+stream"* — sessions.jsonl — *"with **real `cost_usd`**"*. BRD-53 asks for real `cost_usd` for
+`opencode`, and the one measured-dollars figure in the product currently cannot ever show it.
+Not changed here: `extras` is REQ-FN-058's surface, and this record is the sanctioned way the gap is
+raised. Recorded for the owner.
+
+- **Verdict:** PASS on harness comparison, routing drift and repricing — every figure reproduced by
+  hand. One defect found and recorded (`opencode_cost_usd` reads the wrong stream).
+- **Playbook axis:** not covered here. `events.ndjson` is a TfLens-only stream (`per_repo[].events`,
+  REQ-FN-065); its figures are an `extras` axis with no reference and are checked in §7.

@@ -486,8 +486,23 @@ test('REQ-UI-012 the connect dialog keeps Connect disabled until validation pass
     .first()
     .waitFor({ state: 'attached', timeout: 45_000 });
 
+  // The safety property holds in BOTH branches and is asserted first: whatever validation reported,
+  // Connect must not become enabled for a repo with no telemetry path.
   await expect(submit, 'connect-submit became enabled for a repo with no telemetry path').toBeDisabled();
-  await expect(page.locator('[data-testid="connect-validation"]').first()).toBeAttached({ timeout: 20_000 });
+
+  // Which branch rendered depends on the environment, not on the app. GitHub's unauthenticated API
+  // allows 60 requests/hour, and validation spends several per repo, so a run that follows a sync (or
+  // any other run in the same hour) can legitimately find the quota exhausted. When that happens the
+  // app correctly renders `connect-rate-limit` INSTEAD of `connect-validation` — asserting the latter
+  // unconditionally turned correct behaviour into a red test. Grade the branch that actually rendered.
+  const vRateLimited = (await page.locator('[data-testid="connect-rate-limit"]').count()) > 0;
+  if (vRateLimited) {
+    const vText = (await page.locator('[data-testid="connect-rate-limit"]').first().textContent()) ?? '';
+    console.log(`BRANCH: REQ-UI-012 GitHub rate limit hit — validation not reachable :: ${vText.replace(/\s+/g, ' ').trim()}`);
+    expect(vText, 'the rate-limit alert should say so in words').toMatch(/rate limit/i);
+  } else {
+    await expect(page.locator('[data-testid="connect-validation"]').first()).toBeAttached({ timeout: 20_000 });
+  }
   await expect(submit).toBeDisabled();
 
   // Teardown. REQ-UI-012's acceptance does not name Escape (only REQ-UI-013's does), and
@@ -535,4 +550,47 @@ test('REQ-UI-013 the remove dialog names the repo and cancelling leaves every ro
   await page.waitForTimeout(1000);
   const after = await page.locator('[data-testid="repos-table"] tbody tr').count();
   expect(after, `cancelling the remove dialog changed the row count (${before} -> ${after})`).toBe(before);
+});
+
+// REQ-UI-013's acceptance names Escape explicitly: "removal only proceeds through the confirm action
+// (Escape/Cancel aborts with no data change)". TrBlazeUI 2.0.0's AlertDialog ships no Escape handling
+// of its own (TR-014), so this is guarded by page-owned code that can silently regress — hence a test
+// of its own. remove-confirm is NEVER pressed here.
+test('REQ-UI-013 Escape dismisses the remove dialog and leaves every row in place', async ({ page }) => {
+  await signIn(page);
+  await gotoScreen(page, '/repos');
+
+  const rows = page.locator('[data-testid="repos-table"] tbody tr');
+  const before = await rows.count();
+  expect(before, 'no repo rows to exercise the remove dialog against').toBeGreaterThan(0);
+
+  const removeButton = page.locator('[data-testid^="repo-remove-"]').first();
+  const removeTestId = (await removeButton.getAttribute('data-testid')) || '';
+  const repoName = removeTestId.replace(/^repo-remove-/, '');
+
+  await removeButton.click();
+  await page.locator('[data-testid="remove-title"]').first().waitFor({ state: 'visible', timeout: 20_000 });
+  await expect(page.locator('[data-testid="remove-title"]').first()).toContainText(repoName);
+
+  await page.keyboard.press('Escape');
+
+  await expect(
+    page.locator('[data-testid="remove-title"]').first(),
+    'Escape did not dismiss the remove AlertDialog',
+  ).toBeHidden({ timeout: 20_000 });
+  await expect(page.locator('[data-testid="remove-confirm"]').first()).toBeHidden({ timeout: 20_000 });
+
+  await page.waitForTimeout(1000);
+  const after = await page.locator('[data-testid="repos-table"] tbody tr').count();
+  expect(after, `Escape on the remove dialog changed the row count (${before} -> ${after})`).toBe(before);
+
+  // The dialog must still be openable afterwards — a listener torn down by the dismiss would
+  // leave the second Escape dead.
+  await page.locator('[data-testid^="repo-remove-"]').first().click();
+  await page.locator('[data-testid="remove-title"]').first().waitFor({ state: 'visible', timeout: 20_000 });
+  await page.keyboard.press('Escape');
+  await expect(
+    page.locator('[data-testid="remove-title"]').first(),
+    'Escape stopped working after the first dismiss',
+  ).toBeHidden({ timeout: 20_000 });
 });

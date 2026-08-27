@@ -64,6 +64,15 @@ CREATE TABLE IF NOT EXISTS "SyncState" (
     CONSTRAINT "PkSyncState" PRIMARY KEY ("UserId", "Repo")
 );
 
+-- REQ-FN-063: how many session records ingest threw away because another record already held that
+-- session id. Unlike the five *Count columns this cannot be recovered with COUNT(*) — the collapsed
+-- rows were never written — so it is a property of ingest and has to be persisted as one. `rebuild`
+-- replays the whole raw archive and therefore SETS it; an incremental sync ADDS its own pass to it.
+-- Added after the table shipped, so it is a guarded ALTER rather than a column on the CREATE above:
+-- the schema file is applied at every startup and must stay idempotent on an existing database.
+ALTER TABLE "SyncState"
+    ADD COLUMN IF NOT EXISTS "SessionDuplicatesCollapsed" integer NOT NULL DEFAULT 0;
+
 -- ---------------------------------------------------------------- streams
 
 CREATE TABLE IF NOT EXISTS "Run" (

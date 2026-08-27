@@ -12,6 +12,7 @@
 @using Microsoft.Extensions.Options
 @* _Imports.razor does not carry the Empty namespace, so it is imported here rather than shared-file-edited. *@
 @using TrBlazeUI.Components.Empty
+@using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject ITelemetryStore objStore
 @inject ShellState objShellState
@@ -28,14 +29,26 @@
         @* TrBlazeUI 2.0.0 ships no Typography components (TR-005), so the page heading is plain markup. *@
         <div>
             <h1 class="text-2xl font-semibold">Coverage / health</h1>
-            <p class="mt-1 text-sm text-muted-foreground">Every other number is suspect until this page is green</p>
+            <p class="mt-1 text-sm text-muted-foreground">@Subtitle</p>
         </div>
         <Badge Variant="BadgeVariant.Outline" data-testid="coverage-parser">
             parser @ParserVersion.Current · @objCards.Count repos
         </Badge>
     </div>
 
-    @if (!objIsLoaded)
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-034 — the Playbook framework state: the standing axis note, then either the `events`
+           stream and its observed fields, or the Phase-3 empty state. The figures are read through
+           IPlaybookReportBuilder, which is a separate interface from ITelemetryStore's TechieFlow
+           reads, so no gate record can reach this branch (SCHEMA.md §11). *@
+        <PlaybookState UserId="@objUserId">
+            <ChildContent Context="vAnalysis">
+                <PlaybookCoverageSurface Analysis="@vAnalysis" />
+            </ChildContent>
+        </PlaybookState>
+    }
+    else if (!objIsLoaded)
     {
         <Card>
             <CardContent Class="p-6">
@@ -425,6 +438,15 @@
 
     /// <summary>How old a cadence stream may be before this page calls it stale (REQ-UI-015).</summary>
     private int StalenessDays => Math.Max(1, objOptionsAccessor.Value.StalenessDays);
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-034).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook state — every other number is suspect until this page is green"
+            : "Every other number is suspect until this page is green";
 
     /// <summary>Repositories whose last sync attempt did not record an error.</summary>
     private int SyncedRepoCount => objCards.Count(aCard => aCard.Sync?.LastError is null);

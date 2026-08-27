@@ -19,6 +19,31 @@ public static class Fixtures
     /// <summary>AppManager user id of test user #2, <c>tflenstest2@techierathore.com</c> — the isolation counterpart.</summary>
     public const int SecondUserId = 3;
 
+    /// <summary>
+    /// Reserved user id for <b>destructive database</b> tests. Deliberately NOT a real AppManager account.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="DemoUserId"/> and <see cref="SecondUserId"/> are the owner's real accounts, and the
+    /// store tests are destructive: they call <c>PostgresStore.RebuildAsync(userId)</c>, which drops
+    /// <b>every</b> row for that user and replays from whatever raw archive the caller points at. Run
+    /// against user 2 with a temp archive — which is exactly what the tests use — that silently wiped the
+    /// owner's live telemetry on every <c>dotnet test</c>, leaving the running app with empty report
+    /// pages until someone re-ran <c>rebuild</c> by hand. A test that destroys real data to prove a point
+    /// about counting is not a test anyone can afford to run.
+    /// </para>
+    /// <para>
+    /// These ids are above any id AppManager will issue, so a row written here can never collide with a
+    /// real account, and cross-user isolation is still provable — that property needs two distinct ids,
+    /// not two <i>real</i> ids. Keep destructive database work on these; the real ids stay for in-memory
+    /// fixtures and for read-only assertions about live data.
+    /// </para>
+    /// </remarks>
+    public const int StoreTestUserId = 90002;
+
+    /// <summary>The isolation counterpart to <see cref="StoreTestUserId"/>; likewise not a real account.</summary>
+    public const int StoreTestSecondUserId = 90003;
+
     /// <summary>The busy fixture repository, <c>project_type app</c>.</summary>
     public const string TrSetupRepo = "techierathore/TrSetup";
 

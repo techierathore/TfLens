@@ -18,6 +18,7 @@
 @using TrBlazeUI.Components.Chart
 @using TrBlazeUI.Components.Empty
 @using TrBlazeUI.Components.Typography
+@using TfLens.Components.Shared.Playbook
 @using ApexCharts
 @implements IDisposable
 @inject IExtraMetrics objExtraMetrics
@@ -30,7 +31,7 @@
 
     <div>
         <TypographyH2>Harness comparison</TypographyH2>
-        <TypographyMuted>claude-code · opencode · codex, side by side — same rows, no total</TypographyMuted>
+        <TypographyMuted>@Subtitle</TypographyMuted>
     </div>
 
     @* REQ-UI-023 — the standing note. It is not conditional: the rule holds on every framework. *@
@@ -42,7 +43,19 @@
         </AlertDescription>
     </Alert>
 
-    @if (!objIsLoaded)
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-034 — the Playbook framework state: the standing axis note, then the dimensions
+           `events.ndjson` actually carries, or the Phase-3 empty state. The figures are read through
+           IPlaybookReportBuilder, so no TechieFlow harness column can reach this branch and the two
+           axes cannot be pooled (SCHEMA.md §11). *@
+        <PlaybookState UserId="@objUserId">
+            <ChildContent Context="vAnalysis">
+                <PlaybookHarnessSurface Analysis="@vAnalysis" />
+            </ChildContent>
+        </PlaybookState>
+    }
+    else if (!objIsLoaded)
     {
         <Card>
             <CardContent Class="p-6">
@@ -238,7 +251,7 @@
                             @vCost.ToString("C2", CultureInfo.GetCultureInfo("en-US"))
                         </div>
                         <p class="mt-1 text-xs text-muted-foreground" data-testid="opencode-cost-basis">
-                            Σ cost_usd over @OpenCodeRunCount.ToString("N0", CultureInfo.InvariantCulture) opencode runs
+                            @OpenCodeCostBasis
                         </p>
                     }
                     else
@@ -269,7 +282,29 @@
     /// <summary>The one harness that measures its own cost.</summary>
     private const string OpenCode = "opencode";
 
-    private HarnessComparison objComparison = new([], 0, null);
+    /// <summary>
+    /// The basis line under the measured-dollars figure — the stream and the record count it was
+    /// actually summed over.
+    /// </summary>
+    /// <remarks>
+    /// Built as one string rather than interleaved markup so the sentence cannot be split by Razor's
+    /// whitespace handling: rendered as three fragments it silently truncated to "Σ cost_usd over 2",
+    /// dropping the noun and leaving the reader to guess which stream the 2 counted. It names
+    /// <b>sessions</b> because that is where <c>cost_usd</c> lives (SCHEMA.md §4); the earlier caption
+    /// said "runs" and quoted the run count, naming the wrong stream and the wrong number under a
+    /// figure that was itself correct.
+    /// </remarks>
+    private string OpenCodeCostBasis
+    {
+        get
+        {
+            var vCount = objComparison.OpenCodeCostSessions;
+            var vNoun = vCount == 1 ? "session" : "sessions";
+            return $"Σ cost_usd over {vCount.ToString("N0", CultureInfo.InvariantCulture)} opencode {vNoun}";
+        }
+    }
+
+    private HarnessComparison objComparison = new([], 0, null, 0);
     private IReadOnlyList<HarnessTokens> objTokenRows = [];
     private IReadOnlyList<HarnessTokenTotal> objChartRows = [];
     private string? objLoadError;
@@ -280,10 +315,15 @@
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    /// <summary>How many OpenCode runs the measured total was summed over.</summary>
-    private int OpenCodeRunCount =>
-        objComparison.Columns
-            .FirstOrDefault(aColumn => string.Equals(aColumn.Harness, OpenCode, StringComparison.Ordinal))?.Runs ?? 0;
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-034).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook state — what events.ndjson can and cannot say about the harness a phase ran on"
+            : "claude-code · opencode · codex, side by side — same rows, no total";
+
 
     /// <summary>
     /// Re-queries whenever the workspace or the chosen provenance axis changes under this page.
@@ -351,7 +391,7 @@
         }
         catch (Exception vEx)
         {
-            objComparison = new HarnessComparison([], 0, null);
+            objComparison = new HarnessComparison([], 0, null, 0);
             objTokenRows = [];
             objChartRows = [];
             objLoadError = vEx.Message;

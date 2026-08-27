@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.Options;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Parsing;
 
 namespace TfLens.Core.Metrics;
 
@@ -20,9 +21,11 @@ namespace TfLens.Core.Metrics;
 /// </para>
 /// <para>
 /// <b>BRD-54 — there is no cross-harness dollar total.</b> Measured <c>cost_usd</c> exists only on
-/// OpenCode records, so <see cref="HarnessComparison.OpenCodeCostUsd"/> is the only money this class
-/// reports as measured. There is no member here, and none on the contracts, that could hold a total
-/// across harnesses. Tokens may be compared across harness; dollars may not (SCHEMA.md §2.5).
+/// OpenCode <b>session</b> records (SCHEMA.md §4 — the OpenCode plugin is the one emitter that can
+/// measure a real price, and it writes it onto the session stream, never onto a run), so
+/// <see cref="HarnessComparison.OpenCodeCostUsd"/> is the only money this class reports as measured.
+/// There is no member here, and none on the contracts, that could hold a total across harnesses.
+/// Tokens may be compared across harness; dollars may not (SCHEMA.md §2.5).
 /// </para>
 /// <para>
 /// <b>ADR-009 / SCHEMA.md §4 — repricing is an estimate.</b> Every money figure on
@@ -47,6 +50,9 @@ public sealed class ExtraMetrics : IExtraMetrics
 
     /// <summary>The <c>tokens_scope</c> value that means the token window could not be computed.</summary>
     private const string TokensScopeNone = "none";
+
+    /// <summary>The one harness that can measure a real price (SCHEMA.md §4).</summary>
+    private const string OpenCodeHarness = "opencode";
 
     /// <summary>The bucket a run with no <c>cmd</c> falls into, matching the reference's <c>?</c>.</summary>
     private const string UnknownBucket = "?";
@@ -103,7 +109,9 @@ public sealed class ExtraMetrics : IExtraMetrics
             + vGates.Count(aG => aG.Harness is null)
             + vSessions.Count(aS => aS.Harness is null);
 
-        return new HarnessComparison(vColumns, vNotDetected, MeasuredOpenCodeCost(vRuns));
+        var (vCost, vCostSessions) = MeasuredOpenCodeCost(vSessions);
+
+        return new HarnessComparison(vColumns, vNotDetected, vCost, vCostSessions);
     }
 
     /// <summary>
@@ -222,23 +230,48 @@ public sealed class ExtraMetrics : IExtraMetrics
     }
 
     /// <summary>
-    /// The only measured dollars in TfLens — the OpenCode <c>cost_usd</c> sum.
+    /// The only measured dollars in TfLens — the OpenCode <c>cost_usd</c> sum over the session stream.
     /// </summary>
     /// <remarks>
-    /// BRD-53: Claude Code and Codex report <c>null</c> by design, and a rate-card figure may never
-    /// stand in for them. The sum is <c>null</c> unless at least one OpenCode run actually carries a
-    /// measurement, because a zero over unmeasured records would read as "it cost nothing".
+    /// <para>
+    /// <b>The measurement lives on sessions, not runs (SCHEMA.md §4).</b> No <c>runs.jsonl</c> record
+    /// carries <c>cost_usd</c> at all; the OpenCode plugin writes the real measured price onto the
+    /// session stream. Summing runs therefore yielded a structural <c>null</c> — the page reported
+    /// "not measured" over a dataset that had actually been measured, which is precisely the plausible
+    /// wrong number this product exists to prevent.
+    /// </para>
+    /// <para>
+    /// <b>BRD-27 — a duplicated session must not double-count its dollars.</b> The plugin appends a
+    /// <i>cumulative</i> snapshot at every root-session idle, so several records legitimately share a
+    /// <c>session_id</c> and only the largest is complete. The stream's own dedupe rule is applied
+    /// before anything is summed, so a session that idled five times contributes its price once. The
+    /// dedupe runs before the harness filter, because collapsing is a property of the stream and
+    /// attribution is a property of the surviving record.
+    /// </para>
+    /// <para>
+    /// <b>BRD-53 — <c>null</c> means nothing measured, never zero.</b> Claude Code and Codex report
+    /// <c>null</c> by design and a rate-card figure may never stand in for them, so the sum stays
+    /// <c>null</c> unless at least one OpenCode session actually carries a measurement: a zero over
+    /// unmeasured records would read as "it cost nothing". Nothing here pools across harnesses.
+    /// </para>
     /// </remarks>
-    /// <param name="aRuns">Every run record for the user and framework.</param>
-    /// <returns>The measured total, or <c>null</c> when nothing measured it.</returns>
-    private static decimal? MeasuredOpenCodeCost(IReadOnlyList<RunRecord> aRuns)
+    /// <param name="aSessions">Every session record for the user and framework.</param>
+    /// <returns>
+    /// The measured total and the number of deduped OpenCode session records that carried a
+    /// <c>cost_usd</c> and were summed into it. The count travels with the figure so the page can state
+    /// the basis it was actually computed over; reporting it separately is what let a caption claim
+    /// "over 12 opencode runs" for a sum of two session records.
+    /// </returns>
+    private static (decimal? Cost, int Sessions) MeasuredOpenCodeCost(IReadOnlyList<SessionRecord> aSessions)
     {
-        var vMeasured = aRuns
-            .Where(aR => string.Equals(aR.Harness, "opencode", StringComparison.Ordinal) && aR.CostUsd.HasValue)
-            .Select(aR => aR.CostUsd!.Value)
+        var vMeasured = Dedupe.Sessions(aSessions).Records
+            .Where(aS => string.Equals(aS.Harness, OpenCodeHarness, StringComparison.Ordinal) && aS.CostUsd.HasValue)
+            .Select(aS => aS.CostUsd!.Value)
             .ToList();
 
-        return vMeasured.Count == 0 ? null : Math.Round(vMeasured.Sum(), 2, MidpointRounding.ToEven);
+        return vMeasured.Count == 0
+            ? (null, 0)
+            : (Math.Round(vMeasured.Sum(), 2, MidpointRounding.ToEven), vMeasured.Count);
     }
 
     /// <summary>

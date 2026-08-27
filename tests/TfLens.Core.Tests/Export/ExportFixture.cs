@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using TfLens.Core.Contracts;
 using TfLens.Core.Export;
 using TfLens.Core.Metrics;
+using TfLens.Core.Playbook;
 using TfLens.Core.Tests.Metrics;
 
 namespace TfLens.Core.Tests.Export;
@@ -49,15 +50,17 @@ public static class ExportFixture
     /// Builds the exporter under test.
     /// </summary>
     /// <param name="aDataRoot">A throwaway data root; reports, the rate card and the parity record live under it.</param>
+    /// <param name="aStore">A store to compose over, or <c>null</c> for the three engine fixtures.</param>
     /// <returns>The exporter.</returns>
-    public static SnapshotExporter Exporter(string aDataRoot)
+    public static SnapshotExporter Exporter(string aDataRoot, FixtureTelemetryStore? aStore = null)
     {
-        var vStore = Store();
+        var vStore = aStore ?? Store();
         var vOptions = Options.Create(new TfLensOptions { DataRoot = aDataRoot });
 
         return new SnapshotExporter(
             new MetricsEngine(vStore, NullLogger<MetricsEngine>.Instance),
             new ExtraMetrics(vStore, vOptions),
+            new PlaybookReportBuilder(vStore),
             vStore,
             vOptions,
             NullLogger<SnapshotExporter>.Instance);

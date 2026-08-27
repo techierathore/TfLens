@@ -1,0 +1,136 @@
+@*
+    REQ-UI-034 — the Playbook state of the Harness comparison page
+    (docs/mockups/harness-playbook.html).
+
+    The mockup draws three harness columns over `events.ndjson`. The real stream cannot support them:
+    `PlaybookWireFields` — read off the Playbook's own emitter source — carries kind, command, sessionID,
+    arguments, parentID, messageID, model, tokens, cost and ts, and **no harness field at all**. Deriving
+    a harness from the model string would be exactly the plausible-but-unfounded figure ADR-010 forbids,
+    so the columns are refused in words and the page shows the dimensions the events really carry: the
+    observed model, and the one measured cost the stream reports.
+
+    Nothing here is a TechieFlow figure, and no `gate` value is in scope, so the two axes cannot meet on
+    this page (SCHEMA.md §11).
+*@
+@using System.Globalization
+
+<div class="tflens-stack">
+
+    @* The refusal, stated rather than left as a blank panel. *@
+    <Alert Variant="AlertVariant.Warning" AccentBorder="true" data-testid="pb-harness-unavailable">
+        <LucideIcon Name="triangle-alert" Size="16" />
+        <AlertTitle>events.ndjson carries no harness field</AlertTitle>
+        <AlertDescription>
+            The Playbook stream reports @WireFieldList and nothing else, so there is no harness to put a
+            column under. Inferring one from the model name would be a guess, not a measurement — the
+            model and cost the events do carry are shown below instead. The TechieFlow harness columns
+            are on the TechieFlow axis and are never pooled with these figures.
+        </AlertDescription>
+    </Alert>
+
+    <div class="pb-lower">
+
+        <Card Class="h-full" data-testid="pb-harness-models">
+            <CardHeader>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <CardTitle>Total tokens by observed model</CardTitle>
+                        <CardDescription>
+                            in + out + cache read + cache write · every value also appears as text
+                        </CardDescription>
+                    </div>
+                    <Badge Variant="BadgeVariant.Outline">tokens, not dollars</Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <PlaybookModelTokens Models="@Analysis.TokensByModel" />
+            </CardContent>
+        </Card>
+
+        @* The one measured dollar figure the Playbook stream carries — OpenCode's `cost` field. *@
+        <Card Class="h-full" data-testid="pb-measured-cost">
+            <CardHeader>
+                <div class="flex items-start justify-between gap-3">
+                    <div class="pb-cost-heading">
+                        <CardTitle>Measured dollars (OpenCode only)</CardTitle>
+                        <CardDescription>
+                            <Badge Variant="BadgeVariant.Secondary">the only measured dollars on this axis</Badge>
+                        </CardDescription>
+                    </div>
+                    <span class="shrink-0">
+                        <LucideIcon Name="database" Size="16" />
+                    </span>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <div class="pb-money tabular-nums" data-testid="pb-measured-cost-value">@CostText</div>
+                <p class="mt-1 text-xs text-muted-foreground" data-testid="pb-measured-cost-basis">
+                    @CostBasis
+                </p>
+
+                <div class="pb-money-rule">
+                    <Separator />
+                </div>
+
+                <p class="text-sm text-muted-foreground" data-testid="pb-measured-cost-note">
+                    A phase_gate whose events carried no cost renders — in the table below, never $0.00.
+                </p>
+            </CardContent>
+        </Card>
+    </div>
+
+    @* The phase_gate table, so every charted and totalled figure above has its text twin on the page. *@
+    <Card>
+        <CardHeader>
+            <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                <span class="flex min-w-0 flex-col gap-1">
+                    <CardTitle Class="text-base">Phase totals</CardTitle>
+                    <CardDescription>
+                        Events, sessions, tokens and measured cost per Playbook process gate. No TechieFlow
+                        assertion gate appears on this table (SCHEMA.md §11).
+                    </CardDescription>
+                </span>
+                <Badge Variant="BadgeVariant.Outline">phase_gate</Badge>
+            </div>
+        </CardHeader>
+        <CardContent Class="pt-0">
+            <PlaybookPhaseTotals Analysis="@Analysis" Name="harness" />
+        </CardContent>
+    </Card>
+</div>
+
+@code {
+    /// <summary>What a fact the events never carried renders as — never a zero.</summary>
+    private const string Dash = "—";
+
+    /// <summary>The Playbook report set this surface renders; it cannot hold a TechieFlow figure.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAnalysis Analysis { get; set; } = default!;
+
+    /// <summary>The wire fields the stream really carries, named in the refusal.</summary>
+    private static string WireFieldList => string.Join(", ", PlaybookWireFields.Names);
+
+    /// <summary>Measured spend across every process gate that reported any, or <c>null</c>.</summary>
+    private decimal? MeasuredCost
+    {
+        get
+        {
+            var vMeasured = Analysis.PhaseTotals.Where(aTotals => aTotals.CostUsd is not null).ToList();
+            return vMeasured.Count == 0 ? null : vMeasured.Sum(aTotals => aTotals.CostUsd!.Value);
+        }
+    }
+
+    /// <summary>The headline figure, or the em dash that says nothing measured it.</summary>
+    private string CostText =>
+        MeasuredCost is { } vCost
+            ? vCost.ToString("C2", CultureInfo.GetCultureInfo("en-US"))
+            : Dash;
+
+    /// <summary>What the headline figure was summed over, or why there is none.</summary>
+    private string CostBasis =>
+        MeasuredCost is null
+            ? "no Playbook event has carried a cost field yet — the figure is absent, not zero"
+            : $"Σ cost over {Analysis.EventsTotal:N0} events on "
+              + $"{Analysis.PhaseTotals.Count(aTotals => aTotals.CostUsd is not null):N0} process gates";
+}

@@ -178,6 +178,49 @@ public sealed class PlaybookReportBuilderTests
             && aQ.UnavailableReason != null);
     }
 
+    /// <summary>
+    /// Below the minimum n the sub-agent share refuses to state a number, in the engine's own words.
+    /// </summary>
+    /// <remarks>
+    /// The refusal is the <see cref="Figure"/> type's, not a check repeated here: REQ-FN-067's acceptance
+    /// is that the Playbook figures obey the <i>same</i> minimum-n rule as the TechieFlow engine, and
+    /// they do so by being the same type rather than by agreeing with it.
+    /// </remarks>
+    [Fact]
+    public void ShareBelowTheMinimumNRefusesToStateANumber()
+    {
+        var vEvents = new[]
+        {
+            Event(PlaybookEventKinds.PhaseStart, "ses-root", null, null, 0),
+            Event("turn", "ses-root", null, "msg-a", 80),
+            Event("turn", "ses-child", "ses-root", "msg-b", 20)
+        };
+
+        var vSplit = PlaybookReportBuilder.Build(Fixtures.DemoUserId, vEvents).AgentSplit;
+
+        vSplit.SessionsTotal.Should().BeLessThan(MetricsConstants.MinN);
+        vSplit.SubagentTokenShare.Kind.Should().Be(FigureKind.InsufficientData);
+        vSplit.SubagentTokenShare.Display().Should().Be("insufficient data (n=2)");
+    }
+
+    /// <summary>At the minimum n the same share states the number, so the refusal is the rule and not a wall.</summary>
+    [Fact]
+    public void ShareAtTheMinimumNStatesTheNumber()
+    {
+        var vEvents = new[]
+        {
+            Event(PlaybookEventKinds.PhaseStart, "ses-root", null, null, 0),
+            Event("turn", "ses-root", null, "msg-a", 80),
+            Event("turn", "ses-child", "ses-root", "msg-b", 10),
+            Event("turn", "ses-other", "ses-root", "msg-c", 10)
+        };
+
+        var vSplit = PlaybookReportBuilder.Build(Fixtures.DemoUserId, vEvents).AgentSplit;
+
+        vSplit.SessionsTotal.Should().Be(MetricsConstants.MinN);
+        vSplit.SubagentTokenShare.Display().Should().Be("20%");
+    }
+
     /// <summary>A phase whose events carry no cost renders an em dash, never a manufactured zero.</summary>
     [Fact]
     public void AbsentCostRendersAsAnEmDash()

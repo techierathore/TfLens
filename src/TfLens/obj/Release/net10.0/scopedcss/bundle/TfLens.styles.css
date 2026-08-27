@@ -879,6 +879,157 @@
     flex-direction: column;
     gap: 1.5rem;
 }
+/* /Components/Shared/Playbook/PlaybookCoverageSurface.razor.rz.scp.css */
+/* The surface's vertical rhythm. The shipped trblazeui.css carries `gap-4` but no `gap-6` (TR-002),
+   and Blazor scoped CSS is scoped to ONE component, so the page's own copy of this rule cannot reach
+   this component's markup. */
+
+.tflens-stack[b-76ug73nhr3] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+/* /Components/Shared/Playbook/PlaybookHarnessSurface.razor.rz.scp.css */
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002: the
+   package ships no responsive variants at all, so every breakpoint is hand-written here).
+
+   Blazor scoped CSS is scoped to ONE component, so the page-level rules in Harness.razor.css cannot
+   reach this component's markup — these are its own copies rather than references to them. */
+
+.tflens-stack[b-bgpqhpvwfd] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pb-lower[b-bgpqhpvwfd] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+@media (min-width: 64rem) {
+    .pb-lower[b-bgpqhpvwfd] {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+}
+
+.pb-money[b-bgpqhpvwfd] {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+/* Separator is a child component, so its own root cannot carry this component's scope attribute; the
+   rule's breathing space lives on the wrapper instead. */
+.pb-money-rule[b-bgpqhpvwfd] {
+    margin: 1rem 0;
+}
+
+.pb-cost-heading[b-bgpqhpvwfd] {
+    min-width: 0;
+}
+/* /Components/Shared/Playbook/PlaybookModelTokens.razor.rz.scp.css */
+/* TR-011 — TrBlazeUI's BarChart renders an empty <div> in this app (the ApexCharts runtime the package
+   wraps is never loaded), so the totals are drawn as a plain CSS bar row that renders whether or not a
+   charting runtime is available. Every bar carries its exact figure as text, and the same figure appears
+   in the table above it, so nothing here depends on a script to be readable.
+
+   These rules are a copy of Routing.razor.css's bar row rather than a reference to it: Blazor scoped CSS
+   is scoped to ONE component, so a rule written for the page cannot reach a child component's markup. */
+
+.pb-bars[b-n2mv96e1ya] {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    height: 160px;
+    padding-top: 0.5rem;
+    overflow-x: auto;
+}
+
+.pb-bar[b-n2mv96e1ya] {
+    flex: 1 1 0;
+    min-width: 72px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.375rem;
+    text-align: center;
+}
+
+.pb-bar-fill[b-n2mv96e1ya] {
+    display: block;
+    width: 100%;
+    max-width: 56px;
+    border-radius: 6px 6px 2px 2px;
+    background: var(--chart-1);
+}
+
+.pb-bar-label[b-n2mv96e1ya] {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.pb-bar-1[b-n2mv96e1ya] { background: var(--chart-1); }
+.pb-bar-2[b-n2mv96e1ya] { background: var(--chart-2); }
+.pb-bar-3[b-n2mv96e1ya] { background: var(--chart-3); }
+.pb-bar-4[b-n2mv96e1ya] { background: var(--chart-4); }
+.pb-bar-5[b-n2mv96e1ya] { background: var(--chart-5); }
+/* /Components/Shared/Playbook/PlaybookQuestionsSurface.razor.rz.scp.css */
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002).
+   Blazor scoped CSS is scoped to ONE component, so the page's own copies of these rules cannot reach
+   this component's markup. */
+
+.tflens-stack[b-mvza2ykjjn] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tflens-tab-body[b-mvza2ykjjn] {
+    margin-top: 1rem;
+}
+
+/* The phase_gate tab strip is a single inline-flex row that grows with the number of process gates, so
+   at a 390px viewport it drags the whole page container sideways. It scrolls inside its own box
+   instead — the same treatment the wide tables get. ::deep reaches TabsList, which is a child
+   component and so cannot carry this component's scope attribute. */
+.tflens-tabs-scroll[b-mvza2ykjjn]  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+/* /Components/Shared/Playbook/PlaybookRoutingSurface.razor.rz.scp.css */
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002).
+   Blazor scoped CSS is scoped to ONE component, so the page's own copies of these rules cannot reach
+   this component's markup. */
+
+.tflens-stack[b-2khsin5gmm] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tflens-tab-body[b-2khsin5gmm] {
+    margin-top: 1rem;
+}
+
+/* Three tab triggers are wider than a 390px viewport. Without this the page container scrolls sideways
+   and drags the rest of the page off-screen with it; here the trigger row scrolls inside its own box.
+   ::deep reaches TabsList, which is a child component and so cannot carry this component's scope
+   attribute. */
+.tflens-tabs-scroll[b-2khsin5gmm]  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
 /* /Components/Shared/StatTile.razor.rz.scp.css */
 /* The KPI tile's accent chip. TrBlazeUI 2.0.0 ships no Stat component and its CSS carries only the
    utilities its own components use, so the chip's few rules live here rather than as Tailwind classes

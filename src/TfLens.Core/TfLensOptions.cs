@@ -62,6 +62,75 @@ public sealed class TfLensOptions
     /// </remarks>
     public int StalenessDays { get; set; } = 7;
 
+    /// <summary>
+    /// Path of the reference implementation <c>tf-metrics.sh</c>, whose hash the parity stamp is
+    /// checked against (REQ-FN-063, BRD-71).
+    /// </summary>
+    /// <remarks>
+    /// <c>data/parity-last.json</c> records the SHA-256 of the script the passing run was compared
+    /// against, and a figure is only quotable while that hash still describes the script on disk — a
+    /// reference change invalidates the stamp exactly as a parser change does. The path is configurable
+    /// because the oracle lives outside <see cref="DataRoot"/> and many deployments will not ship it at
+    /// all; when the file is absent or unreadable the stamp degrades to
+    /// <see cref="Contracts.ParityStatuses.NotQuotable"/> with reason
+    /// <see cref="Contracts.ParityReasons.ScriptUnavailable"/>, never to quotable, because an
+    /// unverifiable claim is not a verified one. It is resolved relative to the process working
+    /// directory when it is not rooted.
+    /// </remarks>
+    public string ReferenceScriptPath { get; set; } = Path.Combine(".tfcore", "telemetry", "tf-metrics.sh");
+
+    /// <summary>
+    /// <see cref="ReferenceScriptPath"/> resolved to a path that actually exists, or the plain
+    /// working-directory reading when it does not.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A rooted setting is returned untouched — an operator who names an absolute path means it.
+    /// A <b>relative</b> default, though, cannot simply be resolved against the working directory:
+    /// <see cref="DataRoot"/> is also relative and is only correct when the process runs from
+    /// <c>src/TfLens</c>, whereas <c>.tfcore/</c> lives at the repository root. Both cannot be right
+    /// against one working directory, so a bare <c>dotnet run</c> found no oracle and <c>/export</c>
+    /// reported <see cref="Contracts.ParityReasons.ScriptUnavailable"/> — "the reference script cannot
+    /// be hashed" — even with a valid, passing parity record on disk. The banner was wrong about its
+    /// own evidence, which is the one thing it exists to be right about.
+    /// </para>
+    /// <para>
+    /// So a relative setting is probed against the working directory and then against each ancestor,
+    /// which finds a repository-root <c>.tfcore/</c> from any subdirectory a head might run in. This
+    /// deliberately does <b>not</b> fall back to the <c>script_path</c> recorded inside
+    /// <c>parity-last.json</c>: letting the stamp nominate the file that proves the stamp would make
+    /// the record self-attesting. When nothing is found the original relative reading is returned, so
+    /// a genuinely missing oracle still reads not-quotable exactly as before.
+    /// </para>
+    /// </remarks>
+    /// <returns>The first existing candidate, else the working-directory reading.</returns>
+    public string ResolveReferenceScriptPath()
+    {
+        if (string.IsNullOrWhiteSpace(ReferenceScriptPath) || Path.IsPathRooted(ReferenceScriptPath))
+        {
+            return ReferenceScriptPath;
+        }
+
+        var vFromWorkingDirectory = Path.GetFullPath(ReferenceScriptPath);
+        if (File.Exists(vFromWorkingDirectory))
+        {
+            return vFromWorkingDirectory;
+        }
+
+        for (var vDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+             vDirectory is not null;
+             vDirectory = vDirectory.Parent)
+        {
+            var vCandidate = Path.Combine(vDirectory.FullName, ReferenceScriptPath);
+            if (File.Exists(vCandidate))
+            {
+                return vCandidate;
+            }
+        }
+
+        return vFromWorkingDirectory;
+    }
+
     /// <summary>Repositories seeded onto the demo account at first start (BRD-96).</summary>
     public IList<string> DemoSeedRepos { get; set; } = [];
 
@@ -260,5 +329,21 @@ public sealed class TfLensOptions
 public static class ParserVersion
 {
     /// <summary>The current parser version.</summary>
-    public const string Current = "1.0.0";
+    /// <remarks>
+    /// <para>
+    /// <b>1.1.0 (2026-08-27)</b> — minor bump: the export gained a metric,
+    /// <c>pooled.session_duplicates_collapsed</c>. Per <c>DECISIONS.md</c> D-005 a metric being added is
+    /// a minor bump — old exports stay comparable for the metrics they do carry, and nothing stored
+    /// changed meaning. The reference gained the same figure when <c>tf-metrics.sh</c> learned to
+    /// de-duplicate the sessions stream, and TfLens must emit every key the reference does or the
+    /// parity compare fails on a MISSING key.
+    /// </para>
+    /// <para>
+    /// Bumping this deliberately <b>un-quotes</b> every export until a fresh parity run is recorded
+    /// (D-005), which is the whole point of stamping it: a figure is quotable only when the run on
+    /// record postdates the parser that produced it.
+    /// </para>
+    /// <para><b>1.0.0 (2026-08-26)</b> — the first shipping parser.</para>
+    /// </remarks>
+    public const string Current = "1.1.0";
 }

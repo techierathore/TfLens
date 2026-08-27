@@ -18,6 +18,7 @@
    for this one. _Imports.razor is shared, so the app-wide fix is reported rather than made here. *@
 @using TrBlazeUI.Components.Empty
 @using TrBlazeUI.Components.Typography
+@using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject IExtraMetrics objExtraMetrics
 @inject ITelemetryStore objStore
@@ -33,15 +34,24 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <TypographyH2>Routing &amp; economics</TypographyH2>
-            <TypographyMuted>
-                Did runs land on the tier they were routed to, and what would the token mix cost at
-                rate-card prices?
-            </TypographyMuted>
+            <TypographyMuted>@Subtitle</TypographyMuted>
         </div>
         <Badge Variant="BadgeVariant.Outline" data-testid="routing-framework">@objFramework</Badge>
     </div>
 
-    @if (!objIsLoaded)
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-034 — the Playbook framework state: the standing axis note, then the phase totals, the
+           main-vs-subagent token split and the observed-model totals, or the Phase-3 empty state. The
+           figures are read through IPlaybookReportBuilder, so no TechieFlow run record can reach this
+           branch and the two axes cannot be pooled (SCHEMA.md §11). *@
+        <PlaybookState UserId="@objUserId">
+            <ChildContent Context="vAnalysis">
+                <PlaybookRoutingSurface Analysis="@vAnalysis" />
+            </ChildContent>
+        </PlaybookState>
+    }
+    else if (!objIsLoaded)
     {
         <Card>
             <CardContent Class="p-6">
@@ -660,6 +670,15 @@
     /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-034).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook state — tokens and cost per phase_gate, and the main-session versus sub-agent split"
+            : "Did runs land on the tier they were routed to, and what would the token mix cost at rate-card prices?";
 
     /// <summary>Which rate-card cell an edit landed in.</summary>
     private enum PriceColumns

@@ -1,0 +1,229 @@
+@*
+    REQ-UI-034 — the Playbook state of the Coverage page (docs/mockups/playbook.html).
+
+    The Playbook axis has exactly one stream — `verification/telemetry/events.ndjson` — where the
+    TechieFlow axis has four, so each repository card carries a single `events` row rather than four
+    rows three of which would always be blank. Every figure here is counted off `"PbEvent"`; no
+    TechieFlow gate record is in scope, so the two axes cannot meet on this page (SCHEMA.md §11).
+
+    The observed-fields Collapsible under the cards is the REQ-FN-068 evidence: the field names actually
+    seen in the raw file, which is what fixes the adapter's columns (ADR-010).
+*@
+@using System.Globalization
+
+<div class="tflens-stack">
+
+    @foreach (var vRepo in Repos)
+    {
+        <Card data-testid="@($"pb-repo-card-{ShortName(vRepo.Repo)}")">
+            @* CardHeader is a CSS grid in 2.0.0 (TR-010), so the header row is one flex child of it. *@
+            <CardHeader>
+                <div class="flex w-full flex-wrap items-center justify-between gap-2">
+                    <span class="flex min-w-0 flex-wrap items-center gap-2">
+                        <CardTitle Class="text-base">@vRepo.Repo</CardTitle>
+                        <Badge Variant="BadgeVariant.Secondary">playbook</Badge>
+                        <Badge Variant="BadgeVariant.Outline">
+                            <span class="font-mono">verification/telemetry</span>
+                        </Badge>
+                    </span>
+                    <Badge Variant="BadgeVariant.Secondary"
+                           data-testid="@($"pb-repo-state-{ShortName(vRepo.Repo)}")">
+                        @($"{vRepo.Events:N0} events")
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <p class="text-sm text-muted-foreground"
+                   data-testid="@($"pb-repo-line-{ShortName(vRepo.Repo)}")">
+                    @SummaryLine(vRepo)
+                </p>
+
+                @* Wide table, narrow phone: the table scrolls inside its own box so the page never does. *@
+                <div class="mt-2 w-full overflow-x-auto">
+                    @* TR-009 — ShowPagination="false" only hides the pager; the grid still truncates to
+                       InitialPageSize, so it is set well above the one row this stream can have. *@
+                    <DataTable TData="StreamRow"
+                               Data="@RowsFor(vRepo)"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="16"
+                               AriaLabel="@($"{vRepo.Repo} Playbook streams")"
+                               data-testid="@($"pb-repo-streams-{ShortName(vRepo.Repo)}")">
+                        <Columns>
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.Stream)" Header="Stream">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono text-xs">@vRow.Stream</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.RecordsText)" Header="Records">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@vRow.RecordsText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.SessionsText)" Header="Sessions">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@vRow.SessionsText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.PhaseGatesText)" Header="phase_gates">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@vRow.PhaseGatesText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.EarliestText)" Header="Earliest">
+                                <CellTemplate Context="vRow">
+                                    <span class="whitespace-nowrap text-muted-foreground">@vRow.EarliestText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.NewestText)" Header="Newest">
+                                <CellTemplate Context="vRow">
+                                    <span class="whitespace-nowrap text-muted-foreground">@vRow.NewestText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+
+                            <DataTableColumn TData="StreamRow" TValue="string"
+                                             Property="@(aRow => aRow.DaysSinceText)" Header="Days since">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@vRow.DaysSinceText</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                </div>
+            </CardContent>
+        </Card>
+    }
+
+    @* REQ-FN-068 — the field names the probe actually observed, not the ones the brief's prose implies. *@
+    <PlaybookObservedFields Fields="@Analysis.ObservedFields" />
+
+    @if (Analysis.ProvisionalNotes.Count > 0)
+    {
+        <Card data-testid="pb-coverage-notes">
+            <CardContent Class="p-4">
+                <div class="flex flex-col gap-2">
+                    <span class="text-sm font-medium">Caveats these figures carry</span>
+                    @foreach (var vNote in Analysis.ProvisionalNotes)
+                    {
+                        <span class="text-sm text-muted-foreground">· @vNote</span>
+                    }
+                </div>
+            </CardContent>
+        </Card>
+    }
+</div>
+
+@code {
+    /// <summary>What a fact the events never carried renders as — never a zero.</summary>
+    private const string Dash = "—";
+
+    /// <summary>The Playbook report set this surface renders; it cannot hold a TechieFlow figure.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAnalysis Analysis { get; set; } = default!;
+
+    /// <summary>When the page was rendered, which the stream ages are measured against.</summary>
+    private readonly DateTimeOffset objNow = DateTimeOffset.UtcNow;
+
+    /// <summary>The repositories the events came from, busiest first.</summary>
+    private IReadOnlyList<PlaybookRepoFacts> Repos =>
+        Analysis.PerRepo
+            .OrderByDescending(aRepo => aRepo.Events)
+            .ThenBy(aRepo => aRepo.Repo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>
+    /// The one <c>events</c> row of a repository's stream table.
+    /// </summary>
+    /// <param name="aRepo">The repository's facts.</param>
+    /// <returns>A single-row list — the Playbook axis has one stream, not four.</returns>
+    private IReadOnlyList<StreamRow> RowsFor(PlaybookRepoFacts aRepo)
+    {
+        var vNewest = Parse(aRepo.LatestTs);
+        var vDays = vNewest is null ? (int?)null : (int)Math.Max(0, Math.Floor((objNow - vNewest.Value).TotalDays));
+
+        return
+        [
+            new StreamRow
+            {
+                Stream = "events",
+                RecordsText = aRepo.Events.ToString("N0", CultureInfo.InvariantCulture),
+                SessionsText = aRepo.Sessions.ToString("N0", CultureInfo.InvariantCulture),
+                PhaseGatesText = aRepo.PhaseGates.ToString("N0", CultureInfo.InvariantCulture),
+                EarliestText = Instant(aRepo.EarliestTs),
+                NewestText = Instant(aRepo.LatestTs),
+                DaysSinceText = vDays?.ToString("N0", CultureInfo.InvariantCulture) ?? Dash
+            }
+        ];
+    }
+
+    /// <summary>
+    /// The muted line under a repository's card header.
+    /// </summary>
+    /// <param name="aRepo">The repository's facts.</param>
+    /// <returns>The counts and the path the events were read from.</returns>
+    private static string SummaryLine(PlaybookRepoFacts aRepo) =>
+        $"{aRepo.Events:N0} events · {aRepo.Sessions:N0} sessions · {aRepo.PhaseGates:N0} process gates "
+        + "· read from verification/telemetry/events.ndjson";
+
+    /// <summary>
+    /// Parses a wire timestamp.
+    /// </summary>
+    /// <param name="aTs">The ISO-8601 timestamp as the event carried it, or <c>null</c>.</param>
+    /// <returns>The instant, or <c>null</c> when the events carried none.</returns>
+    private static DateTimeOffset? Parse(string? aTs) =>
+        DateTimeOffset.TryParse(aTs, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var vWhen)
+            ? vWhen
+            : null;
+
+    /// <summary>
+    /// Renders a wire timestamp to the minute, or the em dash that says none was captured.
+    /// </summary>
+    /// <param name="aTs">The ISO-8601 timestamp as the event carried it, or <c>null</c>.</param>
+    /// <returns>The instant, or <c>—</c>.</returns>
+    private static string Instant(string? aTs) =>
+        Parse(aTs) is { } vWhen
+            ? vWhen.UtcDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : Dash;
+
+    /// <summary>Takes the repository name out of <c>owner/name</c>, for a stable test id.</summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <returns>The name segment.</returns>
+    private static string ShortName(string aRepo) => aRepo.Split('/')[^1];
+
+    /// <summary>One row of a repository's Playbook stream table.</summary>
+    private sealed class StreamRow
+    {
+        /// <summary>The stream's wire name — always <c>events</c> on this axis.</summary>
+        public required string Stream { get; init; }
+
+        /// <summary>Event records stored for it.</summary>
+        public required string RecordsText { get; init; }
+
+        /// <summary>Distinct sessions seen in those events.</summary>
+        public required string SessionsText { get; init; }
+
+        /// <summary>Distinct process gates seen in those events.</summary>
+        public required string PhaseGatesText { get; init; }
+
+        /// <summary>Its earliest event, to the minute, or an em dash.</summary>
+        public required string EarliestText { get; init; }
+
+        /// <summary>Its latest event, to the minute, or an em dash.</summary>
+        public required string NewestText { get; init; }
+
+        /// <summary>Whole days since the newest event, or an em dash.</summary>
+        public required string DaysSinceText { get; init; }
+    }
+}

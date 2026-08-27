@@ -220,6 +220,13 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
         var vCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var vWritten = 0;
 
+        // REQ-FN-063: this pass' share of the session collapses. A sync sees new files on top of what is
+        // already stored, so it ADDS to the stored figure — only a rebuild, which replays everything, is
+        // authoritative enough to set it. Measured as presented-minus-inserted rather than from the
+        // parser's own count, because a session id repeated across two syncs is collapsed by
+        // UcSessionUserRepoId and no single parse can see it.
+        var vSessionsCollapsed = 0;
+
         foreach (var vStream in FrameworkNames.Streams(vFramework))
         {
             var vText = await aWork.Fetcher
@@ -243,11 +250,22 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
 
             var vParsed = aWork.Parser.Parse(aRepo.UserId, aRepo.Repo, vSha, StreamNames.ToKind(vStream), vText);
             vCounts[vStream] = vParsed.RecordCount;
-            vWritten += await aWork.Store.UpsertAsync(vParsed, aCancellationToken).ConfigureAwait(false);
+
+            var vInserted = await aWork.Store.UpsertAsync(vParsed, aCancellationToken).ConfigureAwait(false);
+            vWritten += vInserted;
+
+            if (vStream == StreamNames.Sessions)
+            {
+                vSessionsCollapsed += Math.Max(0, vParsed.SessionsPresented - vInserted);
+            }
         }
 
         // BRD-17: the SHA, the timestamp and the per-stream counts, with LastError cleared on success.
-        await WriteStateAsync(aWork, aRepo, BuildState(aRepo, vSha, vCounts), aCancellationToken)
+        await WriteStateAsync(
+                aWork,
+                aRepo,
+                BuildState(aRepo, vSha, vCounts, aPrevious.SessionDuplicatesCollapsed + vSessionsCollapsed),
+                aCancellationToken)
             .ConfigureAwait(false);
 
         objLogger.LogInformation(
@@ -319,8 +337,16 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
     /// <param name="aRepo">The connected repository.</param>
     /// <param name="aSha">The SHA the streams were read at.</param>
     /// <param name="aCounts">Records the parser reported, by stream wire name.</param>
+    /// <param name="aSessionDuplicatesCollapsed">
+    /// The repository's running session-collapse total — what was stored before this pass plus what this
+    /// pass collapsed. The caller does the addition, because only it knows the previous row (REQ-FN-063).
+    /// </param>
     /// <returns>The row to store.</returns>
-    private static SyncState BuildState(UserRepo aRepo, string aSha, IReadOnlyDictionary<string, int> aCounts) =>
+    private static SyncState BuildState(
+        UserRepo aRepo,
+        string aSha,
+        IReadOnlyDictionary<string, int> aCounts,
+        int aSessionDuplicatesCollapsed) =>
         new()
         {
             UserId = aRepo.UserId,
@@ -334,7 +360,8 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
             GatesCount = Count(aCounts, StreamNames.Gates),
             SessionsCount = Count(aCounts, StreamNames.Sessions),
             CommitsCount = Count(aCounts, StreamNames.Commits),
-            EventsCount = Count(aCounts, StreamNames.Events)
+            EventsCount = Count(aCounts, StreamNames.Events),
+            SessionDuplicatesCollapsed = aSessionDuplicatesCollapsed
         };
 
     /// <summary>Reads one stream's count out of the pass's tally.</summary>

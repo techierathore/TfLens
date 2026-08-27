@@ -138,8 +138,6 @@
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/1s3cjdpgnh-{0}-abdmv1u4y3-abdmv1u4y3.gz
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/n81jflm48z-{0}-f7fxoh55ae-f7fxoh55ae.gz
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/k808ax9ccw-{0}-68qhiysw0j-68qhiysw0j.gz
-/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/yc4y8wvcow-{0}-mjrk20rp6v-mjrk20rp6v.gz
-/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/6bfr6hgdeu-{0}-mjrk20rp6v-mjrk20rp6v.gz
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/staticwebassets.build.json
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/staticwebassets.build.json.cache
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/staticwebassets.development.json
@@ -151,3 +149,14 @@
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/TfLens.pdb
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/TfLens.genruntimeconfig.cache
 /mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/ref/TfLens.dll
+/mnt/c/1MyCode/TfLens/src/TfLens/bin/Release/net10.0/data/reports/2/2026-08-27/techieflow/tflens.json
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/tmfy2u5y9z-{0}-t9c2zfrby5-t9c2zfrby5.gz
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/scopedcss/Components/Shared/Playbook/PlaybookCoverageSurface.razor.rz.scp.css
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/scopedcss/Components/Shared/Playbook/PlaybookHarnessSurface.razor.rz.scp.css
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/scopedcss/Components/Shared/Playbook/PlaybookModelTokens.razor.rz.scp.css
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/scopedcss/Components/Shared/Playbook/PlaybookQuestionsSurface.razor.rz.scp.css
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/scopedcss/Components/Shared/Playbook/PlaybookRoutingSurface.razor.rz.scp.css
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/yc4y8wvcow-{0}-rrhpasd87s-rrhpasd87s.gz
+/mnt/c/1MyCode/TfLens/src/TfLens/obj/Release/net10.0/compressed/6bfr6hgdeu-{0}-rrhpasd87s-rrhpasd87s.gz
+/mnt/c/1MyCode/TfLens/src/TfLens/bin/Release/net10.0/data/reports/2/2026-08-27/playbook/tflens.json
+/mnt/c/1MyCode/TfLens/src/TfLens/bin/Release/net10.0/data/parity-last.json

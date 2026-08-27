@@ -15,11 +15,19 @@ namespace TfLens.Core.Export;
 /// <param name="Framework">The provenance axis; one snapshot per framework (ADR-016).</param>
 /// <param name="Date">The report date, which is also the folder name.</param>
 /// <param name="Analysis">The engine's output — the parity surface, reproduced without reinterpretation.</param>
+/// <param name="Playbook">
+/// The Playbook-native report set, or <c>null</c> for a TechieFlow snapshot (REQ-FN-070).
+/// </param>
 /// <param name="Harness">The per-harness comparison, which has no parity oracle.</param>
 /// <param name="Routing">The routing and repricing view, whose money figures are estimates.</param>
 /// <param name="DatasetShas">Repository to commit SHA, so the exact dataset can be checked out (REQ-FN-062).</param>
 /// <param name="Parity">The last recorded parity run, or <c>null</c> when none has ever passed.</param>
 /// <param name="ParityStatus">One of the <see cref="ParityStatuses"/> constants for this parser version.</param>
+/// <param name="ParityReason">
+/// One of the <see cref="ParityReasons"/> constants — which of the three invalidating facts produced
+/// <paramref name="ParityStatus"/>, so a reader can tell a parser change from a reference-script change
+/// from a script that could not be hashed at all (REQ-FN-063).
+/// </param>
 /// <param name="RateCardPath">Where the repricing rates were read from, for provenance.</param>
 /// <param name="GeneratedTs">ISO-8601 timestamp the snapshot was produced.</param>
 internal sealed record SnapshotInputs(
@@ -27,10 +35,12 @@ internal sealed record SnapshotInputs(
     string Framework,
     DateOnly Date,
     AnalysisResult Analysis,
+    PlaybookAnalysis? Playbook,
     HarnessComparison Harness,
     RoutingAnalysis Routing,
     IReadOnlyList<KeyValuePair<string, string>> DatasetShas,
     ParityRecord? Parity,
     string ParityStatus,
+    string ParityReason,
     string RateCardPath,
     string GeneratedTs);

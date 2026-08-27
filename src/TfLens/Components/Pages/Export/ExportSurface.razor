@@ -302,7 +302,7 @@
     private IReadOnlyList<SnapshotRow> objSnapshots = [];
 
     private ParityRecord? objParity;
-    private string objParityStatus = ParityStatuses.NeverRun;
+    private ParityStamp objParityStamp = new(ParityStatuses.NeverRun, ParityReasons.NeverRun);
     private bool objIsExporting;
     private bool objIsLoaded;
     private string? objLoadedKey;
@@ -318,7 +318,7 @@
     public string Framework { get; set; } = FrameworkNames.TechieFlow;
 
     /// <summary>True only when the last recorded parity run covers this build's parser version.</summary>
-    private bool IsQuotable => objParityStatus == ParityStatuses.Quotable;
+    private bool IsQuotable => objParityStamp.Status == ParityStatuses.Quotable;
 
     /// <summary>The banner's status word.</summary>
     private string BannerStatus => IsQuotable ? "QUOTABLE" : "NOT QUOTABLE";
@@ -330,12 +330,16 @@
     /// Both are NOT QUOTABLE, but they are different facts and are reported as such: claiming the parser
     /// changed after a parity run that never happened would be a false statement about the evidence.
     /// </remarks>
-    private string BannerReason => objParityStatus switch
+    private string BannerReason => objParityStamp.Reason switch
     {
-        ParityStatuses.Quotable =>
-            $"the parity run of {objParity?.Date ?? "an earlier date"} covers parser {ParserVersion.Current}; these figures may be quoted",
-        ParityStatuses.NotQuotable =>
+        ParityReasons.Current =>
+            $"the parity run of {objParity?.Date ?? "an earlier date"} covers parser {ParserVersion.Current} and the reference script it was stamped against; these figures may be quoted",
+        ParityReasons.ParserChanged =>
             "parser changed after the last parity run; re-run the parity procedure",
+        ParityReasons.ScriptChanged =>
+            "the reference script changed after the last parity run; re-run the parity procedure",
+        ParityReasons.ScriptUnavailable =>
+            "the reference script cannot be hashed, so the recorded parity run cannot be confirmed; restore it and re-run the parity procedure",
         _ =>
             "no parity run has ever been recorded; run the parity procedure before quoting any figure"
     };
@@ -361,7 +365,7 @@
     private IReadOnlyList<FactRow> Facts =>
     [
         new FactRow("Parser", ParserVersion.Current),
-        new FactRow("Parity status", objParityStatus),
+        new FactRow("Parity status", objParityStamp.Status),
         new FactRow("Scope", $"{objShaRows.Count} synced repo(s) · {RecordTotal:N0} records")
     ];
 
@@ -408,8 +412,15 @@
     {
         // The parity stamp is read on every load rather than cached: a parity run recorded while the
         // page was open must turn the banner green (or amber) on the next refresh, not on a restart.
+        // EvaluateFor, not StatusFor: the banner states *why* a figure may not be quoted, and three
+        // different facts collapse into NotQuotable. Reporting "parser changed" for a reference-script
+        // change would be a false statement about the evidence — the exact class of error the parity
+        // gate exists to catch (REQ-FN-063).
         objParity = ParityRecord.Read(objOptions.Value.ParityLastPath);
-        objParityStatus = ParityRecord.StatusFor(objParity, ParserVersion.Current);
+        objParityStamp = ParityRecord.EvaluateFor(
+            objParity,
+            ParserVersion.Current,
+            objOptions.Value.ResolveReferenceScriptPath());
 
         objShaRows = [];
         objSnapshots = [];

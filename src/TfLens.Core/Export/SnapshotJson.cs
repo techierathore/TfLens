@@ -43,16 +43,133 @@ internal static class SnapshotJson
     /// </summary>
     /// <param name="aInputs">Everything the snapshot renders from.</param>
     /// <returns>The JSON object, with the reference's keys first and the two TfLens additions last.</returns>
-    public static JsonObject Build(SnapshotInputs aInputs) => new()
+    public static JsonObject Build(SnapshotInputs aInputs)
     {
-        ["per_repo"] = PerRepo(aInputs),
-        ["tainted_reqs"] = Strings(aInputs.Analysis.TaintedReqs),
-        ["live"] = Segments(aInputs.Analysis.Live),
-        ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
-        ["pooled"] = Pooled(aInputs.Analysis.Pooled),
-        ["extras"] = Extras(aInputs),
-        ["parity"] = Parity(aInputs)
-    };
+        var vDocument = new JsonObject
+        {
+            ["per_repo"] = PerRepo(aInputs),
+            ["tainted_reqs"] = Strings(aInputs.Analysis.TaintedReqs),
+            ["live"] = Segments(aInputs.Analysis.Live),
+            ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
+            ["pooled"] = Pooled(aInputs.Analysis.Pooled),
+            ["extras"] = Extras(aInputs),
+            ["parity"] = Parity(aInputs)
+        };
+
+        if (aInputs.Playbook is { } vPlaybook)
+        {
+            vDocument["playbook"] = Playbook(vPlaybook);
+        }
+
+        return vDocument;
+    }
+
+    /// <summary>
+    /// The Playbook-native report set, written only into a <c>playbook</c> snapshot (REQ-FN-070).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The key exists only when the snapshot's framework is <c>playbook</c>, so a TechieFlow document is
+    /// byte-for-byte what it was before this block was added and <c>tools/parity-compare.py</c> still
+    /// walks it against the reference with no added key to allow-list.
+    /// </para>
+    /// <para>
+    /// Every gate name under <c>phase_gates</c> is a Playbook <b>process</b> gate; nothing on the
+    /// TechieFlow assertion-gate axis appears in this block, and the top-level <c>live</c>,
+    /// <c>backfilled</c> and <c>pooled</c> objects contain nothing from this one — the two axes are two
+    /// disjoint subtrees of the document (SCHEMA.md §11, REQ-FN-066). Rates go through
+    /// <see cref="Figure.Display"/>, so <c>insufficient data (n=…)</c> and <c>—</c> survive as
+    /// themselves, and a phase whose events carried no spend emits a JSON <c>null</c> rather than a
+    /// manufactured zero.
+    /// </para>
+    /// </remarks>
+    /// <param name="aPlaybook">The Playbook report set.</param>
+    /// <returns>The <c>playbook</c> object.</returns>
+    private static JsonObject Playbook(PlaybookAnalysis aPlaybook)
+    {
+        var vRepos = new JsonArray();
+        foreach (var vRepo in aPlaybook.PerRepo)
+        {
+            vRepos.Add(new JsonObject
+            {
+                ["repo"] = vRepo.Repo,
+                ["events"] = vRepo.Events,
+                ["sessions"] = vRepo.Sessions,
+                ["phase_gates"] = vRepo.PhaseGates,
+                ["earliest_ts"] = vRepo.EarliestTs,
+                ["latest_ts"] = vRepo.LatestTs
+            });
+        }
+
+        var vQuestions = aPlaybook.PhaseQuestions
+            .ToDictionary(aQ => aQ.PhaseGate.Name, StringComparer.Ordinal);
+
+        var vGates = new JsonArray();
+        foreach (var vTotals in aPlaybook.PhaseTotals)
+        {
+            var vGate = new JsonObject
+            {
+                ["phase_gate"] = vTotals.PhaseGate.Name,
+                ["events"] = vTotals.Events,
+                ["sessions"] = vTotals.Sessions,
+                ["tokens"] = vTotals.Tokens,
+                ["cost_usd"] = vTotals.CostUsd
+            };
+
+            if (vQuestions.TryGetValue(vTotals.PhaseGate.Name, out var vRow))
+            {
+                vGate["first_pass_rate"] = vRow.FirstPassRate.Display();
+                vGate["catch_share"] = vRow.CatchShare.Display();
+                vGate["escape_rate"] = vRow.EscapeRate.Display();
+                vGate["supporting_events"] = vRow.SupportingEvents;
+                vGate["unavailable_reason"] = vRow.UnavailableReason;
+            }
+
+            vGates.Add(vGate);
+        }
+
+        var vModels = new JsonArray();
+        foreach (var vModel in aPlaybook.TokensByModel)
+        {
+            vModels.Add(new JsonObject
+            {
+                ["model"] = vModel.Model,
+                ["tokens_in"] = vModel.TokensIn,
+                ["tokens_out"] = vModel.TokensOut,
+                ["tokens_cache_read"] = vModel.TokensCacheRead,
+                ["tokens_cache_write"] = vModel.TokensCacheWrite,
+                ["tokens_total"] = vModel.Total
+            });
+        }
+
+        return new JsonObject
+        {
+            ["framework"] = aPlaybook.Framework,
+            ["schema_status"] = aPlaybook.SchemaStatus.ToString(),
+            ["parser_version"] = aPlaybook.ParserVersion,
+            ["events_total"] = aPlaybook.EventsTotal,
+            ["per_repo"] = vRepos,
+            ["phase_gates"] = vGates,
+            ["agent_split"] = new JsonObject
+            {
+                ["main_sessions"] = aPlaybook.AgentSplit.MainSessions,
+                ["main_tokens"] = aPlaybook.AgentSplit.MainTokens,
+                ["main_cost_usd"] = aPlaybook.AgentSplit.MainCostUsd,
+                ["subagent_sessions"] = aPlaybook.AgentSplit.SubagentSessions,
+                ["subagent_tokens"] = aPlaybook.AgentSplit.SubagentTokens,
+                ["subagent_cost_usd"] = aPlaybook.AgentSplit.SubagentCostUsd,
+                ["unresolved_parent_sessions"] = aPlaybook.AgentSplit.UnresolvedParentSessions,
+                ["subagent_token_share"] = aPlaybook.AgentSplit.SubagentTokenShare.Display()
+            },
+            ["tokens_by_model"] = vModels,
+            ["observed_fields"] = Strings(aPlaybook.ObservedFields),
+            ["provisional_notes"] = Strings(aPlaybook.ProvisionalNotes),
+            ["note"] =
+                "Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different "
+                + "axes and never share a table, column or chart (SCHEMA.md §11, REQ-FN-066). Nothing in "
+                + "this block is pooled with the per_repo, live, backfilled or pooled blocks above."
+        };
+    }
 
     /// <summary>
     /// One entry per repository the figures were computed from.
@@ -203,6 +320,7 @@ internal static class SnapshotJson
         ["cost_usd"] = null,
         ["commits"] = aPooled.Commits,
         ["commit_duplicates_collapsed"] = aPooled.CommitDuplicatesCollapsed,
+        ["session_duplicates_collapsed"] = aPooled.SessionDuplicatesCollapsed,
         ["active_days"] = aPooled.ActiveDays,
         ["commits_per_active_day"] = Number(aPooled.CommitsPerActiveDay, CadenceDigits)
     };
@@ -274,7 +392,9 @@ internal static class SnapshotJson
                 ["value"] = aHarness.OpenCodeCostUsd,
                 ["measured"] = true,
                 ["note"] =
-                    "The only measured dollars in TfLens. Claude Code and Codex report cost_usd as null "
+                    "The only measured dollars in TfLens — Σ cost_usd over OpenCode session records "
+                    + "(SCHEMA.md §4), deduped per session_id so a cumulative snapshot counts once. "
+                    + "Claude Code and Codex report cost_usd as null "
                     + "by design and are never estimated into it; no total across harnesses exists."
             }
         };
@@ -366,6 +486,7 @@ internal static class SnapshotJson
     private static JsonObject Parity(SnapshotInputs aInputs) => new()
     {
         ["status"] = aInputs.ParityStatus,
+        ["status_reason"] = aInputs.ParityReason,
         ["parser_version"] = aInputs.Analysis.ParserVersion,
         ["parser_version_validated"] = aInputs.Parity?.ParserVersion,
         ["last_pass_date"] = aInputs.Parity?.Date,

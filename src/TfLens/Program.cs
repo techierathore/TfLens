@@ -21,8 +21,14 @@ using TrBlazeUI.Components.Toast;
 using TrBlazeUI.Primitives.Extensions;
 
 // Serilog is wired before anything else can fail, so a startup exception still reaches a file.
+//
+// The reset-token redaction is attached here, at the logger itself, rather than anywhere in the
+// request pipeline: the line that leaked a live password-reset link came from ASP.NET Core's own
+// hosting diagnostics, which runs before any TfLens middleware and logs the whole request URL,
+// query string included (BRD-92).
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
+    .Enrich.With(new ResetTokenRedaction())
     .WriteTo.Console()
     .WriteTo.File("logs/tflens-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
     .CreateLogger();

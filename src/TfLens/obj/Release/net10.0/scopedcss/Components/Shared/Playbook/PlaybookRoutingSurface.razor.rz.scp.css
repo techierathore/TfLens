@@ -1,0 +1,24 @@
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002).
+   Blazor scoped CSS is scoped to ONE component, so the page's own copies of these rules cannot reach
+   this component's markup. */
+
+.tflens-stack[b-2khsin5gmm] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tflens-tab-body[b-2khsin5gmm] {
+    margin-top: 1rem;
+}
+
+/* Three tab triggers are wider than a 390px viewport. Without this the page container scrolls sideways
+   and drags the rest of the page off-screen with it; here the trigger row scrolls inside its own box.
+   ::deep reaches TabsList, which is a child component and so cannot carry this component's scope
+   attribute. */
+.tflens-tabs-scroll[b-2khsin5gmm]  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}

@@ -292,6 +292,11 @@ public sealed class PostgresStore : ITelemetryStore
         var vDuplicates = 0;
         var vInvalid = 0;
 
+        // REQ-FN-063: session records the replay presented to the store, per repository, counted before
+        // any dedupe. What the store actually kept is COUNT(*) afterwards, and the difference is exactly
+        // what ingest collapsed — including the cross-file duplicates that no single parse can see.
+        var vSessionsPresented = new Dictionary<RepoKey, int>();
+
         foreach (var vArchive in EnumerateArchive(aUserId))
         {
             var vText = await File.ReadAllTextAsync(vArchive.Path, aCancellationToken).ConfigureAwait(false);
@@ -300,10 +305,15 @@ public sealed class PostgresStore : ITelemetryStore
             vFiles++;
             vDuplicates += vParsed.DuplicatesCollapsed;
             vInvalid += vParsed.InvalidLines;
+
+            var vKey = new RepoKey(vArchive.UserId, vArchive.Repo);
+            vSessionsPresented[vKey] = vSessionsPresented.GetValueOrDefault(vKey) + vParsed.SessionsPresented;
+
             vRecords += await UpsertAsync(vParsed, aCancellationToken).ConfigureAwait(false);
         }
 
         await RecomputeSyncCountsAsync(aUserId, aCancellationToken).ConfigureAwait(false);
+        await SetSessionCollapsesAsync(aUserId, vSessionsPresented, aCancellationToken).ConfigureAwait(false);
 
         objLogger.LogInformation(
             "Rebuild replayed {Files} raw files for user {UserId}, writing {Records} rows",
@@ -363,6 +373,68 @@ public sealed class PostgresStore : ITelemetryStore
         await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
         await vConnection.ExecuteAsync(
             new CommandDefinition(vSql, new { aUserId }, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sets <c>"SessionDuplicatesCollapsed"</c> from a completed replay (REQ-FN-063).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Set, never add.</b> A rebuild replays the entire raw archive for the scope it was given, so
+    /// what it measured is the whole truth for that scope and adding would double the figure on the
+    /// second run. Only an incremental sync, which sees one pass' worth of new files, adds — and it does
+    /// that by reading the stored row and writing the sum, not here.
+    /// </para>
+    /// <para>
+    /// The figure is <c>presented - stored</c>: how many session records the replay handed the store
+    /// minus how many rows survived. That is the only formulation that catches a session id repeated
+    /// across two archived snapshots, which no single parse can see and which
+    /// <c>UcSessionUserRepoId</c> collapses silently. Every row in scope is zeroed first, so a
+    /// repository whose sessions have gone from the archive does not keep a stale count, and the result
+    /// is floored at zero so a hand-edited archive can never produce a negative one.
+    /// </para>
+    /// </remarks>
+    /// <param name="aUserId">One user, or <c>null</c> for every user — the scope the replay covered.</param>
+    /// <param name="aPresented">Session records presented per repository during the replay.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>A task that completes when the collapse counts describe the replay.</returns>
+    private async Task SetSessionCollapsesAsync(
+        int? aUserId,
+        IReadOnlyDictionary<RepoKey, int> aPresented,
+        CancellationToken aCancellationToken)
+    {
+        const string vResetSql = """
+            UPDATE "SyncState" SET "SessionDuplicatesCollapsed" = 0
+            WHERE @aUserId IS NULL OR "UserId" = @aUserId
+            """;
+
+        const string vSetSql = """
+            UPDATE "SyncState" AS t SET "SessionDuplicatesCollapsed" = GREATEST(
+                0,
+                @Presented - (SELECT COUNT(*) FROM "Session" s
+                              WHERE s."UserId" = t."UserId" AND s."Repo" = t."Repo"))
+            WHERE t."UserId" = @UserId AND t."Repo" = @Repo
+            """;
+
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+
+        await vConnection.ExecuteAsync(
+            new CommandDefinition(vResetSql, new { aUserId }, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false);
+
+        var vTallies = aPresented
+            .Where(aEntry => aEntry.Value > 0)
+            .Select(aEntry => new SessionTally(aEntry.Key.UserId, aEntry.Key.Repo, aEntry.Value))
+            .ToList();
+
+        if (vTallies.Count == 0)
+        {
+            return;
+        }
+
+        await vConnection.ExecuteAsync(
+            new CommandDefinition(vSetSql, vTallies, cancellationToken: aCancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -641,6 +713,17 @@ public sealed class PostgresStore : ITelemetryStore
     /// <param name="Path">Absolute path of the file.</param>
     private readonly record struct ArchiveFile(int UserId, string Repo, string Sha, StreamKind Stream, string Path);
 
+    /// <summary>Identifies one user's one repository while a replay tallies it.</summary>
+    /// <param name="UserId">The user the archive belongs to.</param>
+    /// <param name="Repo"><c>owner/name</c> of the repository.</param>
+    private readonly record struct RepoKey(int UserId, string Repo);
+
+    /// <summary>One repository's replayed session tally, as the collapse update reads it.</summary>
+    /// <param name="UserId">The user the archive belongs to.</param>
+    /// <param name="Repo"><c>owner/name</c> of the repository.</param>
+    /// <param name="Presented">Session records the replay handed the store, before any dedupe.</param>
+    private sealed record SessionTally(int UserId, string Repo, int Presented);
+
     /// <summary>
     /// Per-repository, per-stream row counts, backfilled counts and newest timestamp (REQ-UI-014).
     /// </summary>
@@ -830,10 +913,12 @@ public sealed class PostgresStore : ITelemetryStore
     private const string UpsertSyncStateSql = """
         INSERT INTO "SyncState" (
             "UserId","Repo","Kind","Branch","LastSha","LastSyncTs","LastError",
-            "RunsCount","GatesCount","SessionsCount","CommitsCount","EventsCount")
+            "RunsCount","GatesCount","SessionsCount","CommitsCount","EventsCount",
+            "SessionDuplicatesCollapsed")
         VALUES (
             @UserId,@Repo,@Kind,@Branch,@LastSha,@LastSyncTs,@LastError,
-            @RunsCount,@GatesCount,@SessionsCount,@CommitsCount,@EventsCount)
+            @RunsCount,@GatesCount,@SessionsCount,@CommitsCount,@EventsCount,
+            @SessionDuplicatesCollapsed)
         ON CONFLICT ON CONSTRAINT "PkSyncState" DO UPDATE SET
             "Kind" = EXCLUDED."Kind",
             "Branch" = EXCLUDED."Branch",
@@ -844,7 +929,8 @@ public sealed class PostgresStore : ITelemetryStore
             "GatesCount" = EXCLUDED."GatesCount",
             "SessionsCount" = EXCLUDED."SessionsCount",
             "CommitsCount" = EXCLUDED."CommitsCount",
-            "EventsCount" = EXCLUDED."EventsCount"
+            "EventsCount" = EXCLUDED."EventsCount",
+            "SessionDuplicatesCollapsed" = EXCLUDED."SessionDuplicatesCollapsed"
         """;
 
     /// <summary>Writes one connected repository, replacing whatever was there.</summary>

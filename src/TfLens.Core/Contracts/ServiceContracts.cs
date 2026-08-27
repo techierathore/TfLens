@@ -185,8 +185,25 @@ public sealed record ParseResult
     /// <summary>Lines that were not valid JSON; counted and skipped, never fatal.</summary>
     public int InvalidLines { get; init; }
 
-    /// <summary>Records collapsed by the stream's natural-key dedupe.</summary>
+    /// <summary>Records collapsed by the stream's natural-key dedupe, across every stream in this file.</summary>
     public int DuplicatesCollapsed { get; init; }
+
+    /// <summary>
+    /// Session records this file's own dedupe collapsed on <c>session_id</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="DuplicatesCollapsed"/> is the aggregate over all five streams and cannot be
+    /// attributed to one of them. The reference reports the session figure separately
+    /// (<c>pooled.session_duplicates_collapsed</c>), so it is carried separately here too. This counts
+    /// only duplicates <b>within this file</b>; a session id repeated across two archived snapshots of
+    /// the same stream is collapsed by the store's <c>UcSessionUserRepoId</c> index instead, which is
+    /// why ingest measures the total as records-presented minus rows-stored rather than by summing this
+    /// (REQ-FN-063).
+    /// </remarks>
+    public int SessionDuplicatesCollapsed { get; init; }
+
+    /// <summary>Session records read from the file before its dedupe — the ingest denominator.</summary>
+    public int SessionsPresented => Sessions.Count + SessionDuplicatesCollapsed;
 
     /// <summary>Field names seen that SCHEMA.md does not document, for the Coverage report.</summary>
     public IReadOnlyList<string> UnknownFields { get; init; } = [];
@@ -217,10 +234,18 @@ public sealed record RebuildReport(
 /// <param name="Columns">One column per detected harness, in the fixed order claude-code, opencode, codex.</param>
 /// <param name="NotDetectedRecords">Records whose <c>harness</c> is null — a footnote, never a column (ADR-017).</param>
 /// <param name="OpenCodeCostUsd">The only measured dollars in the system; null when there are no OpenCode records.</param>
+/// <param name="OpenCodeCostSessions">
+/// How many deduped OpenCode <b>session</b> records actually carried a <c>cost_usd</c> and were summed
+/// into <see cref="OpenCodeCostUsd"/>. It is the honest denominator for the figure's stated basis, and
+/// it is deliberately not a run count: the measurement lives on the session stream (SCHEMA.md §4), so a
+/// caption reading "over N runs" would name both the wrong record type and the wrong number. Zero
+/// exactly when <see cref="OpenCodeCostUsd"/> is <c>null</c>.
+/// </param>
 public sealed record HarnessComparison(
     IReadOnlyList<HarnessColumn> Columns,
     int NotDetectedRecords,
-    decimal? OpenCodeCostUsd);
+    decimal? OpenCodeCostUsd,
+    int OpenCodeCostSessions);
 
 /// <summary>One harness's column of the comparison.</summary>
 /// <param name="Harness">The harness name — <c>claude-code</c>, <c>opencode</c> or <c>codex</c>.</param>
@@ -339,3 +364,37 @@ public static class ParityStatuses
     /// <summary>No parity run has ever been recorded.</summary>
     public const string NeverRun = "NEVER RUN";
 }
+
+/// <summary>
+/// Why the parity stamp reads as it does — the four states BRD-71 keeps distinct.
+/// </summary>
+/// <remarks>
+/// <see cref="ParityStatuses"/> answers "may this be quoted"; this answers "why not", and the two are
+/// deliberately separate. Three different facts collapse into <see cref="ParityStatuses.NotQuotable"/> —
+/// the parser moved on, the reference script moved on, or the reference script cannot be hashed at all —
+/// and a banner that reported the wrong one would make a false statement about the evidence. The status
+/// vocabulary is unchanged so every existing consumer keeps working; a consumer that wants the finer
+/// state reads <c>ParityRecord.EvaluateFor</c> instead of <c>StatusFor</c>.
+/// </remarks>
+public static class ParityReasons
+{
+    /// <summary>A passing parity run covers this parser version and this reference script.</summary>
+    public const string Current = "current";
+
+    /// <summary>No record exists, or the recorded run did not pass.</summary>
+    public const string NeverRun = "never-run";
+
+    /// <summary>The parser version moved on after the recorded run.</summary>
+    public const string ParserChanged = "parser-changed";
+
+    /// <summary>The reference script's hash no longer matches the one the record was stamped with.</summary>
+    public const string ScriptChanged = "script-changed";
+
+    /// <summary>The reference script cannot be hashed — absent, unreadable, or never recorded.</summary>
+    public const string ScriptUnavailable = "script-unavailable";
+}
+
+/// <summary>The parity stamp evaluated against this build — the status and the reason behind it.</summary>
+/// <param name="Status">One of the <see cref="ParityStatuses"/> constants.</param>
+/// <param name="Reason">One of the <see cref="ParityReasons"/> constants.</param>
+public sealed record ParityStamp(string Status, string Reason);

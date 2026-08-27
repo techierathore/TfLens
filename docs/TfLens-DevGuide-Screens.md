@@ -45,11 +45,17 @@ Three things a reader should know before trusting a screen here:
 - **`/repos`, `/routing` and `/export` are horizontally scrollable at 390 px by design.** Their wide
   tables and the routing tab strip live in `overflow-x-auto` boxes, so controls sit outside the
   viewport and are reached by scrolling *that region*. The page body itself never scrolls sideways.
-- **Escape does not dismiss two dialogs.** The remove-repo `AlertDialog` (`/repos`) ignores Escape
-  entirely — only **Cancel** closes it, which contradicts REQ-UI-013's acceptance. The connect-repo
-  `Dialog` honours Escape until a validation result is on screen, then stops. Both are recorded as
-  Known issues on `/repos`.
-- **The Playbook axis is finished on `/export` only.** `playbook-axis-note` / `playbook-empty` render
+- ~~**Escape does not dismiss two dialogs.**~~ **Fixed 2026-08-27.** Escape now dismisses both the
+  remove-repo `AlertDialog` and the connect-repo `Dialog` (including after a validation result is on
+  screen). Root cause was a library gap, not page code: TrBlazeUI 2.0.0's `AlertDialog` ships no Escape
+  handling and no `CloseOnEscape`/`Modal` parameter, and — unlike `Dialog` — has no
+  `TrBlazeUI.Primitives` counterpart to inherit one from (`TR-014`). Worked around with a capture-phase
+  `keydown` module (`Repos.razor.js`) invoking a `[JSInvokable]` dismiss on the page, which closes the
+  remove dialog first, else the connect dialog when it is not mid-connect, and defers to an open
+  `role="listbox"` so dismissing the Kind select does not close the dialog behind it.
+- **The Playbook axis is finished on `/export` only.** *(Stale — superseded 2026-08-27; all five report
+  pages now render the Playbook state. See the Playbook section below.)* `playbook-axis-note` /
+  `playbook-empty` render
   there and nowhere else; `/`, `/three-questions`, `/harness` and `/routing` re-query on the Playbook
   axis but reuse the TechieFlow surface with no axis note. `pb-phases-*` is not rendered by any page.
   The separation rule itself holds — no `gate-dist-*` table is ever populated on the Playbook axis, so
@@ -660,13 +666,14 @@ not null && !AlreadyConnected`.
 
 ### Known issues (runtime-observed 2026-08-27)
 
-- **The remove-repo `AlertDialog` ignores Escape.** `remove-title` is still present after an Escape
-  press and only disappears on **Cancel**. REQ-UI-013's acceptance says "Escape/Cancel aborts", so this
-  is a real gap, not a deliberate destructive-dialog hardening — or if it *is* deliberate, the
-  acceptance wording needs to change. Nothing is deleted either way; the guard itself holds.
-- **The connect-repo `Dialog` stops honouring Escape once a validation result is on screen.** Escape
-  closes it from a clean open, but not after `connect-validate` has rendered `connect-validation`.
-  Cancel and the ✕ both still work.
+- ~~**The remove-repo `AlertDialog` ignores Escape.**~~ **Fixed 2026-08-27 (REQ-UI-013, now `Verified`).**
+  Escape dismisses the dialog and leaves every row in place; Cancel and the confirm path are unchanged.
+  Pinned by `tests/verify/ui-auth-shell.spec.ts`, which Escapes twice in one test so a listener torn
+  down after the first press fails the assertion.
+- ~~**The connect-repo `Dialog` stops honouring Escape once a validation result is on screen.**~~
+  **Fixed 2026-08-27** by the same `Repos.razor.js` handler — the REQ-UI-012 spec's branch log flipped
+  from `false` to `true`. Both dialogs share one root cause: `TR-014`, TrBlazeUI's missing Escape
+  support. If TrBlazeUI ever ships `CloseOnEscape`, this module is what to delete.
 - **The `Actions` column renders no text by design** — the row Sync and Remove controls are icon-only
   buttons. A cell-level "is it blank?" check will report one blank cell per row on `repos-table`; that
   is the Actions column, not a data defect.
@@ -911,7 +918,7 @@ One call: `objComparison = await objExtraMetrics.CompareHarnessesAsync(userId, o
 | Not-detected footnote | `div.tflens-footnote` | `harness-null-footnote` | `HarnessComparison.NotDetectedRecords` |
 | Tokens chart | `ChartContainer` → `BarChart` + `ApexPointSeries` | `tokens-chart` | `objChartRows` (`HarnessTokenTotal`) |
 | Tokens table | `DataTable … InitialPageSize="50"` | `tokens-table`, `tokens-total-{harness}` | `ToTokenRow` = in + out + cache read + cache write |
-| OpenCode dollars | `Card` | `opencode-cost`, `opencode-cost-value`, `opencode-cost-basis`, `opencode-cost-note` | `HarnessComparison.OpenCodeCostUsd` ← `MeasuredOpenCodeCost(runs)`, `Σ cost_usd` over `opencode` runs |
+| OpenCode dollars | `Card` | `opencode-cost`, `opencode-cost-value`, `opencode-cost-basis`, `opencode-cost-note` | `HarnessComparison.OpenCodeCostUsd` ← `MeasuredOpenCodeCost(**sessions**)`, `Σ cost_usd` over deduped `opencode` **session** records; count in `OpenCodeCostSessions`. **Corrected 2026-08-27** — it read `runs`, which carry no `cost_usd` at all (SCHEMA.md §4 puts the measurement on the session stream), so the figure was structurally `null` and the caption named the wrong stream. |
 
 **The four rules that shape this file:**
 
@@ -1194,15 +1201,31 @@ Selecting **Playbook** in the header switch writes `tflens-framework=playbook` a
 `ShellPreferences.Changed`; every report page answers by re-querying the engine on the new axis
 (ADR-016), never by filtering what it already rendered.
 
-> **Runtime-verified 2026-08-27 — partially wired.** Driving the switch to Playbook and visiting all
-> five report pages: only **`/export`** renders the Playbook state (`playbook-axis-note`,
-> `playbook-empty`, `playbook-empty-connect`). `/`, `/three-questions`, `/harness` and `/routing`
-> re-query correctly but reuse the TechieFlow surface and render **no axis note** — `/` shows the
-> AI-First-Playbook repo card, `/three-questions` falls through to `three-questions-empty`, `/harness`
-> renders all three columns from the Playbook axis, `/routing` shows `drift-empty`. `pb-phases-*` is
-> rendered by no page at all. The **separation rule holds**: no `gate-dist-*` table is populated while
-> the Playbook axis is selected, so `phase_gate` and `gate` never share a table or chart. Open against
-> REQ-UI-034, REQ-FN-067 and REQ-FN-070.
+> **Runtime-verified 2026-08-27 — fully wired.** *(Supersedes the earlier "partially wired" note from
+> the same day, which recorded the state before REQ-UI-034 / REQ-FN-067 / REQ-FN-070 were built.)*
+> Driving the switch to Playbook and visiting all five report pages: **every one** renders
+> `playbook-axis-note` and real figures rather than the empty state — `/` the `events` stream card plus
+> the observed-fields collapsible, `/three-questions` `pb-phases-all` and `pb-phases-/build-phase` with
+> a tab per process gate, `/harness` `pb-model-tokens` + `pb-measured-cost` + `pb-phases-harness`,
+> `/routing` its three panels including `pb-agent-split`, and `/export` the export surface. The
+> **separation rule still holds**: no `gate-dist-*` table is populated while the Playbook axis is
+> selected, so `phase_gate` and `gate` never share a table or chart. Switching back to TechieFlow
+> restores the TechieFlow surface on all five. Render + visual gates clean at 1280 and 390.
+>
+> **Two things are deliberately NOT rendered, and say so on screen rather than inventing a number.**
+> `/harness` shows `pb-harness-unavailable` instead of the mockup's three harness columns, because
+> `events.ndjson` carries **no harness field** (see `PlaybookWireFields`, read off the Playbook's own
+> emitter source) — there is no dimension to group by. `/routing` omits the mockup's counterfactual
+> repricing tab, because repricing is a rate card applied by the metrics engine and
+> `PlaybookAnalysis` exposes no repriced figure; pricing `TokensByModel` in the view would produce a
+> dollar amount with no engine behind it. Both would require a new member on `IPlaybookReportBuilder`.
+>
+> **The three questions themselves render `—` on every gate.** Not a bug: `events.ndjson` carries no
+> verdict field, so first-pass rate / catch share / escape rate are `NotApplicable` with the reason
+> printed beside them (`DECISIONS.md` S-001). They will populate only when the joiner output lands.
+> Note also that the archived `events-*.jsonl` in `data/raw/` is a **build-harness fixture**, not a
+> captured run — 9 identical sessions, no `parentID` anywhere — which is why `SchemaStatus` stays
+> `EmitterSourceDerived` and every Playbook figure carries the `playbook-provisional` caveat.
 
 ![/export on the Playbook axis](./devguide-images/export-playbook.png)
 

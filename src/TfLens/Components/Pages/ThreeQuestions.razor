@@ -9,6 +9,7 @@
     text `insufficient data (n=…)` rather than a flattering number.
 *@
 @page "/three-questions"
+@using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject IMetricsEngine objMetricsEngine
 @inject ITelemetryStore objStore
@@ -22,21 +23,35 @@
        the library's own utility classes. *@
     <div>
         <h1 class="text-2xl font-semibold tracking-tight">Three questions</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-            First-pass rate · escape rate · failures scored — per project_type, never combined
-        </p>
+        <p class="mt-1 text-sm text-muted-foreground">@Subtitle</p>
     </div>
 
-    @* REQ-UI-018 — the standing note, always visible. *@
-    <Alert Variant="AlertVariant.Info" data-testid="schema-note">
-        <LucideIcon Name="info" Size="16" />
-        <AlertTitle>SCHEMA.md §6</AlertTitle>
-        <AlertDescription>
-            Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.
-        </AlertDescription>
-    </Alert>
+    @if (!IsPlaybook)
+    {
+        @* REQ-UI-018 — the standing note, always visible on the TechieFlow axis. The Playbook state
+           carries its own standing note (PlaybookAxisNote), which states the stronger rule. *@
+        <Alert Variant="AlertVariant.Info" data-testid="schema-note">
+            <LucideIcon Name="info" Size="16" />
+            <AlertTitle>SCHEMA.md §6</AlertTitle>
+            <AlertDescription>
+                Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.
+            </AlertDescription>
+        </Alert>
+    }
 
-    @if (!objIsLoaded)
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-034 — the Playbook framework state: the standing axis note, then the three questions
+           keyed by `phase_gate` with their phase totals, or the Phase-3 empty state. Every key on this
+           branch is a PhaseGateKey, which has no conversion to or from the plain strings the TechieFlow
+           gate members use, so the two axes cannot share a table here (SCHEMA.md §11). *@
+        <PlaybookState UserId="@objUserId">
+            <ChildContent Context="vAnalysis">
+                <PlaybookQuestionsSurface Analysis="@vAnalysis" />
+            </ChildContent>
+        </PlaybookState>
+    }
+    else if (!objIsLoaded)
     {
         <Card>
             <CardContent Class="p-6">
@@ -404,6 +419,15 @@
     /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-034).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook state — first-pass rate · escape rate · failures scored, keyed by phase_gate, never combined"
+            : "First-pass rate · escape rate · failures scored — per project_type, never combined";
 
     /// <summary>The Collapsible's trigger line — REQ-UI-021's count of excluded REQs.</summary>
     private string TaintTriggerText =>

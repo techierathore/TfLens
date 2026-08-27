@@ -193,11 +193,18 @@ test('gate sweep: authenticated screens', async ({ page }) => {
     // `gate-dist-note-*` / `gate-dist-unlisted-*` share the `gate-dist-` prefix but are notes,
     // not tables — they are graded as controls (see NOT_A_TABLE below).
     prefixes: ['type-tab-', 'kpi-first-pass-', 'kpi-escape-', 'kpi-failures-', 'segment-facts-',
-      'late-gate-', 'gate-dist-note-'],
+      'late-gate-'],
     tablePrefixes: ['gate-dist-'],
-    // `gate-dist-unlisted-{type}` renders only when a failure names a gate outside GateOrder
-    // (REQ-UI-020) — absence is the normal state, not a blank control.
-    conditionalPrefixes: ['gate-dist-unlisted-'],
+    // Both `gate-dist-` notes are guarded and absent by design most of the time, so neither can be a
+    // required control:
+    //   `gate-dist-unlisted-{type}` renders only when a failure names a gate outside GateOrder.
+    //   `gate-dist-note-{type}`     renders only when a provenance has too few failures to state a
+    //                               distribution — `@if (vLive.GateDistributionNote is not null || …)`.
+    // The note was previously listed as required, which passed only because the dataset happened to
+    // trigger it. Against the owner's real repositories no provenance is short of failures, so it
+    // correctly did not render and the gate reported a RENDER-EMPTY for a control working as designed
+    // (REQ-UI-020; the DevGuide already documents both as conditional).
+    conditionalPrefixes: ['gate-dist-unlisted-', 'gate-dist-note-'],
     conditional: ['taint-trigger'],
   });
 

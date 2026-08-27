@@ -10,6 +10,7 @@
     figures reach the screen through FigureText, so a gate below the minimum n renders the literal
     `insufficient data (n=…)`.
 *@
+@using System.Globalization
 
 <div class="overflow-x-auto">
     <DataTable TData="PhaseRow"
@@ -140,6 +141,12 @@
         public string EscapedDisplay => Escaped.Display();
 
         /// <summary>Measured spend, or the em dash that says the events carried no cost at all.</summary>
-        public string CostDisplay => CostUsd is { } vCost ? vCost.ToString("C2") : "—";
+        /// <remarks>
+        /// The culture is pinned: the server's ambient culture is invariant, whose currency symbol is the
+        /// generic <c>¤</c> placeholder, and a cost that renders <c>¤2.11</c> does not say which currency
+        /// it is. <c>cost_usd</c> is USD by name, so USD is what it prints as.
+        /// </remarks>
+        public string CostDisplay =>
+            CostUsd is { } vCost ? vCost.ToString("C2", CultureInfo.GetCultureInfo("en-US")) : "—";
     }
 }

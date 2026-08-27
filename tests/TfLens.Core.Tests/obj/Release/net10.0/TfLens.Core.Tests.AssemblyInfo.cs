@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TfLens.Core.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c4fb49c19514be7cb074390eed5124404022a239")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2ec26317a0b9886f148842d3e66adcd52206fcf1")]
 [assembly: System.Reflection.AssemblyProductAttribute("TfLens.Core.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TfLens.Core.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

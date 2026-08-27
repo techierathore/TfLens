@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TfLens.Core.Contracts;
@@ -13,13 +14,19 @@ namespace TfLens.Core.Export;
 /// agreed. It carries the four things that can invalidate that claim: the date, the dataset SHAs the
 /// comparison ran against, the hash of <c>tf-metrics.sh</c> (a reference change invalidates the stamp
 /// just as surely as a TfLens change), and the TfLens parser version the run validated. The export
-/// banner compares that version against <see cref="ParserVersion.Current"/>: equal is
-/// <see cref="ParityStatuses.Quotable"/>, different is <see cref="ParityStatuses.NotQuotable"/>, absent
-/// is <see cref="ParityStatuses.NeverRun"/>. There is no code path that upgrades a status by any other
-/// means — nothing in TfLens can declare its own numbers quotable.
+/// banner compares that version against <see cref="ParserVersion.Current"/> <b>and</b> the recorded
+/// <see cref="ScriptHash"/> against the SHA-256 of the reference script named by
+/// <see cref="TfLensOptions.ReferenceScriptPath"/>: both current is
+/// <see cref="ParityStatuses.Quotable"/>, either moved on is <see cref="ParityStatuses.NotQuotable"/>,
+/// no passing record at all is <see cref="ParityStatuses.NeverRun"/>. There is no code path that
+/// upgrades a status by any other means — nothing in TfLens can declare its own numbers quotable, and a
+/// reference script that cannot be hashed degrades to not-quotable rather than being assumed unchanged.
 /// </remarks>
 public sealed record ParityRecord
 {
+    /// <summary>The algorithm marker <c>tools/parity-compare.py</c> writes in front of the digest.</summary>
+    public const string ScriptHashPrefix = "sha256:";
+
     /// <summary>ISO-8601 date the parity run was performed.</summary>
     public string? Date { get; init; }
 
@@ -90,25 +97,147 @@ public sealed record ParityRecord
     }
 
     /// <summary>
-    /// Decides whether the figures a given parser produced may be quoted.
+    /// Decides whether the figures a given parser produced may be quoted, and says why.
     /// </summary>
     /// <remarks>
-    /// A record that did not pass is treated exactly like no record at all for quotability: only an
-    /// empty diff against the reference makes a figure quotable (BRD §13).
+    /// <para>
+    /// REQ-FN-063 names three things that can invalidate a stamp, and all three are checked here. A
+    /// record that did not pass is treated exactly like no record at all: only an empty diff against the
+    /// reference makes a figure quotable (BRD §13). A parser version that has moved on since the run
+    /// invalidates it. And <b>a reference-script change invalidates it too, because the script hash is
+    /// part of the record</b> — the comparison is only evidence of agreement between the two
+    /// implementations that were actually compared, so if either side has changed the evidence is stale.
+    /// </para>
+    /// <para>
+    /// The script is hashed on every call rather than cached: the file is a few kilobytes, the check
+    /// runs once per page load or export, and a cached hash would let an edit made while the process is
+    /// running go unnoticed — which is the exact failure this clause exists to close.
+    /// </para>
+    /// <para>
+    /// <b>Absent is never quotable.</b> Many deployments will not ship <c>tf-metrics.sh</c>, and a
+    /// record that carries no <c>script_hash</c> is equally unverifiable. Either way the hash cannot be
+    /// confirmed, so the stamp reads <see cref="ParityStatuses.NotQuotable"/> with reason
+    /// <see cref="ParityReasons.ScriptUnavailable"/> — distinguishable from a real drift, and never
+    /// silently upgraded to quotable. Nothing here throws: an unreadable file is a reason, not a crash.
+    /// </para>
+    /// </remarks>
+    /// <param name="aRecord">The last parity record, or <c>null</c>.</param>
+    /// <param name="aParserVersion">The parser version that produced the figures.</param>
+    /// <param name="aReferenceScriptPath">
+    /// Path of the reference script, from <see cref="TfLensOptions.ReferenceScriptPath"/>; when blank
+    /// the record's own <see cref="ScriptPath"/> is used, because that is the file it was hashed over.
+    /// </param>
+    /// <returns>The status and the reason behind it.</returns>
+    public static ParityStamp EvaluateFor(
+        ParityRecord? aRecord, string aParserVersion, string? aReferenceScriptPath)
+    {
+        if (aRecord is null || !aRecord.Passed)
+        {
+            return new ParityStamp(ParityStatuses.NeverRun, ParityReasons.NeverRun);
+        }
+
+        if (!string.Equals(aRecord.ParserVersion, aParserVersion, StringComparison.Ordinal))
+        {
+            return new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ParserChanged);
+        }
+
+        var vRecorded = NormaliseHash(aRecord.ScriptHash);
+        var vPath = string.IsNullOrWhiteSpace(aReferenceScriptPath) ? aRecord.ScriptPath : aReferenceScriptPath;
+        var vCurrent = NormaliseHash(HashScript(vPath));
+
+        if (vRecorded is null || vCurrent is null)
+        {
+            return new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ScriptUnavailable);
+        }
+
+        return string.Equals(vRecorded, vCurrent, StringComparison.Ordinal)
+            ? new ParityStamp(ParityStatuses.Quotable, ParityReasons.Current)
+            : new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ScriptChanged);
+    }
+
+    /// <summary>
+    /// Decides whether the figures a given parser produced may be quoted, against a configured script.
+    /// </summary>
+    /// <param name="aRecord">The last parity record, or <c>null</c>.</param>
+    /// <param name="aParserVersion">The parser version that produced the figures.</param>
+    /// <param name="aReferenceScriptPath">Path of the reference script.</param>
+    /// <returns>One of the <see cref="ParityStatuses"/> constants.</returns>
+    public static string StatusFor(ParityRecord? aRecord, string aParserVersion, string? aReferenceScriptPath) =>
+        EvaluateFor(aRecord, aParserVersion, aReferenceScriptPath).Status;
+
+    /// <summary>
+    /// Decides whether the figures a given parser produced may be quoted, against the script the record
+    /// itself names.
+    /// </summary>
+    /// <remarks>
+    /// The record carries <see cref="ScriptPath"/> beside <see cref="ScriptHash"/>, so a caller with no
+    /// configuration to hand can still perform the full REQ-FN-063 check: the stamp says which file it
+    /// was taken over, and that file is re-hashed. This overload exists so every existing consumer keeps
+    /// the script-hash guarantee without changing its call.
     /// </remarks>
     /// <param name="aRecord">The last parity record, or <c>null</c>.</param>
     /// <param name="aParserVersion">The parser version that produced the figures.</param>
     /// <returns>One of the <see cref="ParityStatuses"/> constants.</returns>
-    public static string StatusFor(ParityRecord? aRecord, string aParserVersion)
+    public static string StatusFor(ParityRecord? aRecord, string aParserVersion) =>
+        EvaluateFor(aRecord, aParserVersion, aRecord?.ScriptPath).Status;
+
+    /// <summary>
+    /// Hashes the reference script exactly as <c>tools/parity-compare.py --record</c> does.
+    /// </summary>
+    /// <remarks>
+    /// SHA-256 over the file's bytes, rendered lower-case hex behind the <see cref="ScriptHashPrefix"/>
+    /// marker, so the value this returns is byte-for-byte the value the record stores. A missing or
+    /// unreadable file yields <c>null</c> — the caller turns that into a not-quotable stamp rather than
+    /// an exception, because a deployment without the oracle must still render its pages.
+    /// </remarks>
+    /// <param name="aPath">Path of the script, or <c>null</c>.</param>
+    /// <returns>The prefixed digest, or <c>null</c> when the file cannot be read.</returns>
+    public static string? HashScript(string? aPath)
     {
-        if (aRecord is null || !aRecord.Passed)
+        if (string.IsNullOrWhiteSpace(aPath) || !File.Exists(aPath))
         {
-            return ParityStatuses.NeverRun;
+            return null;
         }
 
-        return string.Equals(aRecord.ParserVersion, aParserVersion, StringComparison.Ordinal)
-            ? ParityStatuses.Quotable
-            : ParityStatuses.NotQuotable;
+        try
+        {
+            using var vStream = File.OpenRead(aPath);
+            return ScriptHashPrefix + Convert.ToHexStringLower(SHA256.HashData(vStream));
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reduces a stored or computed hash to the bare digest so the two can be compared safely.
+    /// </summary>
+    /// <remarks>
+    /// The <c>sha256:</c> marker is part of the stored value but is not part of the evidence, and an
+    /// upper-case digest is the same digest. Comparing the normalised forms means a record written by a
+    /// slightly different hand still invalidates correctly instead of failing open.
+    /// </remarks>
+    /// <param name="aHash">The hash as stored or computed, or <c>null</c>.</param>
+    /// <returns>The lower-case digest with no marker, or <c>null</c> when there is nothing to compare.</returns>
+    private static string? NormaliseHash(string? aHash)
+    {
+        if (string.IsNullOrWhiteSpace(aHash))
+        {
+            return null;
+        }
+
+        var vValue = aHash.Trim();
+        if (vValue.StartsWith(ScriptHashPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            vValue = vValue[ScriptHashPrefix.Length..];
+        }
+
+        return vValue.Length == 0 ? null : vValue.ToLowerInvariant();
     }
 
     /// <summary>Reads one optional string property.</summary>

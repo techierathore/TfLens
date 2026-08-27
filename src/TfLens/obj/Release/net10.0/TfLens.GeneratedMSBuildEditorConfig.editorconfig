@@ -171,6 +171,26 @@ build_metadata.AdditionalFiles.CssScope = b-12xth1488o
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tBZ2VudFNwbGl0UGFuZWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-h4b9wz5br1
 
+[/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/Playbook/PlaybookCoverageSurface.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tDb3ZlcmFnZVN1cmZhY2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-76ug73nhr3
+
+[/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/Playbook/PlaybookHarnessSurface.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tIYXJuZXNzU3VyZmFjZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-bgpqhpvwfd
+
+[/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/Playbook/PlaybookModelTokens.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tNb2RlbFRva2Vucy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-n2mv96e1ya
+
+[/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/Playbook/PlaybookQuestionsSurface.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tRdWVzdGlvbnNTdXJmYWNlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-mvza2ykjjn
+
+[/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/Playbook/PlaybookRoutingSurface.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUGxheWJvb2svUGxheWJvb2tSb3V0aW5nU3VyZmFjZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-2khsin5gmm
+
 [/mnt/c/1MyCode/TfLens/src/TfLens/Components/Shared/StatTile.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvU3RhdFRpbGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-n13f0th1xt

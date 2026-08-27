@@ -1,0 +1,156 @@
+@*
+    REQ-UI-034 — the Playbook state of the Routing & economics page
+    (docs/mockups/routing-playbook.html).
+
+    The TechieFlow state asks whether a run landed on the tier it was routed to. The Playbook stream has
+    no tier at all — `PlaybookWireFields` carries no `tier`, `tier_model` or `routed` — so the routing
+    question this axis *can* answer is the one the events really record: where the tokens went, main
+    session versus sub-agent, resolved through the `parentID` chain, and which model they ran on.
+
+    Every figure comes from `"PbEvent"`. No TechieFlow run record and no `gate` value is in scope, so
+    nothing on this surface pools the two axes (SCHEMA.md §11).
+
+    The mockup's fourth tab — counterfactual repricing — is deliberately absent: repricing is the rate
+    card applied by the metrics engine, and there is no Playbook-axis repricing member on the report
+    builder to read it from. Pricing these tokens here would put that arithmetic in the view layer and
+    would produce a dollar figure with no engine behind it.
+*@
+@using System.Globalization
+
+<div class="tflens-stack">
+
+    <Tabs Value="@objTab" ValueChanged="OnTabSelected" data-testid="pb-routing-tabs">
+        @* TabsList is an inline-flex row; on a 390px viewport it scrolls inside its own box so the page
+           container never scrolls sideways. *@
+        <div class="tflens-tabs-scroll">
+            <TabsList>
+                @* TR-010 — TabsTrigger captures no unmatched attributes, so the test id sits on the label
+                   span it renders around; a click on the span still activates the trigger. *@
+                <TabsTrigger Value="phases">
+                    <span data-testid="pb-routing-tab-phases">Phase totals</span>
+                </TabsTrigger>
+                <TabsTrigger Value="mainsub">
+                    <span data-testid="pb-routing-tab-mainsub">Main vs subagent</span>
+                </TabsTrigger>
+                <TabsTrigger Value="models">
+                    <span data-testid="pb-routing-tab-models">Tokens by model</span>
+                </TabsTrigger>
+            </TabsList>
+        </div>
+
+        @* ── Phase totals ──────────────────────────────────────────────────────────────── *@
+        <TabsContent Value="phases">
+            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-phases">
+                <Card>
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Phase totals</CardTitle>
+                                <CardDescription>
+                                    Events, sessions, tokens and measured cost per Playbook process gate.
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">phase_gate</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <PlaybookPhaseTotals Analysis="@Analysis" Name="routing" />
+                    </CardContent>
+                </Card>
+
+                <p class="text-xs text-muted-foreground" data-testid="pb-routing-cost-note">
+                    cost is Σ the events' own <span class="font-mono">cost</span> field where present
+                    (OpenCode measures it); Claude Code and Codex are null by design and are not summed,
+                    so a gate with no measured cost renders — rather than $0.00.
+                </p>
+            </div>
+        </TabsContent>
+
+        @* ── Main vs sub-agent ─────────────────────────────────────────────────────────── *@
+        <TabsContent Value="mainsub">
+            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-mainsub">
+                @* REQ-UI-034 — the main-vs-subagent token split, resolved through the parentID chain. *@
+                <PlaybookAgentSplitPanel Split="@Analysis.AgentSplit" />
+
+                <p class="text-xs text-muted-foreground" data-testid="pb-routing-split-note">
+                    Main sessions spent @Tokens(Analysis.AgentSplit.MainTokens) tokens across
+                    @Analysis.AgentSplit.MainSessions.ToString("N0", CultureInfo.InvariantCulture) sessions;
+                    sub-agent sessions spent @Tokens(Analysis.AgentSplit.SubagentTokens) across
+                    @Analysis.AgentSplit.SubagentSessions.ToString("N0", CultureInfo.InvariantCulture).
+                    Measured cost: main @Money(Analysis.AgentSplit.MainCostUsd) ·
+                    sub-agent @Money(Analysis.AgentSplit.SubagentCostUsd).
+                </p>
+            </div>
+        </TabsContent>
+
+        @* ── Tokens by observed model ──────────────────────────────────────────────────── *@
+        <TabsContent Value="models">
+            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-models">
+                <Card>
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Tokens by observed model</CardTitle>
+                                <CardDescription>
+                                    All four token classes summed per model the turn events actually named.
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">tokens, not dollars</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <PlaybookModelTokens Models="@Analysis.TokensByModel" />
+                    </CardContent>
+                </Card>
+
+                <p class="text-xs text-muted-foreground" data-testid="pb-routing-repricing-note">
+                    There is no counterfactual repricing on this axis yet: repricing is the rate card
+                    applied by the metrics engine, and the Playbook report builder exposes no repriced
+                    figure to read. A dollar amount computed in this page would have no engine behind it.
+                </p>
+            </div>
+        </TabsContent>
+    </Tabs>
+</div>
+
+@code {
+    /// <summary>What a fact the events never carried renders as — never a zero.</summary>
+    private const string Dash = "—";
+
+    private string objTab = "phases";
+
+    /// <summary>The Playbook report set this surface renders; it cannot hold a TechieFlow figure.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAnalysis Analysis { get; set; } = default!;
+
+    /// <summary>
+    /// Remembers the tab the reader picked.
+    /// </summary>
+    /// <param name="aTab">The selected tab's value.</param>
+    /// <returns>A completed task — the figures are already in memory, so nothing is re-queried.</returns>
+    private Task OnTabSelected(string? aTab)
+    {
+        if (!string.IsNullOrWhiteSpace(aTab))
+        {
+            objTab = aTab;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Renders a token count in full.
+    /// </summary>
+    /// <param name="aTokens">The token count.</param>
+    /// <returns>The grouped number.</returns>
+    private static string Tokens(long aTokens) => aTokens.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Renders a measured dollar figure, or the em dash that says the events carried none.
+    /// </summary>
+    /// <param name="aUsd">The measured spend, or <c>null</c>.</param>
+    /// <returns>The dollar text, or <c>—</c>. Never <c>$0.00</c> for an absent measurement.</returns>
+    private static string Money(decimal? aUsd) =>
+        aUsd is { } vUsd ? vUsd.ToString("C2", CultureInfo.GetCultureInfo("en-US")) : Dash;
+}

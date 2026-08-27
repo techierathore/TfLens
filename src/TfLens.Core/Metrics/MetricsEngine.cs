@@ -49,8 +49,10 @@ public sealed class MetricsEngine : IMetricsEngine
         var vRawCommits = await objStore.ReadCommitsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vRepos = await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false);
         var vEvents = await objStore.ReadPbEventsAsync(aUserId, null, aCancellationToken).ConfigureAwait(false);
+        var vSyncStates = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
 
         var (vCommits, vDuplicates) = DedupeCommits.PerRepo(vRawCommits);
+        var vSessionDuplicates = SessionDuplicatesFor(vRepos, aFramework, vSyncStates);
 
         // ---- stage 2: per-repo facts
         var vPerRepo = PerRepoFactsFor(vRepos, aFramework, vGates, vRuns, vSessions, vCommits, vEvents);
@@ -65,7 +67,7 @@ public sealed class MetricsEngine : IMetricsEngine
         var vBackfilledFigures = SegmentsFor(vBackfilled, vTainted, Provenance.Backfilled);
 
         // ---- stage 5: the pooled block, which both separations exempt
-        var vPooled = Pooled.Compute(vRuns, vSessions, vCommits, vDuplicates, vGates);
+        var vPooled = Pooled.Compute(vRuns, vSessions, vCommits, vDuplicates, vGates, vSessionDuplicates);
 
         objLogger.LogInformation(
             "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Tainted} tainted REQs",
@@ -91,8 +93,44 @@ public sealed class MetricsEngine : IMetricsEngine
     }
 
     /// <summary>
+    /// Totals the session collapses ingest recorded, over this framework's repositories only.
+    /// </summary>
+    /// <remarks>
+    /// Every other pooled figure is scoped to one framework because the store's reads are; this one is
+    /// read from <c>"SyncState"</c>, which has no framework column, so the scoping is done here against
+    /// <c>"UserRepo"</c> instead. A repository that has never been synced has no state row and
+    /// contributes nothing, which is the right answer rather than a missing one (REQ-FN-063, ADR-016).
+    /// </remarks>
+    /// <param name="aRepos">The user's connected repositories.</param>
+    /// <param name="aFramework">The provenance axis being analysed.</param>
+    /// <param name="aStates">The user's sync bookkeeping, one row per synced repository.</param>
+    /// <returns>Session records ingest collapsed across this framework's repositories.</returns>
+    private static int SessionDuplicatesFor(
+        IReadOnlyList<UserRepo> aRepos,
+        string aFramework,
+        IReadOnlyList<SyncState> aStates)
+    {
+        var vRepoNames = aRepos
+            .Where(aRepo => string.Equals(aRepo.Framework, aFramework, StringComparison.Ordinal))
+            .Select(aRepo => aRepo.Repo)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return aStates
+            .Where(aState => vRepoNames.Contains(aState.Repo))
+            .Sum(aState => aState.SessionDuplicatesCollapsed);
+    }
+
+    /// <summary>
     /// Builds the per-repository fact lines the Coverage page and the export show.
     /// </summary>
+    /// <remarks>
+    /// <c>app</c> falls back to the repository's own name when no record carries one, because that is
+    /// what the reference's <c>app_name()</c> does: it names the app from the single
+    /// <c>docs/*-Checklist.md</c> when there is exactly one, and otherwise from the repository
+    /// directory. A connected repository that has not yet produced a single telemetry record is the
+    /// second case, so emitting <c>null</c> there disagreed with the reference on every such line
+    /// (BRD §13 parity run, 2026-08-27).
+    /// </remarks>
     /// <param name="aRepos">Every repository the user has connected.</param>
     /// <param name="aFramework">The framework being analysed; repositories on another axis are excluded.</param>
     /// <param name="aGates">Gate records read for this framework.</param>
@@ -126,7 +164,8 @@ public sealed class MetricsEngine : IMetricsEngine
                     .Concat(vRunsHere.Select(aRun => aRun.App))
                     .Concat(vSessionsHere.Select(aSession => aSession.App))
                     .Concat(vCommitsHere.Select(aCommit => aCommit.App))
-                    .FirstOrDefault(aApp => !string.IsNullOrEmpty(aApp)),
+                    .FirstOrDefault(aApp => !string.IsNullOrEmpty(aApp))
+                    ?? vRepo.Name,
                 DeclaredProjectType(vGatesHere, vRunsHere, vSessionsHere, vCommitsHere),
                 vRepo.Framework,
                 vGatesHere.Count,

@@ -77,9 +77,9 @@ Copy `.env.example` to `.env` and fill it in. `.env` is gitignored and must neve
 | Variable | Required | What it is |
 |----------|----------|------------|
 | `TfLensDbConnection` | **Yes** | Npgsql connection string, e.g. `Host=postgres;Port=5432;Database=tflens;Username=tflens;Password=…`. Startup fails if it is missing or the database is unreachable. |
-| `TfLensAppManagerApiKey` | Pair | AppManager API key, sent as `X-Api-Key`. |
-| `TfLensAppManagerApiSecret` | Pair | AppManager API secret, sent as `X-Api-Secret`. |
-| `TfLensGitHubToken` | No | Fine-grained, **contents-read-only** GitHub PAT. It raises the read rate limit from 60/h to 5,000/h and grants no additional repository access. Its absence changes no behaviour. |
+| `TfLensAppManagerApiKey` | **Pair — required for password reset** | AppManager API key, sent as `X-Api-Key` on `/AuthSvc/*` only. `/AuthSvc/forgot-password` and `/AuthSvc/reset-password` accept the application scope only from this header and fail `400 APPLICATION_ID_REQUIRED` without it. Never sent on `/UserSvc/*`, where it causes `403 NO_APP_ACCESS` (DECISIONS.md D-006). |
+| `TfLensAppManagerApiSecret` | **Pair — required for password reset** | AppManager API secret, sent as `X-Api-Secret`. Set both or neither; a half pair fails startup. |
+| `TfLensGitHubToken` | **Strongly recommended** | Fine-grained, **contents-read-only** GitHub PAT (public repositories only). Raises the read rate limit from **60/h to 5,000/h** and grants no additional repository access — a private repo is still refused (BRD-100). *Corrected 2026-08-27: previously documented as changing no behaviour. Measured on a real deployment, 60/h is not enough to complete one sync pass over four repositories — they finish `error` with `GitHub rate limit reached`. See `docs/TfLens-Deployment-Checklist.md` §3.* |
 
 **"Pair" means whole or not at all.** The AppManager API-key headers are optional on the AppManager
 side — the client also sends `applicationId` in every request body, which resolves the application on

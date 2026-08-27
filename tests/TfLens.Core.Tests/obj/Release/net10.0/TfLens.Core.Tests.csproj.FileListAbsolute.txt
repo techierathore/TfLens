@@ -162,3 +162,6 @@
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/obj/Release/net10.0/TfLens.Core.Tests.pdb
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/obj/Release/net10.0/TfLens.Core.Tests.genruntimeconfig.cache
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/obj/Release/net10.0/ref/TfLens.Core.Tests.dll
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-27/techieflow/tflens.json
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-27/playbook/tflens.json
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/parity-last.json

@@ -1,0 +1,253 @@
+@*
+    REQ-UI-034 — the Playbook state of the Three questions page
+    (docs/mockups/three-questions-playbook.html).
+
+    The TechieFlow state is keyed by `project_type`; this one is keyed by `phase_gate`, because a
+    Playbook event carries a process gate and nothing else that segments the work. The layout is
+    otherwise the same: one tab per key, a KPI row of the three questions, and the distribution table
+    under it. Nothing on this surface can hold a TechieFlow assertion gate — every key is a
+    PhaseGateKey, which has no conversion to or from the plain strings the TechieFlow gate members use
+    (SCHEMA.md §11).
+
+    The three questions are not computable from the Playbook stream today: `events.ndjson` carries no
+    verdict field at all (DECISIONS.md S-001), so each figure is a NotApplicable Figure and reaches the
+    screen through FigureText as `—` with the builder's own reason printed beside it. Inventing the
+    verdict vocabulary from the brief's prose is exactly what ADR-010 forbids.
+*@
+@using System.Globalization
+
+<div class="tflens-stack">
+
+    @* The whole phase-gate picture, always visible, so `pb-phases-all` renders whichever tab is open. *@
+    <Card data-testid="pb-phase-totals-card">
+        <CardHeader>
+            <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                <span class="flex min-w-0 flex-col gap-1">
+                    <CardTitle Class="text-base">Phase totals — every phase_gate</CardTitle>
+                    <CardDescription>
+                        Playbook process gates. There is no TechieFlow assertion gate on this table and no
+                        total row: the two axes are never pooled (SCHEMA.md §11).
+                    </CardDescription>
+                </span>
+                <Badge Variant="BadgeVariant.Outline" data-testid="pb-phase-count">
+                    @Gates.Count phase_gate@(Gates.Count == 1 ? string.Empty : "s")
+                </Badge>
+            </div>
+        </CardHeader>
+        <CardContent Class="pt-0">
+            <PlaybookPhaseTotals Analysis="@Analysis" Name="all" />
+        </CardContent>
+    </Card>
+
+    @if (Gates.Count > 0)
+    {
+        <Tabs Value="@SelectedGate" ValueChanged="OnGateSelected" data-testid="pb-phase-tabs">
+            @* TabsList is an inline-flex row; on a 390px viewport it scrolls inside its own box so the
+               page container never scrolls sideways. *@
+            <div class="tflens-tabs-scroll">
+                <TabsList>
+                    @foreach (var vGate in Gates)
+                    {
+                        @* TR-010 — TabsTrigger captures no unmatched attributes, so the test id sits on the
+                           label span it renders around; a click on the span still activates the trigger. *@
+                        <TabsTrigger Value="@vGate">
+                            <span class="flex items-center gap-2" data-testid="@($"pb-gate-tab-{vGate}")">
+                                <span class="font-mono text-xs">@vGate</span>
+                                <Badge Variant="BadgeVariant.Secondary">@EventsOf(vGate)</Badge>
+                            </span>
+                        </TabsTrigger>
+                    }
+                </TabsList>
+            </div>
+
+            @foreach (var vGate in Gates)
+            {
+                var vQuestions = QuestionsOf(vGate);
+
+                <TabsContent Value="@vGate">
+                    <div class="tflens-stack tflens-tab-body">
+
+                        <StatGroup Columns="3" data-testid="@($"pb-kpis-{vGate}")">
+                            <StatTile Title="First-pass rate (phase_gate)"
+                                      IconName="circle-check"
+                                      Accent="StatAccent.Chart2"
+                                      Description="@FirstPassFormula"
+                                      data-testid="@($"pb-kpi-first-pass-{vGate}")">
+                                <ValueContent>
+                                    <FigureText Value="@vQuestions.FirstPassRate"
+                                                Class="@SmallWhenNoNumber(vQuestions.FirstPassRate)"
+                                                TestId="@($"pb-first-pass-{vGate}")" />
+                                </ValueContent>
+                            </StatTile>
+
+                            <StatTile Title="Catch share (this gate)"
+                                      IconName="list-checks"
+                                      Accent="StatAccent.Chart1"
+                                      Description="@CatchFormula"
+                                      data-testid="@($"pb-kpi-catch-{vGate}")">
+                                <ValueContent>
+                                    <FigureText Value="@vQuestions.CatchShare"
+                                                Class="@SmallWhenNoNumber(vQuestions.CatchShare)"
+                                                TestId="@($"pb-catch-share-{vGate}")" />
+                                </ValueContent>
+                            </StatTile>
+
+                            <StatTile Title="Escape rate (post-verification)"
+                                      IconName="triangle-alert"
+                                      Accent="StatAccent.Chart3"
+                                      Description="@EscapeFormula"
+                                      data-testid="@($"pb-kpi-escape-{vGate}")">
+                                <ValueContent>
+                                    <FigureText Value="@vQuestions.EscapeRate"
+                                                Class="@SmallWhenNoNumber(vQuestions.EscapeRate)"
+                                                TestId="@($"pb-escape-rate-{vGate}")" />
+                                </ValueContent>
+                            </StatTile>
+                        </StatGroup>
+
+                        <p class="text-sm text-muted-foreground" data-testid="@($"pb-segment-facts-{vGate}")">
+                            @SegmentFacts(vGate, vQuestions)
+                        </p>
+
+                        @if (vQuestions.UnavailableReason is { } vReason)
+                        {
+                            <Alert Variant="AlertVariant.Warning"
+                                   AccentBorder="true"
+                                   data-testid="@($"pb-unavailable-{vGate}")">
+                                <LucideIcon Name="triangle-alert" Size="16" />
+                                <AlertTitle>The three questions are not computable for this gate</AlertTitle>
+                                <AlertDescription>@vReason</AlertDescription>
+                            </Alert>
+                        }
+
+                        <Card>
+                            <CardHeader>
+                                <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                                    <span class="flex min-w-0 flex-col gap-1">
+                                        <CardTitle Class="text-base">Phase totals — @vGate</CardTitle>
+                                        <CardDescription>
+                                            Events, sessions, tokens and measured cost for this process gate only.
+                                        </CardDescription>
+                                    </span>
+                                    <Badge Variant="BadgeVariant.Outline">phase_gate</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                @* The acceptance's `pb-phases-{name}`, one table per process gate. *@
+                                <PlaybookPhaseTotals Analysis="@Only(vGate)" Name="@vGate" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+            }
+        </Tabs>
+    }
+</div>
+
+@code {
+    /// <summary>The SCHEMA.md §11 formula behind the first-pass tile.</summary>
+    private const string FirstPassFormula =
+        "passed on the first verify phase_gate ÷ items scored (SCHEMA.md §11)";
+
+    /// <summary>The SCHEMA.md §11 formula behind the catch-share tile.</summary>
+    private const string CatchFormula =
+        "this gate's share of the defects some phase_gate caught (SCHEMA.md §11)";
+
+    /// <summary>The SCHEMA.md §11 formula behind the escape-rate tile.</summary>
+    private const string EscapeFormula =
+        "post-verification bugs ÷ items with any failure (SCHEMA.md §11)";
+
+    private string? objSelectedGate;
+
+    /// <summary>The Playbook report set this surface renders; it cannot hold a TechieFlow figure.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PlaybookAnalysis Analysis { get; set; } = default!;
+
+    /// <summary>The process gates present, in the builder's order (busiest first).</summary>
+    private IReadOnlyList<string> Gates =>
+        Analysis.PhaseTotals.Select(aTotals => aTotals.PhaseGate.Name).ToList();
+
+    /// <summary>The open tab, defaulting to the busiest process gate.</summary>
+    private string? SelectedGate =>
+        objSelectedGate is not null && Gates.Contains(objSelectedGate, StringComparer.Ordinal)
+            ? objSelectedGate
+            : Gates.FirstOrDefault();
+
+    /// <summary>
+    /// Remembers the tab the reader picked.
+    /// </summary>
+    /// <param name="aGate">The process gate whose tab was selected.</param>
+    /// <returns>A completed task — the figures are already in memory, so nothing is re-queried.</returns>
+    private Task OnGateSelected(string? aGate)
+    {
+        if (!string.IsNullOrWhiteSpace(aGate))
+        {
+            objSelectedGate = aGate;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The event count on a process gate, as the tab badge prints it.
+    /// </summary>
+    /// <param name="aGate">The process-gate name.</param>
+    /// <returns>The grouped count.</returns>
+    private string EventsOf(string aGate) =>
+        Analysis.PhaseTotals
+            .FirstOrDefault(aTotals => string.Equals(aTotals.PhaseGate.Name, aGate, StringComparison.Ordinal))
+            ?.Events
+            .ToString("N0", CultureInfo.InvariantCulture)
+            ?? "0";
+
+    /// <summary>
+    /// The three questions for one process gate.
+    /// </summary>
+    /// <param name="aGate">The process-gate name.</param>
+    /// <returns>Its questions, or an all-not-applicable set when the builder reported none.</returns>
+    private PhaseGateQuestions QuestionsOf(string aGate) =>
+        Analysis.PhaseQuestions
+            .FirstOrDefault(aQ => string.Equals(aQ.PhaseGate.Name, aGate, StringComparison.Ordinal))
+        ?? new PhaseGateQuestions(
+            PhaseGateKey.From(aGate),
+            Figure.NotApplicable(),
+            Figure.NotApplicable(),
+            Figure.NotApplicable(),
+            0,
+            "The builder reported no questions for this process gate.");
+
+    /// <summary>
+    /// The muted facts line under one gate's KPI row.
+    /// </summary>
+    /// <param name="aGate">The process-gate name.</param>
+    /// <param name="aQuestions">That gate's questions.</param>
+    /// <returns>The sentence, stating the events the figures stand on.</returns>
+    private string SegmentFacts(string aGate, PhaseGateQuestions aQuestions) =>
+        $"{EventsOf(aGate)} events on this phase_gate · {aQuestions.SupportingEvents:N0} supporting the figures "
+        + "· source events.ndjson · never pooled with the TechieFlow gate axis";
+
+    /// <summary>
+    /// Narrows the report set to one process gate, so a per-gate table cannot show another gate's rows.
+    /// </summary>
+    /// <param name="aGate">The process-gate name.</param>
+    /// <returns>A copy of the analysis carrying that gate's totals and questions only.</returns>
+    private PlaybookAnalysis Only(string aGate) =>
+        Analysis with
+        {
+            PhaseTotals = Analysis.PhaseTotals
+                .Where(aTotals => string.Equals(aTotals.PhaseGate.Name, aGate, StringComparison.Ordinal))
+                .ToList(),
+            PhaseQuestions = Analysis.PhaseQuestions
+                .Where(aQ => string.Equals(aQ.PhaseGate.Name, aGate, StringComparison.Ordinal))
+                .ToList()
+        };
+
+    /// <summary>
+    /// Keeps a refusal-to-answer from being rendered at headline size.
+    /// </summary>
+    /// <param name="aFigure">The figure about to be rendered.</param>
+    /// <returns>The shrinking classes when the figure carries no number, otherwise <c>null</c>.</returns>
+    private static string? SmallWhenNoNumber(Figure aFigure) =>
+        aFigure.HasValue ? null : "text-base font-normal";
+}

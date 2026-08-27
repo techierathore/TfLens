@@ -8,12 +8,13 @@
 @page "/repos"
 @using TfLens.Core.GitHub
 @using TfLens.Core.Repos
-@implements IDisposable
+@implements IAsyncDisposable
 @inject IRepoListReader objRepoListReader
 @inject RepoRegistry objRepoRegistry
 @inject IServiceProvider objServices
 @inject ShellState objShellState
 @inject ToastService objToastService
+@inject IJSRuntime objJsRuntime
 
 <PageTitle>Repos · TfLens</PageTitle>
 
@@ -374,7 +375,13 @@
     /// <summary>The Kind select's "let TfLens work it out" option.</summary>
     private const string AutoDetectKind = "auto";
 
+    /// <summary>Path the collocated Escape-key module is served from.</summary>
+    private const string EscapeModulePath = "./Components/Pages/Repos.razor.js";
+
     private readonly HashSet<string> objSyncingRepos = new(StringComparer.OrdinalIgnoreCase);
+
+    private IJSObjectReference? objEscapeModule;
+    private DotNetObjectReference<Repos>? objSelfReference;
 
     private IReadOnlyList<RepoListItem> objRows = [];
     private bool objIsLoaded;
@@ -425,6 +432,59 @@
     protected override void OnInitialized()
     {
         objShellState.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Wires Escape-to-dismiss for the two overlays on this page once the circuit can reach the browser.
+    /// </summary>
+    /// <param name="aFirstRender">True on the render that follows the component's first render pass.</param>
+    /// <returns>A task that completes when the key listener is live.</returns>
+    protected override async Task OnAfterRenderAsync(bool aFirstRender)
+    {
+        if (!aFirstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            objSelfReference = DotNetObjectReference.Create(this);
+            objEscapeModule = await objJsRuntime.InvokeAsync<IJSObjectReference>("import", EscapeModulePath);
+            await objEscapeModule.InvokeVoidAsync("watchEscape", objSelfReference);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away before the listener could be attached; nothing to clean up here.
+        }
+    }
+
+    /// <summary>
+    /// Closes whichever overlay Escape should dismiss — the remove confirmation first, then Connect.
+    /// </summary>
+    /// <remarks>
+    /// TrBlazeUI 2.0.0's <c>AlertDialog</c> has no Escape handling of its own (TR-014), and the Connect
+    /// <c>Dialog</c> stops honouring Escape once a validation result has re-rendered its content, so the
+    /// page owns the key. A connect that is already running is not interruptible and is left alone.
+    /// </remarks>
+    /// <returns>A task that completes when the overlay has closed.</returns>
+    [JSInvokable]
+    public async Task DismissOpenDialogAsync()
+    {
+        if (objIsRemoveOpen)
+        {
+            objIsRemoveOpen = false;
+            objRemoveTarget = null;
+        }
+        else if (objIsConnectOpen && !objIsConnecting)
+        {
+            objIsConnectOpen = false;
+        }
+        else
+        {
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     /// <summary>
@@ -721,9 +781,30 @@
     /// <summary>Re-renders when the shell reloads the workspace.</summary>
     private void OnShellChanged() => InvokeAsync(StateHasChanged);
 
-    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
-    public void Dispose()
+    /// <summary>
+    /// Unsubscribes the shell handler and tears down the Escape listener so neither leaks per navigation.
+    /// </summary>
+    /// <returns>A task that completes once the browser-side listener and the module reference are gone.</returns>
+    public async ValueTask DisposeAsync()
     {
         objShellState.Changed -= OnShellChanged;
+
+        if (objEscapeModule is not null)
+        {
+            try
+            {
+                await objEscapeModule.InvokeVoidAsync("stopWatchingEscape");
+                await objEscapeModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit went away before the page did; the listener went with it.
+            }
+
+            objEscapeModule = null;
+        }
+
+        objSelfReference?.Dispose();
+        objSelfReference = null;
     }
 }

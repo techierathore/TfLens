@@ -32,10 +32,184 @@ internal static class SnapshotMarkdown
         ThreeQuestions(vText, aInputs);
         Harness(vText, aInputs);
         Routing(vText, aInputs);
+        Playbook(vText, aInputs);
         Parity(vText, aInputs);
 
         return vText.ToString();
     }
+
+    /// <summary>
+    /// The Playbook-native report set, written only into a <c>playbook</c> snapshot (REQ-FN-070).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The section is absent from a TechieFlow snapshot rather than present-and-empty, because a
+    /// document that says nothing about the Playbook axis is honest and a document with an empty
+    /// Playbook table reads as "there was nothing there".
+    /// </para>
+    /// <para>
+    /// Every row is keyed by a <b>process</b> gate. No heading, row or sentence in this section combines
+    /// it with the TechieFlow assertion-gate tables above (SCHEMA.md §11, REQ-FN-066). A phase whose
+    /// events carried no spend prints <c>—</c>, and the three questions print whatever
+    /// <see cref="Figure.Display"/> gives them, so <c>insufficient data (n=…)</c> reaches the page in
+    /// those words rather than as a number.
+    /// </para>
+    /// </remarks>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aInputs">Everything the snapshot renders from.</param>
+    private static void Playbook(StringBuilder aText, SnapshotInputs aInputs)
+    {
+        if (aInputs.Playbook is not { } vPlaybook)
+        {
+            return;
+        }
+
+        aText.AppendLine("## Playbook (phase_gate axis)").AppendLine();
+        aText.AppendLine(
+            "> Playbook process-gates (`phase_gate`) and TechieFlow assertion-gates (`gate`) are "
+            + "different axes and never share a table, column or chart (SCHEMA.md §11). Nothing below is "
+            + "pooled with anything above it.")
+            .AppendLine();
+
+        aText.Append("**Schema status:** ").Append(vPlaybook.SchemaStatus.ToString()).AppendLine("  ");
+        aText.Append("**Events:** ").Append(vPlaybook.EventsTotal.ToString(CultureInfo.InvariantCulture))
+            .Append(" across ").Append(vPlaybook.PerRepo.Count.ToString(CultureInfo.InvariantCulture))
+            .AppendLine(" repository/ies  ");
+        aText.Append("**Observed fields:** ")
+            .AppendLine(vPlaybook.ObservedFields.Count == 0
+                ? "—"
+                : string.Join(", ", vPlaybook.ObservedFields.Select(aF => "`" + aF + "`")))
+            .AppendLine();
+
+        PlaybookPhases(aText, vPlaybook);
+        PlaybookSplit(aText, vPlaybook);
+        PlaybookModels(aText, vPlaybook);
+
+        foreach (var vNote in vPlaybook.ProvisionalNotes)
+        {
+            aText.Append("- ⚠ ").AppendLine(vNote);
+        }
+
+        aText.AppendLine();
+    }
+
+    /// <summary>
+    /// The per-process-gate totals and the three questions asked of each of them.
+    /// </summary>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aPlaybook">The Playbook report set.</param>
+    private static void PlaybookPhases(StringBuilder aText, PlaybookAnalysis aPlaybook)
+    {
+        aText.AppendLine("### Phase totals and the three questions").AppendLine();
+
+        if (aPlaybook.PhaseTotals.Count == 0)
+        {
+            aText.AppendLine("_No events._").AppendLine();
+            return;
+        }
+
+        var vQuestions = aPlaybook.PhaseQuestions
+            .ToDictionary(aQ => aQ.PhaseGate.Name, StringComparer.Ordinal);
+
+        aText.AppendLine(
+            "| phase_gate | Events | Sessions | Tokens | Cost | First-pass rate | Catch share | Escape rate |");
+        aText.AppendLine("|---|---:|---:|---:|---:|---|---|---|");
+
+        foreach (var vTotals in aPlaybook.PhaseTotals)
+        {
+            var vHasRow = vQuestions.TryGetValue(vTotals.PhaseGate.Name, out var vRow);
+
+            aText.Append("| `").Append(vTotals.PhaseGate.Name)
+                .Append("` | ").Append(vTotals.Events.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vTotals.Sessions.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vTotals.Tokens.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(Measured(vTotals.CostUsd))
+                .Append(" | ").Append(vHasRow ? vRow!.FirstPassRate.Display() : "—")
+                .Append(" | ").Append(vHasRow ? vRow!.CatchShare.Display() : "—")
+                .Append(" | ").Append(vHasRow ? vRow!.EscapeRate.Display() : "—")
+                .AppendLine(" |");
+        }
+
+        aText.AppendLine();
+
+        var vReason = aPlaybook.PhaseQuestions.Select(aQ => aQ.UnavailableReason).FirstOrDefault(aR => aR is not null);
+        if (vReason is not null)
+        {
+            aText.Append("The three questions are not applicable: ").AppendLine(vReason).AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// The main-vs-sub-agent split resolved through the <c>parentID</c> chain.
+    /// </summary>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aPlaybook">The Playbook report set.</param>
+    private static void PlaybookSplit(StringBuilder aText, PlaybookAnalysis aPlaybook)
+    {
+        var vSplit = aPlaybook.AgentSplit;
+
+        aText.AppendLine("### Main vs sub-agent (parentID chain)").AppendLine();
+        aText.AppendLine("| Side | Sessions | Tokens | Cost |");
+        aText.AppendLine("|---|---:|---:|---:|");
+        aText.Append("| Main | ").Append(vSplit.MainSessions.ToString(CultureInfo.InvariantCulture))
+            .Append(" | ").Append(vSplit.MainTokens.ToString(CultureInfo.InvariantCulture))
+            .Append(" | ").Append(Measured(vSplit.MainCostUsd)).AppendLine(" |");
+        aText.Append("| Sub-agent | ").Append(vSplit.SubagentSessions.ToString(CultureInfo.InvariantCulture))
+            .Append(" | ").Append(vSplit.SubagentTokens.ToString(CultureInfo.InvariantCulture))
+            .Append(" | ").Append(Measured(vSplit.SubagentCostUsd)).AppendLine(" |");
+        aText.AppendLine();
+
+        aText.Append("Sub-agent share of tokens: ").Append(vSplit.SubagentTokenShare.Display())
+            .Append(". Sessions whose parent chain never reached a known root: ")
+            .Append(vSplit.UnresolvedParentSessions.ToString(CultureInfo.InvariantCulture))
+            .AppendLine(" — counted as sub-agent rather than promoted to main.")
+            .AppendLine();
+    }
+
+    /// <summary>
+    /// Tokens by observed model — the Playbook half of the routing view (BRD-75).
+    /// </summary>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aPlaybook">The Playbook report set.</param>
+    private static void PlaybookModels(StringBuilder aText, PlaybookAnalysis aPlaybook)
+    {
+        aText.AppendLine("### Tokens by model").AppendLine();
+
+        if (aPlaybook.TokensByModel.Count == 0)
+        {
+            aText.AppendLine("_No event carried a model field._").AppendLine();
+            return;
+        }
+
+        aText.AppendLine("| Model | In | Out | Cache read | Cache write | Total |");
+        aText.AppendLine("|---|---:|---:|---:|---:|---:|");
+
+        foreach (var vModel in aPlaybook.TokensByModel)
+        {
+            aText.Append("| `").Append(vModel.Model)
+                .Append("` | ").Append(vModel.TokensIn.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vModel.TokensOut.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vModel.TokensCacheRead.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vModel.TokensCacheWrite.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vModel.Total.ToString(CultureInfo.InvariantCulture))
+                .AppendLine(" |");
+        }
+
+        aText.AppendLine();
+    }
+
+    /// <summary>
+    /// Renders a <b>measured</b> money value, or an em dash when the events carried none.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="Money(decimal?)"/>, which labels its number an estimate: Playbook
+    /// <c>cost</c> is reported by the harness itself, so it must not carry the "(est.)" suffix — and an
+    /// absent one must never become <c>$0.00</c> (SCHEMA.md §4).
+    /// </remarks>
+    /// <param name="aValue">The measured amount, or <c>null</c>.</param>
+    /// <returns>The rendered cell.</returns>
+    private static string Measured(decimal? aValue) =>
+        aValue is { } vValue ? "$" + vValue.ToString("F2", CultureInfo.InvariantCulture) : "—";
 
     /// <summary>
     /// The title block, carrying the parser version and the quotable stamp.
@@ -255,8 +429,9 @@ internal static class SnapshotMarkdown
 
         aText.AppendLine("### Measured dollars (OpenCode only)").AppendLine();
         aText.Append(aInputs.Harness.OpenCodeCostUsd is { } vCost
-                ? "**$" + vCost.ToString("F2", CultureInfo.InvariantCulture) + "** — Σ measured `cost_usd` over OpenCode runs."
-                : "**Not measured.** No OpenCode run in this dataset carries a `cost_usd` measurement.")
+                ? "**$" + vCost.ToString("F2", CultureInfo.InvariantCulture)
+                    + "** — Σ measured `cost_usd` over OpenCode sessions (SCHEMA.md §4)."
+                : "**Not measured.** No OpenCode session in this dataset carries a `cost_usd` measurement.")
             .AppendLine().AppendLine();
         aText.AppendLine(
             "Claude Code and Codex report `cost_usd` as null by design and are **not** estimated into "
@@ -424,6 +599,7 @@ internal static class SnapshotMarkdown
         aText.AppendLine("| Cost (USD) | — not measured; never estimated (SCHEMA.md §4) |");
         aText.Append("| Commits | ").Append(vPooled.Commits).AppendLine(" |");
         aText.Append("| Commit duplicates collapsed | ").Append(vPooled.CommitDuplicatesCollapsed).AppendLine(" |");
+        aText.Append("| Session duplicates collapsed | ").Append(vPooled.SessionDuplicatesCollapsed).AppendLine(" |");
         aText.Append("| Active days | ").Append(vPooled.ActiveDays).AppendLine(" |");
         aText.Append("| Commits per active day | ").Append(vPooled.CommitsPerActiveDay.Display()).AppendLine(" |");
         aText.AppendLine();

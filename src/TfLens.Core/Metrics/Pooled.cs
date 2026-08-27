@@ -29,6 +29,11 @@ public static class Pooled
     /// <param name="aCommits">Commit records after <see cref="DedupeCommits.PerRepo"/>.</param>
     /// <param name="aDuplicatesCollapsed">How many duplicate commit records were collapsed.</param>
     /// <param name="aGates">Every gate record — the <c>Verified</c> transitions are the tokens-per-REQ denominator.</param>
+    /// <param name="aSessionDuplicatesCollapsed">
+    /// How many duplicate session records ingest collapsed, read from <c>"SyncState"</c>. It is a
+    /// parameter rather than something computed here because sessions are deduped on the way into the
+    /// store, not on the way out: <paramref name="aSessions"/> has already lost them (REQ-FN-063).
+    /// </param>
     /// <returns>The pooled block.</returns>
     /// <exception cref="ArgumentNullException">Any argument is <c>null</c>.</exception>
     public static PooledMetrics Compute(
@@ -36,7 +41,8 @@ public static class Pooled
         IReadOnlyList<SessionRecord> aSessions,
         IReadOnlyList<CommitRecord> aCommits,
         int aDuplicatesCollapsed,
-        IReadOnlyList<GateRecord> aGates)
+        IReadOnlyList<GateRecord> aGates,
+        int aSessionDuplicatesCollapsed = 0)
     {
         ArgumentNullException.ThrowIfNull(aRuns);
         ArgumentNullException.ThrowIfNull(aSessions);
@@ -70,6 +76,7 @@ public static class Pooled
             TokensPerVerifiedReq = TokensPerVerified(vTokens, vVerifiedTransitions),
             Commits = aCommits.Count,
             CommitDuplicatesCollapsed = aDuplicatesCollapsed,
+            SessionDuplicatesCollapsed = aSessionDuplicatesCollapsed,
             ActiveDays = vActiveDays,
             CommitsPerActiveDay = Cadence(aCommits.Count, vActiveDays)
         };

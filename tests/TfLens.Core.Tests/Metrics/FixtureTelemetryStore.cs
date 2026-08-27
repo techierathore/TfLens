@@ -21,7 +21,32 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly List<RunRecord> objRuns = [];
     private readonly List<SessionRecord> objSessions = [];
     private readonly List<CommitRecord> objCommits = [];
+    private readonly List<PbEventRecord> objPbEvents = [];
     private readonly List<UserRepo> objRepos = [];
+
+    /// <summary>
+    /// Session collapses ingest recorded per repository, keyed <c>(userId, repo)</c>.
+    /// </summary>
+    /// <remarks>
+    /// Sessions are deduped on the way into the real store, so this figure cannot be derived from the
+    /// records the fixture serves — it is bookkeeping ingest left behind, and the engine reads it from
+    /// <c>"SyncState"</c> (REQ-FN-063). A repository nobody has recorded a collapse for reads zero, which
+    /// is what a repository with no duplicates would genuinely report.
+    /// </remarks>
+    private readonly Dictionary<(int UserId, string Repo), int> objSessionCollapses = [];
+
+    /// <summary>
+    /// Records how many session records ingest collapsed for one repository.
+    /// </summary>
+    /// <param name="aUserId">The user the repository belongs to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> the collapses were counted for.</param>
+    /// <param name="aCollapsed">The number of session records ingest discarded as duplicates.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore WithSessionCollapses(int aUserId, string aRepo, int aCollapsed)
+    {
+        objSessionCollapses[(aUserId, aRepo)] = aCollapsed;
+        return this;
+    }
 
     /// <summary>
     /// Loads one fixture repository's streams.
@@ -92,6 +117,25 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         return this;
     }
 
+    /// <summary>
+    /// Seeds Playbook <c>"PbEvent"</c> records, for the tests on that axis.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a separate method from <see cref="Seed"/>: a Playbook record and a TechieFlow record
+    /// never arrive through the same door, so no test can feed one where the other is expected
+    /// (SCHEMA.md §11, REQ-FN-066).
+    /// </remarks>
+    /// <param name="aUserId">The user id the records are attributed to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> the records belong to.</param>
+    /// <param name="aEvents">The event records to serve.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SeedPbEvents(int aUserId, string aRepo, IEnumerable<PbEventRecord> aEvents)
+    {
+        RegisterRepo(aUserId, aRepo, FrameworkNames.Playbook);
+        objPbEvents.AddRange(aEvents);
+        return this;
+    }
+
     /// <summary>Records how many times the engine has read the gate stream, so memoisation is observable.</summary>
     public int GateReads { get; private set; }
 
@@ -125,7 +169,11 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     /// <inheritdoc />
     public Task<IReadOnlyList<PbEventRecord>> ReadPbEventsAsync(
         int aUserId, string? aRepo = null, CancellationToken aCancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<PbEventRecord>>([]);
+        Task.FromResult<IReadOnlyList<PbEventRecord>>(
+            objPbEvents
+                .Where(aRecord => aRecord.UserId == aUserId
+                    && (aRepo is null || string.Equals(aRecord.Repo, aRepo, StringComparison.Ordinal)))
+                .ToList());
 
     /// <inheritdoc />
     public Task<IReadOnlyList<UserRepo>> ReadUserReposAsync(int aUserId, CancellationToken aCancellationToken = default) =>
@@ -135,7 +183,14 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     public Task<IReadOnlyList<SyncState>> ReadSyncStateAsync(int aUserId, CancellationToken aCancellationToken = default) =>
         Task.FromResult<IReadOnlyList<SyncState>>(
             objRepos.Where(aRepo => aRepo.UserId == aUserId)
-                .Select(aRepo => new SyncState { UserId = aUserId, Repo = aRepo.Repo, LastSha = FixtureSha })
+                .Select(aRepo => new SyncState
+                {
+                    UserId = aUserId,
+                    Repo = aRepo.Repo,
+                    LastSha = FixtureSha,
+                    SessionDuplicatesCollapsed =
+                        objSessionCollapses.GetValueOrDefault((aUserId, aRepo.Repo))
+                })
                 .ToList());
 
     /// <inheritdoc />

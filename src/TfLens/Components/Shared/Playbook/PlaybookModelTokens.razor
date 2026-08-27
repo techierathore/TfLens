@@ -1,0 +1,126 @@
+@*
+    REQ-UI-034 — tokens per observed model on the Playbook axis.
+
+    The only cross-engine dimension `events.ndjson` carries is `model` (PlaybookWireFields.Model): a turn
+    record names the `providerID/modelID` it ran on. These are Playbook events only — no TechieFlow run
+    record is in scope — so this table can never pool the two axes (SCHEMA.md §11).
+
+    TR-011 — TrBlazeUI's BarChart renders an empty div in this app (the ApexCharts runtime the package
+    wraps is never loaded), so the totals are drawn as a CSS bar row instead, and every charted value is
+    printed as text both on its own bar and in the table beside it.
+*@
+@using System.Globalization
+
+@if (Models.Count == 0)
+{
+    <Empty Title="No model recorded yet"
+           Description="No Playbook turn event carries a model field, so there is nothing to total per model."
+           Size="EmptySize.Small"
+           data-testid="pb-model-tokens-empty">
+        <Icon>
+            <LucideIcon Name="database" Size="32" />
+        </Icon>
+    </Empty>
+}
+else
+{
+    <div class="tflens-stack">
+        <div class="overflow-x-auto">
+            @* TR-009 — ShowPagination="false" only hides the pager; the grid still truncates to
+               InitialPageSize, so it is set well above any model count a workspace can observe. *@
+            <DataTable TData="ModelTokens"
+                       Data="@Models"
+                       ShowToolbar="false"
+                       ShowPagination="false"
+                       InitialPageSize="128"
+                       AriaLabel="Playbook tokens by observed model"
+                       data-testid="pb-model-tokens">
+                <Columns>
+                    <DataTableColumn TData="ModelTokens" TValue="string"
+                                     Property="@(aRow => aRow.Model)" Header="model" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="font-mono text-xs">@vRow.Model</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="ModelTokens" TValue="long"
+                                     Property="@(aRow => aRow.TokensIn)" Header="in" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="tabular-nums">@Tokens(vRow.TokensIn)</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="ModelTokens" TValue="long"
+                                     Property="@(aRow => aRow.TokensOut)" Header="out" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="tabular-nums">@Tokens(vRow.TokensOut)</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="ModelTokens" TValue="long"
+                                     Property="@(aRow => aRow.TokensCacheRead)" Header="cache read" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="tabular-nums">@Tokens(vRow.TokensCacheRead)</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="ModelTokens" TValue="long"
+                                     Property="@(aRow => aRow.TokensCacheWrite)" Header="cache write" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="tabular-nums">@Tokens(vRow.TokensCacheWrite)</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                    <DataTableColumn TData="ModelTokens" TValue="long"
+                                     Property="@(aRow => aRow.Total)" Header="total" Sortable>
+                        <CellTemplate Context="vRow">
+                            <span class="font-semibold tabular-nums">@Tokens(vRow.Total)</span>
+                        </CellTemplate>
+                    </DataTableColumn>
+                </Columns>
+            </DataTable>
+        </div>
+
+        <div class="pb-bars" data-testid="pb-model-tokens-bars">
+            @foreach (var vModel in Models)
+            {
+                <div class="pb-bar">
+                    <span class="text-xs font-semibold tabular-nums">@Tokens(vModel.Total)</span>
+                    <span class="pb-bar-fill @AccentOf(vModel)" style="@BarStyle(vModel)"></span>
+                    <span class="pb-bar-label text-xs text-muted-foreground">@vModel.Model</span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>The per-model token totals the Playbook builder observed, largest first.</summary>
+    [Parameter]
+    public IReadOnlyList<ModelTokens> Models { get; set; } = [];
+
+    /// <summary>
+    /// Renders a token count in full, so a bar always has an exact text twin.
+    /// </summary>
+    /// <param name="aTokens">The token count.</param>
+    /// <returns>The grouped number.</returns>
+    private static string Tokens(long aTokens) => aTokens.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The accent class one bar takes, cycling the five chart accents.
+    /// </summary>
+    /// <param name="aModel">The model's totals.</param>
+    /// <returns>The bar's accent class.</returns>
+    private string AccentOf(ModelTokens aModel)
+    {
+        var vIndex = Models.ToList().FindIndex(aOther => aOther.Model == aModel.Model);
+        return $"pb-bar-{(vIndex < 0 ? 0 : vIndex % 5) + 1}";
+    }
+
+    /// <summary>
+    /// The height of one bar, as a share of the largest total.
+    /// </summary>
+    /// <param name="aModel">The model's totals.</param>
+    /// <returns>A CSS declaration setting the bar's height.</returns>
+    private string BarStyle(ModelTokens aModel)
+    {
+        var vMax = Models.Count == 0 ? 0L : Models.Max(aOther => aOther.Total);
+        var vShare = vMax <= 0L ? 0d : 100.0 * aModel.Total / vMax;
+        return $"height:{Math.Max(vShare, 2d).ToString("F1", CultureInfo.InvariantCulture)}%";
+    }
+}

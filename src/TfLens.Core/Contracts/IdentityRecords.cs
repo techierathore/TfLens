@@ -164,6 +164,20 @@ public sealed record SyncState
 
     /// <summary>Rows stored for the Playbook <c>events</c> stream.</summary>
     public int EventsCount { get; init; }
+
+    /// <summary>
+    /// Session records ingest discarded because another record already carried that <c>session_id</c>.
+    /// </summary>
+    /// <remarks>
+    /// The other five counts answer "how many rows are stored" and can always be recomputed with
+    /// <c>COUNT(*)</c>. This one cannot: the collapsed records were never written, so by the time the
+    /// metrics engine reads the store they are gone and a read-time count would be zero. It is a
+    /// property of ingest and is persisted as one, which is what lets the export report
+    /// <c>pooled.session_duplicates_collapsed</c> in agreement with the reference (REQ-FN-063).
+    /// A <c>rebuild</c> replays the whole raw archive and is authoritative, so it <b>sets</b> this; an
+    /// incremental sync ingests new files on top of what is stored, so it <b>adds</b> to it.
+    /// </remarks>
+    public int SessionDuplicatesCollapsed { get; init; }
 }
 
 /// <summary>The outcome of syncing one repository.</summary>

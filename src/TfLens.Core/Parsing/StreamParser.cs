@@ -860,6 +860,7 @@ public sealed class StreamParser : IStreamParser
                 InvalidLines = InvalidLines,
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
                     + vCommits.Collapsed + vEvents.Collapsed,
+                SessionDuplicatesCollapsed = vSessions.Collapsed,
                 UnknownFields = UnknownFields.OrderBy(aN => aN, StringComparer.Ordinal).ToList(),
                 RecordsAboveSchemaV1 = RecordsAboveSchemaV1
             };

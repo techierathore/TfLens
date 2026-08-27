@@ -173,6 +173,19 @@ public sealed record PooledMetrics
     /// <summary>Duplicate commit records collapsed on <c>sha</c> — expected, not corruption.</summary>
     public required int CommitDuplicatesCollapsed { get; init; }
 
+    /// <summary>
+    /// Duplicate session records collapsed on <c>session_id</c> — expected, not corruption.
+    /// </summary>
+    /// <remarks>
+    /// The sibling above is computed here, at read time, because commits are deduped here. Sessions are
+    /// not: the store's <c>UcSessionUserRepoId</c> index collapses them on the way in, so by the time
+    /// this block is computed the duplicates no longer exist and a read-time count would always be zero.
+    /// The figure is therefore carried in from <c>"SyncState"</c>, where ingest recorded it
+    /// (REQ-FN-063), and summed over the repositories on this framework only — the same scoping every
+    /// other pooled figure uses.
+    /// </remarks>
+    public required int SessionDuplicatesCollapsed { get; init; }
+
     /// <summary>Distinct days that carry at least one commit.</summary>
     public required int ActiveDays { get; init; }
 

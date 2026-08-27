@@ -4,6 +4,15 @@ Gaps found while building TfLens against **TrBlazeUI.Components 2.0.0** / **TrBl
 Each entry is a real blocker or defect met during the build, with the workaround that shipped so the
 build never stopped for a library issue.
 
+> **Numbering reconciled 2026-08-27.** Concurrent build clusters had independently allocated the same
+> TR numbers four times (`TR-010`, `TR-011`, `TR-012`, `TR-014` each appeared twice). The **first**
+> occurrence of each kept its number — those are the ones cited from the checklist and the DevGuide —
+> and the four later duplicates were renumbered to `TR-015`…`TR-018`. All 16 entries are now unique and
+> every citation elsewhere in `docs/` resolves. `TR-006` and `TR-007` were never allocated and are
+> deliberately left free (a stale `TR-007` mention survives in `docs/TfLens-DevGuide-Screens.md`, where
+> it is already listed under "stale comments to ignore"). **Allocating a number: take the next free one
+> after `TR-018`, and never renumber an existing entry.**
+
 ---
 
 ## TR-001 — The shipped stylesheet references design tokens it never defines (Alert has no colour, `bg-sidebar` is transparent)
@@ -235,7 +244,7 @@ Two defects met on the same screen; both make a control unusable as shipped.
 
 ---
 
-## TR-010 — `CardHeader` is a CSS grid, so a `Class="flex …"` on it cannot lay out a header row
+## TR-015 — `CardHeader` is a CSS grid, so a `Class="flex …"` on it cannot lay out a header row
 
 - **Severity:** Low — the documented shadcn KPI/card pattern does not reproduce without an extra wrapper.
 - **Repro:** `<CardHeader Class="flex flex-row items-center justify-between gap-2"><CardTitle>…</CardTitle><Badge>…</Badge></CardHeader>`.
@@ -252,7 +261,7 @@ Two defects met on the same screen; both make a control unusable as shipped.
 
 ---
 
-## TR-011 — `Badge` has no success/warning variant, so a status badge cannot carry its own semantics
+## TR-016 — `Badge` has no success/warning variant, so a status badge cannot carry its own semantics
 
 - **Severity:** Low — but every "healthy / needs attention / broken" badge collapses to two colours.
 - **Repro:** `<Badge Variant="BadgeVariant.Warning">2 streams stale</Badge>`.
@@ -268,7 +277,7 @@ Two defects met on the same screen; both make a control unusable as shipped.
 
 ---
 
-## TR-012 — `Empty` lives in `TrBlazeUI.Components.Empty`, which the reference's `_Imports` list omits
+## TR-017 — `Empty` lives in `TrBlazeUI.Components.Empty`, which the reference's `_Imports` list omits
 
 - **Severity:** Low — silent, and the failure looks like working markup.
 - **Repro:** follow §1 "_Imports.razor" of the package's AI reference verbatim, then use `<Empty Title="…">`.
@@ -281,3 +290,68 @@ Two defects met on the same screen; both make a control unusable as shipped.
   namespace missing from that list.
 - **Suggested fix:** complete the `_Imports.razor` block in the reference, and ship a `_Imports` snippet
   generated from the assembly so it cannot drift.
+
+---
+
+## TR-014 — `AlertDialog` has no Escape handling at all, and no `CloseOnEscape` / `Modal` to turn it on
+
+- **Severity:** Medium — a confirmation dialog that cannot be dismissed with Escape fails a plain
+  accessibility expectation, and there is no parameter to opt in.
+- **Repro:** `<AlertDialog @bind-Open="objIsRemoveOpen"><AlertDialogContent>…<AlertDialogCancel>…</AlertDialogCancel>
+  <AlertDialogAction>…</AlertDialogAction></AlertDialogContent></AlertDialog>`, open it, press **Escape**.
+- **Expected:** Escape closes the alert dialog, the same way it closes `Dialog` and `Sheet` — the shadcn/ui
+  AlertDialog this component mirrors closes on Escape by default, and the package's own `Dialog` documents
+  `Modal` as "Dismiss on outside click/Escape".
+- **Actual:** nothing happens; only the `AlertDialogCancel` button closes it. `TrBlazeUI.Components.AlertDialog.AlertDialog`
+  exposes only `ChildContent` / `Open` / `OpenChanged` / `DefaultOpen` / `OnOpenChange`, and `AlertDialogContent`
+  only `ChildContent` / `Class` / `AdditionalAttributes` — there is no `Modal`, no `CloseOnEscape`, no
+  `OnEscapeKeyDown`. Unlike `Dialog`, `AlertDialog` is not built on `TrBlazeUI.Primitives.Dialog.DialogContent`
+  (there is no `AlertDialog` type in `TrBlazeUI.Primitives` at all), so it never inherits that primitive's
+  `CloseOnEscape` / `TrapFocus` / `LockScroll` behaviour. Passing `CloseOnEscape="true"` through
+  `AdditionalAttributes` only emits a stray HTML attribute.
+- **Encountered in:** REQ-UI-013 (the remove-repo confirmation on `/repos`), whose acceptance names Escape.
+- **Related, same page:** the Connect `Dialog` — which *does* have `CloseOnEscape` via the primitive — stopped
+  honouring Escape once a validation result had re-rendered its content (REQ-UI-012's recorded observation).
+  Both were cured by the same page-level listener below, which suggests the primitive's document `keydown`
+  registration does not survive a content re-render.
+- **Workaround:** own the key in the page. `src/TfLens/Components/Pages/Repos.razor.js` adds one capture-phase
+  `document` `keydown` listener and calls a `[JSInvokable]` method on the component, which sets the bound
+  `Open` field to `false`; the listener ignores the press when an open `role="listbox"` popup (Select/Combobox)
+  should consume it, and the page implements `IAsyncDisposable` to remove it. Costs an interop hop per Escape
+  and has to be repeated on every page that uses `AlertDialog`.
+- **Suggested fix:** build `AlertDialog` on the same `Primitives.Dialog` layer `Dialog` uses, or at minimum add
+  `Modal` / `CloseOnEscape` / `OnEscapeKeyDown` to `AlertDialogContent` with `CloseOnEscape` defaulting to true;
+  and re-register the primitive's Escape listener on re-render so a dialog whose body changes keeps its key
+  handling.
+
+---
+
+## TR-018 — A closed `CollapsibleContent` keeps its children in normal flow, so the collapsed panel still occupies (and overlaps) the space below it
+
+- **Severity:** Medium — a collapsed disclosure silently lands on top of whatever follows it in the page,
+  and the collision is invisible in a screenshot (the text is clipped) but real to every geometry-based
+  layout gate, to hit-testing, and to a screen reader walking the accessibility tree.
+- **Repro:** render a card whose body is
+  `<Collapsible @bind-Open="objIsOpen"><CollapsibleTrigger>…</CollapsibleTrigger><CollapsibleContent><div data-testid="body">…tall content…</div></CollapsibleContent></Collapsible>`
+  with `objIsOpen` **false**, and put a sibling element after the card. Then measure:
+  `document.querySelector('[data-testid="body"]').getBoundingClientRect()`.
+- **Expected:** a closed `CollapsibleContent` contributes no box — either its children are not rendered at
+  all, or the subtree is `display:none` / `hidden` so nothing inside it reports a non-zero rect. That is
+  what the shadcn/ui Collapsible this component mirrors does (Radix sets `hidden` on closed content).
+- **Actual:** the children are rendered and laid out normally inside a zero-height, `overflow: hidden`
+  wrapper. `overflow:hidden` clips the paint but does **not** clip layout, so the inner element still
+  reports its full natural height — measured 45px of vertical overlap with the next sibling card on a
+  1280px viewport. `getComputedStyle` reports neither `display:none` nor `visibility:hidden`, so the
+  usual "is it visible?" tests all say yes.
+- **Encountered in:** REQ-UI-034 — `Components/Shared/Playbook/PlaybookObservedFields.razor`, the
+  "Observed fields" disclosure on the Coverage page's Playbook state. The visual gate in
+  `tests/verify/ui-playbook-state.spec.ts` failed with
+  `playbook-observed-fields overlaps pb-coverage-notes by 958x45px @1280`.
+- **Workaround:** guard the content in the component itself —
+  `<CollapsibleContent>@if (objIsOpen) { <div …>…</div> }</CollapsibleContent>` — so the closed state has
+  no subtree at all and therefore no phantom box. The disclosure also now opens by default, which is what
+  the mockup shows. The cost is that the content is re-created on every open rather than merely revealed,
+  so any transient state inside a collapsible has to live outside it.
+- **Suggested fix:** put `hidden` (or `display:none`) on `CollapsibleContent`'s root while closed, the way
+  Radix's Collapsible does; if the animation needs the box to exist mid-transition, drop it once the
+  transition ends rather than leaving it in flow indefinitely.

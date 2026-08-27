@@ -45,6 +45,7 @@ public sealed class SnapshotExporter : ISnapshotExporter
 
     private readonly IMetricsEngine objEngine;
     private readonly IExtraMetrics objExtras;
+    private readonly IPlaybookReportBuilder objPlaybook;
     private readonly ITelemetryStore objStore;
     private readonly TfLensOptions objOptions;
     private readonly ILogger<SnapshotExporter> objLogger;
@@ -54,6 +55,12 @@ public sealed class SnapshotExporter : ISnapshotExporter
     /// </summary>
     /// <param name="aEngine">The metrics engine — the parity surface, composed rather than reimplemented.</param>
     /// <param name="aExtras">The metrics with no parity oracle.</param>
+    /// <param name="aPlaybook">
+    /// The Playbook report builder, read only for a <c>playbook</c> snapshot (REQ-FN-070). It is a
+    /// separate interface from <see cref="IMetricsEngine"/> on purpose: the two axes reach this class
+    /// through two different doors and are written into two different documents, so a Playbook
+    /// <c>phase_gate</c> can never be composed into a TechieFlow snapshot (SCHEMA.md §11).
+    /// </param>
     /// <param name="aStore">The store, read for the dataset SHAs of the last sync (REQ-FN-062).</param>
     /// <param name="aOptions">Configuration, for the reports, prices and parity-record paths.</param>
     /// <param name="aLogger">Logger; ids, counts and paths only — never a record body (privacy rule).</param>
@@ -61,18 +68,21 @@ public sealed class SnapshotExporter : ISnapshotExporter
     public SnapshotExporter(
         IMetricsEngine aEngine,
         IExtraMetrics aExtras,
+        IPlaybookReportBuilder aPlaybook,
         ITelemetryStore aStore,
         IOptions<TfLensOptions> aOptions,
         ILogger<SnapshotExporter> aLogger)
     {
         ArgumentNullException.ThrowIfNull(aEngine);
         ArgumentNullException.ThrowIfNull(aExtras);
+        ArgumentNullException.ThrowIfNull(aPlaybook);
         ArgumentNullException.ThrowIfNull(aStore);
         ArgumentNullException.ThrowIfNull(aOptions);
         ArgumentNullException.ThrowIfNull(aLogger);
 
         objEngine = aEngine;
         objExtras = aExtras;
+        objPlaybook = aPlaybook;
         objStore = aStore;
         objOptions = aOptions.Value;
         objLogger = aLogger;
@@ -115,12 +125,14 @@ public sealed class SnapshotExporter : ISnapshotExporter
         await WriteAtomicAsync(vJsonPath, vJson + Environment.NewLine, aCancellationToken).ConfigureAwait(false);
 
         objLogger.LogInformation(
-            "Snapshot written for user {UserId} framework {Framework} date {Date}: parser {ParserVersion}, parity {ParityStatus}",
+            "Snapshot written for user {UserId} framework {Framework} date {Date}: parser {ParserVersion}, "
+            + "parity {ParityStatus}, playbook events {PlaybookEvents}",
             aUserId,
             aFramework,
             aDate,
             vInputs.Analysis.ParserVersion,
-            vInputs.ParityStatus);
+            vInputs.ParityStatus,
+            vInputs.Playbook?.EventsTotal);
 
         return new SnapshotResult(
             aUserId,
@@ -202,6 +214,14 @@ public sealed class SnapshotExporter : ISnapshotExporter
         CancellationToken aCancellationToken)
     {
         var vAnalysis = await objEngine.AnalyseAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
+
+        // REQ-FN-070: the Playbook-native report set is composed into the playbook snapshot and only
+        // into that one. A techieflow snapshot never reads "PbEvent", so the two axes cannot meet in a
+        // single document, let alone in a single figure (SCHEMA.md §11, ADR-016).
+        var vPlaybook = string.Equals(aFramework, FrameworkNames.Playbook, StringComparison.Ordinal)
+            ? await objPlaybook.BuildAsync(aUserId, null, aCancellationToken).ConfigureAwait(false)
+            : null;
+
         var vHarness = await objExtras.CompareHarnessesAsync(aUserId, aFramework, aCancellationToken)
             .ConfigureAwait(false);
         var vRouting = await objExtras.AnalyseRoutingAsync(aUserId, aFramework, aCancellationToken)
@@ -216,16 +236,23 @@ public sealed class SnapshotExporter : ISnapshotExporter
 
         var vParity = ParityRecord.Read(objOptions.ParityLastPath);
 
+        // REQ-FN-063 — the stamp is checked against BOTH invalidators: the parser version and the hash
+        // of the reference script the recorded run was compared with.
+        var vStamp = ParityRecord.EvaluateFor(
+            vParity, vAnalysis.ParserVersion, objOptions.ResolveReferenceScriptPath());
+
         return new SnapshotInputs(
             aUserId,
             aFramework,
             aDate,
             vAnalysis,
+            vPlaybook,
             vHarness,
             vRouting,
             vShas,
             vParity,
-            ParityRecord.StatusFor(vParity, vAnalysis.ParserVersion),
+            vStamp.Status,
+            vStamp.Reason,
             objOptions.PricesPath,
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
     }

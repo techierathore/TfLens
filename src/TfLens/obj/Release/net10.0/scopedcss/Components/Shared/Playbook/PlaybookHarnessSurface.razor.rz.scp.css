@@ -1,0 +1,42 @@
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002: the
+   package ships no responsive variants at all, so every breakpoint is hand-written here).
+
+   Blazor scoped CSS is scoped to ONE component, so the page-level rules in Harness.razor.css cannot
+   reach this component's markup — these are its own copies rather than references to them. */
+
+.tflens-stack[b-bgpqhpvwfd] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pb-lower[b-bgpqhpvwfd] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+@media (min-width: 64rem) {
+    .pb-lower[b-bgpqhpvwfd] {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+}
+
+.pb-money[b-bgpqhpvwfd] {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+/* Separator is a child component, so its own root cannot carry this component's scope attribute; the
+   rule's breathing space lives on the wrapper instead. */
+.pb-money-rule[b-bgpqhpvwfd] {
+    margin: 1rem 0;
+}
+
+.pb-cost-heading[b-bgpqhpvwfd] {
+    min-width: 0;
+}

@@ -102,11 +102,18 @@ public static class CommandRunner
     }
 
     /// <summary>
-    /// Writes the snapshot pair.
+    /// Writes the snapshot pair — one snapshot per framework (REQ-FN-070).
     /// </summary>
+    /// <remarks>
+    /// With no <c>--framework</c> the verb writes <b>every</b> framework's snapshot rather than
+    /// defaulting to TechieFlow. A snapshot is per user, per date, per framework (REQ-FN-056), and a
+    /// default that silently produced only one of them was the reason a user with Playbook repositories
+    /// ended the run with no <c>playbook/</c> folder on disk at all. Naming a framework still writes
+    /// exactly that one.
+    /// </remarks>
     /// <param name="aServices">A scoped service provider.</param>
-    /// <param name="aArgs">The command line; <c>--user &lt;id&gt;</c> and <c>--framework &lt;name&gt;</c>.</param>
-    /// <returns>Zero on success, 1 when no user was named.</returns>
+    /// <param name="aArgs">The command line; <c>--user &lt;id&gt;</c> and optional <c>--framework &lt;name&gt;</c>.</param>
+    /// <returns>Zero on success, 1 when no user was named or the framework is not recognised.</returns>
     private static async Task<int> RunExportAsync(IServiceProvider aServices, string[] aArgs)
     {
         var vExporter = aServices.GetRequiredService<ISnapshotExporter>();
@@ -118,15 +125,27 @@ public static class CommandRunner
             return 1;
         }
 
-        var vFramework = ReadOption(aArgs, "--framework") ?? Core.Contracts.FrameworkNames.TechieFlow;
-        var vResult = await vExporter.ExportAsync(
-            vUserId.Value,
-            vFramework,
-            DateOnly.FromDateTime(DateTime.UtcNow));
+        var vNamed = ReadOption(aArgs, "--framework");
+        if (vNamed is not null && !Core.Contracts.FrameworkNames.All.Contains(vNamed, StringComparer.Ordinal))
+        {
+            Console.Error.WriteLine(
+                $"export: unknown framework '{vNamed}'; expected one of "
+                + string.Join(", ", Core.Contracts.FrameworkNames.All) + ".");
+            return 1;
+        }
 
-        Console.WriteLine($"export: {vResult.MarkdownPath}");
-        Console.WriteLine($"export: {vResult.JsonPath}");
-        Console.WriteLine($"export: parser {vResult.ParserVersion}, parity {vResult.ParityStatus}");
+        IReadOnlyList<string> vFrameworks = vNamed is null ? Core.Contracts.FrameworkNames.All : [vNamed];
+        var vDate = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        foreach (var vFramework in vFrameworks)
+        {
+            var vResult = await vExporter.ExportAsync(vUserId.Value, vFramework, vDate);
+
+            Console.WriteLine($"export: {vResult.MarkdownPath}");
+            Console.WriteLine($"export: {vResult.JsonPath}");
+            Console.WriteLine(
+                $"export: framework {vResult.Framework}, parser {vResult.ParserVersion}, parity {vResult.ParityStatus}");
+        }
 
         return 0;
     }

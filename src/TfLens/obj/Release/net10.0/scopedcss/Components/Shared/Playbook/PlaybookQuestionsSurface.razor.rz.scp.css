@@ -1,0 +1,24 @@
+/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002).
+   Blazor scoped CSS is scoped to ONE component, so the page's own copies of these rules cannot reach
+   this component's markup. */
+
+.tflens-stack[b-mvza2ykjjn] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tflens-tab-body[b-mvza2ykjjn] {
+    margin-top: 1rem;
+}
+
+/* The phase_gate tab strip is a single inline-flex row that grows with the number of process gates, so
+   at a 390px viewport it drags the whole page container sideways. It scrolls inside its own box
+   instead — the same treatment the wide tables get. ::deep reaches TabsList, which is a child
+   component and so cannot carry this component's scope attribute. */
+.tflens-tabs-scroll[b-mvza2ykjjn]  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
