@@ -1,10 +1,10 @@
 ---
 project: TfLens
 stack: .NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose
-last_updated: 2026-08-27
-current_phase: Build — 111 of 114 Verified; the two Playbook rows await real telemetry
+last_updated: 2026-08-28
+current_phase: Build — 111 of 115 Verified; REQ-NFR-011 Implemented; verification BLOCKED on AppManager account credentials
 last_verified_build: PASS
-last_verified_date: 2026-08-27
+last_verified_date: 2026-08-28
 ---
 
 # TfLens — Status
@@ -19,7 +19,13 @@ last_verified_date: 2026-08-27
 -->
 
 ## Where I am
-`*build-phase` ran in FIX mode and chained `*verify all`; the owner then supplied the AppManager credentials and the four real repositories, and the TechieFlow team shipped fixes for all three framework defects this project raised. **111 of 114 REQs are `Verified`, 2 `Needs re-verify`, 1 `N/A`.** Evidence: **433/433 .NET tests** (`-m:1`), **54/54 Playwright acceptance tests**, and a render + visual sweep of **325 controls across 19 screen-states** with zero blank controls and zero visual failures.
+**2026-08-28 — `*build-phase` delivered `REQ-NFR-011` (user secrets as the local-dev secrets path) and then hit a hard external blocker.** The owner reported that updating credentials in `.env` was painful; the diagnosis was worse than the complaint — **nothing in `Program.cs` parses `.env`**, so `dotnet run`/F5 never opened it and every edit made there for a local run did nothing. `.env` is `docker compose`'s interpolation file only. User secrets were already sanctioned by BRD-8 and already wired (`UserSecretsId=tflens-dev-secrets`), but `secrets.json` was empty on both the Windows and WSL stores and every doc opened with `copy .env.example .env`. Fixed as a docs + template gap: `src/TfLens/secrets.example.json`, DevGuide/README/`.env.example` rewritten, 3 new guardrail tests. `appsettings.Development.json` was **rejected** as the target — it is committed, so a live `sk_live_…` would enter git history. Proven with an empty environment: a half-pair in `secrets.json` aborts startup, the whole pair boots the app and fetches the AppManager public key (200). Build 0 warnings; Guardrails 55/55; anonymous render+visual gate 10/10.
+
+**⚠ VERIFICATION IS BLOCKED — AppManager rejects both documented test accounts.** `tflensdemo@techierathore.com` and `tflenstest2@techierathore.com` both return `INVALID_CREDENTIALS (401)` from `/AuthSvc/login` with the passwords recorded in the UsageGuide. **This is not caused by the secrets change and is not fixable from here:** `AppManagerLiveTests.BuildClient()` constructs a bare `new TfLensOptions()` with *no* API key pair at all and fails identically, and the failure code is `INVALID_CREDENTIALS`, never `INVALID_API_KEY`. 7 tests fail, all one root cause: 429/436 pass (5 `AppManagerLiveTests` + 2 integration sign-ins). **`*verify all` was deliberately NOT chained** — every authenticated REQ would fail on this one external cause and mass-demote 111 legitimately `Verified` rows on a false signal. Those rows keep their 2026-08-27 verdicts; re-verification resumes the moment a working password is supplied.
+
+---
+
+*Prior entry (2026-08-27):* `*build-phase` ran in FIX mode and chained `*verify all`; the owner then supplied the AppManager credentials and the four real repositories, and the TechieFlow team shipped fixes for all three framework defects this project raised. **111 of 114 REQs are `Verified`, 2 `Needs re-verify`, 1 `N/A`.** Evidence: **433/433 .NET tests** (`-m:1`), **54/54 Playwright acceptance tests**, and a render + visual sweep of **325 controls across 19 screen-states** with zero blank controls and zero visual failures.
 
 **The BRD §13 parity gate PASSES — the app's figures are quotable.** Re-run end to end at **parser 1.1.0**: `parity-compare.py` exits 0 — *"0 finding(s), 19 allowed difference(s). PASS — the two implementations agree key for key."* Every headline figure agrees exactly: sessions 56, tokens_total 14,846,715, tokens_per_verified_req 65,985.4, commits 181, session_duplicates_collapsed 2. `data/parity-last.json` is recorded against oracle `sha256:960d12b4…` (DECISIONS.md P-002) and `/export` reads **QUOTABLE** on a bare boot. Nothing was added to the compare script's allow-lists and `.tfcore/` was never edited.
 
@@ -28,17 +34,23 @@ last_verified_date: 2026-08-27
 **Two fabrications were removed.** REQ-UI-025's `$0.84` came from test rows left in the shared database (real figure: **$0.04**), and the 45 Playbook `PbEvent` rows behind `$12.69` were written by a build harness — `techierathore/AI-First-Playbook` publishes neither telemetry path. Both are gone.
 
 ## Next command to run
+**Owner action first — nothing else can proceed.** Restore a working password for
+`tflensdemo@techierathore.com` (AppManager `userId` 2) and record it in `docs/TfLens-UsageGuide.md`
+(the table already carries the note *"Password may be rotated by the owner — update here"*). Then:
 ```
-/TechieFlow:agents:flow-master *build-phase TfLens     (OpenCode: /flow-master *build-phase TfLens)
+/TechieFlow:agents:verifier *verify all TfLens          (OpenCode: /flow-verifier *verify all TfLens)
 ```
-Target `REQ-FN-067` and `REQ-FN-070` once a repository emits `events.ndjson`. Handoff waits on the three owner items below.
+That re-confirms the 111 rows and grades `REQ-NFR-011` up from `Implemented`. `REQ-FN-067` /
+`REQ-FN-070` still wait on a repository that emits `events.ndjson`.
 
 ## Open requirements
+- `Implemented` — `REQ-NFR-011` user secrets as the local-dev secrets path: self-smoked clean on the anonymous surface; caps at `Implemented` because no verify-phase run could execute (accounts blocked) and smoke never grants `Verified`
 - `Needs re-verify` — `REQ-FN-067` Playbook-native figures: mechanism covered by unit tests and a seeded dataset, ungradeable against real data — no repository emits `events.ndjson`
 - `Needs re-verify` — `REQ-FN-070` full Playbook report set: the export half holds (one snapshot per framework, axis separation structural), but "a working Playbook state, not an empty state" cannot be shown without real telemetry
 - `N/A` — `REQ-FN-012` GitHub SSO, deferred by BRD-94 / ADR-012
 
 ## Known blockers
+- **OWNER — BLOCKING EVERYTHING — both documented test accounts are rejected by AppManager.** `/AuthSvc/login` answers `INVALID_CREDENTIALS (401)` for `tflensdemo@techierathore.com` / `TfLensDemo!23` **and** `tflenstest2@techierathore.com` / `TfLensTest2!23`. Reproduced three ways on 2026-08-28: through the browser with the form confirmed filled (email present, 13-char password) after the Blazor circuit attached; through `AppManagerLiveTests` (5 failures); through `CrossUserIsolationTests` (2 failures, whose own message reads *"The account must exist in AppManager with the password recorded in the UsageGuide"*). **Not a TfLens defect and not caused by the secrets change** — `AppManagerLiveTests.BuildClient()` sends no API key pair at all and fails identically, and the code is `INVALID_CREDENTIALS`, never `INVALID_API_KEY` (a bad pair returns the latter). Most likely a password rotated or an account reset on the AppManager side — plausibly a side effect of the 2026-08-27 password-reset/change-password exercises. **Ask:** set a known password for `userId` 2 (and ideally 3) and update the UsageGuide table. Until then no authenticated screen can be smoked or verified.
 - ~~FRAMEWORK BUG — `tf-metrics.sh` never dedupes sessions.~~ **FIXED UPSTREAM 2026-08-27.** All three framework defects TfLens raised were fixed the same day and delivered by `update-framework.sh`: TF-001 (`dedupe_sessions` now ships, with a `session_duplicates_collapsed` count), TF-002 (`tf-perf.sh` gained `--header`/`--cookie` and an auth-wall exit code) and TF-003 (`tf-render-html.sh` ships; `*generate-html` calls it instead of hand-authoring). TF-001's fix is what let the parity gate pass. See `docs/TfLens-TechieFlow-Feedback.md`.
 - **OWNER — create a `Manager` role for Application 1 in AppManager.** Registering with `applicationRoleCode: "Manager"` (plus the API-key pair and `applicationId: 1`, exactly as the guide specifies) returns **200 with `applicationRole: 'User'`** — silently substituting the app default, which per the guide means Application 1 defines no `Manager` role. Reproduced on a fresh account this pass (userId 4). `GET /UserSvc/profile` also answers `403 NO_APP_ACCESS` for every account whenever an app context is resolved. TfLens behaves correctly either way (BRD-95 issues its own `Manager` claim; the key pair is scoped to `/AuthSvc/*`), but the server does not honour the documented contract. Logged as AM-001 / AM-002 in `docs/TfLens-AppManager-Feedback.md`.
 - **OWNER — supply `TfLensGitHubToken`.** Unauthenticated GitHub allows **60 requests/hour**; connecting and syncing four repos exhausted it (three finished `GitHub rate limit reached — try again in 15 minutes`, and the quota hit 0/60). A contents-read-only PAT raises it to 5,000/h. The BRD calls this token *optional*, which is misleading — a single sync pass over four repos cannot complete without it.
@@ -57,6 +69,7 @@ Target `REQ-FN-067` and `REQ-FN-070` once a repository emits `events.ndjson`. Ha
 | 2026-08-27 | follow-up: AppManager credentials + test-isolation fix | 427/427 .NET · 21/21 auth+reset Playwright · `/AuthSvc/forgot-password` **200 live** (was 400) · API-key pair scoped to `/AuthSvc/*` after it broke `/UserSvc/profile` · store tests moved to reserved ids and now self-clean · **112 Verified / 1 Implemented / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 | 2026-08-27 | follow-up: four real repos connected + fabricated data removed | 54/54 Playwright · render+visual 325 controls / 19 screen-states clean · 611 real records from the owner's repos · synthetic `PbEvent` fixture and the `AI-First-Playbook` connection removed · AM-001/AM-002 raised · **110 Verified / 2 Needs re-verify / 1 Implemented / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 | 2026-08-27 | **BRD §13 parity gate PASSED** (after the upstream `tf-metrics.sh` fix) | 433/433 .NET · `parity-compare.py` exit 0 — 0 findings, 19 allowed · `data/parity-last.json` written vs oracle `960d12b4…` · `/export` reads **QUOTABLE** on a bare boot · **111 Verified / 2 Needs re-verify / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-28 | build-phase (REQ-NFR-011, single cluster) — **verifier NOT chained, see blockers** | Build PASS 0 warnings · Guardrails **55/55** (was 52) · full suite **429/436**, the 7 failures all one external cause (AppManager rejects both documented accounts) · self-smoke on an EMPTY environment: half-pair in `secrets.json` aborts startup, whole pair boots + `/healthz` ok + AppManager public-key 200 · anonymous render+visual **10/10** at 1280×800 and 390×844 · **111 Verified / 1 Implemented / 2 Needs re-verify / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 | 2026-08-27 | parity re-run at parser **1.1.0** + deployment checklist | 433/433 .NET · parser bumped for the added `session_duplicates_collapsed` metric (D-005), which un-quoted the export until parity was re-recorded — the invalidation clause demonstrated end to end · compare exit 0, **QUOTABLE** restored (DECISIONS.md P-002) · `docs/TfLens-Deployment-Checklist.md` added · **111 Verified / 2 Needs re-verify / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 
 ## Library feedback summary

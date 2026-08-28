@@ -146,6 +146,92 @@ public sealed class DeveloperOnboardingTests
         vText.Should().Contain("docker compose up -d postgres");
     }
 
+    /// <summary>
+    /// The project declares a <c>UserSecretsId</c>, so the documented F5 path can actually read a secret.
+    /// </summary>
+    /// <remarks>
+    /// Without this property, Visual Studio's *Manage User Secrets* has nowhere to write and
+    /// <c>CreateBuilder</c> loads no secrets file — the app still starts (the Development connection
+    /// fallback covers the database), so the breakage is silent: the AppManager pair simply never
+    /// arrives and password reset dies with a 400 that names nothing. Deleting one line of the csproj
+    /// must not be able to do that quietly (REQ-NFR-011, BRD-8).
+    /// </remarks>
+    [Fact]
+    public void UserSecretsIdIsDeclaredSoTheF5PathKeepsWorking()
+    {
+        var vPath = Path.Combine(RepositoryRoot(), "src", "TfLens", "TfLens.csproj");
+
+        File.Exists(vPath).Should().BeTrue($"{vPath} must exist");
+
+        File.ReadAllText(vPath).Should().Contain(
+            "<UserSecretsId>tflens-dev-secrets</UserSecretsId>",
+            "user secrets are the documented local-development secrets path; without this id the " +
+            "csproj silently stops loading secrets.json and the AppManager pair never reaches the app");
+    }
+
+    /// <summary>
+    /// The committed user-secrets template holds placeholders only — never a real value.
+    /// </summary>
+    /// <remarks>
+    /// The template exists so a developer can paste a correctly-keyed block into their own
+    /// <c>secrets.json</c>. Its whole safety property is that it is empty: the moment someone fills it
+    /// in "just to test", a live AppManager key is committed. Asserted on the key prefixes AppManager
+    /// actually issues rather than on emptiness alone, so a placeholder like <c>ak_live_...</c> that
+    /// looks harmless but trains the wrong habit also fails.
+    /// </remarks>
+    [Fact]
+    public void UserSecretsTemplateContainsNoRealCredential()
+    {
+        var vPath = Path.Combine(RepositoryRoot(), "src", "TfLens", "secrets.example.json");
+
+        File.Exists(vPath).Should().BeTrue(
+            $"{vPath} is what the Developer Guide and README tell a developer to copy");
+
+        var vText = File.ReadAllText(vPath);
+
+        using var vDocument = JsonDocument.Parse(vText);
+
+        foreach (var vProperty in vDocument.RootElement.EnumerateObject())
+        {
+            if (vProperty.Name.StartsWith("//", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            vProperty.Value.GetString().Should().BeEmpty(
+                $"'{vProperty.Name}' is a template slot — a value here would be committed to git");
+        }
+
+        vText.Should().NotContain("ak_live_", "a committed file must not carry an AppManager key");
+        vText.Should().NotContain("sk_live_", "a committed file must not carry an AppManager secret");
+        vText.Should().NotContain("ghp_", "a committed file must not carry a GitHub PAT");
+    }
+
+    /// <summary>
+    /// The Developer Guide names user secrets as the local-development path, not <c>.env</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is the documentation half of REQ-NFR-011, and it exists because the guide got it wrong.
+    /// It opened with <c>copy .env.example .env</c>, which reads as "this is where the app's settings
+    /// live" — but nothing in <c>Program.cs</c> parses <c>.env</c>, so every edit a developer made to
+    /// it for an F5 run did nothing at all. The guide must name the mechanism that actually works and
+    /// must say plainly that <c>.env</c> belongs to Compose.
+    /// </remarks>
+    [Fact]
+    public void DeveloperGuideNamesUserSecretsAsTheLocalDevelopmentPath()
+    {
+        var vText = File.ReadAllText(Path.Combine(RepositoryRoot(), "docs", "TfLens-DevGuide.md"));
+
+        vText.Should().Contain("Manage User Secrets",
+            "the Visual Studio gesture is the one a developer on Windows actually uses");
+        vText.Should().Contain("dotnet user-secrets set",
+            "the shell equivalent must be given too");
+        vText.Should().Contain("secrets.example.json",
+            "the guide must point at the template it tells the developer to copy");
+        vText.Should().Contain("docker compose",
+            "the guide must say which tool .env actually belongs to");
+    }
+
     /// <summary>Reads the launch profiles in file order.</summary>
     /// <returns>Each profile's name and body.</returns>
     private static List<(string Name, JsonElement Value)> ReadProfiles()

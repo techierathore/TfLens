@@ -290,6 +290,36 @@ anywhere else" into a one-line grep rather than a code review.
 - No log statement, rendered value or exported field can carry a token, PAT, API secret, password or
   connection string.
 
+**Amendment 2026-08-28 — which route, for which audience (REQ-NFR-011).** D-008 fixes the *spelling*
+and the *single entry point*, and it says nothing about where a human puts the value. That gap had a
+cost: every document opened with `copy .env.example .env`, which reads as "this is the app's settings
+file" — and it is not. **Nothing in `Program.cs` parses `.env`.** It is `docker compose`'s
+interpolation file, needed before any container starts so Compose can expand `${TfLensDbPassword}`
+into the `postgres` service. A developer editing it for an F5 run was editing a file the process never
+opens.
+
+The two routes are therefore named explicitly, by audience:
+
+- **Local development (F5 / `dotnet run`) → user secrets.** `UserSecretsId=tflens-dev-secrets`, so
+  `secrets.json` lives outside the repository and cannot be committed. Committed placeholder template:
+  `src/TfLens/secrets.example.json`.
+- **Deployment (`docker compose`, CI/CD) → PascalCase environment variables**, supplied to Compose
+  from `.env`.
+
+Both land on the same `TfLens:*` keys through the same provider, so D-008's invariants are untouched —
+user secrets were already an approved source under BRD-8 ("environment / **user-secrets**").
+
+**`appsettings.Development.json` was considered and rejected** as the local path, despite being the
+most convenient file to edit. It is *committed*: a real `sk_live_…` placed there enters git history,
+where deleting it later does not remove it. `ConfigurationHygieneTests` already fails the build when a
+`TfLens` secret key appears in any `appsettings*.json`, and that test stays. Convenience that trades a
+credential into version control is not convenience.
+
+Three guardrail tests in `DeveloperOnboardingTests` pin this: the `UserSecretsId` must be declared
+(losing it breaks the F5 path *silently* — the app still starts on the Development connection fallback,
+the AppManager pair simply never arrives), the template must hold no real credential, and the Developer
+Guide must name the user-secrets mechanism.
+
 ### D-009 — `/healthz` reads `SyncState` directly rather than widening `ITelemetryStore`
 
 **Date:** 2026-08-26 · **See:** BRD-78, REQ-FN-041

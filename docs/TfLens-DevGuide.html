@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Developer Guide</h1>
-    <div class="sub">Last rendered: 2026-08-27</div>
+    <div class="sub">Last rendered: 2026-08-28</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -137,7 +137,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Developer Guide</h1>
-    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-DevGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-DevGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -194,6 +194,18 @@ or to <a href="#troubleshooting">Troubleshooting</a> if you already have an erro
 <hr>
 <h2 id="running-tflens-locally">Running TfLens locally<a class="anchor-link" href="#running-tflens-locally">#</a></h2>
 <p>TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing else.</p>
+<blockquote>
+<h3 id="env-is-not-tflens-s-configuration-file-read-this-before-you-edit-it"><code>.env</code> is not TfLens's configuration file — read this before you edit it<a class="anchor-link" href="#env-is-not-tflens-s-configuration-file-read-this-before-you-edit-it">#</a></h3>
+<p><strong><code>.env</code> is <code>docker compose</code>'s file, and nothing else reads it.</strong> There is no <code>.env</code> loader in
+<code>Program.cs</code>; <code>dotnet run</code> and F5 never open it. It exists so Compose can interpolate
+<code>${TfLensDbPassword}</code> into the <code>postgres</code> service at <em>deployment</em> time.</p>
+<p><strong>For local development the secrets live in your user-secrets <code>secrets.json</code></strong> — outside the
+repository, so nothing you put there can be committed. That is the path documented below, and it
+is the one to edit when you need to change a key.</p>
+<p>Do <strong>not</strong> put secrets in <code>appsettings.Development.json</code>. That file <em>is</em> committed, so a real
+AppManager secret in it goes to git history — and <code>ConfigurationHygieneTests</code> fails the build to
+stop exactly that.</p>
+</blockquote>
 <h3 id="the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)<a class="anchor-link" href="#the-short-version-visual-studio-rider-windows">#</a></h3>
 <ol>
 <li><strong>Start the database once</strong>, from the repository root:
@@ -201,7 +213,19 @@ or to <a href="#troubleshooting">Troubleshooting</a> if you already have an erro
 </ol>
 <pre><code class="language-powershell">   copy .env.example .env
    docker compose up -d postgres</code></pre>
-<p>This runs PostgreSQL 16 as the container <code>tflens-postgres</code> and publishes it on <strong>localhost:5433</strong>.</p>
+<p>This runs PostgreSQL 16 as the container <code>tflens-postgres</code> and publishes it on <strong>localhost:5433</strong>.
+   (<code>.env</code> is needed <em>here</em> — Compose reads it. The app still won't.)</p>
+<ol>
+<li><strong>Put your AppManager credentials in user secrets, once.</strong> Right-click the <strong>TfLens</strong> project → <strong>Manage User Secrets</strong>. Visual Studio opens your own private <code>secrets.json</code>, stored at <code>%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json</code>. Paste in the block from <a href="../src/TfLens/secrets.example.json"><code>src/TfLens/secrets.example.json</code></a> and fill it in:
+</li>
+</ol>
+<pre><code class="language-json">   {
+     "TfLens:AppManagerApiKey": "ak_live_…",
+     "TfLens:AppManagerApiSecret": "sk_live_…",
+     "TfLens:GitHubToken": ""
+   }</code></pre>
+<p>This is the file to come back to whenever a credential changes. It is not in the repository and
+   cannot be committed.</p>
 <ol>
 <li><strong>Press F5.</strong>
 </li>
@@ -209,11 +233,23 @@ or to <a href="#troubleshooting">Troubleshooting</a> if you already have an erro
 <p>That is the whole setup. There is <strong>one</strong> launch profile, <code>TfLens</code>. It pins no connection string —
 TfLens falls back to the local compose database <strong>in Development only</strong>, as the lowest-priority
 configuration source, so anything you set overrides it. It opens on &lt;http://localhost:5014&gt;.</p>
+<blockquote>
+<p><strong>You can skip step 2 and still sign in.</strong> Most AppManager endpoints resolve the application from
+the <code>applicationId</code> in the request body. Only <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code>
+take the app scope from the key headers, so <strong>password reset is the part that dies without the pair</strong>.
+Supply it whole or not at all — a half-pair is refused at startup (see the configuration table).</p>
+</blockquote>
 <h3 id="the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)<a class="anchor-link" href="#the-short-version-shell-linux-macos-wsl">#</a></h3>
 <pre><code class="language-bash">cp .env.example .env
 docker compose up -d postgres
+
+dotnet user-secrets set "TfLens:AppManagerApiKey"    "ak_live_…" --project src/TfLens
+dotnet user-secrets set "TfLens:AppManagerApiSecret" "sk_live_…" --project src/TfLens
+
 dotnet run --project src/TfLens          # http://localhost:5014</code></pre>
-<p><code>dotnet run</code> uses the same single profile and the same Development fallback.</p>
+<p><code>dotnet run</code> uses the same single profile and the same Development fallback. On Linux/macOS the same
+secrets file is at <code>~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json</code>, and you can edit it
+directly instead of using the CLI.</p>
 <h3 id="where-the-development-default-comes-from">Where the development default comes from<a class="anchor-link" href="#where-the-development-default-comes-from">#</a></h3>
 <p>TfLens <strong>refuses to start without a database</strong> rather than starting and failing at the first user's
 sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on
@@ -221,16 +257,20 @@ where a new developer's connection string comes from — so in Development, and 
 <code>TfLensOptions.LocalDevelopmentConnection</code> is seeded as the <strong>lowest-priority</strong> configuration source.</p>
 <p>Priority, lowest to highest:</p>
 <table>
-<thead><tr><th>#</th><th>Source</th><th>Overrides the one above</th></tr></thead>
+<thead><tr><th>#</th><th>Source</th><th>Overrides the one above</th><th>Committed?</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>The Development fallback (code)</td><td>—</td></tr>
-<tr><td>2</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>yes</td></tr>
-<tr><td>3</td><td><code>dotnet user-secrets</code></td><td>yes</td></tr>
-<tr><td>4</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td></tr>
+<tr><td>1</td><td>The Development fallback (code)</td><td>—</td><td>yes — but it is a throwaway local container credential, not a secret</td></tr>
+<tr><td>2</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>yes</td><td><strong>yes — never put a secret here</strong></td></tr>
+<tr><td>3</td><td><code>dotnet user-secrets</code> (<code>secrets.json</code>)</td><td>yes</td><td><strong>no — this is the local-development secrets path</strong></td></tr>
+<tr><td>4</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td><td>no — this is the <em>deployment</em> path (<code>docker compose</code>, CI/CD)</td></tr>
 </tbody>
 </table>
 <p>So <code>dotnet user-secrets set TfLens:DbConnection …</code> works, and an environment variable beats even that.
 Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.</p>
+<p><strong>Rows 3 and 4 are the same settings by two routes, for two audiences.</strong> Row 3 is how <em>you</em> run the app
+on your machine; row 4 is how a <em>deployment</em> supplies the same values. <code>.env</code> belongs to row 4 and only
+row 4 — it feeds <code>docker compose</code>, never <code>dotnet run</code>. Row 2 is deliberately the one place with no
+secret in it at all, which is what <code>ConfigurationHygieneTests</code> enforces.</p>
 <blockquote>
 <p><strong>Why not put it in the launch profile?</strong> That was the first attempt and it was wrong. A launch
 profile sets an <em>environment variable</em> — the highest-priority source — so it silently overrode
@@ -295,10 +335,11 @@ startup rather than letting every sign-in fail mysteriously. Recorded as <code>D
 <table>
 <thead><tr><th>Context</th><th>Mechanism</th></tr></thead>
 <tbody>
-<tr><td>Visual Studio / Rider</td><td>The launch profile (<code>src/TfLens/Properties/launchSettings.json</code>), or <em>Debug &gt; TfLens Debug Properties &gt; Environment variables</em></td></tr>
-<tr><td>Shell</td><td><code>export</code> / <code>$env:</code> before <code>dotnet run</code></td></tr>
-<tr><td>Your machine, not committed</td><td><code>dotnet user-secrets set TfLens:DbConnection "…" --project src/TfLens</code></td></tr>
-<tr><td>Docker / deployment</td><td>Environment variables on the container — see <code>docker-compose.yml</code> and <code>.env.example</code></td></tr>
+<tr><td><strong>Local development — the default answer</strong></td><td><strong>User secrets.</strong> Visual Studio: right-click the TfLens project → <em>Manage User Secrets</em>. Shell: <code>dotnet user-secrets set "TfLens:AppManagerApiKey" "…" --project src/TfLens</code>. Template: <a href="../src/TfLens/secrets.example.json"><code>src/TfLens/secrets.example.json</code></a>.</td></tr>
+<tr><td>Shell, one session only</td><td><code>export</code> / <code>$env:</code> before <code>dotnet run</code> — beats user secrets, so useful for a one-off override, easy to forget you set it</td></tr>
+<tr><td>Docker / deployment</td><td>PascalCase environment variables on the container — see <code>docker-compose.yml</code>; <code>.env</code> supplies them to Compose</td></tr>
+<tr><td><s>Launch profile</s></td><td><strong>Don't.</strong> A launch profile sets an <em>environment variable</em>, the highest-priority source, so it silently overrides your user secrets. This was tried and reverted — see the note above and <code>DeveloperOnboardingTests</code>.</td></tr>
+<tr><td><s><code>appsettings.Development.json</code></s></td><td><strong>Never for secrets.</strong> It is committed. <code>ConfigurationHygieneTests</code> fails the build if a <code>TfLens</code> secret key appears in any <code>appsettings*.json</code>.</td></tr>
 </tbody>
 </table>
 <hr>

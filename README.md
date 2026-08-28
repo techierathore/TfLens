@@ -70,7 +70,18 @@ Every setting reaches the app through **PascalCase environment variables** with 
 configuration provider maps `TfLens<Name>` onto `TfLens:<Name>`, so application code never reads the
 environment directly and **no secret is ever read from a file in the repository**.
 
-Copy `.env.example` to `.env` and fill it in. `.env` is gitignored and must never be committed.
+There are two routes for the same settings, and which one you want depends on what you are doing:
+
+| Doing | Where the values go |
+|---|---|
+| **Local development** (F5 / `dotnet run`) | **User secrets.** Visual Studio → right-click the TfLens project → *Manage User Secrets*, or `dotnet user-secrets set "TfLens:AppManagerApiKey" "…" --project src/TfLens`. Template: [`src/TfLens/secrets.example.json`](src/TfLens/secrets.example.json). |
+| **Deployment** (`docker compose`, CI/CD) | Environment variables on the container. Copy `.env.example` to `.env` and fill it in; `.env` is gitignored and must never be committed. |
+
+> **`.env` is `docker compose`'s file, not TfLens's.** Nothing in `Program.cs` reads it — `dotnet run`
+> and F5 never open it. It exists so Compose can interpolate `${TfLensDbPassword}` into the `postgres`
+> service. If you are developing locally, the file you want to edit is your user-secrets `secrets.json`.
+> Secrets must never go in `appsettings.Development.json` either: that file is committed, and
+> `ConfigurationHygieneTests` fails the build if a `TfLens` secret key appears in any `appsettings*.json`.
 
 ### Secrets
 
@@ -160,9 +171,14 @@ You need two things: the **.NET 10 SDK** and a **PostgreSQL 16** database. Nothi
 ### Visual Studio / Rider (Windows)
 
 ```powershell
-copy .env.example .env
+copy .env.example .env          # Compose needs TfLensDbPassword; the app does not read this file
 docker compose up -d postgres
 ```
+
+Then, once: right-click the **TfLens** project → **Manage User Secrets**, and paste in the block from
+[`src/TfLens/secrets.example.json`](src/TfLens/secrets.example.json) with your AppManager key and
+secret. That file lives at `%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json`, outside
+the repository — it is the one place to update a credential, and it cannot be committed.
 
 Then **press F5.** That is the whole setup.
 
@@ -173,12 +189,17 @@ falls back to the local compose database as the **lowest-priority** configuratio
 ### Shell (Linux / macOS / WSL)
 
 ```bash
-cp .env.example .env
+cp .env.example .env                   # Compose needs TfLensDbPassword; the app does not read this file
 docker compose up -d postgres          # publishes 5433 via docker-compose.override.yml
+
+dotnet user-secrets set "TfLens:AppManagerApiKey"    "ak_live_…" --project src/TfLens
+dotnet user-secrets set "TfLens:AppManagerApiSecret" "sk_live_…" --project src/TfLens
+
 dotnet run --project src/TfLens        # http://localhost:5014
 ```
 
-`dotnet run` uses the same single profile and the same Development fallback.
+`dotnet run` uses the same single profile and the same Development fallback. The secrets file is at
+`~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json` and can be edited directly.
 
 ### Pointing at your own PostgreSQL
 

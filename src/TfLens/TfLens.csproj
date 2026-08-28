@@ -17,9 +17,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <!-- Lets a developer keep the connection string and the AppManager pair on their own machine
-         (dotnet user-secrets) instead of in any committed file. -->
+    <!-- The LOCAL DEVELOPMENT secrets path (REQ-NFR-011, BRD-8). This id is what makes Visual
+         Studio's "Manage User Secrets" and `dotnet user-secrets` write to
+         %APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json — outside the repository,
+         so a real AppManager key can never be committed. `.env` is NOT read by `dotnet run`; it
+         exists only for `docker compose` variable substitution at deployment time.
+         Removing this id silently breaks the documented F5 path, so a guardrail test pins it
+         (DeveloperOnboardingTests.UserSecretsIdIsDeclaredSoTheF5PathKeepsWorking). -->
     <UserSecretsId>tflens-dev-secrets</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The committed template a developer copies into their own secrets.json. It is documentation,
+         not configuration: it must never be published, and the app must never read it. -->
+    <Content Remove="secrets.example.json" />
+    <None Include="secrets.example.json" CopyToOutputDirectory="Never" />
+  </ItemGroup>
 
 </Project>
