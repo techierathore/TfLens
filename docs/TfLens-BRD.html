@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Business Requirements</h1>
-    <div class="sub">Last rendered: 2026-08-27</div>
+    <div class="sub">Last rendered: 2026-08-28</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -122,7 +122,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup</a></li>
         <li class="h3"><a href="#f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation</a></li>
         <li class="h3"><a href="#f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions</a></li>
-        <li class="h3"><a href="#f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user</a></li>
+        <li class="h3"><a href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">F-REPOS: Source management — fetch public repos, or import metric files</a></li>
         <li class="h3"><a href="#f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)</a></li>
         <li class="h3"><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
         <li class="h3"><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
@@ -132,6 +132,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
         <li class="h3"><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a></li>
         <li class="h3"><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
+        <li class="h3"><a href="#f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics</a></li>
         <li class="h3"><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
         <li class="h3"><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
         <li class="h3"><a href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)</a></li>
@@ -140,6 +141,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#non-functional-requirements">11. Non-functional requirements</a></li>
         <li class="h3"><a href="#amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell</a></li>
         <li class="h3"><a href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-miss-telemetry-and-rework-economics">Amendment 2026-08-28 — miss telemetry and rework economics</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">Amendment 2026-08-28 (round 2) — imported telemetry: private and corporate repos</a></li>
         <li><a href="#constraints-assumptions">12. Constraints &amp;amp; assumptions</a></li>
         <li><a href="#parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test</a></li>
         <li><a href="#definition-of-done">14. Definition of done</a></li>
@@ -150,7 +153,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Business Requirements</h1>
-    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -168,7 +171,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup</a></li>
         <li class="h3"><a href="#f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation</a></li>
         <li class="h3"><a href="#f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions</a></li>
-        <li class="h3"><a href="#f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user</a></li>
+        <li class="h3"><a href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">F-REPOS: Source management — fetch public repos, or import metric files</a></li>
         <li class="h3"><a href="#f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)</a></li>
         <li class="h3"><a href="#f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now</a></li>
         <li class="h3"><a href="#f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild</a></li>
@@ -178,6 +181,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#f-3q-the-three-questions-page">F-3Q: The three questions page</a></li>
         <li class="h3"><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a></li>
         <li class="h3"><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
+        <li class="h3"><a href="#f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics</a></li>
         <li class="h3"><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
         <li class="h3"><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
         <li class="h3"><a href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)</a></li>
@@ -186,6 +190,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#non-functional-requirements">11. Non-functional requirements</a></li>
         <li class="h3"><a href="#amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell</a></li>
         <li class="h3"><a href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-miss-telemetry-and-rework-economics">Amendment 2026-08-28 — miss telemetry and rework economics</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">Amendment 2026-08-28 (round 2) — imported telemetry: private and corporate repos</a></li>
         <li><a href="#constraints-assumptions">12. Constraints &amp;amp; assumptions</a></li>
         <li><a href="#parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test</a></li>
         <li><a href="#definition-of-done">14. Definition of done</a></li>
@@ -218,7 +224,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><a href="#f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions</a>
 </li>
-<li><a href="#f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user</a>
+<li><a href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">F-REPOS: Source management — fetch public repos, or import metric files</a>
 </li>
 <li><a href="#screen-inventory-every-screen-its-feature-and-its-mockup">Screen inventory — every screen, its feature and its mockup</a>
 </li>
@@ -239,6 +245,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a>
 </li>
 <li><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a>
+</li>
+<li><a href="#f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics</a>
 </li>
 <li><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a>
 </li>
@@ -268,7 +276,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 </ol>
 <h2 id="executive-summary">1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
-<p>TfLens is a read-only lens over the development telemetry that <strong>both</strong> of the owner's frameworks — TechieFlow and the AI-First-Playbook — <strong>already emit</strong>. Every TechieFlow-managed repository carries four append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>); Playbook-managed repositories emit <code>verification/telemetry/events.ndjson</code> today and will converge on the same schema. Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in PostgreSQL (amended 2026-08-26), and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard with a <strong>Framework switch</strong> (TechieFlow | Playbook) on every report page, and a weekly snapshot export whose numbers can be quoted in public writing. The Playbook report set is Phase 3.</p>
+<p>TfLens is a read-only lens over the development telemetry that <strong>both</strong> of the owner's frameworks — TechieFlow and the AI-First-Playbook — <strong>already emit</strong>. Every TechieFlow-managed repository carries five append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code> and — since 2026-08-28 — <code>misses</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>); Playbook-managed repositories emit <code>verification/telemetry/events.ndjson</code> today and will converge on the same schema. Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in PostgreSQL (amended 2026-08-26), and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard with a <strong>Framework switch</strong> (TechieFlow | Playbook) on every report page, and a weekly snapshot export whose numbers can be quoted in public writing. The Playbook report set is Phase 3, as is the miss / rework report (F-MISS, amended 2026-08-28).</p>
 <p>TfLens is free and open source, and it is <strong>multi-user by design</strong> (amended 2026-08-26): anyone who uses TechieFlow or the Playbook can sign in, connect their own <strong>public</strong> GitHub repos, and see the reports for their data. Identity is delegated to the owner's <strong>AppManager</strong> service (<code>https://appmgrapi.techierathore.com</code>, Application Id 1) — TfLens stores no passwords; every user is an AppManager <code>Manager</code> for this application and no licensing, feature or payment capability is used. Each user's repos, raw archive, parsed rows and reports are isolated from every other user's.</p>
 <p>It builds <strong>no capture layer, no ingestion API, and no per-machine agents</strong>. Capture is the frameworks' job and already works across Claude Code, OpenCode, and (via <code>harness: null</code>) anything else that runs the tasks. TfLens never writes to any repository; it reads with a fine-grained, contents-only token.</p>
 <p>The name is deliberate: "Analyst" collides with TechieFlow's analyst agent and "TfMetrics" collides with <code>tf-metrics.sh</code>. A <em>lens</em> changes nothing it looks at. The dangerous failure mode of this product is not a crash but a <strong>plausible wrong number</strong> — a backfilled record leaking into a live rate, a <code>library</code> record pooled into an <code>app</code> gate distribution — that gets exported, quoted, and cannot be defended. The provenance rules of SCHEMA.md §6 are therefore enforced in code with no switch to disable them, and a mandatory parity test against <code>tf-metrics.sh</code> is the acceptance gate (§13).</p>
@@ -289,15 +297,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <h2 id="scope">3. Scope<a class="anchor-link" href="#scope">#</a></h2>
 <p><strong>In scope</strong></p>
 <ul>
-<li>Pulling <code>docs/metrics/{runs,gates,sessions,commits}.jsonl</code> (and, for Playbook repos, <code>verification/telemetry/events.ndjson</code>) from the <strong>public</strong> GitHub repos each signed-in user connects on the <code>/repos</code> screen, on a poll interval and on demand; raw archive; PostgreSQL store (Dapper); rebuild from raw; per-user data isolation.
+<li>Pulling <code>docs/metrics/{runs,gates,sessions,commits,misses}.jsonl</code> (and, for Playbook repos, <code>verification/telemetry/events.ndjson</code>) from the <strong>public</strong> GitHub repos each signed-in user connects on the <code>/repos</code> screen, on a poll interval and on demand; raw archive; PostgreSQL store (Dapper); rebuild from raw; per-user data isolation. <em>(<code>misses</code> added 2026-08-28 — F-MISS.)</em>
 </li>
 <li>The same report set for both frameworks, selected by a Framework switch and never pooled across frameworks (Playbook set: Phase 3).
 </li>
+<li><strong>Two ways to add a source</strong> (amended 2026-08-28, F-IMPORT): <strong>Fetch via API</strong> for public repos, or <strong>Import metric files</strong> — the user uploads the telemetry their framework already writes to disk, so <strong>private and corporate repositories are reachable without TfLens ever holding a credential for them</strong>. Both land in the same tables through the same parser; the Repos screen shows which is which.
+</li>
 <li>AppManager-backed identity: email/password login, self-registration, forgot/reset password, session cookie with server-side token refresh; every user is <code>Manager</code>; demo user <code>TfLensDemo</code>.
 </li>
-<li>Parser with SCHEMA.md-exact columns, JSON overflow for unknown fields, and idempotent dedupe on the streams' natural keys.
+<li>Parser with SCHEMA.md-exact columns, JSON overflow for unknown fields, and idempotent dedupe on the streams' natural keys — including the one stream (<code>misses</code>) whose records do not all share a shape.
 </li>
-<li>Five report pages (Coverage, Three questions, Harness comparison, Routing &amp; economics, Snapshot export) computed at request time with the provenance rules enforced structurally.
+<li>Six report pages (Coverage, Three questions, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, Snapshot export) computed at request time with the provenance rules enforced structurally. <em>(Misses &amp; rework added 2026-08-28, Phase 3.)</em>
 </li>
 <li>Weekly snapshot export to <code>data/reports/&lt;date&gt;/</code> as markdown + JSON.
 </li>
@@ -310,13 +320,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <p><strong>Out of scope (explicit — recorded in the README)</strong></p>
 <ul>
-<li>Any capture or ingestion endpoint; OTLP; per-machine agents.
+<li>Any capture layer, machine-to-machine ingestion API, OTLP endpoint, or per-machine agent. <em>(Amended 2026-08-28 — narrowed, not removed: the <strong>Import metric files</strong> mode on <code>/repos</code> is an authenticated file-picker on a page a human is signed into, and it is the <strong>only</strong> inbound path. Nothing can push data into TfLens automatically, no endpoint accepts an unauthenticated post, and neither framework is asked to grow an export command — the user uploads the files TechieFlow and the Playbook already write to disk. BRD-139 bounds the surface.)</em>
 </li>
 <li>Writing anything to any repository, ever.
 </li>
 <li>VPS / infra configuration (supplied separately).
 </li>
-<li>Private GitHub repos (this release is public-repo-only; a per-user PAT is a later release).
+<li>Reading a private GitHub repo <strong>over the API</strong> (this release is public-repo-only for fetching; a per-user PAT is a later release). <em>(Amended 2026-08-28: a private or corporate repo is no longer out of reach — its telemetry is added through <strong>Import metric files</strong> instead, which needs no credential, no network access to the repo, and no change to the repo itself. What stays out of scope is TfLens authenticating to a private repo and pulling from it.)</em>
 </li>
 <li>AppManager licensing, subscriptions, feature flags, payments, issues — none are called.
 </li>
@@ -324,7 +334,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li>Roles beyond <code>Manager</code>; sharing a user's reports with another user.
 </li>
-<li>Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing figure.
+<li>Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing and rework-estimate figures.
+</li>
+<li><strong>Any blended rework-cost figure</strong> (amended 2026-08-28): measured (<code>cost_attribution: sole</code>) and apportioned (<code>shared:n</code>) miss cost are never summed into one number, in the page, the export or parity — see BRD-122, BRD-130.
+</li>
+<li><strong>Writing to any telemetry stream</strong>, including <code>misses.jsonl</code>: TfLens consumes the miss stream and never emits into it. Recording a miss is TechieFlow's <code>*log-miss</code>, not TfLens's job.
 </li>
 </ul>
 <h2 id="development-status">4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
@@ -334,7 +348,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tbody>
 <tr><td>F-SHELL: App shell and navigation</td><td>1</td><td>Done</td><td>100</td><td>Collapsible icon sidebar (Repos first), header with Sync now + user menu, dark-first theme</td></tr>
 <tr><td>F-AUTH: AppManager identity — login, registration, sessions</td><td>1 (SSO: 2, deferred)</td><td>Partial</td><td>97</td><td><code>/login</code>, <code>/register</code>, <code>/reset-password</code>, sessions and sign-out all verified. <code>REQ-FN-003</code> forgot/reset: all three acceptance clauses now proven (enumeration-safety, both dead-link codes collapsing to one outcome, token never logged — two real token leaks found and fixed 2026-08-27), but the API-key header supplying the app scope cannot be exercised without the owner's credentials. GitHub SSO deferred (<code>REQ-FN-012</code>, N/A)</td></tr>
-<tr><td>F-REPOS: Repo management — connect public GitHub repos per user</td><td>1</td><td>Done</td><td>100</td><td>List, Connect+Validate, purge and per-user isolation verified. <code>REQ-UI-013</code> closed 2026-08-27 — Escape now aborts the remove dialog (TrBlazeUI ships no Escape support at all: TR-014, worked around in <code>Repos.razor.js</code>); the same fix cured the connect dialog's post-validation Escape</td></tr>
+<tr><td>F-REPOS: Source management — fetch public repos, or import metric files</td><td>1 (import mode: 3)</td><td>Partial</td><td>85</td><td>Fetch-via-API half is Done: list, Connect+Validate, purge and per-user isolation verified. <strong>Import-metric-files mode added by the 2026-08-28 amendment (BRD-131..BRD-141), not built</strong> — it is what makes private and corporate repos reachable. <code>REQ-UI-013</code> closed 2026-08-27 — Escape now aborts the remove dialog (TrBlazeUI ships no Escape support at all: TR-014, worked around in <code>Repos.razor.js</code>); the same fix cured the connect dialog's post-validation Escape</td></tr>
 <tr><td>F-SYNC: Repo puller — background sync and Sync now</td><td>1</td><td>Done</td><td>100</td><td><code>BackgroundService</code>, SHA-skip and per-repo error isolation all exercised live (2 of 7 repos failed in isolation)</td></tr>
 <tr><td>F-RAW: Raw archive and rebuild</td><td>1</td><td>Done</td><td>100</td><td>Verified by a real run: 14 raw files replayed → 279 rows, 1 duplicate collapsed, 0 invalid lines</td></tr>
 <tr><td>F-PARSE: Parser to PostgreSQL with dedupe and overflow</td><td>1</td><td>Done</td><td>100</td><td>One table per stream + <code>sync_state</code>; natural-key dedupe; Npgsql + Dapper</td></tr>
@@ -343,6 +357,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>F-3Q: The three questions page</td><td>2</td><td>Done</td><td>100</td><td>Per <code>project_type</code>, live vs backfilled columns, taint list</td></tr>
 <tr><td>F-HARN: Harness comparison page</td><td>2</td><td>Done</td><td>100</td><td>claude-code / opencode / codex; OpenCode-only dollars, no cross-harness total. <strong>Corrected 2026-08-27</strong> — the measured figure summed <code>cost_usd</code> over <em>run</em> records, which never carry it (SCHEMA.md §4 puts it on sessions), so it was structurally null; the earlier <code>$0.84</code> came from test pollution in the shared DB. Now $0.04 over 2 OpenCode session records</td></tr>
 <tr><td>F-ROUTE: Routing and economics page</td><td>2</td><td>Done</td><td>100</td><td>Drift, tokens by model, repricing from <code>prices.json</code>, poolables</td></tr>
+<tr><td>F-MISS: Misses and rework economics</td><td>3</td><td>Planned</td><td>0</td><td>Added by the 2026-08-28 amendment. Fifth stream (<code>misses.jsonl</code>, three record kinds), three tables, <code>MissMetrics</code> + the two provenance guards, the <code>/misses</code> page. The producing side already ships — <code>tf-metrics.sh --rollup --json</code> reports a <code>misses</code> block, so every figure is parity-diffable from the first commit</td></tr>
 <tr><td>F-EXPORT: Weekly snapshot export</td><td>2</td><td>Done</td><td>100</td><td>Button + <code>export</code> verb → markdown + JSON, both written for real</td></tr>
 <tr><td>F-PARITY: Parity check against tf-metrics.sh</td><td>2</td><td>Partial</td><td>80</td><td><code>tflens.json</code> layout and <code>tools/parity-compare.py</code> verified both ways. <strong>BRD §13 executed end to end for the first time 2026-08-27</strong> against the in-tree oracle <code>.tfcore/telemetry/tf-metrics.sh</code> (the earlier claim that it was absent was wrong): 9 findings, 5 fixed as genuine TfLens bugs, <strong>4 open on one root cause — SCHEMA.md §4 contradicts §5 on session dedupe and needs an owner decision</strong>. <code>REQ-FN-064</code> extras spot-check recorded (DECISIONS.md §8 X-002) and is what found the dollars defect above. <code>data/parity-last.json</code> correctly NOT written — the acceptance permits it only on an empty diff. Nothing is quotable yet, and <code>/export</code> says so</td></tr>
 <tr><td>F-FRAMEWORK: Playbook as a first-class framework — full report set</td><td>3</td><td>Partial</td><td>75</td><td><code>events.ndjson</code> fetch/parse, axis separation and schema-v1 reuse verified, and all five report pages mount the Playbook state (<code>REQ-UI-034</code> Verified). <strong><code>REQ-FN-067</code> / <code>REQ-FN-070</code> demoted to <code>Needs re-verify</code> 2026-08-27</strong>: the figures the earlier verdict cited came from a build-harness fixture, not from GitHub — <code>techierathore/AI-First-Playbook</code> publishes neither telemetry path. The fixture was removed and the Playbook axis now correctly renders its empty state. Ungradeable until a repository actually emits <code>verification/telemetry/events.ndjson</code></td></tr>
@@ -475,23 +490,24 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Forgot password</td><td><code>/forgot-password</code></td><td>F-AUTH</td><td>BRD-92</td><td><a href="./mockups/forgot-password.html">forgot-password.html</a></td></tr>
 <tr><td>Reset password</td><td><code>/reset-password</code></td><td>F-AUTH</td><td>BRD-92</td><td><a href="./mockups/reset-password.html">reset-password.html</a></td></tr>
 <tr><td>Profile</td><td><code>/profile</code></td><td>F-AUTH, F-SHELL</td><td>BRD-107, BRD-106</td><td><a href="./mockups/profile.html">profile.html</a> (user menu shown open)</td></tr>
-<tr><td>Repos (+ Connect / Remove dialogs)</td><td><code>/repos</code></td><td>F-REPOS</td><td>BRD-98..BRD-104</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
+<tr><td>Repos — sources (+ Add source dialog: Fetch via API | Import metric files; Remove dialog)</td><td><code>/repos</code></td><td>F-REPOS</td><td>BRD-98..BRD-104, BRD-131..BRD-141</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
 <tr><td>Shell: sidebar, header, Framework switch, user menu</td><td>(layout)</td><td>F-SHELL, F-FRAMEWORK</td><td>BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-108</td><td>visible on every report mockup, e.g. <a href="./mockups/coverage.html">coverage.html</a></td></tr>
 <tr><td>Coverage / health</td><td><code>/</code></td><td>F-COVER, F-RAW</td><td>BRD-39..BRD-44, BRD-21</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
 <tr><td>Three questions</td><td><code>/three-questions</code></td><td>F-3Q, F-ENGINE</td><td>BRD-45..BRD-50</td><td><a href="./mockups/three-questions.html">three-questions.html</a> · Playbook state: <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a></td></tr>
 <tr><td>Harness comparison</td><td><code>/harness</code></td><td>F-HARN</td><td>BRD-51..BRD-55</td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
 <tr><td>Routing &amp; economics (+ Edit prices dialog)</td><td><code>/routing</code></td><td>F-ROUTE</td><td>BRD-56..BRD-62</td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
+<tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td>F-MISS</td><td>BRD-118..BRD-126</td><td><a href="./mockups/misses.html">misses.html</a> · Playbook state: <a href="./mockups/misses-playbook.html">misses-playbook.html</a></td></tr>
 <tr><td>Snapshot export</td><td><code>/export</code></td><td>F-EXPORT, F-PARITY</td><td>BRD-63..BRD-67, BRD-70</td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
 <tr><td>Health endpoint</td><td><code>/healthz</code></td><td>F-OPS</td><td>BRD-78</td><td>(no UI)</td></tr>
 </tbody>
 </table>
 <h3 id="f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation<a class="anchor-link" href="#f-shell-app-shell-and-navigation">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: login moved to F-AUTH; collapsible icon sidebar, user menu, dark-first)</em></p>
-<p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar Collapsible</code> + <code>SidebarInset</code>). The sidebar is <strong>collapsible</strong> via <code>SidebarTrigger</code> (icon-only rail with tooltips when collapsed) and every item carries a <strong>Lucide icon</strong>; the order is the order a user should work in: <strong>Repos</strong> first (nothing to see until a repo is connected), then Coverage ("every other number is suspect until this page is green"), Three questions, Harness comparison, Routing &amp; economics, Snapshot export (the separate Playbook page was retired 2026-08-26 — see F-FRAMEWORK). The header carries the <strong>Framework switch</strong> (TechieFlow | Playbook, F-FRAMEWORK), the page title, a <strong>Sync now</strong> button with the last-sync badge, the theme toggle, and — on the right — the <strong>signed-in user's name</strong> with a <code>DropdownMenu</code> (Profile, Manage repos, Sign out); there is no bare sign-out button. The application <strong>starts in dark mode</strong>; the user's toggle choice is persisted per user.</p>
+<p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar Collapsible</code> + <code>SidebarInset</code>). The sidebar is <strong>collapsible</strong> via <code>SidebarTrigger</code> (icon-only rail with tooltips when collapsed) and every item carries a <strong>Lucide icon</strong>; the order is the order a user should work in: <strong>Repos</strong> first (nothing to see until a repo is connected), then Coverage ("every other number is suspect until this page is green"), Three questions, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong> <em>(added 2026-08-28, F-MISS)</em>, Snapshot export (the separate Playbook page was retired 2026-08-26 — see F-FRAMEWORK). The header carries the <strong>Framework switch</strong> (TechieFlow | Playbook, F-FRAMEWORK), the page title, a <strong>Sync now</strong> button with the last-sync badge, the theme toggle, and — on the right — the <strong>signed-in user's name</strong> with a <code>DropdownMenu</code> (Profile, Manage repos, Sign out); there is no bare sign-out button. The application <strong>starts in dark mode</strong>; the user's toggle choice is persisted per user.</p>
 <table>
 <thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Shell</td><td>(layout)</td><td>Collapsible icon sidebar (Repos, Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export); header: <strong>Framework switch (TechieFlow / Playbook)</strong> · title · Sync now · last-sync badge · theme toggle · user menu</td><td><a href="./mockups/coverage.html">coverage.html</a> (shell visible on every report mockup)</td></tr>
+<tr><td>Shell</td><td>(layout)</td><td>Collapsible icon sidebar (Repos, Coverage, Three questions, Harness, Routing &amp; economics, Misses &amp; rework, Snapshot export); header: <strong>Framework switch (TechieFlow / Playbook)</strong> · title · Sync now · last-sync badge · theme toggle · user menu</td><td><a href="./mockups/coverage.html">coverage.html</a> (shell visible on every report mockup)</td></tr>
 </tbody>
 </table>
 <p><strong>Workflow:</strong></p>
@@ -505,7 +521,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><code>SidebarTrigger</code> collapses/expands the sidebar; the state is remembered (<code>CookieKey</code>).
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-2, BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-107</p>
+<p><strong>Requirements:</strong> BRD-2, BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-107, BRD-124</p>
 <h3 id="f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions<a class="anchor-link" href="#f-auth-appmanager-identity-login-registration-sessions">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (GitHub SSO: Phase 2, deferred) <em>(added 2026-08-26)</em></p>
 <p>TfLens keeps <strong>no user store and no passwords</strong>. Identity is delegated to the owner's AppManager service (<code>docs/AppManager-api-usage-guide.md</code>, v1.4): base URL <code>https://appmgrapi.techierathore.com</code>, <strong>Application Id 1</strong>, identified on every call by the <code>X-Api-Key</code> / <code>X-Api-Secret</code> headers (values from configuration only — F-OPS). Passwords are never sent in clear: TfLens fetches and caches <code>GET /AuthSvc/public-key</code> and RSA-OAEP-256-encrypts the password client-side before <code>POST /AuthSvc/login</code> or <code>/AuthSvc/register</code>. Because TfLens is free and open source, no licence, feature, subscription or payment endpoint is ever called, and every registered user is assigned <code>applicationRoleCode: "Manager"</code>. On success TfLens issues its own auth cookie (sliding 12 h, HttpOnly, Secure) carrying the AppManager <code>userId</code>, email, display name and role; the AppManager access and refresh tokens are held <strong>server-side</strong> per session and refreshed through <code>POST /AuthSvc/refresh</code> before expiry; a resumed cookie is checked with <code>POST /AuthSvc/validate</code>. A demo account <strong><code>TfLensDemo</code></strong> (<code>tflensdemo@techierathore.com</code>) is registered in AppManager during development and its public demo repos are connected through the Repos screen (no configuration seed — amended 2026-08-26), so testers and first-time visitors can see a populated dashboard.</p>
@@ -567,15 +583,28 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 </ol>
 <p><strong>Requirements:</strong> BRD-1, BRD-90, BRD-91, BRD-92, BRD-93, BRD-94 (deferred), BRD-95, BRD-96, BRD-97</p>
-<h3 id="f-repos-repo-management-connect-public-github-repos-per-user">F-REPOS: Repo management — connect public GitHub repos per user<a class="anchor-link" href="#f-repos-repo-management-connect-public-github-repos-per-user">#</a></h3>
-<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 <em>(added 2026-08-26)</em></p>
-<p>TfLens is for anyone using the frameworks, so the repos to pull are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected repos (owner/name, branch, kind, public badge, sync status, last sync, per-stream record counts) with per-row <strong>Sync</strong> and <strong>Remove</strong> actions and a <strong>Connect repo</strong> dialog. Connecting takes a GitHub URL or <code>owner/name</code> (+ branch, default branch auto-detected) and validates it through the GitHub API before saving: the repo must exist, must be <strong>public</strong> (this release supports public repos only — a private repo is refused with an explicit message), and must contain the telemetry path for its kind on that branch (<code>docs/metrics/</code> → <code>techieflow</code>, <code>verification/telemetry/</code> → <code>playbook</code>; the kind is auto-detected and can be overridden). Removing a repo stops its sync and <strong>purges</strong> that user's parsed rows and raw archive for it. All data is scoped by user: <code>sync_state</code>, the raw archive (<code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code>), the stream tables and the analysis cache all carry the <code>UserId</code>; a page never shows another user's repos. The same public repo may be connected by several users independently (each gets their own copy — the simplest rule that keeps isolation exact). The <code>appsettings</code> repo list is used only to seed the <code>TfLensDemo</code> account at first start.</p>
+<h3 id="f-repos-source-management-fetch-public-repos-or-import-metric-files">F-REPOS: Source management — fetch public repos, or import metric files<a class="anchor-link" href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">#</a></h3>
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (import mode: Phase 3) <em>(added 2026-08-26; amended 2026-08-28 — F-IMPORT folded in as a second mode of the same dialog rather than a separate screen, owner decision)</em></p>
+<p>TfLens is for anyone using the frameworks, so the sources to read are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected sources (owner/name, branch, kind, <strong>source</strong>, visibility, status, last sync or last import, per-stream record counts) with per-row <strong>Sync</strong> / <strong>Re-import</strong> and <strong>Remove</strong> actions and an <strong>Add source</strong> dialog.</p>
+<p><strong>Two ways in, chosen in the dialog (amended 2026-08-28 — F-IMPORT).</strong> The first step of the dialog is a mode choice, and it is the demarcation the whole feature rests on:</p>
+<table>
+<thead><tr><th>Mode</th><th>For</th><th>How the data arrives</th><th>Row action</th><th>Poller</th></tr></thead>
+<tbody>
+<tr><td><strong>Fetch via API</strong></td><td><strong>Public</strong> repos</td><td>TfLens calls the GitHub API, validates, and pulls on a schedule (F-SYNC)</td><td><strong>Sync</strong></td><td>polls it</td></tr>
+<tr><td><strong>Import metric files</strong></td><td><strong>Private / corporate</strong> repos — or any repo the user would rather not connect</td><td>The user uploads a zip of <code>docs/metrics/</code> (or <code>verification/telemetry/</code>), or the loose <code>.jsonl</code> / <code>.ndjson</code> files, exactly as their framework already wrote them to disk</td><td><strong>Re-import</strong></td><td><strong>skips it</strong></td></tr>
+</tbody>
+</table>
+<p>An imported source has no remote to poll, so it gets <strong>Re-import</strong>, not a Sync button that would do nothing, and the background poller passes over it rather than waking every fifteen minutes to contact something that isn't there. Everything downstream is identical: one extra column (<code>SourceKind</code>) on the source row, the same raw archive, the same parser, the same dedupe, the same engine, the same isolation. <strong>No second code path exists</strong>, because a second path is where a second set of bugs lives.</p>
+<p>Why this reaches private repos at all: TfLens never needs the repository — it needs the JSONL files inside it, which the frameworks already write in plain text. Uploading them requires no credential, no network route to a corporate host, no PAT, and no change to the repo. What remains out of scope is TfLens <em>authenticating to</em> a private repo and pulling from it (§3).</p>
+<p><strong>An imported source is user-supplied, and TfLens does not pretend otherwise.</strong> A fetched file came from a named commit in a public repo; an uploaded file came off someone's desktop and could in principle have been edited on the way. TfLens does not try to detect that — it makes the origin <strong>visible everywhere</strong> instead: a <code>Synced</code> / <code>Imported</code> badge on the row, a source column on Coverage, a <code>source_kind</code> key in the export. The reader always knows which they are looking at. Connecting takes a GitHub URL or <code>owner/name</code> (+ branch, default branch auto-detected) and validates it through the GitHub API before saving: the repo must exist, must be <strong>public</strong> (this release supports public repos only — a private repo is refused with an explicit message), and must contain the telemetry path for its kind on that branch (<code>docs/metrics/</code> → <code>techieflow</code>, <code>verification/telemetry/</code> → <code>playbook</code>; the kind is auto-detected and can be overridden). Removing a repo stops its sync and <strong>purges</strong> that user's parsed rows and raw archive for it. All data is scoped by user: <code>sync_state</code>, the raw archive (<code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code>), the stream tables and the analysis cache all carry the <code>UserId</code>; a page never shows another user's repos. The same public repo may be connected by several users independently (each gets their own copy — the simplest rule that keeps isolation exact). The <code>appsettings</code> repo list is used only to seed the <code>TfLensDemo</code> account at first start.</p>
 <table>
 <thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Repos</td><td><code>/repos</code></td><td>User's repos grid; Connect repo button; per-row Sync / Remove; empty state for a new user</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
-<tr><td>Connect repo (dialog)</td><td><code>/repos</code></td><td>URL or owner/name, branch, kind (auto), Validate → shows public ✓ / telemetry path ✓ / default branch → Connect</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
-<tr><td>Remove repo (dialog)</td><td><code>/repos</code></td><td>Confirm; explains that parsed rows + raw archive for this repo are purged</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+<tr><td>Repos</td><td><code>/repos</code></td><td>User's sources grid with a <strong>Source</strong> column (<code>Synced</code> / <code>Imported</code>); Add source button; per-row Sync <strong>or</strong> Re-import, plus Remove; empty state for a new user</td><td><a href="./mockups/repos.html">repos.html</a></td></tr>
+<tr><td>Add source — <strong>Fetch via API</strong> (dialog)</td><td><code>/repos</code></td><td>Mode = Fetch via API: URL or owner/name, branch, kind (auto), Validate → shows public ✓ / telemetry path ✓ / default branch → Connect</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+<tr><td>Add source — <strong>Import metric files</strong> (dialog)</td><td><code>/repos</code></td><td>Mode = Import metric files: source name, framework, optional <code>project_type</code>; drop zone for a <code>.zip</code> / <code>.jsonl</code> / <code>.ndjson</code>; <strong>preview before commit</strong> (records per stream, date range, invalid lines, unknown fields, bundle sha256) → Import</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+<tr><td>Re-import (dialog)</td><td><code>/repos</code></td><td>Same import panel, pre-named to the existing source; states records added vs duplicates collapsed after commit</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
+<tr><td>Remove source (dialog)</td><td><code>/repos</code></td><td>Confirm; explains that parsed rows + raw archive for this source are purged — identical for fetched and imported</td><td><a href="./mockups/repos.html">repos.html</a> (dialog panel)</td></tr>
 </tbody>
 </table>
 <div class="diagram">
@@ -602,16 +631,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </div>
 <p><strong>Workflow:</strong></p>
 <ol>
-<li>New user lands on <code>/repos</code> (empty state: "Connect your first repo").
+<li>New user lands on <code>/repos</code> (empty state: "Add your first source" — offering both modes).
 </li>
-<li>Connect → validate (exists, public, telemetry path) → save → first sync runs → toast.
+<li><strong>Fetch via API:</strong> validate (exists, public, telemetry path) → save → first sync runs → toast.
 </li>
-<li>Row Sync → <code>SyncRepoAsync(userId, repo)</code>; row Remove → confirm → purge rows + raw → row disappears.
+<li><strong>Import metric files:</strong> name the source → drop the zip or files → TfLens unpacks, validates and <strong>previews</strong> (records per stream, date range, invalid lines, unknown fields, bundle sha256) → the user reviews → Import commits: bytes archived verbatim, then parsed by the same parser → toast states records added and duplicates collapsed.
 </li>
-<li>Header Sync now and the background poller iterate every user's repos; errors stay per user/repo.
+<li>Row <strong>Sync</strong> (fetched) → <code>SyncRepoAsync(userId, repo)</code>; row <strong>Re-import</strong> (imported) → the import panel again; row Remove → confirm → purge rows + raw → row disappears.
+</li>
+<li>Header Sync now and the background poller iterate every user's <strong>fetched</strong> sources and skip imported ones; errors stay per user and source.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-103, BRD-104</p>
+<p><strong>Requirements:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-103, BRD-104, BRD-131, BRD-132, BRD-133, BRD-134, BRD-135, BRD-136, BRD-138, BRD-139, BRD-140, BRD-141</p>
 <h3 id="f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)<a class="anchor-link" href="#f-cfg-configuration-and-secrets-retired-2026-08-26">#</a></h3>
 <p><s>F-CFG</s> — retired in the second amendment. Repos are managed only on the Repos screen (F-REPOS), so there is no repo list and no demo seed in configuration; the remaining infrastructure settings (AppManager connection, database connection, poll interval, optional PAT, <code>DataRoot</code>) moved to <strong>F-OPS</strong>. BRD-7 is retired; BRD-8, BRD-9, BRD-10 and BRD-11 now belong to F-OPS. The candidate demo repos (techierathore/TechieFlow, TechieRag, TrBlazeUI, blog, AI-First-Playbook — public ones only) are connected to <code>TfLensDemo</code> through the UI during development (BRD-96).</p>
 <h3 id="f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now<a class="anchor-link" href="#f-sync-repo-puller-background-sync-and-sync-now">#</a></h3>
@@ -653,7 +684,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Invalidate the cached analysis so pages recompute.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-12, BRD-13, BRD-14, BRD-15, BRD-16, BRD-17, BRD-18</p>
+<p><strong>Requirements:</strong> BRD-12, BRD-13, BRD-14, BRD-15, BRD-16, BRD-17, BRD-18, BRD-112</p>
 <h3 id="f-raw-raw-archive-and-rebuild">F-RAW: Raw archive and rebuild<a class="anchor-link" href="#f-raw-raw-archive-and-rebuild">#</a></h3>
 <p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
 <p>The raw archive is the rebuild source and the audit trail. Every fetched file is stored byte-for-byte under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> <strong>before</strong> it is parsed, so a parser bug can never lose data — fix the parser, run <code>rebuild</code>, done. <code>rebuild</code> (a command verb <code>dotnet TfLens.dll rebuild</code>, also a confirm-guarded button on the Coverage page) truncates every stream table in PostgreSQL (amended 2026-08-26), re-applies the schema script, and replays every archived file in repo order and SHA fetch order, then reports files replayed, records stored, and duplicates collapsed per stream. Because parsing is idempotent (F-PARSE), the record counts after a rebuild equal the counts after live syncs.</p>
@@ -668,10 +699,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Report; invalidate caches.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-19, BRD-20, BRD-21, BRD-22</p>
+<p><strong>Requirements:</strong> BRD-19, BRD-20, BRD-21, BRD-22, BRD-115</p>
 <h3 id="f-parse-parser-to-postgresql-with-dedupe-and-overflow">F-PARSE: Parser to PostgreSQL with dedupe and overflow<a class="anchor-link" href="#f-parse-parser-to-postgresql-with-dedupe-and-overflow">#</a></h3>
 <p><strong>Personas:</strong> Ops, Parity operator · <strong>Phase:</strong> 1</p>
-<p>One table per stream (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>. Column names follow SCHEMA.md field names exactly (PascalCase form; the mapping table is in the parser and in Architecture §6). A line that is not valid JSON is counted and skipped, exactly as the reference does. Any property the parser does not know for that stream — and any record with <code>v &gt; 1</code> — keeps its unknown properties in a JSON <code>Overflow</code> column rather than being dropped; the set of unknown field names seen per repo is reported on the Coverage page ("fields observed that SCHEMA.md doesn't document"). Fields that SCHEMA.md says are "present only when true" or "absent means not captured" are stored as <code>NULL</code> when absent, never as <code>0</code>/<code>false</code>, so downstream can tell "not captured" from "zero".</p>
+<p>One table per stream (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code> — and, from the 2026-08-28 amendment, three more for the one stream whose records do not all share a shape: <code>Miss</code>, <code>MissFix</code> and <code>MissAmend</code> (F-MISS). Column names follow SCHEMA.md field names exactly (PascalCase form; the mapping table is in the parser and in Architecture §6). A line that is not valid JSON is counted and skipped, exactly as the reference does — and so is a line in <code>misses.jsonl</code> whose <code>kind</code> the parser does not know. Any property the parser does not know for that stream — and any record with <code>v &gt; 1</code> — keeps its unknown properties in a JSON <code>Overflow</code> column rather than being dropped; the set of unknown field names seen per repo is reported on the Coverage page ("fields observed that SCHEMA.md doesn't document"). Fields that SCHEMA.md says are "present only when true" or "absent means not captured" are stored as <code>NULL</code> when absent, never as <code>0</code>/<code>false</code>, so downstream can tell "not captured" from "zero".</p>
 <p>Dedupe is idempotent on the natural identity of each stream, so re-parsing the same raw file or replaying it during rebuild never double-counts:</p>
 <table>
 <thead><tr><th>Stream</th><th>Identity</th><th>Rule</th></tr></thead>
@@ -680,6 +711,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td><code>sessions</code></td><td><code>session_id</code></td><td>OpenCode records are cumulative snapshots: keep the record with the highest <code>output_tokens</code>, tie → latest <code>ts</code></td></tr>
 <tr><td><code>runs</code></td><td><code>ts</code> + <code>app</code> + <code>cmd</code></td><td>keep first</td></tr>
 <tr><td><code>gates</code></td><td><code>ts</code> + <code>app</code> + <code>req_id</code> + <code>run_id</code></td><td>keep first</td></tr>
+<tr><td><code>misses</code> → <code>miss</code></td><td><code>miss_id</code> <strong>per repo</strong></td><td>keep <strong>earliest</strong> <code>ts</code> — a miss is opened once; a duplicate is a re-parse of the same archived file, not new information <em>(2026-08-28)</em></td></tr>
+<tr><td><code>misses</code> → <code>miss-fix</code></td><td><code>miss_id</code> + <code>fix_run_id</code> <strong>per repo</strong></td><td>keep latest <code>ts</code> <em>(2026-08-28)</em></td></tr>
+<tr><td><code>misses</code> → <code>miss-amend</code></td><td><code>miss_id</code> + <code>field</code> + <code>ts</code> <strong>per repo</strong></td><td>keep <strong>earliest</strong> <code>ts</code> — amendments are additive and each is a distinct fact <em>(2026-08-28)</em></td></tr>
 </tbody>
 </table>
 <p>Provenance fields are preserved verbatim and typed: <code>backfilled</code>, <code>inferred</code>, <code>project_type</code>, <code>project_type_inferred</code>, <code>harness</code>. They are what Phase 2 segments on.</p>
@@ -712,7 +746,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Return <code>(inserted, duplicates, invalidLines, unknownFields[])</code>.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-23, BRD-24, BRD-25, BRD-26, BRD-27, BRD-28, BRD-29</p>
+<p><strong>Requirements:</strong> BRD-23, BRD-24, BRD-25, BRD-26, BRD-27, BRD-28, BRD-29, BRD-113, BRD-114</p>
 <h3 id="f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules<a class="anchor-link" href="#f-engine-metrics-engine-with-provenance-rules">#</a></h3>
 <p><strong>Personas:</strong> Owner (indirectly — every page), Parity operator · <strong>Phase:</strong> 2</p>
 <p>The engine is a field-for-field port of <code>analyse()</code> in <code>.tfcore/telemetry/tf-metrics.sh</code>, the trusted reference. All figures are computed at request time from the stream tables; nothing derived is ever written back into a stream table. The SCHEMA.md §6 provenance rules are enforced by the shape of the result, not by a flag:</p>
@@ -744,14 +778,15 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Returns <code>AnalysisResult</code> (same key layout as <code>--rollup --json</code>) — memoised until the next sync/rebuild.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-30, BRD-31, BRD-32, BRD-33, BRD-34, BRD-35, BRD-36, BRD-37, BRD-38</p>
+<p><strong>Requirements:</strong> BRD-30, BRD-31, BRD-32, BRD-33, BRD-34, BRD-35, BRD-36, BRD-37, BRD-38, BRD-116, BRD-117</p>
 <h3 id="f-cover-coverage-health-page">F-COVER: Coverage / health page<a class="anchor-link" href="#f-cover-coverage-health-page">#</a></h3>
 <p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 2</p>
-<p>The first report page (after Repos). For each of the signed-in user's repos it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
+<p>The first report page (after Repos). For each of the signed-in user's repos it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A <strong>fetched</strong> repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. An <strong>imported</strong> source is read differently (amended 2026-08-28, BRD-137): staleness counts <strong>days since import</strong>, the message is <em>"this source can't refresh itself — re-import to update"</em>, and the hook diagnosis is not shown, because it would be advice about a clone TfLens cannot see. A snapshot is not unhealthy for being a snapshot. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
+<p><em>Amended 2026-08-28 (F-MISS).</em> The per-repo stream table goes from four rows to <strong>five</strong> (<code>misses</code> joins them), and Coverage gains three data-quality facts the miss stream introduces — none of which is a quality figure and none of which belongs on the <code>/misses</code> KPI row: <strong><code>escapes_missing_why</code></strong> (escapes, <code>found_by ∈ {owner, production}</code>, arriving with no <code>why_missed</code> — the most valuable records in the stream arriving incomplete), the <strong><code>project_type</code> reclassification split</strong> (a repo whose stored records carry a <code>project_type</code> its <em>current</em> classification disagrees with, which §6 forbids pooling and which would otherwise render silently as two unrelated projects), and the <strong>orphan counts</strong> (a <code>miss-fix</code> or <code>miss-amend</code> naming no known <code>miss</code>). A repo emitting <code>miss</code> records with no <code>miss-fix</code> records at all is a <strong>warning, not an error</strong> — most likely the fix path is not wired up yet, which is worth saying and not worth failing on.</p>
 <table>
 <thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; staleness; unknown fields; Rebuild button; Framework switch</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
+<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; five-row stream staleness table; unknown fields; escapes-missing-why + reclassification-split + orphan facts; Rebuild button; Framework switch</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
 </tbody>
 </table>
 <p><strong>Workflow:</strong></p>
@@ -763,7 +798,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Render; Sync now / Rebuild refresh in place.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44</p>
+<p><strong>Requirements:</strong> BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44, BRD-127</p>
 <h3 id="f-3q-the-three-questions-page">F-3Q: The three questions page<a class="anchor-link" href="#f-3q-the-three-questions-page">#</a></h3>
 <p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
 <p>The headline page and the B3 evidence base. For each <code>project_type</code> present in the data (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, and <code>unclassified</code> for inferred records) it shows the three questions SCHEMA.md §0 exists to answer — <strong>first-pass rate</strong>, <strong>gate catch distribution</strong> (with <code>escaped</code> as its own row, never folded into a gate, and <code>unattributed</code> where a failure carries no gate), and <strong>escape rate</strong> — computed from <strong>live records only</strong>, with the backfilled figures for the same type in an adjacent, clearly labelled column that is never summed with live. Under each type: records, REQs scored, REQs excluded by backfill taint, and the late-gate coverage lines (<code>perf gate: ran on n records, caught k → rate | insufficient data (n=…) | not yet run on this data (gate added 2026-08-10)</code>). The tainted REQ IDs are listed in full in a collapsible panel. Any figure below the minimum n renders as <code>insufficient data (n=…)</code>. There is no "all types" tab and no total row — by design.</p>
@@ -843,6 +878,73 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 </ol>
 <p><strong>Requirements:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62</p>
+<h3 id="f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics<a class="anchor-link" href="#f-miss-misses-and-rework-economics">#</a></h3>
+<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 3 <em>(added 2026-08-28 — source: <code>docs/Miss-Telemetry-TfLens.md</code>)</em></p>
+<p>TechieFlow gained a <strong>fifth stream</strong> on 2026-08-28, <code>docs/metrics/misses.jsonl</code>, and it is the first stream whose records do not all have the same shape. It carries three record kinds linked by <code>miss_id</code>: a <strong><code>miss</code></strong> (what was missed, which phase/agent/model let it through, who found it), a <strong><code>miss-fix</code></strong> (the repair run, its outcome, its token and cost window) and a <strong><code>miss-amend</code></strong> (an append-only way to <em>complete</em> a field the <code>miss</code> left <code>null</code> — it may fill a <code>null</code>, and may never overwrite a value, including one an earlier amend set). TfLens pulls it, archives it, parses it, stores it, computes over it and shows it on a sixth report page, under the same provenance discipline it already applies to the four existing streams. The producing side is real, not hypothetical: <code>tf-metrics.sh --rollup --json</code> already reports a <code>misses</code> block, so every figure here is parity-diffable from the first commit and none ships marked unverified.</p>
+<p><strong>Why this feature gets its own guards.</strong> The product's stated dangerous failure mode is a <em>plausible wrong number</em> (§1), and miss data is the most seductive material in the system for producing one, because it invites three specific mistakes that all look like ordinary arithmetic:</p>
+<ol>
+<li><strong>Presenting an apportioned cost as a measured one.</strong> A fix run that repaired three misses has <strong>one</strong> token window. Dividing by three is arithmetic, not measurement.
+</li>
+<li><strong>Presenting an inferred attribution as an observed one.</strong> <em>"This model produces the most misses"</em> is a career-shaping claim if half the attributions were guessed.
+</li>
+<li><strong>Rendering an optional field's distribution over the whole population.</strong> <code>why_missed</code> is optional and <code>null</code> means <em>not assessed</em>, never a zero in some category; using the miss count as the denominator understates every category at once.
+</li>
+</ol>
+<p>All three are handled the way TfLens already handles live-vs-backfilled: <strong>in the shape of the result type, with no switch to relax it</strong> (ADR-007's technique, applied twice more — ADR-019).</p>
+<p><strong>Two open predicates that deliberately disagree.</strong> The lifecycle splits three ways and TfLens must not reconcile the first two, because they answer different questions:</p>
+<table>
+<thead><tr><th>Question</th><th>Predicate</th><th>Where it belongs</th></tr></thead>
+<tbody>
+<tr><td>How much work is outstanding? (the backlog the owner reads)</td><td>latest <code>MissFix.VerdictAfter ∉ {Verified, wont-fix}</code></td><td>the KPI tile <strong>open misses</strong></td></tr>
+<tr><td>Is this defect still live? (the producer's collapse check)</td><td>latest <code>VerdictAfter != "Verified"</code> — <strong><code>wont-fix</code> is still live</strong></td><td>not TfLens's job; it explains the gap</td></tr>
+<tr><td>Deliberately declined</td><td>latest <code>VerdictAfter == "wont-fix"</code></td><td>its own tile, never folded into open</td></tr>
+</tbody>
+</table>
+<p><code>deferred</code> is outstanding work and stays <strong>open</strong> in both. <code>wont-fix</code> is a decision, not a backlog item — but the next failure on that REQ is still the same defect, which is why the producer's check keeps it live. A reviewer will eventually try to "fix" one of these to match the other; the standing comment in <code>tf-metrics.sh</code> and BRD-120 exist to stop that.</p>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td>Four bands: KPI row · where misses come from (origin phase × class, beside the failed-practice distribution) · who was running (model + agent, <code>linked</code> only, labelled observational) · cost of rework (measured | apportioned | unattributable); per-miss detail table with the raw record behind a disclosure; period filter defaulting to <strong>all history</strong>; Framework switch</td><td><a href="./mockups/misses.html">misses.html</a> · Playbook state: <a href="./mockups/misses-playbook.html">misses-playbook.html</a></td></tr>
+</tbody>
+</table>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  A["misses.jsonl (raw archive)"] --&gt; B{"record kind?"}
+  B --&gt;|"miss"| C["Miss table"]
+  B --&gt;|"miss-fix"| D["MissFix table"]
+  B --&gt;|"miss-amend"| E["MissAmend table (stored, never collapsed)"]
+  B --&gt;|"anything else"| F["InvalidLines++ and skip"]
+  C --&gt; G["Fold amendments at READ time, oldest first&lt;br/&gt;fill null only, allowlist + closed vocabulary"]
+  E --&gt; G
+  G --&gt; H{"OriginConfidence == linked?"}
+  H --&gt;|"no"| I["MissAttributionTaint: excluded and COUNTED"]
+  H --&gt;|"yes"| J["per-phase / per-model / per-agent figures"]
+  D --&gt; K{"CostAttribution"}
+  K --&gt;|"sole"| L["MissCost.Sole (measured)"]
+  K --&gt;|"shared:n"| M["MissCost.Apportioned (labelled)"]
+  K --&gt;|"none"| N["MissCost.NoneCount (no numbers at all)"]</pre>
+</div>
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Sync fetches <code>misses.jsonl</code> at the pinned SHA, archives it verbatim, and parses it — dispatching on each record's own <code>kind</code> <strong>within</strong> the misses stream. An unknown <code>kind</code> is counted as an invalid line and skipped, never thrown (the same contract as a malformed line, BRD-25).
+</li>
+<li>Storage upserts into <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> on their natural keys. Amend rows are <strong>stored, not collapsed</strong> — folding is a read-time operation, so <code>rebuild</code> re-derives identical values.
+</li>
+<li><code>MissMetrics</code> folds amendments oldest-first (re-applying the null-check while folding — a merged stream from several machines can carry an amend and a later-written value in either order), applies <code>MissAttributionTaint</code>, and returns each figure as a <code>Figure</code> and each cost as a <code>MissCost</code>.
+</li>
+<li><code>/misses</code> renders the four bands; Coverage renders the data-quality facts; the export writes the <code>misses</code> section; <code>parity-compare.py</code> diffs the whole block against the oracle.
+</li>
+</ol>
+<p><strong>Requirements:</strong> BRD-112, BRD-113, BRD-114, BRD-115, BRD-116, BRD-117, BRD-118, BRD-119, BRD-120, BRD-121, BRD-122, BRD-123, BRD-124, BRD-125, BRD-126, BRD-127, BRD-128, BRD-129, BRD-130</p>
 <h3 id="f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export<a class="anchor-link" href="#f-export-weekly-snapshot-export">#</a></h3>
 <p><strong>Personas:</strong> Author, Parity operator · <strong>Phase:</strong> 2</p>
 <p>A button on <code>/export</code> and a command verb (<code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code>) write two files to <code>data/reports/&lt;date&gt;/</code>: <code>snapshot.md</code> (human-readable, sectioned exactly like the pages, provenance never mixed in one figure, every estimate labelled) and <code>tflens.json</code> (machine-readable; the same key layout as <code>tf-metrics.sh --rollup --json</code> — <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code> — plus an <code>extras</code> object for harness, routing and repricing, and a <code>parity</code> object carrying the last recorded parity run). The page lists previous snapshots with download links and shows a <strong>quotable / not quotable</strong> banner: quotable only if the last parity run on record postdates the last parser change (the build stamps a parser version; the parity record stores the version it validated).</p>
@@ -859,7 +961,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Banner reads <code>data/parity-last.json</code> (written by the parity procedure) and compares parser version.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-63, BRD-64, BRD-65, BRD-66, BRD-67</p>
+<p><strong>Requirements:</strong> BRD-63, BRD-64, BRD-65, BRD-66, BRD-67, BRD-128</p>
 <h3 id="f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh<a class="anchor-link" href="#f-parity-parity-check-against-tf-metrics-sh">#</a></h3>
 <p><strong>Personas:</strong> Parity operator · <strong>Phase:</strong> 2</p>
 <p>Two independent implementations now compute the same metrics from the same files: <code>tf-metrics.sh</code> (trusted; the §6 rules live in its code) and TfLens (new, unproven). Correct implementations must agree exactly; any disagreement is by definition a bug in TfLens, and the script is never changed to match the app. TfLens ships the tooling that makes the check cheap: the <code>tflens.json</code> export in the reference's key layout, a <code>tools/parity-compare.py</code> script that compares key-by-key (not a text diff — key order and formatting may differ) and exits non-zero on any mismatch, the <code>sync_state</code> SHAs so the same dataset can be checked out for the script, and a <code>data/parity-last.json</code> + DECISIONS.md entry that records each passing run (date, dataset SHAs, script hash, compare output). The full procedure and the zero-tolerance rule are in §13; the metrics the script does not compute (harness, routing, repricing) have no oracle and are spot-checked by hand against raw JSONL once, recorded the same way.</p>
@@ -883,10 +985,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   F --&gt;|"any diff"| H["bug in TfLens: fix parser/engine, re-run"]</pre>
 </div>
 <p><strong>Workflow:</strong> see §13 (mandatory acceptance test).</p>
-<p><strong>Requirements:</strong> BRD-68, BRD-69, BRD-70, BRD-71, BRD-72</p>
+<p><strong>Requirements:</strong> BRD-68, BRD-69, BRD-70, BRD-71, BRD-72, BRD-129</p>
 <h3 id="f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)<a class="anchor-link" href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 3 <em>(amended 2026-08-26: replaces "F-PB: Playbook adapter and page")</em></p>
-<p>TfLens is a lens over <strong>both</strong> frameworks. The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data deserves the same reports as TechieFlow data — not a single page. <strong>Framework</strong> is therefore a third provenance axis beside live/backfilled and <code>project_type</code>: every report page (Coverage, Three questions, Harness comparison, Routing &amp; economics, Snapshot export) carries a <strong>Framework switch</strong> (TechieFlow | Playbook) in the header, and no figure ever pools across frameworks — the same rule, applied once more. The single <code>/playbook</code> page is retired; its content becomes the Playbook state of the report pages.</p>
+<p>TfLens is a lens over <strong>both</strong> frameworks. The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data deserves the same reports as TechieFlow data — not a single page. <strong>Framework</strong> is therefore a third provenance axis beside live/backfilled and <code>project_type</code>: every report page (Coverage, Three questions, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong> and Snapshot export) carries a <strong>Framework switch</strong> (TechieFlow | Playbook) in the header, and no figure ever pools across frameworks — the same rule, applied once more. The single <code>/playbook</code> page is retired; its content becomes the Playbook state of the report pages.</p>
 <p>Two ingestion paths, one set of pages:</p>
 <ol>
 <li><strong>Schema v1 streams from a Playbook repo.</strong> SCHEMA.md §11 says the Playbook will emit the same four streams (plus <code>actor</code>) when it grows agents. A repo whose telemetry path is <code>docs/metrics/</code> flows through the <em>same</em> parser, engine and pages automatically, tagged <code>framework: playbook</code> at connect time — zero new code beyond the tag and the switch.
@@ -899,7 +1001,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
 <tbody>
 <tr><td>Framework switch</td><td>(header, every report page)</td><td>Segmented control TechieFlow / Playbook; persisted per user; badge with each framework's repo count</td><td><a href="./mockups/coverage.html">coverage.html</a> (header)</td></tr>
-<tr><td>Report pages — Playbook state</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/export</code></td><td>Same layouts as the TechieFlow state; Three questions keyed by <code>phase_gate</code>; Coverage shows the <code>events</code> stream; empty state until Phase 3</td><td><a href="./mockups/playbook.html">playbook.html</a> (Coverage) · <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a> · <a href="./mockups/harness-playbook.html">harness-playbook.html</a> · <a href="./mockups/routing-playbook.html">routing-playbook.html</a> · <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
+<tr><td>Report pages — Playbook state</td><td><code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code></td><td>Same layouts as the TechieFlow state; Three questions keyed by <code>phase_gate</code>; Coverage shows the <code>events</code> stream; empty state until Phase 3</td><td><a href="./mockups/playbook.html">playbook.html</a> (Coverage) · <a href="./mockups/three-questions-playbook.html">three-questions-playbook.html</a> · <a href="./mockups/harness-playbook.html">harness-playbook.html</a> · <a href="./mockups/routing-playbook.html">routing-playbook.html</a> · <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
 </tbody>
 </table>
 <div class="diagram">
@@ -929,7 +1031,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Every page filters by the selected framework; export writes one snapshot per framework.
 </li>
 </ol>
-<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110</p>
+<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110, BRD-126</p>
 <h3 id="f-ops-container-configuration-health-docs-and-decisions">F-OPS: Container, configuration, health, docs and decisions<a class="anchor-link" href="#f-ops-container-configuration-health-docs-and-decisions">#</a></h3>
 <p><strong>Personas:</strong> Ops · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: absorbs the settings formerly in F-CFG; PostgreSQL)</em></p>
 <p>A multi-stage Dockerfile produces one image; a <code>docker-compose.yml</code> runs it beside a <strong>PostgreSQL 16</strong> service (owner decision 2026-08-26 — SQLite is unreliable on container storage; Dapper stays the data-access layer via Npgsql). Volumes: <code>data/</code> (raw archive, reports, <code>prices.json</code>), <code>logs/</code>, and the Postgres data directory. All settings come from configuration with secrets <strong>only</strong> via the PascalCase env-var provider: <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code> (required); <code>TfLensGitHubToken</code> (optional — raises the GitHub API rate limit for public reads). Non-secret: <code>TfLensAppManagerBaseUrl</code> (default <code>https://appmgrapi.techierathore.com</code>), <code>TfLensAppManagerAppId</code> (default <code>1</code>), <code>PollIntervalMinutes</code> (default 15), <code>DataRoot</code> (default <code>data/</code>). Startup validates the configuration, applies the idempotent schema script <code>database/001-schema.sql</code>, and refuses to run with a missing secret or an unreachable database, logging a redacted reason. <code>/healthz</code> (anonymous) reports database reachability and the age of the last successful sync, nothing else. The README states the out-of-scope list verbatim (§3) and the run/rebuild/export commands. <code>DECISIONS.md</code> is created at day-1 build time and records: the storage choice (Dapper + PostgreSQL, superseding SQLite), the dedupe keys, the parser version scheme, anything cut for the timebox, and every parity run.</p>
@@ -953,7 +1055,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>BRD-4</strong> — User can sign out from the <strong>user menu</strong> in the header (name → DropdownMenu → Sign out), which calls AppManager <code>/AuthSvc/logout</code> and clears the cookie. <em>(F-SHELL — amended 2026-08-26)</em>
 </li>
-<li><strong>BRD-5</strong> — User can navigate between Repos, Coverage, Three questions, Harness, Routing &amp; economics and Snapshot export via a TrBlazeUI sidebar with a Lucide icon per item, in that order (Playbook page retired — framework is a header switch, BRD-108). <em>(F-SHELL — amended 2026-08-26 ×2)</em>
+<li><strong>BRD-5</strong> — User can navigate between Repos, Coverage, Three questions, Harness, Routing &amp; economics, <strong>Misses &amp; rework</strong> and Snapshot export via a TrBlazeUI sidebar with a Lucide icon per item, in that order (Playbook page retired — framework is a header switch, BRD-108). <em>(F-SHELL — amended 2026-08-26 ×2, 2026-08-28: seven items, Misses &amp; rework between Routing and Snapshot export)</em>
 </li>
 <li><strong>BRD-6</strong> — User can press <strong>Sync now</strong> in the header and see the last-sync timestamp and a per-repo outcome toast for their own repos. <em>(F-SHELL — amended 2026-08-26)</em>
 </li>
@@ -981,7 +1083,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>BRD-18</strong> — System shall invalidate cached analysis results after every completed sync or rebuild. <em>(F-SYNC)</em>
 </li>
-<li><strong>BRD-19</strong> — System shall store every fetched stream file verbatim under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> before parsing it. <em>(F-RAW — amended 2026-08-26)</em>
+<li><strong>BRD-19</strong> — System shall store every stream file verbatim under <code>data/raw/&lt;userId&gt;/&lt;source&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl</code> before parsing it, where <code>&lt;sha&gt;</code> is the commit SHA for a fetched file and the <strong>bundle sha256</strong> for an imported one. <em>(F-RAW — amended 2026-08-26, 2026-08-28)</em>
 </li>
 <li><strong>BRD-20</strong> — Ops can run <code>rebuild</code> (command verb) to truncate the stream tables in PostgreSQL, re-apply the schema script and reparse every archived raw file. <em>(F-RAW — amended 2026-08-26)</em>
 </li>
@@ -989,7 +1091,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>BRD-22</strong> — System shall report, after a rebuild, files replayed, records stored and duplicates collapsed per stream, and produce the same counts as live syncing did. <em>(F-RAW)</em>
 </li>
-<li><strong>BRD-23</strong> — System shall store each stream in its own PostgreSQL table (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>, via Dapper + Npgsql, with columns named exactly after SCHEMA.md fields (PascalCase, quoted identifiers). <em>(F-PARSE — amended 2026-08-26)</em>
+<li><strong>BRD-23</strong> — System shall store each stream in its own PostgreSQL table (<code>Run</code>, <code>Gate</code>, <code>Session</code>, <code>Commit</code>) plus <code>SyncState</code>, via Dapper + Npgsql, with columns named exactly after SCHEMA.md fields (PascalCase, quoted identifiers); the <code>misses</code> stream, whose records do not all share a shape, occupies <strong>three</strong> tables (<code>Miss</code>, <code>MissFix</code>, <code>MissAmend</code> — BRD-115). <em>(F-PARSE — amended 2026-08-26, 2026-08-28)</em>
 </li>
 <li><strong>BRD-24</strong> — System shall keep unknown properties (and all properties of records with <code>v &gt; 1</code>) in a JSON <code>Overflow</code> column instead of dropping them. <em>(F-PARSE)</em>
 </li>
@@ -1083,7 +1185,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>BRD-69</strong> — Parity operator can run <code>tools/parity-compare.py reference.json tflens.json</code> and get a key-by-key diff (record counts per stream and backfilled counts, duplicates collapsed, tainted-REQ set, per-type live and backfilled figures, late-gate coverage, every poolable, every insufficient-data marker with its n) with non-zero exit on any mismatch. <em>(F-PARITY)</em>
 </li>
-<li><strong>BRD-70</strong> — Parity operator can read the dataset SHAs for the last sync from the export and the Coverage page to pin the reference dataset. <em>(F-PARITY)</em>
+<li><strong>BRD-70</strong> — Parity operator can read the dataset identity for the last sync from the export and the Coverage page to pin the reference dataset: the <strong>commit SHA</strong> for a fetched source, the <strong>bundle sha256</strong> for an imported one. <em>(F-PARITY — amended 2026-08-28, see BRD-134)</em>
 </li>
 <li><strong>BRD-71</strong> — System shall record each passing parity run in <code>data/parity-last.json</code> (date, dataset SHAs, script hash, parser version, compare output) and the operator records it in DECISIONS.md. <em>(F-PARITY)</em>
 </li>
@@ -1157,19 +1259,19 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>BRD-97</strong> — System shall read the AppManager connection from configuration only: <code>TfLensAppManagerBaseUrl</code>, <code>TfLensAppManagerAppId</code> (1), <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>; the key and secret never appear in the repo, logs or UI. <em>(F-AUTH)</em>
 </li>
-<li><strong>BRD-98</strong> — User can see their connected repos at <code>/repos</code> (owner/name, branch, kind, public badge, sync status, last sync, per-stream counts) with per-row Sync and Remove. <em>(F-REPOS)</em>
+<li><strong>BRD-98</strong> — User can see their connected sources at <code>/repos</code> (owner/name, branch, kind, <strong>source</strong> — <code>Synced</code> or <code>Imported</code> — visibility badge, status, last sync <strong>or</strong> last import, per-stream counts) with per-row Sync <strong>or</strong> Re-import, and Remove. <em>(F-REPOS — amended 2026-08-28)</em>
 </li>
-<li><strong>BRD-99</strong> — User can connect a repo by GitHub URL or <code>owner/name</code> (+ branch); system shall validate through the GitHub API that it exists, is public, and has the telemetry path for its kind, auto-detecting the kind. <em>(F-REPOS)</em>
+<li><strong>BRD-99</strong> — In <strong>Fetch via API</strong> mode, user can connect a repo by GitHub URL or <code>owner/name</code> (+ branch); system shall validate through the GitHub API that it exists, is public, and has the telemetry path for its kind, auto-detecting the kind. <em>(F-REPOS — amended 2026-08-28: this is now one of the dialog's two modes, BRD-131)</em>
 </li>
-<li><strong>BRD-100</strong> — System shall refuse private repos with an explicit message in this release (public-only); the server PAT is optional and only raises the rate limit. <em>(F-REPOS)</em>
+<li><strong>BRD-100</strong> — System shall refuse private repos <strong>in Fetch via API mode</strong> with an explicit message that names the alternative — <em>"private repos can't be fetched; use <strong>Import metric files</strong> to add this repo's telemetry without a credential"</em> — and shall offer the mode switch inline rather than dead-ending the user; the server PAT is optional and only raises the rate limit. <em>(F-REPOS — amended 2026-08-28: refusal now has an exit, BRD-131)</em>
 </li>
-<li><strong>BRD-101</strong> — User can remove a connected repo after confirmation; system shall stop its sync and purge that user's parsed rows and raw archive for it. <em>(F-REPOS)</em>
+<li><strong>BRD-101</strong> — User can remove a connected source after confirmation; system shall stop its sync and purge that user's parsed rows and raw archive for it — identically for a fetched and an imported source. <em>(F-REPOS — amended 2026-08-28, see BRD-141)</em>
 </li>
 <li><strong>BRD-102</strong> — System shall scope every page, sync, export, cache and stored row to the signed-in user (<code>UserId</code> on <code>sync_state</code>, stream tables, raw archive path and reports path); no user can see another user's repos or figures. <em>(F-REPOS)</em>
 </li>
-<li><strong>BRD-103</strong> — System shall sync every user's repos in the background poller and only the signed-in user's repos on header Sync now, keeping errors per user and repo. <em>(F-REPOS)</em>
+<li><strong>BRD-103</strong> — System shall sync every user's <strong>fetched</strong> repos in the background poller and only the signed-in user's fetched repos on header Sync now, keeping errors per user and source; <strong>imported sources are skipped by the poller and by Sync now</strong> — they have no remote to contact. <em>(F-REPOS — amended 2026-08-28)</em>
 </li>
-<li><strong>BRD-104</strong> — System shall reject a duplicate <code>owner/name</code> for the same user and allow different users to connect the same public repo independently. <em>(F-REPOS)</em>
+<li><strong>BRD-104</strong> — System shall reject a duplicate source name for the same user — whichever mode either was added in, so an imported source can never shadow a fetched one — and allow different users to connect the same public repo independently. <em>(F-REPOS — amended 2026-08-28)</em>
 </li>
 <li><strong>BRD-105</strong> — User can collapse and expand the sidebar (<code>SidebarTrigger</code>); collapsed items show icon + tooltip; the state is remembered. <em>(F-SHELL)</em>
 </li>
@@ -1180,7 +1282,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL<a class="anchor-link" href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">#</a></h3>
 <ul>
-<li><strong>BRD-108</strong> — User can switch every report page (Coverage, Three questions, Harness, Routing &amp; economics, Snapshot export) between <strong>TechieFlow</strong> and <strong>Playbook</strong> via a header Framework switch; the system shall never pool any figure across frameworks (a third provenance axis, same rule as <code>project_type</code>); the choice is persisted per user. <em>(F-FRAMEWORK, F-SHELL)</em>
+<li><strong>BRD-108</strong> — User can switch every report page (Coverage, Three questions, Harness, Routing &amp; economics, <strong>Misses &amp; rework</strong>, Snapshot export) between <strong>TechieFlow</strong> and <strong>Playbook</strong> via a header Framework switch; the system shall never pool any figure across frameworks (a third provenance axis, same rule as <code>project_type</code>); the choice is persisted per user. <em>(F-FRAMEWORK, F-SHELL — amended 2026-08-28: the switch now spans six report pages)</em>
 </li>
 <li><strong>BRD-109</strong> — System shall run a Playbook repo that emits schema v1 streams (<code>docs/metrics/*.jsonl</code>) through the same parser, engine and pages as TechieFlow repos, tagged <code>framework: playbook</code> at connect time. <em>(F-FRAMEWORK)</em>
 </li>
@@ -1189,17 +1291,89 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>BRD-111</strong> — Ops can run TfLens with <code>docker compose</code> beside a PostgreSQL 16 service; the system shall apply <code>database/001-schema.sql</code> idempotently at startup and read the connection string from <code>TfLensDbConnection</code>. <em>(F-OPS)</em>
 </li>
 </ul>
+<h3 id="amendment-2026-08-28-miss-telemetry-and-rework-economics">Amendment 2026-08-28 — miss telemetry and rework economics<a class="anchor-link" href="#amendment-2026-08-28-miss-telemetry-and-rework-economics">#</a></h3>
+<p><em>Source: <code>docs/Miss-Telemetry-TfLens.md</code> (and its sibling <code>docs/Miss-Telemetry-TechieFlow.md</code>, the producing side, which shipped 2026-08-28). All Phase 3. Nothing above is renumbered; BRD-101's purge clause and BRD-17's per-stream counts are generic and already reach the new tables and the fifth stream.</em></p>
+<ul>
+<li><strong>BRD-112</strong> — System shall fetch, archive raw and parse a fifth TechieFlow stream, <code>docs/metrics/misses.jsonl</code>, on the same SHA-skip / whole-file / 404-means-absent contract as the other four; a repo that does not emit it produces an empty stream row, never an error, and no coordination window is needed in either deploy order. <em>(F-MISS, F-SYNC)</em>
+</li>
+<li><strong>BRD-113</strong> — System shall dispatch on each record's own <code>kind</code> <strong>within</strong> the <code>misses</code> stream — <code>miss</code> → <code>MissRecord</code>, <code>miss-fix</code> → <code>MissFixRecord</code>, <code>miss-amend</code> → <code>MissAmendRecord</code> — and shall count-and-skip any other <code>kind</code> as an invalid line, never throwing; a malformed miss record shall never fail a sync. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><strong>BRD-114</strong> — System shall dedupe the three kinds on their natural keys per user and repo — <code>miss</code> on <code>(MissId)</code> keeping the <strong>earliest</strong> <code>Ts</code>, <code>miss-fix</code> on <code>(MissId, FixRunId)</code> keeping the latest, <code>miss-amend</code> on <code>(MissId, Field, Ts)</code> keeping the earliest — so that re-parsing an archived file or replaying it during rebuild never double-inserts. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><strong>BRD-115</strong> — System shall store the stream in three tables (<code>Miss</code>, <code>MissFix</code>, <code>MissAmend</code>) in the existing house style (<code>UserId</code> a real column and part of every unique index, <code>CREATE TABLE IF NOT EXISTS</code>), and <code>DeleteRepoDataAsync</code> shall purge <strong>all three</strong> — a repo removal that leaves rows behind would reappear in every figure. <em>(F-MISS, F-RAW, F-PARSE)</em>
+</li>
+<li><strong>BRD-116</strong> — System shall fold <code>miss-amend</code> records into their parent <strong>at read time, never at ingest</strong> — oldest first, re-applying the null-check while folding (a merged stream can carry an amend and a later-written value in either order), applying only fields on the allowlist with values inside their closed vocabulary. An amend naming no known <code>miss</code>, or carrying a field off the allowlist, is an <strong>orphan</strong>: counted and surfaced on Coverage, never applied. <code>rebuild</code> shall re-derive identical values. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-117</strong> — System shall enforce an eligibility floor per optional field (<code>FIELD_SINCE</code>, <code>why_missed</code> since 2026-08-28) in the same code path as the existing <code>LATE_GATES</code> rule: a miss written before the field existed leaves that field's denominator entirely and is reported separately as <code>why_missed_eligible</code> / <code>why_missed_predates_field</code>. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-118</strong> — Owner can see, per <code>project_type</code> and live-only: miss class distribution, design-miss share (<code>unspecified-gap</code> ÷ all), escape share of misses (<code>FoundBy ∈ {owner, production}</code> ÷ all), miss rate per origin phase, and median time-to-close. The miss-stream escape share is rendered <strong>beside</strong> the existing <code>gates</code>-derived escape rate and never merged into it — escape rate keeps its definition and its source. <em>(F-MISS)</em>
+</li>
+<li><strong>BRD-119</strong> — Owner can see the <strong>failed-practice distribution</strong> (<code>WhyMissed</code>: <code>missing-checklist-item</code> · <code>insufficient-verify-method</code> · <code>code-audit-limitation</code> · <code>ambiguous-acceptance</code> · <code>dependency-not-declared</code> · <code>instruction-ignored</code> · <code>other</code>) whose denominator is <strong>records that carry the field</strong>, printed as <code>n of N misses assessed</code> on its face; <code>null</code> means <em>not assessed</em> and shall never be coerced into a bucket. <em>(F-MISS)</em>
+</li>
+<li><strong>BRD-120</strong> — Owner can see <strong>open misses</strong> (latest <code>MissFix.VerdictAfter ∉ {Verified, wont-fix}</code>; <code>deferred</code> stays open) and <strong>declined misses</strong> (<code>wont-fix</code>) as two separate figures; the system shall never fold <code>wont-fix</code> into open, and shall never reconcile this predicate with the producer's collapse check — they ask different questions and agreeing would break one of them. <em>(F-MISS)</em>
+</li>
+<li><strong>BRD-121</strong> — System shall compute every per-origin-phase, per-origin-model and per-origin-agent figure from <code>OriginConfidence == "linked"</code> records only (<code>MissAttributionTaint</code>, a sibling of <code>TaintSet</code>), and shall display how many misses were excluded and why — an exclusion the reader cannot see is indistinguishable from a bug. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-122</strong> — System shall return every miss token/cost figure as a result type that carries the attribution split — <code>MissCost(Figure Sole, Figure Apportioned, int NoneCount)</code> — so that a page binding it <strong>cannot render a blended number, because no such property exists</strong>. Headline cost-per-miss is computed over <code>CostAttribution == "sole"</code> only; <code>none</code> (including the deliberate <code>log-miss --fixed</code> path that omits <code>fix_run_id</code>) is a count, never a divisor. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-123</strong> — Owner can see the money answer per harness with no new machinery: <strong>measured USD</strong> from <code>CostUsd</code> for OpenCode (the only measured dollars in the product), and <strong>tokens as the primary figure</strong> for Claude Code and Codex with USD only via <code>RateCard</code>, carrying <code>RateCard.EstimateLabel</code> on its face and a <code>_usd_estimate</code> key in every export. The estimate tile shall be visually distinct from the measured tile — never the same row, never the same styling. <em>(F-MISS, F-ROUTE)</em>
+</li>
+<li><strong>BRD-124</strong> — User can open <strong><code>/misses</code> — "Misses &amp; rework"</strong>, a sixth report page and a nav item between Routing and Snapshot export, laid out in four bands: KPI row (open · declined · misses this period · design-miss share · escape share · tokens on rework · measured USD on rework) · <strong>where misses come from</strong> (origin phase × miss class with the excluded-attribution count beneath, beside the failed-practice distribution) · <strong>who was running</strong> (origin model and origin agent, <code>linked</code> only, taint count visible, band labelled <strong>observational</strong> in standing copy because miss counts per model are confounded by which model gets the hard work) · <strong>cost of rework</strong> (<code>MissCost</code> rendered as shaped). A per-miss detail table (id · REQ · class · severity · origin · found by · status · tokens) puts the raw record behind a disclosure. <em>(F-MISS)</em>
+</li>
+<li><strong>BRD-125</strong> — The <code>/misses</code> page shall default to <strong>all history</strong>, with a period filter that narrows the view but does not gate the first one — miss counts are low-volume and a default period would routinely render <code>insufficient data (n=…)</code> on a page whose whole job is to show a trend. <em>(F-MISS)</em>
+</li>
+<li><strong>BRD-126</strong> — <code>/misses</code> shall carry the header Framework switch like every other report page and shall show the <code>PlaybookEmpty</code> state on the Playbook axis until the Playbook emits miss data; the switch is rendered, never hidden, for a surface one framework has and the other does not. <em>(F-MISS, F-FRAMEWORK)</em>
+</li>
+<li><strong>BRD-127</strong> — Owner can see, on Coverage: the per-repo stream table with <strong>five</strong> rows; <code>escapes_missing_why</code> (escapes arriving with no <code>WhyMissed</code> — a data-quality figure, stated here and never on the <code>/misses</code> KPI row); the <strong><code>project_type</code> reclassification split</strong> stated in words whenever a repo's current classification disagrees with its own stored records, each segment described as a <em>period</em> of the project rather than as the whole of it; and the orphan <code>miss-fix</code> / <code>miss-amend</code> counts. A repo emitting misses with no <code>miss-fix</code> records at all is a <strong>warning, not an error</strong>. <em>(F-MISS, F-COVER)</em>
+</li>
+<li><strong>BRD-128</strong> — System shall write a <code>misses</code> section into both export files; the attribution split shall survive into the JSON as <strong>three distinct keys</strong>, never collapsed for tidiness, and every rate-card figure's key shall end <code>_usd_estimate</code> while measured ones do not. <em>(F-MISS, F-EXPORT)</em>
+</li>
+<li><strong>BRD-129</strong> — Parity shall cover the miss figures key-for-key against <code>tf-metrics.sh --rollup --json</code>'s <code>misses</code> block (<code>misses_total</code> · <code>miss_fixes_total</code> · <code>orphan_fixes</code> · <code>open_misses</code> · <code>wont_fix</code> · <code>resolved_misses</code> · <code>why_missed_n</code> · <code>why_missed{}</code> · <code>escapes_missing_why</code> · <code>why_missed_eligible</code> · <code>why_missed_predates_field</code> · <code>amendments_applied</code> · <code>orphan_amends</code> · <code>class_distribution{}</code> · <code>found_by{}</code> · <code>design_miss_share</code> · <code>escape_share</code> · <code>attributed_n</code> · <code>attribution_excluded</code> · <code>by_origin_phase{}</code> · <code>by_origin_model{}</code> · <code>by_origin_agent{}</code> · <code>cost_sole_n</code> · <code>cost_shared_n</code> · <code>cost_unattributable_n</code> · <code>tokens_per_miss_measured</code> · <code>tokens_per_miss_apportioned</code> · <code>cost_usd_per_miss_measured</code> · <code>cost_usd_records</code>) — the oracle already ships them, so no miss figure ships marked unverified. <em>(F-MISS, F-PARITY)</em>
+</li>
+<li><strong>BRD-130</strong> — Integrity: the miss invariants shall have no configuration switch, no query parameter and no UI toggle that relaxes them — no blended measured-and-apportioned cost anywhere (page, export or parity); no per-model or per-agent figure computed from <code>inferred</code> attributions, and no hidden exclusion count; no <code>WhyMissed</code> distribution rendered over all misses; no <code>wont-fix</code> folded into open; no rate-card dollars presented as spend; no miss record folded into the existing <code>gates</code>-derived escape rate. <em>(F-MISS — the NFR sibling of BRD-89)</em>
+</li>
+</ul>
+<h3 id="amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">Amendment 2026-08-28 (round 2) — imported telemetry: private and corporate repos<a class="anchor-link" href="#amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">#</a></h3>
+<p><em>Owner decision the same day: <strong>fold this into the Repos screen</strong> rather than give it a screen of its own, so the two ways of adding a source sit side by side in one dialog and the demarcation is visible in one grid. No new nav item, no new route. All Phase 3.</em></p>
+<ul>
+<li><strong>BRD-131</strong> — User can choose, in the first step of the Add-source dialog on <code>/repos</code>, between <strong>Fetch via API</strong> (public repos — the existing path, BRD-99) and <strong>Import metric files</strong> (any repo, including <strong>private and corporate</strong> ones). The mode is a deliberate, visible fork, not a fallback the user discovers after a failure — and BRD-100's refusal of a private repo offers the switch inline. <em>(F-REPOS)</em>
+</li>
+<li><strong>BRD-132</strong> — System shall record the mode on the source row as <code>SourceKind</code> (<code>api</code> | <code>import</code>) and surface it as a <strong>Source</strong> column on <code>/repos</code> (<code>Synced</code> / <code>Imported</code> badge) — one column, after which every downstream path (per-user isolation, raw archive, parser, dedupe, engine, cache, export) is unchanged and shared. There shall be <strong>no second ingest code path</strong>. <em>(F-REPOS)</em>
+</li>
+<li><strong>BRD-133</strong> — In import mode, user can upload a <code>.zip</code> of a telemetry directory (<code>docs/metrics/</code> for TechieFlow, <code>verification/telemetry/</code> for the Playbook) <strong>or</strong> loose <code>.jsonl</code> / <code>.ndjson</code> files, exactly as the frameworks already write them to disk; system shall archive the bytes <strong>verbatim before parsing</strong> them and shall then run the identical parser, dedupe and engine. <strong>Neither framework is asked to add an export command</strong> — TfLens accepts what already exists. <em>(F-REPOS, F-RAW)</em>
+</li>
+<li><strong>BRD-134</strong> — System shall compute a <strong>sha256 of the uploaded bundle</strong> and use it as that source's dataset identity wherever a fetched source uses its commit SHA — the raw-archive filename, the Coverage row, the export's <code>per_repo</code> block, and the dataset the parity operator pins (BRD-70, §13). For an imported source this is <em>stronger</em> than a commit SHA: the operator runs <code>tf-metrics.sh</code> against the identical bytes rather than re-cloning and trusting the result matched. <em>(F-REPOS, F-PARITY)</em>
+</li>
+<li><strong>BRD-135</strong> — Re-import shall be idempotent: the streams' natural keys already collapse duplicates (BRD-26..BRD-28, BRD-114), so a user may re-upload the same bundle, or a later superset of it, without double-counting; the system shall report records added and duplicates collapsed per stream, exactly as a rebuild does. An imported source's row action is <strong>Re-import</strong>, never a Sync button that would do nothing. <em>(F-REPOS)</em>
+</li>
+<li><strong>BRD-136</strong> — System shall <strong>display source origin everywhere and pool on it nowhere</strong>: a <code>Synced</code> / <code>Imported</code> badge per source on <code>/repos</code> and Coverage, and a <code>source_kind</code> key in the export's per-repo block. Origin is a property of <em>delivery</em>, not of the data — a record's <code>backfilled</code>, <code>project_type</code>, <code>harness</code> and <code>origin_confidence</code> fields mean the same thing whichever way the line arrived — so it is <strong>not</strong> a fifth segmentation axis and never divides a figure. This is the same discipline as the taint counts: shown, never hidden, never a divider. <em>(F-REPOS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-137</strong> — Coverage shall read staleness differently for an imported source: <strong>days since import</strong>, with the words <em>"this source can't refresh itself — re-import to update"</em>, so a snapshot never reddens the health badge merely for being a snapshot; the hook/pushing diagnosis (BRD-41) applies only to fetched sources, where it is meaningful. <em>(F-COVER)</em>
+</li>
+<li><strong>BRD-138</strong> — System shall <strong>preview before it commits</strong>: after unpacking, the dialog shall show records per stream, the date range, invalid lines, unknown field names and the bundle sha256, and shall write nothing until the user presses Import. A malformed or empty bundle is reported in the preview and never partially ingested. <em>(F-REPOS)</em>
+</li>
+<li><strong>BRD-139</strong> — The upload surface shall be bounded and is the <strong>only</strong> inbound path: authenticated and per-user; <code>.zip</code>, <code>.jsonl</code> and <code>.ndjson</code> only; a size cap (25 MB) enforced before reading; archive extraction safe against path traversal and archive bombs (entry-count and uncompressed-size limits, no absolute or <code>..</code> paths, no symlinks); nothing in an upload is ever executed, rendered as HTML, or written outside <code>data/raw/&lt;userId&gt;/</code>; there shall be <strong>no unauthenticated endpoint and no machine-to-machine ingest API</strong> (§3). <em>(F-REPOS, F-OPS)</em>
+</li>
+<li><strong>BRD-140</strong> — System shall <strong>refuse a precomputed rollup</strong> — <code>tf-metrics.sh --rollup --json</code> output, a <code>tflens.json</code>, or an exported snapshot — with an explicit message naming what to upload instead. TfLens computes every figure at request time from raw records (BRD-30); importing conclusions rather than evidence would let a plausible wrong number in through the front door, which is the one failure this product exists to prevent. <em>(F-REPOS, F-ENGINE)</em>
+</li>
+<li><strong>BRD-141</strong> — Removing an imported source shall purge its parsed rows in every stream table and its raw archive exactly as BRD-101 does for a fetched one; no import-only cleanup path shall exist. <em>(F-REPOS)</em>
+</li>
+</ul>
 <h2 id="constraints-assumptions">12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
 <ul>
 <li>Blazor Server on the current LTS .NET (10); <strong>PostgreSQL 16</strong> (owner decision 2026-08-26 — SQLite is unreliable on container storage); Dapper via Npgsql; TrBlazeUI where it fits (dogfood). Docker Compose on a VPS — infra config supplied separately.
 </li>
 <li>Timebox 1–2 days; phase order is hard (1 → 2 → 3). Anything cut for time is recorded in DECISIONS.md.
 </li>
-<li>Schema v=1 as documented in <code>.tfcore/telemetry/SCHEMA.md</code> at 2026-08-26; <code>tf-metrics.sh</code> at the same date is the reference. A reference change invalidates the last parity stamp (the script hash is recorded).
+<li>Schema v=1 as documented in <code>.tfcore/telemetry/SCHEMA.md</code> at 2026-08-26, <strong>plus §5.5 (<code>misses.jsonl</code>, three record kinds) added 2026-08-28</strong>; <code>tf-metrics.sh</code> at the matching date is the reference. A reference change invalidates the last parity stamp (the script hash is recorded).
 </li>
 <li>Repos are connected only through the Repos screen; the demo repos are connected to <code>TfLensDemo</code> by hand during development.
 </li>
-<li>Playbook report set (F-FRAMEWORK) is Phase 3, after the TechieFlow set ships and passes parity (owner decision 2026-08-26).
+<li>Playbook report set (F-FRAMEWORK) is Phase 3, after the TechieFlow set ships and passes parity (owner decision 2026-08-26). Miss telemetry (F-MISS) is Phase 3 as well, after the existing Playbook items (owner decision 2026-08-28).
+</li>
+<li><code>origin_model</code>, <code>origin_harness</code>, <code>origin_confidence</code> and <code>cost_attribution</code> are <strong>emitter-derived, never agent-written</strong> (SCHEMA.md §5.5), and <code>tf-emit.sh</code> forces the model/harness to <code>null</code> whenever the lookup fails. A non-<code>linked</code> record therefore cannot carry a model name at all — BRD-121 filters on a value the producer controls, not on an agent's self-assessment.
+</li>
+<li><code>project_type</code> can now be <code>framework</code> (detected structurally by the producer, written nowhere), and a repo can legitimately span two segments: every greenfield repo is born <code>docs</code> and is upgraded to <code>app</code> on refresh, while already-written records keep the old value because streams are append-only and corrections happen at read time. TfLens caused this case and must state the split (BRD-127) rather than silently render one project as two.
 </li>
 <li>No Playbook <code>events.ndjson</code> sample exists at day-1; Phase 3 starts with schema discovery.
 </li>
@@ -1209,7 +1383,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li>Identity is AppManager (App Id 1, API v1.4). AppManager has no SSO endpoint today — GitHub SSO (BRD-94) is deferred to Phase 2.
 </li>
-<li>Public GitHub repos only in this release; unauthenticated GitHub API limits (60 req/h per IP) apply unless the optional server PAT is set.
+<li>Public GitHub repos only <strong>for fetching</strong> in this release; unauthenticated GitHub API limits (60 req/h per IP) apply unless the optional server PAT is set. Private and corporate repos are reached by <strong>importing metric files</strong> instead (BRD-131..BRD-141) — no credential, no network route to the repo, no change to the repo.
+</li>
+<li>An imported bundle is user-supplied and could in principle be edited before upload. TfLens does not attempt to detect that; it makes origin visible on every surface instead (BRD-136). Detecting tampering would require a signature the frameworks do not produce, and asking them to produce one is out of scope (§1).
 </li>
 </ul>
 <h2 id="parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test<a class="anchor-link" href="#parity-check-the-mandatory-acceptance-test">#</a></h2>
@@ -1217,7 +1393,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p><strong>Why this test exists:</strong> the dangerous failure mode is not a crash — it is a <em>plausible wrong number</em>. A pooling bug produces a figure that looks normal, gets exported, and ends up quoted publicly in B3. Once published it cannot be defended. The parity diff is the only cheap way to catch that class of bug.</p>
 <p><strong>Procedure</strong> (run before TfLens's export is used for any weekly Numbers row or any post, and re-run after every parser or engine change):</p>
 <ol>
-<li>Pick a fixed dataset: clone the same repos TfLens is configured to pull, checked out at the exact commit SHAs TfLens's <code>sync_state</code> shows for its last sync (also printed in the export's <code>per_repo</code>). Same data in, or the comparison is meaningless.
+<li>Pick a fixed dataset. For a <strong>fetched</strong> source: clone the repo at the exact commit SHA TfLens's <code>sync_state</code> shows for its last sync (also printed in the export's <code>per_repo</code>). For an <strong>imported</strong> source (amended 2026-08-28): use the archived bundle itself, identified by its <strong>sha256</strong> — run the reference over <code>data/raw/&lt;userId&gt;/&lt;source&gt;/</code> directly. Same data in, or the comparison is meaningless; the imported case is the stronger of the two, because the operator compares the identical bytes instead of re-cloning and trusting the result matched.
 </li>
 <li>Run the reference: <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repo1&gt; &lt;repo2&gt; ... --json &gt; reference.json</code>.
 </li>
@@ -1235,6 +1411,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li>[ ] All configured repos syncing; Coverage page green with real staleness numbers
 </li>
+<li>[ ] A private/corporate repo's telemetry reaches the reports through <strong>Import metric files</strong>, with the source shown as <code>Imported</code> on <code>/repos</code> and Coverage, and its bundle sha256 usable to pin a parity run (F-IMPORT, Phase 3)
+</li>
 <li>[ ] Three-questions page renders per project_type with live/backfilled separation and the taint-exclusion list visible
 </li>
 <li>[ ] Harness comparison page shows claude-code vs opencode side by side, with OpenCode-only dollars
@@ -1242,6 +1420,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>[ ] Counterfactual repricing figure renders from <code>prices.json</code>, labelled estimate
 </li>
 <li>[ ] Weekly snapshot export produces markdown + JSON
+</li>
+<li>[ ] <code>/misses</code> renders all four bands with the taint count, the <code>n of N assessed</code> denominator and the three-column cost split visible (F-MISS, Phase 3)
+</li>
+<li>[ ] The <code>misses</code> parity block diffs clean against <code>tf-metrics.sh --rollup --json</code> (BRD-129)
 </li>
 <li>[ ] Parity check (§13) passed with an empty diff, recorded in DECISIONS.md
 </li>
@@ -1276,12 +1458,23 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>TrBlazeUI lacks a control a screen needs (no KPI card, no table primitives)</td><td>Medium</td><td>Low</td><td>Compose from <code>Card</code> + Tailwind per the library's documented KPI pattern; log gaps to <code>docs/TfLens-TrBlazeUI-Feedback.md</code></td></tr>
 <tr><td>AppManager outage blocks all sign-ins</td><td>Low</td><td>High</td><td>Sessions survive on the server-side refresh token until expiry; clear "identity service unavailable" message; no local fallback by design</td></tr>
 <tr><td>Cross-user data leak through a missed <code>UserId</code> filter</td><td>Low</td><td>High</td><td><code>UserId</code> is a mandatory parameter of every store read; integration test signs in two users and asserts isolation</td></tr>
+<tr><td>A malicious upload escapes the archive directory or exhausts the disk</td><td>Low</td><td>High</td><td>Extension allow-list, 25 MB cap before read, entry-count and uncompressed-size limits, no absolute/<code>..</code>/symlink entries, extraction confined to <code>data/raw/&lt;userId&gt;/</code>, nothing executed or rendered (BRD-139)</td></tr>
+<tr><td>An imported bundle was hand-edited before upload</td><td>Low</td><td>Medium</td><td>Not detectable without a signature the frameworks do not produce; origin is displayed on every surface instead (BRD-136) so a reader always knows which figures rest on imported data</td></tr>
+<tr><td>A user uploads a rollup or snapshot instead of raw streams</td><td>Medium</td><td>Medium</td><td>Refused explicitly with a message naming what to upload (BRD-140); the preview (BRD-138) shows what was actually recognised before anything commits</td></tr>
 <tr><td>Unauthenticated GitHub rate limit (60/h) with many users</td><td>Medium</td><td>Medium</td><td>Optional server PAT (5,000/h); SHA-skip keeps steady-state to 1 call per repo per poll</td></tr>
+<tr><td>An apportioned rework cost is quoted as a measured one</td><td>Medium</td><td>High</td><td><code>MissCost</code> has no blended property to bind (BRD-122); the export keeps three distinct keys (BRD-128); parity diffs <code>cost_sole_n</code> / <code>cost_shared_n</code> / <code>cost_unattributable_n</code> separately</td></tr>
+<tr><td>A per-model miss figure built on guessed attributions drives a bad routing decision</td><td>Medium</td><td>High</td><td><code>MissAttributionTaint</code> filters to <code>linked</code> only and the excluded count is on the page (BRD-121); the band carries standing observational copy (BRD-124)</td></tr>
+<tr><td>The <code>why_missed</code> distribution is rendered over all misses and understates every category</td><td>Medium</td><td>Medium</td><td>Denominator is records carrying the field, printed as <code>n of N assessed</code> on its face (BRD-119); the eligibility floor excludes pre-2026-08-28 records explicitly (BRD-117); parity checks <code>why_missed_n</code></td></tr>
+<tr><td>One project appears as two segments after a <code>docs</code> → <code>app</code> reclassification, with no visible reason</td><td>High</td><td>Medium</td><td>Coverage states the split in words and describes each segment as a period of the project (BRD-127) — TfLens caused this case and hits it first</td></tr>
 </tbody>
 </table>
 <h2 id="glossary">17. Glossary<a class="anchor-link" href="#glossary">#</a></h2>
 <ul>
-<li><strong>Stream</strong> — one of the four append-only JSONL files under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>).
+<li><strong>Stream</strong> — one of the five append-only JSONL files under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code>, <code>misses</code>).
+</li>
+<li><strong>Source</strong> — a thing TfLens reads telemetry from: a <strong>fetched</strong> public GitHub repo (<code>SourceKind: api</code>) or an <strong>imported</strong> bundle of metric files (<code>SourceKind: import</code>). Both produce identical rows; only the delivery differs.
+</li>
+<li><strong>Bundle sha256</strong> — the content fingerprint of an uploaded bundle; the imported source's dataset identity, standing where a fetched source uses its commit SHA.
 </li>
 <li><strong>Live / backfilled</strong> — provenance; backfilled records were reconstructed after the fact and carry <code>backfilled: true</code>.
 </li>
@@ -1317,12 +1510,28 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>TfLensDemo</strong> — the demo account used for testing and first-visit demos.
 </li>
+<li><strong>miss</strong> — a record of what was missed: which REQ, which class of defect, which phase/agent/model let it through, who found it. One defect is one miss however many times it fails (the producer's collapse rule).
+</li>
+<li><strong>miss-fix</strong> — the repair record: the fix run, its verdict, and its token/cost window.
+</li>
+<li><strong>miss-amend</strong> — an append-only record that <em>completes</em> a <code>miss</code> field left <code>null</code>; it may fill a <code>null</code> and may <strong>never</strong> overwrite a value, including one an earlier amend set. Folded at read time, never at ingest.
+</li>
+<li><strong>why_missed</strong> — which <em>practice</em> failed (<code>missing-checklist-item</code> · <code>insufficient-verify-method</code> · <code>code-audit-limitation</code> · <code>ambiguous-acceptance</code> · <code>dependency-not-declared</code> · <code>instruction-ignored</code> · <code>other</code>), as distinct from <code>miss_class</code>, which says <em>what</em> was missed. Optional; <code>null</code> means <strong>not assessed</strong>, never zero.
+</li>
+<li><strong>origin_confidence</strong> — <code>linked</code> (the origin run resolved to a real <code>runs.jsonl</code> record) · <code>inferred</code> · <code>unknown</code>. Emitter-derived; only <code>linked</code> records reach a per-model, per-agent or per-phase figure.
+</li>
+<li><strong>cost_attribution</strong> — <code>sole</code> (the fix run touched exactly this REQ — a measurement) · <code>shared:n</code> (one token window over n REQs — apportioned, never headline) · <code>none</code> (no distinct fix run; counted, never divided).
+</li>
+<li><strong>Attribution taint</strong> — the miss-stream sibling of backfill taint: records with <code>origin_confidence != "linked"</code> are excluded from every per-origin figure, and the excluded count is displayed.
+</li>
+<li><strong>Escape share (misses)</strong> — <code>found_by ∈ {owner, production}</code> ÷ all misses. A second, adjacent figure to the <code>gates</code>-derived <strong>escape rate</strong>, never merged with it.
+</li>
 </ul>
 <hr>
-<p>Last updated: 2026-08-26
-Last amended: 2026-08-26 (round 2) — both frameworks get the full report set via a Framework switch (F-FRAMEWORK replaces F-PB, Phase 3); harness columns claude-code/opencode/codex with a null footnote; PostgreSQL replaces SQLite (Dapper stays); F-CFG retired into F-OPS (BRD-7 retired); mockup links added to every screens table + a Screen inventory. Round 1 (same day): AppManager identity (F-AUTH), per-user repo management (F-REPOS), shell rework; BRD-3 retired; GitHub SSO (BRD-94) deferred to Phase 2
-Highest BRD ID: BRD-111
-Sources harvested: docs/TfLens-Project-Brief.md (v2, superseded → docs/OldDocs/), .tfcore/telemetry/SCHEMA.md, .tfcore/telemetry/tf-metrics.sh, docs/ravi-90day-positioning-plan-v2.4.2.md (context only)
+<p>Last updated: 2026-08-28
+Last amended: 2026-08-28 (round 2) — <strong>imported telemetry (BRD-131..BRD-141)</strong>: the Add-source dialog on <code>/repos</code> gains a mode fork — <strong>Fetch via API</strong> (public repos) or <strong>Import metric files</strong> — so <strong>private and corporate repositories are reachable without TfLens holding any credential</strong>; a <code>SourceKind</code> column gives the grid a visible <code>Synced</code> / <code>Imported</code> demarcation; the uploaded bundle's sha256 stands where a commit SHA does, including for parity pinning; origin is displayed everywhere and pools nowhere; imported sources get <strong>Re-import</strong> rather than Sync and are skipped by the poller; the upload surface is bounded (BRD-139) and a precomputed rollup is refused (BRD-140). Two out-of-scope lines were amended rather than quietly broken. Owner decision the same day: folded into the Repos screen, not a separate <code>/import</code> route. Round 1 (same day): miss telemetry and rework economics: new feature <strong>F-MISS</strong> (Phase 3) and BRD-112..BRD-130 — a fifth stream <code>misses.jsonl</code> with three record kinds on one file, three tables with a full purge, read-time amendment folding, the <code>why_missed</code> denominator and its eligibility floor, the two deliberately-disagreeing open predicates, <code>MissAttributionTaint</code> (<code>linked</code> only, count displayed), <code>MissCost</code> as a three-way shape so a blended number is unrepresentable, the sixth report page <code>/misses</code>, the Coverage data-quality facts (<code>escapes_missing_why</code>, the reclassification split, orphans) and full parity coverage of the producer's <code>misses</code> block. BRD-5 / BRD-23 / BRD-108 amended in place (seven nav items · three more tables · the switch spans six report pages); nothing renumbered, nothing removed. Source: <code>docs/Miss-Telemetry-TfLens.md</code>. Prior: 2026-08-26 (round 2) — both frameworks get the full report set via a Framework switch (F-FRAMEWORK replaces F-PB, Phase 3); harness columns claude-code/opencode/codex with a null footnote; PostgreSQL replaces SQLite (Dapper stays); F-CFG retired into F-OPS (BRD-7 retired); mockup links added to every screens table + a Screen inventory. Round 1 (same day): AppManager identity (F-AUTH), per-user repo management (F-REPOS), shell rework; BRD-3 retired; GitHub SSO (BRD-94) deferred to Phase 2
+Highest BRD ID: BRD-141
+Sources harvested: docs/TfLens-Project-Brief.md (v2, superseded → docs/OldDocs/), .tfcore/telemetry/SCHEMA.md (incl. §5.5, 2026-08-28), .tfcore/telemetry/tf-metrics.sh, docs/ravi-90day-positioning-plan-v2.4.2.md (context only), docs/Miss-Telemetry-TfLens.md + docs/Miss-Telemetry-TechieFlow.md (2026-08-28 amendment)
 Custom instructions applied: Dapper + PostgreSQL (owner, superseding SQLite); repos managed only in the UI; Phase 3 as schema-discovery (no events.ndjson sample); split-brd deferred until after review
 First-pass draft from concept — review and edit. New BRDs may be added (append-only); do not renumber existing IDs.</p>
   </main>

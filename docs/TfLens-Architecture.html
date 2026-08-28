@@ -102,75 +102,98 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </style>
 </head>
 <body>
-<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">☾ Dark</button>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-08-26</div>
+    <div class="sub">Last rendered: 2026-08-28</div>
     <div class="group">Contents</div>
     <ol>
-      <li><a href="#tech-stack">Tech stack</a></li>
-      <li><a href="#component-map">Component map</a></li>
-      <li><a href="#data-flow-primary-path">Data flow — primary path</a></li>
-      <li><a href="#module-responsibilities">Module responsibilities</a></li>
-      <li><a href="#runtime-flows-beyond-the-primary-path">Runtime flows beyond the primary path</a></li>
-      <li class="h3"><a href="#repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)</a></li>
-      <li class="h3"><a href="#rebuild-from-raw">5.2 Rebuild from raw</a></li>
-      <li class="h3"><a href="#login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager</a></li>
-      <li class="h3"><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo</a></li>
-      <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
-      <li><a href="#data-model">Data model</a></li>
-      <li><a href="#metrics-engine-parity-with-tf-metrics-sh">Metrics engine — parity with tf-metrics.sh</a></li>
-      <li><a href="#cross-cutting-concerns">Cross-cutting concerns</a></li>
-      <li><a href="#deployment-architecture">Deployment architecture</a></li>
-      <li><a href="#architectural-decisions-adr-style-log">Architectural decisions (ADR-style log)</a></li>
-      <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">Target architecture (brownfield only)</a></li>
-      <li><a href="#open-questions-risks">Open questions / risks</a></li>
-      <li><a href="#sources-harvested">Sources harvested</a></li>
+        <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#tech-stack">1. Tech stack</a></li>
+        <li><a href="#component-map">2. Component map</a></li>
+        <li><a href="#data-flow-primary-path">3. Data flow — primary path</a></li>
+        <li><a href="#module-responsibilities">4. Module responsibilities</a></li>
+        <li><a href="#runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path</a></li>
+        <li class="h3"><a href="#repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)</a></li>
+        <li class="h3"><a href="#rebuild-from-raw">5.2 Rebuild from raw</a></li>
+        <li class="h3"><a href="#login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager (amended 2026-08-26)</a></li>
+        <li class="h3"><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)</a></li>
+        <li class="h3"><a href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
+        <li><a href="#data-model">6. Data model</a></li>
+        <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
+        <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
+        <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
+        <li><a href="#architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)</a></li>
+        <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)</a></li>
+        <li><a href="#open-questions-risks">12. Open questions / risks</a></li>
+        <li><a href="#sources-harvested">13. Sources harvested</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Status: Target (greenfield), amended 2026-08-26 ×2 · Last rendered: 2026-08-26</div>
-
-    <p><strong>Last updated:</strong> 2026-08-26<br>
-    <strong>Status:</strong> Target (greenfield) — amended 2026-08-26: AppManager identity (no local users), per-user public-repo management, GitHub SSO deferred to Phase 2, dark-first collapsible shell; round 2 same day: PostgreSQL replaces SQLite (ADR-015), Framework as a provenance axis with the full Playbook report set in Phase 3 (ADR-016), harness columns claude-code/opencode/codex (ADR-017)</p>
-
-<!-- AGENT-ONLY AUTHORING NOTES — never render as visible text.
-  DEPTH MANDATE: human document; every non-trivial module gets prose; every significant runtime
-  flow beyond the primary path gets its own diagram.
-  MERMAID MANDATE: html-render-shell.md §5.5 — quote every label, never use `end` as a node id.
--->
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#tech-stack">Tech stack</a></li>
-        <li><a href="#component-map">Component map</a></li>
-        <li><a href="#data-flow-primary-path">Data flow — primary path</a></li>
-        <li><a href="#module-responsibilities">Module responsibilities</a></li>
-        <li><a href="#runtime-flows-beyond-the-primary-path">Runtime flows beyond the primary path</a>
-          <ul>
-            <li><a href="#repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)</a></li>
-            <li><a href="#rebuild-from-raw">5.2 Rebuild from raw</a></li>
-            <li><a href="#login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager (amended 2026-08-26)</a></li>
-            <li><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)</a></li>
-            <li><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
-          </ul>
-        </li>
-        <li><a href="#data-model">Data model</a></li>
-        <li><a href="#metrics-engine-parity-with-tf-metrics-sh">Metrics engine — parity with tf-metrics.sh</a></li>
-        <li><a href="#cross-cutting-concerns">Cross-cutting concerns</a></li>
-        <li><a href="#deployment-architecture">Deployment architecture</a></li>
-        <li><a href="#architectural-decisions-adr-style-log">Architectural decisions (ADR-style log)</a></li>
-        <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">Target architecture (brownfield only — if enhancement changes structure)</a></li>
-        <li><a href="#open-questions-risks">Open questions / risks</a></li>
-        <li><a href="#sources-harvested">Sources harvested</a></li>
+        <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#tech-stack">1. Tech stack</a></li>
+        <li><a href="#component-map">2. Component map</a></li>
+        <li><a href="#data-flow-primary-path">3. Data flow — primary path</a></li>
+        <li><a href="#module-responsibilities">4. Module responsibilities</a></li>
+        <li><a href="#runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path</a></li>
+        <li class="h3"><a href="#repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)</a></li>
+        <li class="h3"><a href="#rebuild-from-raw">5.2 Rebuild from raw</a></li>
+        <li class="h3"><a href="#login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager (amended 2026-08-26)</a></li>
+        <li class="h3"><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)</a></li>
+        <li class="h3"><a href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
+        <li><a href="#data-model">6. Data model</a></li>
+        <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
+        <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
+        <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
+        <li><a href="#architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)</a></li>
+        <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)</a></li>
+        <li><a href="#open-questions-risks">12. Open questions / risks</a></li>
+        <li><a href="#sources-harvested">13. Sources harvested</a></li>
       </ol>
     </div>
-
+<p><strong>Last updated:</strong> 2026-08-28
+<strong>Status:</strong> Target (greenfield) — amended 2026-08-26: AppManager identity (no local users), per-user public-repo management, GitHub SSO deferred to Phase 2, dark-first collapsible shell; round 2 same day: PostgreSQL replaces SQLite (ADR-015), Framework as a provenance axis with the full Playbook report set in Phase 3 (ADR-016), harness columns claude-code/opencode/codex (ADR-017); <strong>amended 2026-08-28: miss telemetry and rework economics — a fifth stream carrying three record kinds on one file (ADR-018), apportioned cost as a distinct result type (ADR-019), amendments folded at read time and never at ingest (ADR-020); round 2 same day: imported telemetry for private/corporate repos, folded into the Repos screen as a second mode — origin displayed but never pooled on (ADR-021), the uploaded bundle's sha256 standing where a commit SHA does (ADR-022)</strong></p>
+<h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
+<ol>
+<li><a href="#tech-stack">Tech stack</a>
+</li>
+<li><a href="#component-map">Component map</a>
+</li>
+<li><a href="#data-flow-primary-path">Data flow — primary path</a>
+</li>
+<li><a href="#module-responsibilities">Module responsibilities</a>
+</li>
+<li><a href="#runtime-flows-beyond-the-primary-path">Runtime flows beyond the primary path</a>
+</li>
+<li><a href="#data-model">Data model</a>
+</li>
+<li><a href="#metrics-engine-parity-with-tf-metrics-sh">Metrics engine — parity with tf-metrics.sh</a>
+</li>
+<li><a href="#cross-cutting-concerns">Cross-cutting concerns</a>
+</li>
+<li><a href="#deployment-architecture">Deployment architecture</a>
+</li>
+<li><a href="#architectural-decisions-adr-style-log">Architectural decisions (ADR-style log)</a>
+</li>
+<li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">Target architecture (brownfield only — if enhancement changes structure)</a>
+</li>
+<li><a href="#open-questions-risks">Open questions / risks</a>
+</li>
+<li><a href="#sources-harvested">Sources harvested</a>
+</li>
+</ol>
 <h2 id="tech-stack">1. Tech stack<a class="anchor-link" href="#tech-stack">#</a></h2>
-
 <table>
 <thead><tr><th>Layer</th><th>Choice</th><th>Version</th><th>Notes</th></tr></thead>
 <tbody>
@@ -189,107 +212,109 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Vector store / RAG</td><td>none</td><td>—</td><td>No AI features in TfLens.</td></tr>
 </tbody>
 </table>
-
 <h2 id="component-map">2. Component map<a class="anchor-link" href="#component-map">#</a></h2>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">flowchart TB
   subgraph GH["GitHub (read-only, public repos)"]
-    R1["TechieFlow-managed repos<br/>docs/metrics/*.jsonl"]
-    R2["Playbook-managed repos<br/>verification/telemetry/events.ndjson"]
+    R1["TechieFlow-managed repos&lt;br/&gt;docs/metrics/*.jsonl"]
+    R2["Playbook-managed repos&lt;br/&gt;verification/telemetry/events.ndjson"]
   end
 
-  AM["AppManager API<br/>appmgrapi.techierathore.com (App Id 1)"]
+  AM["AppManager API&lt;br/&gt;appmgrapi.techierathore.com (App Id 1)"]
 
   subgraph Head["src/TfLens — Blazor Server head (.NET 10)"]
-    Sync["RepoSyncService<br/>(BackgroundService + Sync now)"]
-    Auth["AuthService + cookie<br/>(AppManager-backed)"]
+    Sync["RepoSyncService&lt;br/&gt;(BackgroundService + Sync now)"]
+    Auth["AuthService + cookie&lt;br/&gt;(AppManager-backed)"]
     subgraph Pages["Pages (TrBlazeUI, dark-first shell)"]
       P0["Repos  /repos"]
       PA["Login · Register · Forgot · Reset · Profile"]
       P1["Coverage / health  /"]
       P2["Three questions  /three-questions"]
       P3["Harness comparison  /harness"]
-      P4["Routing & economics  /routing"]
+      P4["Routing &amp; economics  /routing"]
+      P6["Misses &amp; rework  /misses"]
       P5["Snapshot export  /export"]
       FW["Framework switch: TechieFlow | Playbook (header)"]
     end
-    CLI["Command verbs<br/>rebuild · sync · export"]
+    CLI["Command verbs&lt;br/&gt;rebuild · sync · export"]
   end
 
   subgraph Core["src/TfLens.Core — engine (no UI, no web deps)"]
     AMC["AppManagerClient"]
-    Reg["RepoRegistry<br/>(validate public + telemetry path, per user)"]
+    Reg["RepoRegistry&lt;br/&gt;(validate public + telemetry path, per user)"]
+    Imp["TelemetryImportService&lt;br/&gt;unpack · validate · preview · archive"]
     Fetch["GitHubStreamFetcher"]
     Parse["StreamParser + Dedupe"]
     PbParse["PlaybookAdapter (Phase 3)"]
     Store["PostgresStore (Dapper)"]
-    Metrics["MetricsEngine<br/>(port of tf-metrics.sh analyse)"]
-    Extra["ExtraMetrics<br/>harness · routing · repricing"]
-    Export["SnapshotExporter<br/>markdown + JSON"]
+    Metrics["MetricsEngine&lt;br/&gt;(port of tf-metrics.sh analyse)"]
+    Extra["ExtraMetrics&lt;br/&gt;harness · routing · repricing"]
+    MissM["MissMetrics&lt;br/&gt;+ MissAttributionTaint + MissCost"]
+    Export["SnapshotExporter&lt;br/&gt;markdown + JSON"]
   end
 
   subgraph Disk["Volume: data/"]
-    Raw[("data/raw/&lt;repo&gt;/&lt;stream&gt;-&lt;sha&gt;.jsonl")]
+    Raw[("data/raw/&amp;lt;repo&amp;gt;/&amp;lt;stream&amp;gt;-&amp;lt;sha&amp;gt;.jsonl")]
     DB[("PostgreSQL 16 (compose service)")]
-    Rep[("data/reports/&lt;date&gt;/")]
+    Rep[("data/reports/&amp;lt;date&amp;gt;/")]
     Prices[("data/prices.json")]
   end
 
-  Auth --> AMC
-  AMC --> AM
-  PA --> Auth
-  P0 --> Reg
-  Reg --> GH
-  Reg --> Store
-  Sync --> Reg
-  R1 --> Fetch
-  R2 --> Fetch
-  Sync --> Fetch
-  CLI --> Sync
-  CLI --> Export
-  Fetch --> Raw
-  Fetch --> Parse
-  Fetch --> PbParse
-  Parse --> Store
-  PbParse --> Store
-  Store --> DB
-  Raw -. "rebuild" .-> Parse
-  Pages --> Metrics
-  Pages --> Extra
-  Metrics --> Store
-  Extra --> Store
-  Extra --> Prices
-  P5 --> Export
-  Export --> Metrics
-  Export --> Rep
-  Auth --> Pages</pre>
+  Auth --&gt; AMC
+  AMC --&gt; AM
+  PA --&gt; Auth
+  P0 --&gt; Reg
+  P0 --&gt; Imp
+  Imp --&gt; Raw
+  Imp --&gt; Parse
+  Reg --&gt; GH
+  Reg --&gt; Store
+  Sync --&gt; Reg
+  R1 --&gt; Fetch
+  R2 --&gt; Fetch
+  Sync --&gt; Fetch
+  CLI --&gt; Sync
+  CLI --&gt; Export
+  Fetch --&gt; Raw
+  Fetch --&gt; Parse
+  Fetch --&gt; PbParse
+  Parse --&gt; Store
+  PbParse --&gt; Store
+  Store --&gt; DB
+  Raw -. "rebuild" .-&gt; Parse
+  Pages --&gt; Metrics
+  Pages --&gt; Extra
+  P6 --&gt; MissM
+  MissM --&gt; Store
+  Metrics --&gt; Store
+  Extra --&gt; Store
+  Extra --&gt; Prices
+  P5 --&gt; Export
+  Export --&gt; Metrics
+  Export --&gt; Rep
+  Auth --&gt; Pages</pre>
 </div>
-
 <p>Two projects, one head. <code>TfLens.Core</code> holds everything that must be testable and parity-checked without a browser: the AppManager client, the repo registry, fetching, parsing, dedupe, storage, the metrics engine, and the exporter. <code>TfLens</code> is the only executable: it hosts Blazor Server, the background sync, the AppManager-backed cookie auth, and the three command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>) so that a Docker <code>exec</code> or a parity run never needs a second image (ADR-005). Every store read and every engine call takes a <code>UserId</code> — isolation is a parameter, not a filter someone remembers to add (ADR-013).</p>
-
 <h2 id="data-flow-primary-path">3. Data flow — primary path<a class="anchor-link" href="#data-flow-primary-path">#</a></h2>
-
 <p>The primary path is "owner opens a report page". Every figure on every page is computed at request time from the stream tables; nothing derived is stored.</p>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">sequenceDiagram
   actor O as Owner
@@ -298,73 +323,61 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   participant M as MetricsEngine (Core)
   participant S as PostgresStore (Dapper)
   participant DB as PostgreSQL
-  O->>B: GET /three-questions
-  B->>A: authenticated?
-  A-->>B: yes (cookie) / redirect /login
-  B->>M: Analyse(userId, repos, filters)
-  M->>S: ReadStream(userId, "gates"), ReadStream(userId, "runs"), ...
-  S->>DB: SELECT * FROM Gate WHERE UserId = ? ... (per repo)
-  DB-->>S: rows (+ Overflow JSON)
-  S-->>M: typed records
-  M->>M: segment live vs backfilled per project_type, taint set, MIN_N guard
-  M-->>B: AnalysisResult (figures or InsufficientData(n))
-  B-->>O: render cards / grid / labelled columns</pre>
+  O-&gt;&gt;B: GET /three-questions
+  B-&gt;&gt;A: authenticated?
+  A--&gt;&gt;B: yes (cookie) / redirect /login
+  B-&gt;&gt;M: Analyse(userId, repos, filters)
+  M-&gt;&gt;S: ReadStream(userId, "gates"), ReadStream(userId, "runs"), ...
+  S-&gt;&gt;DB: SELECT * FROM Gate WHERE UserId = ? ... (per repo)
+  DB--&gt;&gt;S: rows (+ Overflow JSON)
+  S--&gt;&gt;M: typed records
+  M-&gt;&gt;M: segment live vs backfilled per project_type, taint set, MIN_N guard
+  M--&gt;&gt;B: AnalysisResult (figures or InsufficientData(n))
+  B--&gt;&gt;O: render cards / grid / labelled columns</pre>
 </div>
-
 <p>The engine never receives a "pool everything" option: <code>Analyse</code> returns a structure keyed <code>live[project_type]</code>, <code>backfilled[project_type]</code>, <code>pooled</code> — the same shape as <code>tf-metrics.sh --rollup --json</code> — so a page cannot even ask for a merged first-pass rate (§7).</p>
-
 <h2 id="module-responsibilities">4. Module responsibilities<a class="anchor-link" href="#module-responsibilities">#</a></h2>
-
 <table>
 <thead><tr><th>Module</th><th>Responsibility</th><th>Depends on</th></tr></thead>
 <tbody>
 <tr><td><code>src/TfLens</code></td><td>Blazor Server head: pages, dark-first collapsible shell, <code>AuthService</code> (cookie ↔ AppManager tokens), <code>RepoSyncService</code>, command verbs, Serilog wiring, <code>prices.json</code> editor</td><td>TfLens.Core, TrBlazeUI</td></tr>
 <tr><td><code>src/TfLens.Core/AppManager</code></td><td><code>AppManagerClient</code> — public-key cache + RSA-OAEP-256 encrypt, login / register (<code>Manager</code>) / forgot / reset / refresh / validate / logout / profile / change-password; typed error codes</td><td>HttpClient</td></tr>
-<tr><td><code>src/TfLens.Core/Repos</code></td><td><code>RepoRegistry</code> — per-user <code>UserRepo</code> CRUD; connect validation (exists, public, telemetry path, kind detection); remove = purge rows + raw; demo seed for <code>TfLensDemo</code></td><td>HttpClient, Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Repos</code></td><td><code>RepoRegistry</code> — per-user <code>UserRepo</code> CRUD; <strong>Fetch-via-API</strong> connect validation (exists, public, telemetry path, kind detection); remove = purge rows + raw, identical for both source kinds; demo seed for <code>TfLensDemo</code></td><td>HttpClient, Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Import</code></td><td><code>TelemetryImportService</code> — <strong>Import-metric-files</strong> mode: extension/size gate, safe zip extraction, stream-name recognition, bundle sha256, dry-run <strong>preview</strong>, then archive-verbatim and hand off to the <em>same</em> <code>StreamParser</code>. Refuses a precomputed rollup. No parse logic of its own</td><td>Storage, Parsing</td></tr>
 <tr><td><code>src/TfLens.Core/GitHub</code></td><td><code>GitHubStreamFetcher</code> — latest-SHA-touching-path lookup, whole-file fetch, raw archive to <code>data/raw/&lt;userId&gt;/</code></td><td>HttpClient</td></tr>
-<tr><td><code>src/TfLens.Core/Parsing</code></td><td><code>StreamParser</code> — JSONL → typed records, schema-v check, overflow capture; <code>Dedupe</code> — natural-key rules per stream</td><td>(none)</td></tr>
+<tr><td><code>src/TfLens.Core/Parsing</code></td><td><code>StreamParser</code> — JSONL → typed records, schema-v check, overflow capture, <strong>per-<code>kind</code> dispatch inside the <code>misses</code> stream</strong>; <code>Dedupe</code> — natural-key rules per stream and per miss record kind</td><td>(none)</td></tr>
 <tr><td><code>src/TfLens.Core/Storage</code></td><td><code>PostgresStore</code> — DDL, Dapper CRUD, <code>sync_state</code>, idempotent upsert, <code>Rebuild()</code></td><td>Dapper, Npgsql</td></tr>
-<tr><td><code>src/TfLens.Core/Metrics</code></td><td><code>MetricsEngine</code> — the <code>analyse()</code> port; <code>ExtraMetrics</code> — harness comparison, routing drift, counterfactual repricing; <code>InsufficientData</code> type</td><td>Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics</code></td><td><code>MetricsEngine</code> — the <code>analyse()</code> port; <code>ExtraMetrics</code> — harness comparison, routing drift, counterfactual repricing; <strong><code>MissMetrics</code> — miss figures, read-time amendment folding, the eligibility floor; <code>MissAttributionTaint</code>; <code>MissCost</code></strong>; <code>InsufficientData</code> type</td><td>Storage</td></tr>
 <tr><td><code>src/TfLens.Core/Export</code></td><td><code>SnapshotExporter</code> — markdown + machine-readable JSON (<code>tflens.json</code>) to <code>data/reports/&lt;date&gt;/</code></td><td>Metrics</td></tr>
 <tr><td><code>src/TfLens.Core/Playbook</code></td><td><code>PlaybookAdapter</code> — <code>events.ndjson</code> → <code>PbEvent</code> table; phase totals; <code>parentID</code> split (Phase 3)</td><td>Storage</td></tr>
 <tr><td><code>tests/TfLens.Core.Tests</code></td><td>xUnit: parser, dedupe, engine (fixture-driven, incl. provenance-separation tests)</td><td>TfLens.Core</td></tr>
 <tr><td><code>tools/parity-compare.py</code></td><td>Key-by-key compare of <code>reference.json</code> (tf-metrics.sh) vs <code>tflens.json</code>; non-zero exit on any diff</td><td>Python 3</td></tr>
 </tbody>
 </table>
-
 <p><strong><code>AppManagerClient</code></strong> (added 2026-08-26). A thin typed client over the AppManager v1.4 REST surface, following the guide's reference implementation (<code>obj</code>/<code>a</code>/<code>v</code> naming). It sends <code>X-Api-Key</code> / <code>X-Api-Secret</code> (from <code>TfLensAppManagerApiKey</code> / <code>TfLensAppManagerApiSecret</code>) on every call so the server resolves Application Id 1; fetches and caches <code>GET /AuthSvc/public-key</code>; RSA-OAEP-256-encrypts every password field (<code>encryptedPassword</code>, <code>encryptedNewPassword</code>, <code>encryptedCurrentPassword</code>); and maps the documented error codes (<code>INVALID_CREDENTIALS</code>, <code>ACCOUNT_LOCKED</code>, <code>ACCOUNT_DISABLED</code>, <code>EXPIRED_REFRESH_TOKEN</code>, <code>DECRYPTION_FAILED</code>, <code>NO_APP_ACCESS</code>, …) to a typed <code>AppManagerException</code>. <code>RegisterAsync</code> always passes <code>applicationRoleCode: "Manager"</code>. It never calls LicenseSvc, FeatureSvc, PaymentSvc or IssueSvc.</p>
-
 <p><strong><code>AuthService</code> (head)</strong> (added 2026-08-26). Owns the session: on login/register success it stores the AppManager access/refresh tokens and expiry in the <code>AuthSession</code> table keyed by a random session id, issues the TfLens cookie (claims: session id, AppManager <code>userId</code>, email, display name, role <code>Manager</code>), refreshes the access token through <code>/AuthSvc/refresh</code> when within five minutes of <code>tokenExpiresAt</code> (rotating the stored refresh token), validates a resumed cookie once per hour through <code>/AuthSvc/validate</code>, and on sign-out calls <code>/AuthSvc/logout</code> with the refresh token and deletes the session row. Tokens never reach the browser.</p>
-
 <p><strong><code>RepoRegistry</code></strong> (added 2026-08-26). The per-user repo list. <code>ConnectAsync(userId, input)</code> parses a GitHub URL or <code>owner/name</code>, calls <code>GET /repos/{owner}/{name}</code> (must exist, <code>private == false</code>, else refused), resolves the branch (default branch unless specified), probes <code>GET /repos/{o}/{n}/contents/docs/metrics?ref=branch</code> then <code>.../verification/telemetry</code> to detect the kind, and saves the <code>UserRepo</code> row; the first sync is queued immediately. <code>RemoveAsync</code> deletes the user's rows in every stream table and <code>SyncState</code> for that repo and removes <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code>. Duplicate <code>owner/name</code> per user is rejected; different users may connect the same repo. At first start the <code>DemoSeedRepos</code> configuration is connected to <code>TfLensDemo</code> through the same path.</p>
-
+<p><strong><code>TelemetryImportService</code></strong> (added 2026-08-28). The second way a source's data arrives, and deliberately the <em>thinner</em> of the two: it does everything up to the point where the existing pipeline takes over, and nothing after. <code>PreviewAsync(userId, upload)</code> gates on extension (<code>.zip</code>/<code>.jsonl</code>/<code>.ndjson</code>) and size (25 MB, checked before a byte is read), extracts a zip <strong>safely</strong> (entry-count and uncompressed-size limits against archive bombs; no absolute paths, no <code>..</code> segments, no symlinks; extraction confined to <code>data/raw/&lt;userId&gt;/</code>), recognises entries by stream file name (<code>runs|gates|sessions|commits|misses.jsonl</code>, <code>events.ndjson</code>), computes the <strong>bundle sha256</strong>, and runs the ordinary parser in <strong>dry-run</strong> to report records per stream, date range, invalid lines and unknown field names. Nothing is written. <code>CommitAsync</code> then archives the recognised bytes verbatim under <code>data/raw/&lt;userId&gt;/&lt;source&gt;/&lt;stream&gt;-&lt;bundleSha&gt;.jsonl</code> and calls the same <code>StreamParser</code> + <code>Dedupe</code> + <code>UpsertAsync</code> the fetcher calls — so a re-import collapses on the natural keys and cannot double-count, and a parser fix improves imported and fetched data at once. It <strong>refuses a precomputed rollup</strong> (a <code>tflens.json</code>, a <code>--rollup --json</code> output, an exported snapshot) with a message naming what to upload instead: TfLens computes every figure from raw records at request time (ADR-007), and accepting conclusions instead of evidence would put a plausible wrong number one upload away. Nothing in an upload is executed, rendered as HTML, or written outside the user's own archive directory.</p>
 <p><strong><code>GitHubStreamFetcher</code>.</strong> For each connected repo (of every user in the poller; of the signed-in user on Sync now) it asks the REST API for the newest commit touching the telemetry path on the configured branch (<code>GET /repos/{o}/{r}/commits?sha={branch}&amp;path=docs/metrics&amp;per_page=1</code>). If that SHA equals <code>sync_state.LastSha</code>, the repo is skipped — no file traffic at all. Otherwise it fetches each stream file at that exact SHA (<code>GET /repos/{o}/{r}/contents/docs/metrics/{stream}.jsonl?ref={sha}</code> with <code>Accept: application/vnd.github.raw</code>), writes the bytes verbatim to <code>data/raw/{owner}__{repo}/{stream}-{sha}.jsonl</code> <strong>before</strong> parsing, and only then hands the text to the parser. A 404 on a stream file is a legitimate "stream absent" (recorded as zero records), not an error. The fetcher is structurally read-only: it holds no write scopes, and no code path issues anything but GET.</p>
-
 <p><strong><code>StreamParser</code> + <code>Dedupe</code>.</strong> Line-by-line <code>System.Text.Json</code> parse; a malformed line is counted and skipped (mirrors <code>read_stream</code> in the reference, which logs and skips). Known fields map to typed columns named exactly as SCHEMA.md; any property not in the known set for that stream (or any record with <code>v &gt; 1</code>) is preserved in the <code>Overflow</code> JSON column. The dedupe keys are the natural identities the brief fixes: <code>commits</code> on <code>sha</code> (per repo — two repos may share a short sha), <code>sessions</code> keep-highest-<code>output_tokens</code>-then-latest-<code>ts</code> per <code>session_id</code>, <code>runs</code> on <code>ts+app+cmd</code>, <code>gates</code> on <code>ts+app+req_id+run_id</code>. Re-parsing the same raw file is therefore a no-op.</p>
-
+<p><code>misses</code> (added 2026-08-28) is the first stream whose records do <strong>not</strong> all have the same shape, and it is the one genuinely structural change this amendment makes to the parser: <code>AddRecord</code> stops being a 1:1 switch on <code>StreamKind</code> and dispatches on the record's own <code>kind</code> <strong>within</strong> the <code>Misses</code> case — <code>miss</code> → <code>MissRecord</code>, <code>miss-fix</code> → <code>MissFixRecord</code>, <code>miss-amend</code> → <code>MissAmendRecord</code>, anything else <code>InvalidLines++</code> and skip. An unknown <code>kind</code> in a stream TfLens <em>does</em> know is the same class of event as a malformed line, so it is counted and skipped, never thrown. Dedupe follows suit: <code>miss</code> on <code>(UserId, Repo, MissId)</code> earliest-wins (a miss is opened once), <code>miss-fix</code> on <code>(UserId, Repo, MissId, FixRunId)</code> latest-wins, <code>miss-amend</code> on <code>(UserId, Repo, MissId, Field, Ts)</code> earliest-wins. None of the three needs the <code>merge=union</code> handling <code>commits</code> needs — misses are events on one machine and cannot be independently reconstructed elsewhere. <code>IsDocumented</code> is keyed on stream, and <code>misses</code> has three field vocabularies: it takes their <strong>union</strong> for Coverage's "fields observed that SCHEMA.md does not document" report, because a <code>miss-fix</code>-only field seen on a <code>miss</code> record is not worth a separate report and would only produce noise.</p>
 <p><strong><code>PostgresStore</code></strong> (SQLite → PostgreSQL, 2026-08-26). Owns the schema script (§6), opens one <code>NpgsqlConnection</code> per unit of work (pooled by Npgsql), and exposes stream reads per user and repo plus <code>SyncState</code>. Every identifier is PascalCase and double-quoted in SQL (<code>"Gate"."ReqId"</code>) so the Coding Standards' naming survives Postgres's lower-casing. Upserts use <code>INSERT … ON CONFLICT DO NOTHING</code> against the unique indexes that encode the dedupe keys. <code>Rebuild()</code> truncates every stream table, re-applies the schema script, and replays every file under <code>data/raw/</code> in <code>(user, repo, sha-fetch-order)</code> — the raw archive is the rebuild source, never the API. <strong>Framework</strong> is stored on <code>UserRepo.Framework</code> (<code>techieflow</code> | <code>playbook</code>, set at connect time from the telemetry path) and every engine read takes <code>(UserId, Framework)</code>, so a figure cannot pool across frameworks any more than across users (ADR-016).</p>
-
 <p><strong><code>MetricsEngine</code>.</strong> A field-for-field port of <code>analyse()</code> in <code>tf-metrics.sh</code> (§7). Its public result type has no "total" slot: figures live under <code>Live[projectType]</code>, <code>Backfilled[projectType]</code>, and <code>Pooled</code>. Any figure with fewer than <code>MinN = 3</code> supporting records is an <code>InsufficientData(n)</code> value, which the UI renders as text, never as a number.</p>
-
 <p><strong><code>ExtraMetrics</code>.</strong> The metrics the reference does not compute — per-harness volumes/tokens/verdict mix (dollars only for <code>harness == "opencode"</code>), routing drift (<code>routed:false</code>, <code>tier_model</code> vs <code>model</code>), tokens by model, and counterfactual repricing from <code>data/prices.json</code> (labelled <em>estimate</em> everywhere). These have no parity oracle and are spot-checked by hand against raw JSONL once (BRD §9 F-PARITY).</p>
-
+<p><strong><code>MissMetrics</code> + the two provenance guards (added 2026-08-28).</strong> The miss engine reads <code>Miss</code>, <code>MissFix</code> and <code>MissAmend</code> for <code>(UserId, Framework)</code> and does four things in order. <strong>(1) Fold</strong>: apply every <code>MissAmend</code> to its parent, oldest first, filling a <code>null</code> and never overwriting a non-<code>null</code> value — the null-check is re-applied here rather than trusted, because TfLens ingests archived files from many machines and a merged stream can carry an amend and a later-written value in either order; only fields on the allowlist (<code>WhyMissed</code> today) with values inside their closed vocabulary are applied, and anything else is an orphan, counted for Coverage and never applied. <strong>(2) Floor</strong>: <code>FIELD_SINCE = { "why_missed": 2026-08-28 }</code> sits beside the existing <code>LATE_GATES</code> table and, ideally, in the same code path — a miss written before the field existed leaves that field's denominator and is reported separately. <strong>(3) Taint</strong>: <code>MissAttributionTaint</code> is a sibling of <code>TaintSet</code> and excludes <code>OriginConfidence != "linked"</code> records from every per-phase, per-model and per-agent figure; like <code>TaintSet</code> it is both <strong>applied and displayed</strong>. <strong>(4) Shape</strong>: every figure returns a <code>Figure</code>, and every token/cost figure returns <code>MissCost(Figure Sole, Figure Apportioned, int NoneCount)</code> — a page binding it cannot render one blended number because no such property exists. <code>AnalysisResult</code> gains a <code>Misses</code> section; <code>AnalysisCacheInvalidator</code> invalidates on a <code>misses</code> sync exactly as it does for the other four streams.</p>
 <p><strong><code>SnapshotExporter</code>.</strong> Writes <code>data/reports/&lt;yyyy-MM-dd&gt;/snapshot.md</code> (human) and <code>tflens.json</code> (machine, same key layout as <code>tf-metrics.sh --rollup --json</code> plus an <code>extras</code> object) — the diffable numbers for the plan's Numbers table and B3, with the parity stamp (last passing run date + dataset SHAs) embedded.</p>
-
 <p><strong><code>PlaybookAdapter</code> (Phase 3).</strong> Separate tables (<code>PbEvent</code>, <code>PbSyncState</code>), separate page. Phase-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or chart (SCHEMA.md §11). Built as schema-discovery: the first task is to parse the real <code>events.ndjson</code> and record the observed field names in DECISIONS.md before any chart exists.</p>
-
 <h2 id="runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path<a class="anchor-link" href="#runtime-flows-beyond-the-primary-path">#</a></h2>
-
 <h3 id="repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)<a class="anchor-link" href="#repo-sync-background-sync-now">#</a></h3>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">sequenceDiagram
   participant T as PeriodicTimer / Sync now button
@@ -374,62 +387,57 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   participant Raw as data/raw/
   participant P as StreamParser + Dedupe
   participant S as PostgresStore
-  T->>SS: tick / click
+  T-&gt;&gt;SS: tick / click
   loop per configured repo
-    SS->>F: LatestShaAsync(owner, repo, branch, path)
-    F->>GH: GET /commits?sha=branch&path=docs/metrics&per_page=1
-    GH-->>F: sha
+    SS-&gt;&gt;F: LatestShaAsync(owner, repo, branch, path)
+    F-&gt;&gt;GH: GET /commits?sha=branch&amp;path=docs/metrics&amp;per_page=1
+    GH--&gt;&gt;F: sha
     alt sha == sync_state.LastSha
-      SS->>S: touch LastSyncTs (skipped)
+      SS-&gt;&gt;S: touch LastSyncTs (skipped)
     else changed
       loop per stream runs/gates/sessions/commits
-        F->>GH: GET /contents/docs/metrics/{stream}.jsonl?ref=sha (raw)
-        GH-->>F: bytes or 404
-        F->>Raw: write {stream}-{sha}.jsonl verbatim
-        F->>P: parse(text)
-        P->>S: upsert by natural key (idempotent)
+        F-&gt;&gt;GH: GET /contents/docs/metrics/{stream}.jsonl?ref=sha (raw)
+        GH--&gt;&gt;F: bytes or 404
+        F-&gt;&gt;Raw: write {stream}-{sha}.jsonl verbatim
+        F-&gt;&gt;P: parse(text)
+        P-&gt;&gt;S: upsert by natural key (idempotent)
       end
-      SS->>S: sync_state = {sha, ts, per-stream counts}
+      SS-&gt;&gt;S: sync_state = {sha, ts, per-stream counts}
     end
   end
-  SS-->>T: SyncReport (per repo: skipped / updated / error)</pre>
+  SS--&gt;&gt;T: SyncReport (per repo: skipped / updated / error)</pre>
 </div>
-
 <p>Errors are per-repo and non-fatal: a 401/403/404/network failure is written to that repo's <code>sync_state.LastError</code> and surfaced on the Coverage page; the other repos still sync. Nothing is ever written back to any repository.</p>
-
 <h3 id="rebuild-from-raw">5.2 Rebuild from raw<a class="anchor-link" href="#rebuild-from-raw">#</a></h3>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">flowchart LR
-  A["rebuild verb / button"] --> B["Drop all tables"]
-  B --> C["Create schema (DDL)"]
-  C --> D["Enumerate data/raw/*/*.jsonl"]
-  D --> E["Order by repo, then SHA fetch order"]
-  E --> F["Parse + dedupe + upsert"]
-  F --> G["Recompute sync_state counts"]
-  G --> H["Report: files replayed, records, duplicates collapsed"]</pre>
+  A["rebuild verb / button"] --&gt; B["Drop all tables"]
+  B --&gt; C["Create schema (DDL)"]
+  C --&gt; D["Enumerate data/raw/*/*.jsonl"]
+  D --&gt; E["Order by repo, then SHA fetch order"]
+  E --&gt; F["Parse + dedupe + upsert"]
+  F --&gt; G["Recompute sync_state counts"]
+  G --&gt; H["Report: files replayed, records, duplicates collapsed"]</pre>
 </div>
-
 <h3 id="login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager (amended 2026-08-26)<a class="anchor-link" href="#login-via-appmanager-amended-2026-08-26">#</a></h3>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">sequenceDiagram
   actor U as User
@@ -439,39 +447,37 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   participant AM as "AppManager API (App Id 1)"
   participant S as "AuthSession table"
   participant C as "Cookie middleware"
-  U->>L: email + password
-  L->>A: SignInAsync(email, password)
-  A->>AMC: LoginAsync(email, password)
-  AMC->>AM: GET /AuthSvc/public-key (cached after first call)
-  AM-->>AMC: RSA public key
-  AMC->>AMC: RSA-OAEP-256 encrypt
-  AMC->>AM: POST /AuthSvc/login + X-Api-Key/X-Api-Secret
+  U-&gt;&gt;L: email + password
+  L-&gt;&gt;A: SignInAsync(email, password)
+  A-&gt;&gt;AMC: LoginAsync(email, password)
+  AMC-&gt;&gt;AM: GET /AuthSvc/public-key (cached after first call)
+  AM--&gt;&gt;AMC: RSA public key
+  AMC-&gt;&gt;AMC: RSA-OAEP-256 encrypt
+  AMC-&gt;&gt;AM: POST /AuthSvc/login + X-Api-Key/X-Api-Secret
   alt success
-    AM-->>AMC: userId, email, names, applicationRole=Manager, accessToken, refreshToken, tokenExpiresAt
-    AMC-->>A: AuthResponseData
-    A->>S: insert session (sessionId, userId, tokens, expiry)
-    A->>C: SignIn cookie (sessionId, userId, email, name, role)
-    C-->>U: redirect return URL, else /repos (no repos) or / (has repos)
+    AM--&gt;&gt;AMC: userId, email, names, applicationRole=Manager, accessToken, refreshToken, tokenExpiresAt
+    AMC--&gt;&gt;A: AuthResponseData
+    A-&gt;&gt;S: insert session (sessionId, userId, tokens, expiry)
+    A-&gt;&gt;C: SignIn cookie (sessionId, userId, email, name, role)
+    C--&gt;&gt;U: redirect return URL, else /repos (no repos) or / (has repos)
   else error code
-    AM-->>AMC: INVALID_CREDENTIALS / ACCOUNT_LOCKED / ACCOUNT_DISABLED
-    AMC-->>A: AppManagerException(code)
-    A-->>L: generic "Sign-in failed" (code logged)
+    AM--&gt;&gt;AMC: INVALID_CREDENTIALS / ACCOUNT_LOCKED / ACCOUNT_DISABLED
+    AMC--&gt;&gt;A: AppManagerException(code)
+    A--&gt;&gt;L: generic "Sign-in failed" (code logged)
   end
   Note over A,AM: Register: POST /AuthSvc/register with applicationRoleCode Manager, then the same session/cookie path
   Note over A,AM: Refresh via POST /AuthSvc/refresh before expiry, Validate via POST /AuthSvc/validate on resume, Logout via POST /AuthSvc/logout</pre>
 </div>
-
 <h3 id="connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)<a class="anchor-link" href="#connect-a-repo-added-2026-08-26">#</a></h3>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">sequenceDiagram
   actor U as User
@@ -480,62 +486,123 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   participant GH as "GitHub REST API"
   participant S as "PostgresStore"
   participant Sy as "RepoSyncService"
-  U->>P: Connect repo (URL or owner/name, branch?)
-  P->>R: ConnectAsync(userId, input)
-  R->>GH: GET /repos/{owner}/{name}
-  GH-->>R: exists, private flag, default branch
+  U-&gt;&gt;P: Connect repo (URL or owner/name, branch?)
+  P-&gt;&gt;R: ConnectAsync(userId, input)
+  R-&gt;&gt;GH: GET /repos/{owner}/{name}
+  GH--&gt;&gt;R: exists, private flag, default branch
   alt private or missing
-    R-->>P: refused (public repos only / not found)
+    R--&gt;&gt;P: refused (public repos only / not found)
   else public
-    R->>GH: GET /contents/docs/metrics?ref=branch
-    GH-->>R: 200 or 404
-    R->>GH: GET /contents/verification/telemetry?ref=branch (if needed)
-    GH-->>R: 200 or 404
+    R-&gt;&gt;GH: GET /contents/docs/metrics?ref=branch
+    GH--&gt;&gt;R: 200 or 404
+    R-&gt;&gt;GH: GET /contents/verification/telemetry?ref=branch (if needed)
+    GH--&gt;&gt;R: 200 or 404
     alt no telemetry path
-      R-->>P: refused (no TechieFlow or Playbook telemetry)
+      R--&gt;&gt;P: refused (no TechieFlow or Playbook telemetry)
     else detected
-      R->>S: insert UserRepo (userId, owner, name, branch, kind)
-      R->>Sy: queue first sync (userId, repo)
-      R-->>P: connected, toast shown, row appears
+      R-&gt;&gt;S: insert UserRepo (userId, owner, name, branch, kind)
+      R-&gt;&gt;Sy: queue first sync (userId, repo)
+      R--&gt;&gt;P: connected, toast shown, row appears
     end
   end</pre>
 </div>
-
-<h3 id="weekly-snapshot-export">5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
-
+<h3 id="miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)<a class="anchor-link" href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">#</a></h3>
+<p><code>miss-amend</code> records are <strong>stored, not collapsed</strong>. Folding is a read-time operation over the stored rows, so <code>RebuildAsync</code> replays and re-derives them exactly like every other figure, and a reader that ignores amend records entirely still sees nothing false — only less.</p>
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  A["Read Miss + MissAmend rows for (UserId, Framework)"] --&gt; B["Order amends by Ts, oldest first"]
+  B --&gt; C{"field on the allowlist?"}
+  C --&gt;|"no"| X["Orphan: count for Coverage, never apply"]
+  C --&gt;|"yes"| D{"value in the closed vocabulary?"}
+  D --&gt;|"no"| X
+  D --&gt;|"yes"| E{"MissId matches a known miss?"}
+  E --&gt;|"no"| X
+  E --&gt;|"yes"| F{"parent field is null?"}
+  F --&gt;|"no"| G["Ignore: an amend never overwrites a value"]
+  F --&gt;|"yes"| H["Apply; count as amendments_applied"]
+  H --&gt; I["Eligibility floor: FIELD_SINCE per field"]
+  G --&gt; I
+  I --&gt; J["Figures over the folded records"]</pre>
+</div>
+<p>The null-check is re-applied here rather than assumed: TfLens ingests archived files from many machines, and a merged stream can carry an amend and a later-written value in either order. Trusting the producer to have enforced it would make the invariant depend on arrival order, which is precisely the class of bug this product exists to avoid.</p>
+<h3 id="import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)<a class="anchor-link" href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">#</a></h3>
+<p>The path a private or corporate repo's telemetry takes. Note where it <strong>joins</strong> the existing pipeline: at the archive, exactly where the fetcher hands off — everything downstream is shared.</p>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">sequenceDiagram
+  actor U as User
+  participant P as "/repos — Add source (mode: Import)"
+  participant I as "TelemetryImportService (Core)"
+  participant Raw as "data/raw/&amp;lt;userId&amp;gt;/&amp;lt;source&amp;gt;/"
+  participant Pa as "StreamParser + Dedupe (shared)"
+  participant S as "PostgresStore"
+  U-&gt;&gt;P: name the source, pick framework, drop a .zip / .jsonl
+  P-&gt;&gt;I: PreviewAsync(userId, upload)
+  I-&gt;&gt;I: extension + size gate, then safe extraction
+  alt refused
+    I--&gt;&gt;P: "rollup or snapshot, not raw streams" / "unsafe archive" / "nothing recognised"
+    P--&gt;&gt;U: message naming what to upload instead; NOTHING written
+  else recognised
+    I-&gt;&gt;I: bundle sha256; dry-run parse
+    I--&gt;&gt;P: preview: records per stream, date range, invalid lines, unknown fields, sha256
+    U-&gt;&gt;P: review, then press Import
+    P-&gt;&gt;I: CommitAsync
+    I-&gt;&gt;Raw: write bytes VERBATIM as &amp;lt;stream&amp;gt;-&amp;lt;bundleSha&amp;gt;.jsonl
+    I-&gt;&gt;Pa: parse the same text with the same parser
+    Pa-&gt;&gt;S: upsert by natural key (idempotent — a re-import collapses)
+    I--&gt;&gt;P: records added, duplicates collapsed, per stream
+    P--&gt;&gt;U: toast; row appears with SourceKind = import
+  end</pre>
+</div>
+<p>The source row carries <code>SourceKind = "import"</code>, so the poller skips it, its row action is <strong>Re-import</strong> rather than Sync, and Coverage reads its staleness as days-since-import. Nothing else in the system branches on it.</p>
+<h3 id="weekly-snapshot-export">5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">flowchart LR
-  A["Export button or export verb"] --> B["MetricsEngine.Analyse(all repos)"]
-  B --> C["ExtraMetrics (harness, routing, repricing)"]
-  C --> D["Read parity stamp from DECISIONS.md section or data/parity-last.json"]
-  D --> E["Write data/reports/&lt;date&gt;/snapshot.md"]
-  D --> F["Write data/reports/&lt;date&gt;/tflens.json"]
-  E --> G["Show download links + quotable / not-quotable banner"]
-  F --> G</pre>
+  A["Export button or export verb"] --&gt; B["MetricsEngine.Analyse(all repos)"]
+  B --&gt; C["ExtraMetrics (harness, routing, repricing)"]
+  C --&gt; D["Read parity stamp from DECISIONS.md section or data/parity-last.json"]
+  D --&gt; E["Write data/reports/&amp;lt;date&amp;gt;/snapshot.md"]
+  D --&gt; F["Write data/reports/&amp;lt;date&amp;gt;/tflens.json"]
+  E --&gt; G["Show download links + quotable / not-quotable banner"]
+  F --&gt; G</pre>
 </div>
-
 <h2 id="data-model">6. Data model<a class="anchor-link" href="#data-model">#</a></h2>
-
-<p>PostgreSQL 16 (amended 2026-08-26). One table per stream, columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc., always double-quoted in SQL; the JSON→column mapping table lives in <code>StreamParser</code>). <code>Overflow</code> is a <code>jsonb</code> column. Every stream table carries <code>UserId</code> (amended 2026-08-26 — the AppManager user who connected the repo), <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields). Identity tables: <code>UserRepo</code> (the per-user connected-repo list) and <code>AuthSession</code> (server-side AppManager tokens per cookie session). TfLens stores <strong>no user profile and no password</strong> — the AppManager <code>userId</code> is the only user key.</p>
-
+<p>PostgreSQL 16 (amended 2026-08-26; three miss tables added 2026-08-28). One table per stream — except <code>misses</code>, whose three record kinds get three tables — columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc., always double-quoted in SQL; the JSON→column mapping table lives in <code>StreamParser</code>). <code>Overflow</code> is a <code>jsonb</code> column. Every stream table carries <code>UserId</code> (amended 2026-08-26 — the AppManager user who connected the repo), <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields). Identity tables: <code>UserRepo</code> (the per-user source list) and <code>AuthSession</code> (server-side AppManager tokens per cookie session). <code>UserRepo.SourceKind</code> (<code>api</code> | <code>import</code>, added 2026-08-28) is the <strong>only</strong> structural trace of how a source's data arrives; <code>BundleSha</code> and <code>LastImportTs</code> are populated for imported sources and <code>null</code> for fetched ones, and <code>LastSha</code> is the reverse. No stream table carries the distinction, because no figure segments on it (ADR-021). TfLens stores <strong>no user profile and no password</strong> — the AppManager <code>userId</code> is the only user key.</p>
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">erDiagram
   UserRepo {
@@ -546,6 +613,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     string Branch
     string Kind
     string Framework
+    string SourceKind
+    string BundleSha
+    string LastImportTs
     bool IsPublic
     string ConnectedTs
   }
@@ -663,6 +733,63 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     string Branch
     string Overflow
   }
+  Miss {
+    int UserId
+    string Repo
+    string SourceSha
+    string Ts
+    string MissId
+    string ReqId
+    string ReqClass
+    string MissClass
+    string Artifact
+    string Severity
+    string WhyMissed
+    string OriginPhase
+    string OriginAgent
+    string OriginRunId
+    string OriginConfidence
+    string OriginModel
+    string OriginHarness
+    string FoundBy
+    string FoundPhase
+    string FoundGate
+    string FoundRunId
+    string FailureClass
+    string Overflow
+  }
+  MissFix {
+    int UserId
+    string Repo
+    string SourceSha
+    string Ts
+    string MissId
+    string ReqId
+    string FixRunId
+    string FixCmd
+    int FixAttempt
+    string VerdictAfter
+    bool Reopened
+    string CostAttribution
+    int TokensIn
+    int TokensOut
+    int TokensCacheRead
+    int TokensCacheWrite
+    real CostUsd
+    string TokensScope
+    string Model
+    string Overflow
+  }
+  MissAmend {
+    int UserId
+    string Repo
+    string SourceSha
+    string Ts
+    string MissId
+    string Field
+    string Value
+    string Overflow
+  }
   PbEvent {
     string Repo
     string SourceSha
@@ -680,15 +807,27 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   SyncState ||--o{ Gate : "UserId, Repo"
   SyncState ||--o{ Session : "UserId, Repo"
   SyncState ||--o{ Commit : "UserId, Repo"
-  SyncState ||--o{ PbEvent : "UserId, Repo"</pre>
+  SyncState ||--o{ Miss : "UserId, Repo"
+  SyncState ||--o{ MissFix : "UserId, Repo"
+  SyncState ||--o{ MissAmend : "UserId, Repo"
+  SyncState ||--o{ PbEvent : "UserId, Repo"
+  Miss ||--o{ MissFix : "MissId"
+  Miss ||--o{ MissAmend : "MissId"</pre>
 </div>
-
-<p>Every stream table also carries <code>UserId</code> (omitted from the boxes above for brevity). Unique indexes implement the dedupe keys per user: <code>UcCommitUserRepoSha (UserId, Repo, Sha)</code>, <code>UcRunIdentity (UserId, Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (UserId, Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionUserRepoId (UserId, Repo, SessionId)</code>. <code>AuthSession</code> token columns are encrypted at rest with ASP.NET Data Protection. <code>PbEvent</code> columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as <code>NULL</code>, never <code>0</code> (SCHEMA.md §2.5).</p>
-
+<p>Every stream table also carries <code>UserId</code> (omitted from the boxes above for brevity). Unique indexes implement the dedupe keys per user: <code>UcCommitUserRepoSha (UserId, Repo, Sha)</code>, <code>UcRunIdentity (UserId, Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (UserId, Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionUserRepoId (UserId, Repo, SessionId)</code>. The miss tables (added 2026-08-28) follow the same house style — every identifier double-quoted, <code>UserId</code> a real column and part of every unique index (ADR-013), <code>CREATE TABLE IF NOT EXISTS</code> so <code>database/001-schema.sql</code> stays idempotent at every startup with no migration framework:</p>
+<pre><code class="language-sql">-- unique keys (the dedupe rules, encoded)
+CREATE UNIQUE INDEX IF NOT EXISTS "UxMiss"      ON "Miss"      ("UserId","Repo","MissId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UxMissFix"   ON "MissFix"   ("UserId","Repo","MissId","FixRunId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UxMissAmend" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
+-- read paths
+CREATE INDEX IF NOT EXISTS "IxMissUserRepo"    ON "Miss"      ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissOriginModel" ON "Miss"      ("UserId","OriginModel");
+CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo" ON "MissFix"   ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissFixMissId"   ON "MissFix"   ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissAmendMissId" ON "MissAmend" ("UserId","MissId");</code></pre>
+<p><code>ITelemetryStore</code> gains <code>ReadMissesAsync</code>, <code>ReadMissFixesAsync</code> and <code>ReadMissAmendsAsync</code> mirroring <code>ReadGatesAsync</code>'s signature; <code>UpsertAsync</code> handles the three new <code>ParseResult</code> collections; and <strong><code>DeleteRepoDataAsync</code> must purge all three</strong> — missing one leaves orphaned rows that reappear in every figure, which is the worst class of bug in a product whose promise is correct numbers. <code>SyncState</code> gains a <code>misses</code> row per repo, so Coverage's per-repo stream table goes from four rows to five. <code>AuthSession</code> token columns are encrypted at rest with ASP.NET Data Protection. <code>PbEvent</code> columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as <code>NULL</code>, never <code>0</code> (SCHEMA.md §2.5).</p>
 <h2 id="metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
-
 <p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>
-
 <table>
 <thead><tr><th>tf-metrics.sh</th><th>TfLens.Core</th><th>Rule carried</th></tr></thead>
 <tbody>
@@ -703,100 +842,158 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>pooled block</td><td><code>Pooled</code></td><td>rework ratio, batch median, throughput median (REQs/hour, 2 dp), tokens total (sessions in+out), tokens per Verified (1 dp), cadence, <code>cost_usd: null</code></td></tr>
 <tr><td><code>pct()</code></td><td><code>Pct</code></td><td><code>"—"</code> when denominator 0; <code>%.0f%%</code> otherwise</td></tr>
 <tr><td><code>MIN_N = 3</code></td><td><code>MetricsEngine.MinN</code></td><td>constant, no configuration key</td></tr>
+<tr><td><code>LATE_GATES = { perf: … }</code></td><td><code>LateGateCoverage</code></td><td><em>(and, 2026-08-28)</em> <code>FIELD_SINCE = { why_missed: 2026-08-28 }</code> — same table, same code path, applied to an optional field instead of a gate</td></tr>
+<tr><td>misses block: <code>open_misses</code> / <code>wont_fix</code></td><td><code>MissMetrics.Open</code> / <code>.Declined</code></td><td>two predicates that deliberately disagree; <code>deferred</code> stays open, <code>wont-fix</code> never folds in</td></tr>
+<tr><td>misses block: <code>why_missed{}</code> / <code>why_missed_n</code></td><td><code>MissMetrics.FailedPractice</code></td><td>denominator is records carrying the field, surfaced as <code>n of N assessed</code></td></tr>
+<tr><td>misses block: <code>attributed_n</code> / <code>attribution_excluded</code></td><td><code>MissAttributionTaint</code></td><td><code>linked</code> only; applied <strong>and</strong> displayed, like <code>TaintSet</code></td></tr>
+<tr><td>misses block: <code>cost_sole_n</code> / <code>cost_shared_n</code> / <code>cost_unattributable_n</code></td><td><code>MissCost</code></td><td>three keys, never collapsed into one blended figure</td></tr>
 </tbody>
 </table>
-
-<p>Two guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate, and (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case. A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
-
+<p>Three guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate; (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case; and (3) <em>(2026-08-28)</em> <code>MissCost</code> exposes <code>Sole</code>, <code>Apportioned</code> and <code>NoneCount</code> and nothing else, so a page cannot render a blended measured-plus-apportioned cost — there is no property to bind. The technique is the same each time: <strong>make the wrong number unrepresentable rather than forbidden</strong> (ADR-007, ADR-019). A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
 <h2 id="cross-cutting-concerns">8. Cross-cutting concerns<a class="anchor-link" href="#cross-cutting-concerns">#</a></h2>
-
 <ul>
-<li><strong>Logging</strong> — Serilog, <code>WriteTo.File("logs/tflens-.log", rollingInterval: Day, retainedFileCountLimit: 14)</code> + console, wired before the host builds; <code>ILogger&lt;T&gt;</code> in app code; sync outcomes logged per repo (IDs and counts only — never file contents).</li>
-<li><strong>Error handling</strong> — per-repo sync errors captured to <code>sync_state.LastError</code> and rendered on Coverage; Blazor error boundary on each page; unhandled exceptions → <code>Log.Fatal</code> at the head boundary.</li>
-<li><strong>Auth</strong> — AppManager-backed (ADR-011): cookie auth for every page and the export endpoint; <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/healthz</code> are the only anonymous routes; antiforgery on every form; AppManager tokens server-side only. Every user is <code>Manager</code>; no licence checks anywhere.</li>
-<li><strong>Secrets</strong> — AppManager key/secret and the optional PAT from environment / user-secrets via the PascalCase env-var provider (<code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensGitHubToken</code>). Never in <code>appsettings.json</code>, never in the repo, never logged.</li>
-<li><strong>Tenant isolation</strong> — <code>UserId</code> is a required parameter of every <code>PostgresStore</code> read/write, every engine call, the raw-archive path and the reports path (ADR-013); an integration test signs in two users and asserts neither can see the other's repos or figures.</li>
-<li><strong>Theme</strong> — dark by default (ADR-014): <code>&lt;html class="dark"&gt;</code> unless the user's persisted preference says light; toggle in the header.</li>
-<li><strong>Privacy</strong> — TfLens stores and shows only what the streams carry (SCHEMA.md §9). The overflow column is displayed nowhere; it exists for rebuild fidelity and the "unknown fields" report.</li>
-<li><strong>Caching</strong> — <code>AnalysisResult</code> memoised per <code>(sync version, filter)</code> in <code>IMemoryCache</code>; invalidated on every completed sync or rebuild.</li>
-<li><strong>Health</strong> — <code>/healthz</code> reports DB reachable + last successful sync age; no metrics exposed there.</li>
-<li><strong>Telemetry</strong> — none outbound. TfLens itself is a TechieFlow-managed repo, so its own <code>docs/metrics/</code> streams are emitted by the framework as usual (and it may read them like any other repo).</li>
+<li><strong>Logging</strong> — Serilog, <code>WriteTo.File("logs/tflens-.log", rollingInterval: Day, retainedFileCountLimit: 14)</code> + console, wired before the host builds; <code>ILogger&lt;T&gt;</code> in app code; sync outcomes logged per repo (IDs and counts only — never file contents).
+</li>
+<li><strong>Error handling</strong> — per-repo sync errors captured to <code>sync_state.LastError</code> and rendered on Coverage; Blazor error boundary on each page; unhandled exceptions → <code>Log.Fatal</code> at the head boundary.
+</li>
+<li><strong>Auth</strong> — AppManager-backed (ADR-011): cookie auth for every page and the export endpoint; <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/healthz</code> are the only anonymous routes; antiforgery on every form; AppManager tokens server-side only. Every user is <code>Manager</code>; no licence checks anywhere.
+</li>
+<li><strong>Uploads</strong> (added 2026-08-28) — the Import-metric-files mode is the <strong>only</strong> inbound path and is authenticated, per-user, and bounded before anything is read: extension allow-list (<code>.zip</code>/<code>.jsonl</code>/<code>.ndjson</code>), 25 MB cap, entry-count and uncompressed-size limits, no absolute/<code>..</code>/symlink archive entries, extraction confined to <code>data/raw/&lt;userId&gt;/</code>. Nothing uploaded is executed or rendered as HTML; the preview reads it and reports, then the user decides. There is no unauthenticated endpoint and no machine-to-machine ingest API.
+</li>
+<li><strong>Secrets</strong> — AppManager key/secret and the optional PAT from environment / user-secrets via the PascalCase env-var provider (<code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensGitHubToken</code>). Never in <code>appsettings.json</code>, never in the repo, never logged.
+</li>
+<li><strong>Tenant isolation</strong> — <code>UserId</code> is a required parameter of every <code>PostgresStore</code> read/write, every engine call, the raw-archive path and the reports path (ADR-013); an integration test signs in two users and asserts neither can see the other's repos or figures.
+</li>
+<li><strong>Theme</strong> — dark by default (ADR-014): <code>&lt;html class="dark"&gt;</code> unless the user's persisted preference says light; toggle in the header.
+</li>
+<li><strong>Privacy</strong> — TfLens stores and shows only what the streams carry (SCHEMA.md §9). The overflow column is displayed nowhere; it exists for rebuild fidelity and the "unknown fields" report.
+</li>
+<li><strong>Caching</strong> — <code>AnalysisResult</code> memoised per <code>(sync version, filter)</code> in <code>IMemoryCache</code>; invalidated on every completed sync or rebuild.
+</li>
+<li><strong>Health</strong> — <code>/healthz</code> reports DB reachable + last successful sync age; no metrics exposed there.
+</li>
+<li><strong>Telemetry</strong> — none outbound. TfLens itself is a TechieFlow-managed repo, so its own <code>docs/metrics/</code> streams are emitted by the framework as usual (and it may read them like any other repo).
+</li>
 </ul>
-
 <h2 id="deployment-architecture">9. Deployment architecture<a class="anchor-link" href="#deployment-architecture">#</a></h2>
-
 <div class="diagram">
   <div class="dt">
-    <button data-zout title="Zoom out">−</button>
+    <button data-zout title="Zoom out">&minus;</button>
     <span class="zlabel">100%</span>
     <button data-zin title="Zoom in">+</button>
     <button data-fit title="Fit to width">Fit</button>
     <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">⛶</button>
-    <button data-pop title="Open in new tab">↗</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
   </div>
   <pre class="mermaid">flowchart LR
-  Dev["Dev machine<br/>dotnet run"] --> Img["Docker image<br/>(multi-stage, .NET 10)"]
-  Img --> VPS["VPS: docker compose<br/>tflens + postgres (infra config out of scope)"]
-  VPS --> Vol[("Volumes: data/ + logs/ + pgdata")]
-  VPS --> GH["GitHub REST API<br/>(outbound HTTPS only, public repos)"]
-  VPS --> AM["AppManager API<br/>(outbound HTTPS, App Id 1)"]
-  Users(["Users' browsers"]) -- "HTTPS + cookie" --> VPS</pre>
+  Dev["Dev machine&lt;br/&gt;dotnet run"] --&gt; Img["Docker image&lt;br/&gt;(multi-stage, .NET 10)"]
+  Img --&gt; VPS["VPS: docker compose&lt;br/&gt;tflens + postgres (infra config out of scope)"]
+  VPS --&gt; Vol[("Volumes: data/ + logs/ + pgdata")]
+  VPS --&gt; GH["GitHub REST API&lt;br/&gt;(outbound HTTPS only, public repos)"]
+  VPS --&gt; AM["AppManager API&lt;br/&gt;(outbound HTTPS, App Id 1)"]
+  Users(["Users' browsers"]) -- "HTTPS + cookie" --&gt; VPS</pre>
 </div>
-
 <p>Two containers via <code>docker-compose.yml</code> (amended 2026-08-26): <code>tflens</code> (single process) and <code>postgres</code> (PostgreSQL 16, its data directory on a named volume, not exposed outside the compose network). TfLens's own persistent state is <code>data/</code> (<code>raw/&lt;userId&gt;/</code>, <code>reports/&lt;userId&gt;/</code>, <code>prices.json</code>) and <code>logs/</code>. The image never contains the AppManager secret, the connection string or the PAT; they arrive as environment variables (<code>TfLensDbConnection</code> points at the <code>postgres</code> service). No inbound endpoint exists other than the authenticated UI, the anonymous auth pages and <code>/healthz</code>.</p>
-
 <h2 id="architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)<a class="anchor-link" href="#architectural-decisions-adr-style-log">#</a></h2>
-
 <ul>
-<li><strong>ADR-001 — Blazor Server with TrBlazeUI as the only UI head.</strong> Reason: the brief fixes Blazor Server; dogfooding TrBlazeUI is an explicit goal; a single-user dashboard has no WASM/offline need.</li>
-<li><strong>ADR-002 — SQLite via Dapper + Microsoft.Data.Sqlite, hand-written DDL, no migrations.</strong> Reason: owner choice at kickoff; the store is disposable (rebuilt from <code>data/raw/</code>), so migrations add ceremony without value and the overflow JSON column stays an explicit <code>TEXT</code> column.</li>
-<li><strong>ADR-003 — No vector store / RAG.</strong> Reason: TfLens has no AI features.</li>
-<li><strong>ADR-004 — Raw <code>HttpClient</code> against the GitHub REST API, not Octokit.</strong> Reason: three GET calls per repo; a typed SDK adds a dependency and hides the <code>Accept: application/vnd.github.raw</code> header the whole-file fetch relies on.</li>
-<li><strong>ADR-005 — One executable (<code>src/TfLens</code>) hosting web + background sync + command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>).</strong> Reason: 1–2 day timebox and one Docker image; the verbs run via <code>dotnet TfLens.dll rebuild</code> / <code>docker exec</code>, and share the <code>TfLens.Core</code> engine so parity runs use exactly the code the pages use.</li>
-<li><strong>ADR-006 — <code>TfLens.Core</code> is UI-free and web-free.</strong> Reason: the engine must be unit-testable against fixture JSONL and driven by the CLI verbs without a browser; it also keeps the parity surface (engine output) identical between the export and the pages.</li>
-<li><strong>ADR-007 — Provenance rules are encoded in the result type (<code>AnalysisResult</code> has no total slot; <code>Figure</code> carries <code>InsufficientData</code>).</strong> Reason: the brief demands "no flag to disable"; a shape that cannot express the forbidden number is stronger than a check.</li>
-<li><strong>ADR-008 — Parity compare script in Python (<code>tools/parity-compare.py</code>).</strong> Reason: it runs where <code>tf-metrics.sh</code> runs (Python 3 already required), needs no build, and compares <code>reference.json</code> vs <code>tflens.json</code> key-by-key.</li>
-<li><strong>ADR-009 — <code>data/prices.json</code> is the only editable input; repricing is labelled <em>estimate</em> in every rendering and export.</strong> Reason: SCHEMA.md §4 forbids presenting a rate-card figure as a measurement; the label is part of the contract.</li>
-<li><strong>ADR-010 — Playbook adapter is separate tables + separate page, built schema-discovery-first.</strong> Reason: SCHEMA.md §11 (<code>gate</code> vs <code>phase_gate</code> are different axes); no sample file exists yet (kickoff answer), so the adapter's first task is to parse the real file and record the field names.</li>
-<li><strong>ADR-011 — AppManager is the identity provider; TfLens holds no users and no passwords (2026-08-26).</strong> Reason: owner decision; TfLens is free/open source and multi-user, AppManager already provides registration, login, reset and RSA-encrypted password transport; every user is <code>Manager</code> and no licence/feature/payment endpoint is used. Supersedes the single-user PBKDF2 design (BRD-3 retired).</li>
-<li><strong>ADR-012 — GitHub SSO deferred to Phase 2 (2026-08-26).</strong> Reason: AppManager v1.4 has no external-login or token-exchange endpoint; the only bridge would be a TfLens-held per-user random credential, which the owner declined for this release. Revisit when AppManager offers SSO.</li>
-<li><strong>ADR-013 — Public GitHub repos only, managed per user in the app; <code>UserId</code> is a mandatory parameter everywhere (2026-08-26).</strong> Reason: anyone using the frameworks must be able to connect their repo without the operator editing config; public-only removes per-user token handling from this release; isolation as a parameter (not a filter) is the cheapest way to make a cross-user leak a compile-time absence rather than a runtime oversight.</li>
-<li><strong>ADR-014 — Dark-first, collapsible icon sidebar, user menu in the header (2026-08-26).</strong> Reason: owner's mockup review; TrBlazeUI's <code>Sidebar Collapsible</code> + <code>SidebarTrigger</code> + <code>DropdownMenu</code> cover it natively.</li>
-<li><strong>ADR-015 — PostgreSQL 16 via Npgsql + Dapper, superseding ADR-002 (2026-08-26, round 2).</strong> Reason: the app runs in a container where SQLite on volume storage is unreliable (locking, fsync semantics); Dapper stays because the hand-written, parity-auditable SQL is the point. Idempotent schema script at startup instead of a migration framework — the store is still disposable and rebuilt from <code>data/raw/</code>.</li>
-<li><strong>ADR-016 — Framework is a stored, mandatory provenance axis (2026-08-26, round 2).</strong> Reason: the owner will run Playbook-built apps to collect telemetry and wants the full report set for both frameworks; <code>UserRepo.Framework</code> is set at connect time from the telemetry path, every engine read takes <code>(UserId, Framework)</code>, and the header switch is the only way to change it — the same "shape forbids the merged number" approach as ADR-007/013. The single Playbook page is retired; the <code>events.ndjson</code> adapter (Phase 3) feeds the same pages through Playbook-native equivalents.</li>
-<li><strong>ADR-017 — Harness columns are the detected values <code>claude-code</code> / <code>opencode</code> / <code>codex</code>; <code>null</code> is a footnote, never a column and never dropped (2026-08-26, round 2).</strong> Reason: Codex CLI is a real <code>harness</code> value in SCHEMA.md and TechieFlow detects it now; undetected records must stay visible (SCHEMA.md §1 "a missing label is merely missing") without pretending to be a fourth harness.</li>
+<li><strong>ADR-001 — Blazor Server with TrBlazeUI as the only UI head.</strong> Reason: the brief fixes Blazor Server; dogfooding TrBlazeUI is an explicit goal; a single-user dashboard has no WASM/offline need.
+</li>
+<li><strong>ADR-002 — SQLite via Dapper + Microsoft.Data.Sqlite, hand-written DDL, no migrations.</strong> Reason: owner choice at kickoff; the store is disposable (rebuilt from <code>data/raw/</code>), so migrations add ceremony without value and the overflow JSON column stays an explicit <code>TEXT</code> column.
+</li>
+<li><strong>ADR-003 — No vector store / RAG.</strong> Reason: TfLens has no AI features.
+</li>
+<li><strong>ADR-004 — Raw <code>HttpClient</code> against the GitHub REST API, not Octokit.</strong> Reason: three GET calls per repo; a typed SDK adds a dependency and hides the <code>Accept: application/vnd.github.raw</code> header the whole-file fetch relies on.
+</li>
+<li><strong>ADR-005 — One executable (<code>src/TfLens</code>) hosting web + background sync + command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>).</strong> Reason: 1–2 day timebox and one Docker image; the verbs run via <code>dotnet TfLens.dll rebuild</code> / <code>docker exec</code>, and share the <code>TfLens.Core</code> engine so parity runs use exactly the code the pages use.
+</li>
+<li><strong>ADR-006 — <code>TfLens.Core</code> is UI-free and web-free.</strong> Reason: the engine must be unit-testable against fixture JSONL and driven by the CLI verbs without a browser; it also keeps the parity surface (engine output) identical between the export and the pages.
+</li>
+<li><strong>ADR-007 — Provenance rules are encoded in the result type (<code>AnalysisResult</code> has no total slot; <code>Figure</code> carries <code>InsufficientData</code>).</strong> Reason: the brief demands "no flag to disable"; a shape that cannot express the forbidden number is stronger than a check.
+</li>
+<li><strong>ADR-008 — Parity compare script in Python (<code>tools/parity-compare.py</code>).</strong> Reason: it runs where <code>tf-metrics.sh</code> runs (Python 3 already required), needs no build, and compares <code>reference.json</code> vs <code>tflens.json</code> key-by-key.
+</li>
+<li><strong>ADR-009 — <code>data/prices.json</code> is the only editable input; repricing is labelled <em>estimate</em> in every rendering and export.</strong> Reason: SCHEMA.md §4 forbids presenting a rate-card figure as a measurement; the label is part of the contract.
+</li>
+<li><strong>ADR-010 — Playbook adapter is separate tables + separate page, built schema-discovery-first.</strong> Reason: SCHEMA.md §11 (<code>gate</code> vs <code>phase_gate</code> are different axes); no sample file exists yet (kickoff answer), so the adapter's first task is to parse the real file and record the field names.
+</li>
+<li><strong>ADR-011 — AppManager is the identity provider; TfLens holds no users and no passwords (2026-08-26).</strong> Reason: owner decision; TfLens is free/open source and multi-user, AppManager already provides registration, login, reset and RSA-encrypted password transport; every user is <code>Manager</code> and no licence/feature/payment endpoint is used. Supersedes the single-user PBKDF2 design (BRD-3 retired).
+</li>
+<li><strong>ADR-012 — GitHub SSO deferred to Phase 2 (2026-08-26).</strong> Reason: AppManager v1.4 has no external-login or token-exchange endpoint; the only bridge would be a TfLens-held per-user random credential, which the owner declined for this release. Revisit when AppManager offers SSO.
+</li>
+<li><strong>ADR-013 — Public GitHub repos only, managed per user in the app; <code>UserId</code> is a mandatory parameter everywhere (2026-08-26).</strong> Reason: anyone using the frameworks must be able to connect their repo without the operator editing config; public-only removes per-user token handling from this release; isolation as a parameter (not a filter) is the cheapest way to make a cross-user leak a compile-time absence rather than a runtime oversight.
+</li>
+<li><strong>ADR-014 — Dark-first, collapsible icon sidebar, user menu in the header (2026-08-26).</strong> Reason: owner's mockup review; TrBlazeUI's <code>Sidebar Collapsible</code> + <code>SidebarTrigger</code> + <code>DropdownMenu</code> cover it natively.
+</li>
+<li><strong>ADR-015 — PostgreSQL 16 via Npgsql + Dapper, superseding ADR-002 (2026-08-26, round 2).</strong> Reason: the app runs in a container where SQLite on volume storage is unreliable (locking, fsync semantics); Dapper stays because the hand-written, parity-auditable SQL is the point. Idempotent schema script at startup instead of a migration framework — the store is still disposable and rebuilt from <code>data/raw/</code>.
+</li>
+<li><strong>ADR-016 — Framework is a stored, mandatory provenance axis (2026-08-26, round 2).</strong> Reason: the owner will run Playbook-built apps to collect telemetry and wants the full report set for both frameworks; <code>UserRepo.Framework</code> is set at connect time from the telemetry path, every engine read takes <code>(UserId, Framework)</code>, and the header switch is the only way to change it — the same "shape forbids the merged number" approach as ADR-007/013. The single Playbook page is retired; the <code>events.ndjson</code> adapter (Phase 3) feeds the same pages through Playbook-native equivalents.
+</li>
+<li><strong>ADR-017 — Harness columns are the detected values <code>claude-code</code> / <code>opencode</code> / <code>codex</code>; <code>null</code> is a footnote, never a column and never dropped (2026-08-26, round 2).</strong> Reason: Codex CLI is a real <code>harness</code> value in SCHEMA.md and TechieFlow detects it now; undetected records must stay visible (SCHEMA.md §1 "a missing label is merely missing") without pretending to be a fourth harness.
+</li>
+<li><strong>ADR-018 — Three record kinds live on one stream (<code>misses.jsonl</code>) and in three tables, parsed by a per-record <code>kind</code> dispatch (2026-08-28).</strong> Reason: the producer publishes one file because a miss has a <em>lifecycle</em> — opened, amended, closed — and splitting it into three files would put a foreign key across three append-only logs that merge independently, which is exactly how a <code>miss-fix</code> loses its <code>miss</code>. TfLens follows the file, not its own convenience: <code>StreamKind</code> stops being 1:1 with a table, <code>AddRecord</code> dispatches on the record's own <code>kind</code> inside the <code>Misses</code> case, and an unknown <code>kind</code> is counted-and-skipped like a malformed line (never thrown), because an unknown kind in a stream we <em>do</em> know is the same class of event. Three tables rather than one wide nullable table because the three shapes share only the common set, and a single table would make every column of two kinds nullable and every query a discriminator check.
+</li>
+<li><strong>ADR-019 — Apportioned cost gets a distinct result type (<code>MissCost</code>), not a flag (2026-08-28).</strong> Reason: a fix run that repaired three misses has one token window; dividing by three is arithmetic, not measurement, and the two must never be summed. A boolean like <code>IsApportioned</code> alongside one <code>Cost</code> property would leave the blended number one careless binding away, and a rule in prose is a rule someone deletes in a refactor. <code>MissCost(Figure Sole, Figure Apportioned, int NoneCount)</code> has <strong>no</strong> property that could hold a blend, so the page, the export and parity all carry the split by construction. Same technique as <code>Figure</code> and <code>AnalysisResult</code> (ADR-007): make the wrong number unrepresentable rather than forbidden.
+</li>
+<li><strong>ADR-020 — <code>miss-amend</code> records are stored and folded at read time, never collapsed at ingest (2026-08-28).</strong> Reason: folding at ingest would make the stored value depend on the order files happened to arrive — TfLens ingests archived files from many machines, and a merged stream can legitimately carry an amend and a later-written value in either order. Storing the amend rows and folding on read keeps <code>RebuildAsync</code> re-deriving identical values from <code>data/raw/</code>, keeps the raw archive the only source of truth (ADR-015), and lets the invariant ("an amend may fill a <code>null</code>, never overwrite one") be re-checked by TfLens rather than trusted to the producer. The cost is one extra table and a fold on every read; the memoised <code>AnalysisResult</code> absorbs it.
+</li>
+<li><strong>ADR-021 — Source origin (<code>api</code> vs <code>import</code>) is a displayed attribute, never a pooling axis (2026-08-28).</strong> Reason: TfLens's existing walls — live/backfilled, <code>project_type</code>, framework, user — exist because mixing across them produces a figure that looks normal and is wrong. Origin is not that kind of boundary: a record's <code>backfilled</code>, <code>project_type</code>, <code>harness</code> and <code>origin_confidence</code> fields mean exactly the same thing whether the line arrived over HTTPS or off a desktop, because how a file was <em>delivered</em> is not a property of what it <em>records</em>. Segmenting on it would split every figure on every page into two smaller halves, many of them below <code>MinN</code>, and buy nothing. So it is shown everywhere it could matter (row badge, Coverage column, <code>source_kind</code> in the export) and divides nothing — the same discipline as the taint counts, which are applied <em>and</em> displayed but never used to partition a report. The residual risk — an imported bundle could have been hand-edited — is handled by visibility, not by a wall, and deliberately not by a signature the frameworks do not produce.
+</li>
+<li><strong>ADR-022 — An imported source's dataset identity is the bundle's sha256, standing exactly where a fetched source's commit SHA stands (2026-08-28).</strong> Reason: BRD §13 pins a parity run to a dataset, and an uploaded zip has no commit to name. A content hash is the natural substitute and is strictly stronger for the purpose: the reference script is run over the <em>identical archived bytes</em> rather than over a fresh clone the operator hopes matches. It also gives the raw archive a stable, collision-resistant filename component (<code>&lt;stream&gt;-&lt;bundleSha&gt;.jsonl</code>), so re-importing the same bundle overwrites its own file rather than accumulating copies, while re-importing a <em>changed</em> bundle lands beside it and replays in order — the same shape the SHA-named fetched files already have. <code>UserRepo</code> therefore carries <code>LastSha</code> <strong>or</strong> <code>BundleSha</code>, never both.
+</li>
 </ul>
-
 <h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>
-
 <p>Not applicable — greenfield; §2 is the target.</p>
-
 <h2 id="open-questions-risks">12. Open questions / risks<a class="anchor-link" href="#open-questions-risks">#</a></h2>
-
 <ul>
-<li><strong>Schema v=2 arrival.</strong> Unknown fields land in <code>Overflow</code> and are listed on the Coverage page ("fields observed that SCHEMA.md doesn't document"), but a <em>renamed</em> or <em>re-typed</em> known field would silently fall into the overflow and drop out of the metrics. First thing that breaks: any figure depending on the renamed field, with no error. Mitigation: a per-sync "unknown fields" report + a hard warning when <code>v &gt; 1</code> is seen.</li>
-<li><strong>Playbook <code>events.ndjson</code> shape is unknown</strong> — <code>PbEvent</code> columns are provisional (ADR-010).</li>
-<li><strong>GitHub rate limits / PAT expiry.</strong> A fine-grained PAT has a maximum lifetime; expiry shows up as 401s on the Coverage page. Poll interval defaults to 15 minutes; 5 repos × 5 calls is far below the 5,000/hour authenticated limit.</li>
-<li><strong>Reference drift.</strong> <code>tf-metrics.sh</code> can change (it is part of the framework and is refreshed by <code>update-framework.sh</code>). The parity procedure re-runs after every parser change <em>in TfLens</em>, but a reference change also invalidates the last parity stamp — record the script's own hash in the parity entry.</li>
-<li><strong>Short-SHA collision across repos</strong> is handled (dedupe per user and repo); duplicate <code>owner/name</code> per user is rejected at connect time.</li>
-<li><strong>AppManager availability</strong> is now on the sign-in path. Sessions keep working on their server-side refresh token until it expires; there is deliberately no local fallback.</li>
-<li><strong>GitHub unauthenticated rate limit</strong> (60 requests/hour per IP) with many users and no server PAT: the SHA-skip keeps steady state at one request per repo per poll, but connect-time validation costs 2–3 requests; the optional PAT lifts this to 5,000/hour.</li>
-<li><strong>AppManager password rules and error codes</strong> are taken from the v1.4 guide; the client must be re-checked against <code>api-migration-notes</code> on the next AppManager release.</li>
-<li><strong>Playbook-native "three questions"</strong> map <code>phase_gate</code> values to first-pass / catch / escape analogues — the mapping is provisional until the real <code>events.ndjson</code> is parsed (Phase 3) and must be written into DECISIONS.md before any Playbook figure is exported.</li>
-<li><strong>Postgres in the parity loop:</strong> <code>tf-metrics.sh</code> reads files, TfLens reads Postgres; the parity procedure pins the dataset by SHA, so the store is irrelevant to the comparison — but a <code>rebuild</code> must precede every parity run to rule out stale rows.</li>
+<li><strong>Schema v=2 arrival.</strong> Unknown fields land in <code>Overflow</code> and are listed on the Coverage page ("fields observed that SCHEMA.md doesn't document"), but a <em>renamed</em> or <em>re-typed</em> known field would silently fall into the overflow and drop out of the metrics. First thing that breaks: any figure depending on the renamed field, with no error. Mitigation: a per-sync "unknown fields" report + a hard warning when <code>v &gt; 1</code> is seen.
+</li>
+<li><strong>Playbook <code>events.ndjson</code> shape is unknown</strong> — <code>PbEvent</code> columns are provisional (ADR-010).
+</li>
+<li><strong>GitHub rate limits / PAT expiry.</strong> A fine-grained PAT has a maximum lifetime; expiry shows up as 401s on the Coverage page. Poll interval defaults to 15 minutes; 5 repos × 5 calls is far below the 5,000/hour authenticated limit.
+</li>
+<li><strong>Reference drift.</strong> <code>tf-metrics.sh</code> can change (it is part of the framework and is refreshed by <code>update-framework.sh</code>). The parity procedure re-runs after every parser change <em>in TfLens</em>, but a reference change also invalidates the last parity stamp — record the script's own hash in the parity entry.
+</li>
+<li><strong>Short-SHA collision across repos</strong> is handled (dedupe per user and repo); duplicate <code>owner/name</code> per user is rejected at connect time.
+</li>
+<li><strong>AppManager availability</strong> is now on the sign-in path. Sessions keep working on their server-side refresh token until it expires; there is deliberately no local fallback.
+</li>
+<li><strong>GitHub unauthenticated rate limit</strong> (60 requests/hour per IP) with many users and no server PAT: the SHA-skip keeps steady state at one request per repo per poll, but connect-time validation costs 2–3 requests; the optional PAT lifts this to 5,000/hour.
+</li>
+<li><strong>AppManager password rules and error codes</strong> are taken from the v1.4 guide; the client must be re-checked against <code>api-migration-notes</code> on the next AppManager release.
+</li>
+<li><strong>Playbook-native "three questions"</strong> map <code>phase_gate</code> values to first-pass / catch / escape analogues — the mapping is provisional until the real <code>events.ndjson</code> is parsed (Phase 3) and must be written into DECISIONS.md before any Playbook figure is exported.
+</li>
+<li><strong>The <code>project_type</code> reclassification split</strong> (2026-08-28). Every greenfield repo is born <code>docs</code> — at scaffold time there is no <code>src/</code> — and the producer now upgrades it to <code>app</code> on refresh, but <strong>already-written records keep <code>project_type:"docs"</code></strong>, because streams are append-only and corrections happen at read time. Since §6 forbids pooling across <code>project_type</code>, one project legitimately appears under two segments with no visible reason, and silently looks like two projects. TfLens hits this first because TfLens <em>caused</em> it (it was classified <code>docs</code> while carrying 225 gate records). Coverage must detect the disagreement between a repo's current classification and its own records and state it in words, describing each segment as a <em>period</em> of the project (BRD-127).
+</li>
+<li><strong><code>escapes_missing_why</code> is a data-quality figure, not a quality one.</strong> An escape arriving with no <code>WhyMissed</code> is the most valuable record in the stream arriving incomplete. It belongs on Coverage, never on the <code>/misses</code> KPI row, where it would read as a defect count.
+</li>
+<li><strong>An imported bundle is user-supplied</strong>, and TfLens does not attempt to detect tampering — the frameworks emit no signature, and asking them to is out of scope (BRD §1: TfLens never asks a framework to change). The mitigation is visibility (ADR-021), not verification. Worth revisiting if the frameworks ever sign their streams.
+</li>
+<li><strong>Import is the first inbound write surface</strong> in a product whose §3 previously promised none. It is bounded in code rather than by convention (extension, size, safe extraction, confined path, no execution — BRD-139) and the out-of-scope line was narrowed in the BRD rather than quietly broken. A future ask for an <em>automated</em> push endpoint should be treated as a genuinely new decision, not as an extension of this one.
+</li>
+<li><strong>Postgres in the parity loop:</strong> <code>tf-metrics.sh</code> reads files, TfLens reads Postgres; the parity procedure pins the dataset by SHA, so the store is irrelevant to the comparison — but a <code>rebuild</code> must precede every parity run to rule out stale rows.
+</li>
 </ul>
-
 <h2 id="sources-harvested">13. Sources harvested<a class="anchor-link" href="#sources-harvested">#</a></h2>
-
 <ul>
-<li><code>docs/TfLens-Project-Brief.md</code> (v2) — concept, phases, constraints, parity procedure, definition of done. Superseded by this document + the BRD; archived to <code>docs/OldDocs/</code>.</li>
-<li><code>.tfcore/telemetry/SCHEMA.md</code> (schema v=1) — field names, enums, provenance rules.</li>
-<li><code>.tfcore/telemetry/tf-metrics.sh</code> — reference implementation of every reporting rule (the parity oracle).</li>
-<li><code>docs/ravi-90day-positioning-plan-v2.4.2.md</code> — A-V / A0′ / B1 / B3 context only; stays in <code>docs/</code> (independently authoritative).</li>
-<li><code>docs/AppManager-api-usage-guide.md</code> (v1.4) — identity integration (amendment 2026-08-26); stays in <code>docs/</code> (independently authoritative).</li>
+<li><code>docs/TfLens-Project-Brief.md</code> (v2) — concept, phases, constraints, parity procedure, definition of done. Superseded by this document + the BRD; archived to <code>docs/OldDocs/</code>.
+</li>
+<li><code>.tfcore/telemetry/SCHEMA.md</code> (schema v=1) — field names, enums, provenance rules.
+</li>
+<li><code>.tfcore/telemetry/tf-metrics.sh</code> — reference implementation of every reporting rule (the parity oracle).
+</li>
+<li><code>docs/ravi-90day-positioning-plan-v2.4.2.md</code> — A-V / A0′ / B1 / B3 context only; stays in <code>docs/</code> (independently authoritative).
+</li>
+<li><code>docs/AppManager-api-usage-guide.md</code> (v1.4) — identity integration (amendment 2026-08-26); stays in <code>docs/</code> (independently authoritative).
+</li>
+<li>Owner requirement, 2026-08-28 (round 2) — imported telemetry for private/corporate repositories, folded into the Repos screen as a second mode of one dialog.
+</li>
+<li><code>docs/Miss-Telemetry-TfLens.md</code> + <code>docs/Miss-Telemetry-TechieFlow.md</code> (2026-08-28) — the miss stream's design record and the shipped producer's contract; source of the F-MISS amendment. Both stay in <code>docs/</code> (independently authoritative).
+</li>
+<li><code>.tfcore/telemetry/SCHEMA.md</code> §5.5 (2026-08-28) — the three miss record kinds, the <code>why_missed</code> vocabulary, the <code>cost_attribution</code> and <code>origin_confidence</code> derivation rules.
+</li>
 </ul>
-
   </main>
 </div>
 

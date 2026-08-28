@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Snapshot export</title>
+<title>TfLens — Misses & rework</title>
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -216,8 +216,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
    <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
-   <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
-   <a href="export.html" class="active" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
+   <a href="misses.html" class="active" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
  <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
@@ -225,43 +225,142 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
 <div class="main">
  <header class="hdr">
   <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
-  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Snapshot export</b></nav>
-  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="export.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="export-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Misses &amp; rework</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="misses.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="misses-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
   <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
   <span class="badge outline">synced 12 min ago</span>
   <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
- <main class="content"><div class="page">
-  <div class="row between"><div><h1>Snapshot export</h1><p class="sub">Freeze the figures you're about to quote, with the dataset SHAs they came from</p></div><span class="badge outline">parser v3</span></div>
-  <div class="alert warning" data-testid="quotable-banner"><svg><use href="#i-alert-triangle"/></svg><div><b>NOT QUOTABLE</b><p>parser v3 changed after the last parity run (2026-08-30, parser v2); re-run the parity procedure</p></div></div>
-  <div class="grid" style="grid-template-columns:1fr 2fr;align-items:start">
-   <div class="card"><div class="card-h"><div><div class="card-t">Export</div><div class="card-d">Markdown for humans, JSON for machines</div></div><span class="chip c1"><svg><use href="#i-download"/></svg></span></div>
-    <div class="card-c stack"><button class="btn block" data-testid="export-now"><svg class="i"><use href="#i-download"/></svg>Export snapshot</button><p class="muted xs" data-testid="export-framework-note">one snapshot per framework — currently: <b>TechieFlow</b></p><p class="muted xs">writes <span class="mono">data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md</span> + <span class="mono">tflens.json</span></p>
-     <hr class="sep"><table class="tbl kv" style="margin:0 -24px;width:calc(100% + 48px)"><tbody><tr><td>Parser</td><td>v3</td></tr><tr><td>Parity status</td><td><span class="badge warning">not quotable</span></td></tr><tr><td>Scope</td><td>5 repos · 12,480 records</td></tr></tbody></table></div></div>
-   <div class="card"><div class="card-h"><div><div class="card-t">Dataset SHAs</div><div class="card-d">The exact commit each stream was read at — copied into every snapshot</div></div></div>
-    <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="dataset-shas"><thead><tr><th>repo</th><th>branch</th><th>SHA</th><th>synced</th><th class="r"></th></tr></thead><tbody>
-     <tr><td>techierathore/TechieFlow</td><td class="mono">main</td><td class="mono">a91f3c2e7d</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/TechieRag</td><td class="mono">main</td><td class="mono">7c04e1b09a</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/TrBlazeUI</td><td class="mono">main</td><td class="mono">e3b9d40c11</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/blog</td><td class="mono">main</td><td class="mono">51aa0f9b3e</td><td class="muted">41 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/AI-First-Playbook</td><td class="mono">main</td><td class="mono">0d7e6a3f52</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-    </tbody></table></div></div>
+  <main class="content"><div class="page" data-testid="misses-page">
+  <div class="row between wrap" style="gap:16px">
+   <div><h1>Misses &amp; rework</h1><p class="sub">What was missed, which practice let it through, and what the repair cost</p></div>
+   <div class="row" style="gap:8px">
+    <span class="badge outline">all history</span>
+    <select class="input" style="width:190px;height:36px" data-testid="misses-period">
+     <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
+    </select>
+   </div>
   </div>
-  <div class="card"><div class="card-h"><div><div class="card-t">Past snapshots</div><div class="card-d">Your folders under data/reports — each row links to both files</div></div><span class="badge outline">2</span></div>
-   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="snapshots"><thead><tr><th>date</th><th>parser version</th><th>parity status</th><th>snapshot.md</th><th>tflens.json</th></tr></thead><tbody>
-    <tr><td>2026-08-30</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
-    <tr><td>2026-08-18</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
-   </tbody></table></div></div>
-  <div class="card" data-testid="parity-record"><div class="card-h"><div><div class="card-t">Last parity run</div><div class="card-d">data/parity-last.json — the independent script agreed with the engine</div></div><span class="badge success"><svg><use href="#i-check"/></svg>0 differences</span></div>
-   <div class="card-c grid g2" style="align-items:start">
-    <table class="tbl kv"><tbody><tr><td>Date</td><td>2026-08-30 11:22 UTC</td></tr><tr><td>Parser version</td><td>v2 <span class="badge warning" style="margin-left:6px">current is v3</span></td></tr><tr><td>Script hash</td><td class="mono">sha256:4b1e…9c07</td></tr><tr><td>Dataset SHAs</td><td class="mono xs">a91f3c2 · 7c04e1b · e3b9d40 · 51aa0f9 · 0d7e6a3</td></tr></tbody></table>
-    <div class="codeblk" data-testid="parity-output"><div class="cb-h"><span class="mono">parity-compare output</span><button class="btn ghost icon" title="Copy"><svg class="i"><use href="#i-copy"/></svg></button></div><pre>parity-compare: 0 differences across 214 keys
-engine    : TfLens.Analysis 0.1.0 (parser v2)
-script    : scripts/parity.py @ 4b1e…9c07
-dataset   : 5 repos, 12,168 records</pre></div>
-   </div></div>
+
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Two escape figures on this site, and they are not the same number</b><p>This page's <b>escape share</b> is <span class="mono">found_by ∈ {owner, production}</span> ÷ all misses, from <span class="mono">misses.jsonl</span>. The <b>escape rate</b> on Three questions keeps its own definition and its own source (<span class="mono">gates.jsonl</span>). They are adjacent, never merged — two definitions of one word on one page is how a report loses its reader.</p></div></div>
+
+  <!-- BAND 1 — KPI row -->
+  <div class="grid g4" data-testid="miss-kpis">
+   <div class="card kpi" data-testid="kpi-open"><div class="row"><span class="t">Open misses</span><span class="chip cd"><svg><use href="#i-bug"/></svg></span></div><div class="v">9</div><div class="n">latest verdict ∉ {Verified, wont-fix} · 2 <span class="mono">deferred</span> are counted here</div></div>
+   <div class="card kpi" data-testid="kpi-wontfix"><div class="row"><span class="t">Declined (wont-fix)</span><span class="chip c4"><svg><use href="#i-x"/></svg></span></div><div class="v">3</div><div class="n">a decision, not a backlog item — never folded into open</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Misses this period</span><span class="chip c1"><svg><use href="#i-activity"/></svg></span></div><div class="v">41</div><div class="n">29 closed · 9 open · 3 declined</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Median time to close</span><span class="chip c5"><svg><use href="#i-clock"/></svg></span></div><div class="v">4.2 h</div><div class="n">miss-fix.ts − miss.ts over 29 closed misses</div></div>
+  </div>
+
+  <div class="grid g4">
+   <div class="card kpi" data-testid="kpi-design-share"><div class="row"><span class="t">Design-miss share</span><span class="chip c3"><svg><use href="#i-book-open"/></svg></span></div><div class="v">34%</div><div class="n"><span class="mono">unspecified-gap</span> 14 ÷ 41 — the spec itself omitted it</div></div>
+   <div class="card kpi" data-testid="kpi-escape-share"><div class="row"><span class="t">Escape share (misses)</span><span class="chip c2"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v">22%</div><div class="n">found_by owner or production · 9 ÷ 41 — <b>not</b> the gates escape rate</div></div>
+   <div class="card kpi" data-testid="kpi-rework-tokens"><div class="row"><span class="t">Tokens spent on rework</span><span class="chip c1"><svg><use href="#i-database"/></svg></span></div><div class="v">3.9M</div><div class="n">Σ over <span class="mono">cost_attribution: sole</span> fixes only (18 of 29)</div></div>
+   <div class="card kpi" data-testid="kpi-rework-usd" style="border-color:rgba(52,211,153,.45)"><div class="row"><span class="t">Measured USD on rework</span><span class="badge success">opencode · measured</span></div><div class="v">$1.94</div><div class="n">Σ <span class="mono">cost_usd</span>, OpenCode records only — the only measured dollars in the product</div></div>
+  </div>
+
+  <div class="card" style="border-style:dashed" data-testid="kpi-rework-usd-estimate">
+   <div class="card-c row between wrap" style="gap:16px">
+    <div class="row" style="gap:12px"><span class="chip c4"><svg><use href="#i-alert-triangle"/></svg></span>
+     <div><div class="card-t">Claude Code + Codex rework — <span class="mono">$21.40</span> <span class="badge outline">estimate — tokens × rate card, not measured spend</span></div>
+     <div class="card-d">A separate tile on a separate row with a different treatment, deliberately: a reader who cannot tell this apart from the measured tile at a glance has been given a plausible wrong number. Exports this figure under a key ending <span class="mono">_usd_estimate</span>. Nobody was billed this amount.</div></div></div>
+   </div>
+  </div>
+
+  <!-- BAND 2 — where misses come from -->
+  <h3>Where misses come from</h3>
+  <div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start">
+   <div class="card" data-testid="miss-origin">
+    <div class="card-h"><div><div class="card-t">Origin phase × miss class</div><div class="card-d">Did we specify badly, or build badly?</div></div><span class="badge outline">linked only</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Origin phase</th><th class="r">unspecified-gap</th><th class="r">partial-impl</th><th class="r">wrong-behaviour</th><th class="r">regression</th><th class="r">Total</th></tr></thead><tbody>
+     <tr><td><span class="mono">day1-greenfield</span></td><td class="r">7</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r"><b>8</b></td></tr>
+     <tr><td><span class="mono">split-brd</span></td><td class="r">4</td><td class="r">0</td><td class="r">0</td><td class="r">0</td><td class="r"><b>4</b></td></tr>
+     <tr><td><span class="mono">build-phase</span></td><td class="r">2</td><td class="r">9</td><td class="r">6</td><td class="r">2</td><td class="r"><b>19</b></td></tr>
+     <tr><td><span class="mono">verify-phase</span></td><td class="r">1</td><td class="r">2</td><td class="r">1</td><td class="r">1</td><td class="r"><b>5</b></td></tr>
+     <tr><td class="muted">unattributed</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r"><b>5</b></td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm row" data-testid="miss-taint-count"><svg class="i"><use href="#i-info"/></svg><span><b>5 of 41 misses excluded</b> from every per-origin figure — <span class="mono">origin_confidence ≠ "linked"</span> (3 <span class="mono">inferred</span>, 2 <span class="mono">unknown</span>). The exclusion is stated because an exclusion the reader cannot see is indistinguishable from a bug.</span></p></div>
+   </div>
+
+   <div class="card" data-testid="miss-whymissed">
+    <div class="card-h"><div><div class="card-t">Which practice failed</div><div class="card-d">Is our <b>specification</b> weak, or our <b>verification</b>?</div></div><span class="badge warning">28 of 41 misses assessed</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><tbody>
+     <tr><td><span class="mono">missing-checklist-item</span></td><td style="width:130px"><span class="prog"><i style="width:39%"></i></span></td><td class="r">11 · 39%</td></tr>
+     <tr><td><span class="mono">insufficient-verify-method</span></td><td><span class="prog"><i style="width:29%;background:var(--chart-3)"></i></span></td><td class="r">8 · 29%</td></tr>
+     <tr><td><span class="mono">instruction-ignored</span></td><td><span class="prog"><i style="width:14%;background:var(--chart-4)"></i></span></td><td class="r">4 · 14%</td></tr>
+     <tr><td><span class="mono">ambiguous-acceptance</span></td><td><span class="prog"><i style="width:11%;background:var(--chart-5)"></i></span></td><td class="r">3 · 11%</td></tr>
+     <tr><td><span class="mono">code-audit-limitation</span></td><td><span class="prog"><i style="width:7%;background:var(--chart-2)"></i></span></td><td class="r">2 · 7%</td></tr>
+     <tr><td><span class="mono">dependency-not-declared</span></td><td><span class="prog"><i style="width:0%"></i></span></td><td class="r">0 · —</td></tr>
+     <tr><td><span class="mono">other</span></td><td><span class="prog"><i style="width:0%"></i></span></td><td class="r">0 · —</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><b>Denominator is 28, not 41.</b> <span class="mono">why_missed</span> is optional and <span class="mono">null</span> means <i>not assessed</i> — never a zero in some category. 9 misses carry no assessment; a further <b>4 predate the field</b> (added 2026-08-28) and leave this denominator entirely rather than being backfilled with a value nobody assessed at the time.</p></div>
+   </div>
+  </div>
+
+  <!-- BAND 3 — who was running -->
+  <h3>Who was running</h3>
+  <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>Observational only — this band does not show causation</b><p>Miss counts per model and per agent are confounded by <i>which model gets the hard work</i>. A page that implied causation here would invite a bad routing decision. Read these as a description of what ran, not as a ranking. Computed from <span class="mono">origin_confidence: "linked"</span> records only (36 of 41).</p></div></div>
+  <div class="grid g2" style="align-items:start">
+   <div class="card" data-testid="miss-origin-model">
+    <div class="card-h"><div><div class="card-t">By origin model</div><div class="card-d">Which model to route to — a different question from the one beside it</div></div><span class="badge outline">36 linked</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Model</th><th class="r">Misses</th><th class="r">Runs</th><th class="r">Per 100 runs</th></tr></thead><tbody>
+     <tr><td><span class="mono">claude-opus-5</span></td><td class="r">21</td><td class="r">318</td><td class="r">6.6</td></tr>
+     <tr><td><span class="mono">claude-sonnet-5</span></td><td class="r">11</td><td class="r">204</td><td class="r">5.4</td></tr>
+     <tr><td><span class="mono">gpt-5-codex</span></td><td class="r">4</td><td class="r">41</td><td class="r ital muted">insufficient data (n=4)</td></tr>
+    </tbody></table></div>
+   </div>
+   <div class="card" data-testid="miss-origin-agent">
+    <div class="card-h"><div><div class="card-t">By origin agent</div><div class="card-d">Which persona's instructions to tighten</div></div><span class="badge outline">36 linked</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Agent</th><th class="r">Misses</th><th class="r">Share</th><th>Dominant class</th></tr></thead><tbody>
+     <tr><td><span class="mono">flow-master</span></td><td class="r">14</td><td class="r">39%</td><td class="sm"><span class="mono">partial-implementation</span></td></tr>
+     <tr><td><span class="mono">analyst</span></td><td class="r">9</td><td class="r">25%</td><td class="sm"><span class="mono">unspecified-gap</span></td></tr>
+     <tr><td><span class="mono">verifier</span></td><td class="r">7</td><td class="r">19%</td><td class="sm"><span class="mono">wrong-behaviour</span></td></tr>
+     <tr><td><span class="mono">trblazeui</span></td><td class="r">4</td><td class="r">11%</td><td class="sm"><span class="mono">partial-implementation</span></td></tr>
+     <tr><td><span class="mono">architect</span></td><td class="r">2</td><td class="r ital muted">insufficient data (n=2)</td><td class="muted">—</td></tr>
+    </tbody></table></div>
+   </div>
+  </div>
+
+  <!-- BAND 4 — cost of rework -->
+  <h3>Cost of rework</h3>
+  <div class="grid g3" data-testid="miss-cost" style="align-items:start">
+   <div class="card"><div class="card-h"><div><div class="card-t">Measured</div><div class="card-d"><span class="mono">cost_attribution: sole</span></div></div><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">216,400</div><div class="n">tokens per miss fixed · 18 fixes whose run touched exactly this REQ. The whole window is this miss's cost — <b>this is a measurement</b>.</div></div>
+     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0"><div class="row between"><span class="muted sm">Measured USD (OpenCode)</span><b>$1.94</b></div></div></div>
+   <div class="card"><div class="card-h"><div><div class="card-t">Apportioned</div><div class="card-d"><span class="mono">cost_attribution: shared:n</span></div></div><span class="chip c4"><svg><use href="#i-alert-triangle"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">98,700</div><div class="n">tokens per miss, divided equally across 8 fixes covering 3.4 REQs on average. One token window over several misses — <b>arithmetic, not measurement</b>, and never summed into the column beside it.</div></div>
+     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0"><div class="row between"><span class="muted sm">Divided equally, and we say so</span><span class="badge warning">apportioned</span></div></div></div>
+   <div class="card"><div class="card-h"><div><div class="card-t">Unattributable</div><div class="card-d"><span class="mono">cost_attribution: none</span></div></div><span class="chip cd"><svg><use href="#i-x"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">3</div><div class="n">fixes with <b>no numbers at all</b> — the run's <span class="mono">tokens_scope</span> was <span class="mono">none</span>, or the repair happened inline with no distinct fix run (the <span class="mono">*log-miss --fixed</span> front door omits <span class="mono">fix_run_id</span> deliberately). A count, never a divisor. Missing beats invented.</div></div></div></div>
+  </div>
+  <p class="muted sm row"><svg class="i"><use href="#i-info"/></svg>There is no blended figure on this page, in the export, or in parity — <span class="mono">MissCost</span> exposes <span class="mono">Sole</span>, <span class="mono">Apportioned</span> and <span class="mono">NoneCount</span> and nothing else, so a single combined number has no property to bind to (ADR-019).</p>
+
+  <!-- Detail table -->
+  <div class="card" data-testid="miss-detail">
+   <div class="card-h"><div><div class="card-t">Every miss</div><div class="card-d">41 records · the raw record is behind the disclosure on each row</div></div><div class="row" style="gap:8px"><div class="inwrap"><svg class="i lead"><use href="#i-search"/></svg><input class="input lead sm" style="width:220px;height:32px" placeholder="Filter by REQ or class"></div></div></div>
+   <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Miss</th><th>REQ</th><th>Class</th><th>Severity</th><th>Origin</th><th>Found by</th><th>Status</th><th class="r">Tokens</th></tr></thead><tbody>
+    <tr><td><span class="mono">MISS-TfLens-20260828-02</span></td><td><span class="mono">REQ-NFR-012</span></td><td><span class="badge outline">unspecified-gap</span></td><td><span class="badge destructive">blocker</span></td><td class="sm"><span class="mono">split-brd</span> · analyst <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>owner</td><td><span class="badge warning">open</span></td><td class="r muted">—</td></tr>
+    <tr><td><span class="mono">MISS-TfLens-20260828-01</span></td><td class="muted">—</td><td><span class="badge outline">wrong-behaviour</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">build-phase</span> · flow-master <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>owner</td><td><span class="badge success">Verified</span></td><td class="r">248,900 <span class="badge secondary" style="height:18px;font-size:11px">sole</span></td></tr>
+    <tr><td><span class="mono">MISS-TfLens-20260827-04</span></td><td><span class="mono">REQ-UI-013</span></td><td><span class="badge outline">partial-implementation</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">build-phase</span> · trblazeui <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>gate · visual</td><td><span class="badge success">Verified</span></td><td class="r">94,100 <span class="badge secondary" style="height:18px;font-size:11px">shared:3</span></td></tr>
+    <tr><td><span class="mono">MISS-TfLens-20260827-03</span></td><td><span class="mono">REQ-UI-025</span></td><td><span class="badge outline">wrong-behaviour</span></td><td><span class="badge destructive">blocker</span></td><td class="sm"><span class="mono">build-phase</span> · flow-master <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>agent-review</td><td><span class="badge success">Verified</span></td><td class="r">312,400 <span class="badge secondary" style="height:18px;font-size:11px">sole</span></td></tr>
+    <tr><td><span class="mono">MISS-TfLens-20260827-02</span></td><td><span class="mono">REQ-FN-067</span></td><td><span class="badge outline">unspecified-gap</span></td><td><span class="badge secondary">minor</span></td><td class="sm muted">not named <span class="badge outline" style="height:18px;font-size:11px">unknown</span></td><td>agent-review</td><td><span class="badge secondary">wont-fix</span></td><td class="r muted">—</td></tr>
+    <tr><td><span class="mono">MISS-TfLens-20260826-01</span></td><td><span class="mono">REQ-FN-030</span></td><td><span class="badge outline">regression</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">build-phase</span> · tf-builder <span class="badge warning" style="height:18px;font-size:11px">inferred</span></td><td>gate · build</td><td><span class="badge warning">deferred</span></td><td class="r muted">—</td></tr>
+   </tbody></table></div>
+   <div class="coll" style="margin:0 24px 20px;border-radius:8px"><div class="trg"><svg><use href="#i-chevron-right"/></svg>Raw record — <span class="mono">MISS-TfLens-20260828-01</span></div>
+    <div class="body"><pre>{"v":1,"ts":"2026-08-28T06:12:03Z","kind":"miss","app":"TfLens",
+ "project_type":"app","harness":"claude-code",
+ "miss_id":"MISS-TfLens-20260828-01","req_id":null,"req_class":null,
+ "miss_class":"wrong-behaviour","artifact":"devguide","severity":"major",
+ "why_missed":"missing-checklist-item",
+ "origin_phase":"build-phase","origin_agent":"flow-master",
+ "origin_run_id":"2026-08-26T14:02:11Z","origin_confidence":"linked",
+ "origin_model":"claude-opus-5","origin_harness":"claude-code",
+ "found_by":"owner","found_phase":"log-miss","found_gate":null,
+ "found_run_id":"2026-08-28T06:10:44Z","failure_class":null}</pre>
+    <p class="muted xs"><span class="mono">why_missed</span> on this record was supplied by a later <span class="mono">miss-amend</span> and folded in at read time — the stored <span class="mono">miss</span> row still carries <span class="mono">null</span>, because an amend completes a record and never edits it.</p></div></div>
+  </div>
  </div></main>
 </div></div>
 </body>

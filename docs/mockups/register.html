@@ -109,6 +109,65 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 .fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px;margin-left:8px}.fw .tab{height:28px;padding:0 10px;font-size:13px}.fw .tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.fw .tab .badge{height:18px;padding:0 6px;font-size:11px}.fw.dim{opacity:.7}
 .pws{display:flex;flex-direction:column;gap:4px;margin-top:2px}.pws .segs{display:flex;gap:4px}.pws .segs i{flex:1;height:6px;border-radius:999px;background:var(--muted);display:block}.pws .segs i.on{background:var(--success)}.pws .lbl{font-size:11px;color:var(--muted-foreground);display:flex;justify-content:space-between}
 .codeblk{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--muted)}.codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 14px;border-bottom:1px solid var(--border);background:var(--card);font-size:12px;color:var(--muted-foreground)}.codeblk pre{border:0;border-radius:0}
+/* ---- responsive (added 2026-08-28) — mockups must read true at 1280 and 390 ---- */
+@media (max-width:1100px){
+ .grid.g5,.grid.g4,.grid.g3{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+ .sidebar{width:56px}
+ .sb-head{padding:0 12px}
+ .brand,.grp-label,.nav .lbl,.mbadge,.sb-foot span,.sb-foot .switch{display:none}
+ .nav a{justify-content:center;padding:0}
+ .sb-foot{justify-content:center;padding:12px 8px}
+ .hdr{padding:0 12px;gap:8px}
+ .crumb>span,.crumb>svg{display:none}
+ .hdr>.badge.outline{display:none}
+ .fw .badge{display:none}
+ .content{padding:20px}
+ .card-c.flush{overflow-x:auto}
+ pre{overflow-x:auto}
+ .grid>*,.row,.main,.card,.stack>*{min-width:0}
+ .bars{overflow-x:auto}
+}
+@media (max-width:700px){
+ .grid.g2,.grid.g3,.grid.g4,.grid.g5{grid-template-columns:1fr}
+ .grid[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+ .hdr [data-testid="sync-now"]{font-size:0!important;gap:0;padding:0 10px}
+ .hdr [data-testid="user-menu"]{font-size:0!important;gap:0;padding:0 4px}
+ .hdr [data-testid="user-menu"] .avatar{font-size:12px!important}
+ .content{padding:16px 12px}
+ .content>.page{gap:16px}
+ h1{font-size:20px}
+ .card-h,.card-c,.card-f{padding-left:16px;padding-right:16px}
+ .card-f,.card-h{flex-wrap:wrap;gap:8px}
+ .tabs{flex-wrap:wrap}
+ .fw.tabs{flex-wrap:nowrap}
+ .tab{white-space:nowrap}
+ .bars{gap:10px;padding:8px 0 0}
+ .auth{flex-direction:column;min-height:100vh}
+ .brandp{width:100%;flex:none;padding:14px 20px;flex-direction:row;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--border)}
+ .brandp .tag,.brandp ul{display:none}
+ .brandp .word .mark{width:34px;height:34px;border-radius:9px}
+ .brandp .word .mark svg{width:18px;height:18px}
+ .brandp .word b{font-size:22px}
+ .brandp>.row{margin-left:auto}
+ .authr{padding:28px 16px;flex:1}
+ .dd{width:210px}
+}
+@media (max-width:820px){
+ .hdr>*{min-width:0}
+ .crumb{display:none}
+ .fw{margin-left:0}
+ .fw .tab{padding:0 9px;font-size:12px}
+ .hdr>.switch>svg{display:none!important}
+ .hdr>.switch{gap:0}
+}
+@media (max-width:480px){
+ .content{padding:12px 8px}
+ .fw .tab{padding:0 7px;font-size:11px}
+ [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
+ [data-testid="source-mode"] .tab svg{display:none}
+}
 </style>
 </head>
 <body>

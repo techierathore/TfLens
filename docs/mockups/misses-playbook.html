@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Snapshot export</title>
+<title>TfLens — Misses & rework (Playbook)</title>
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -216,8 +216,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
    <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
-   <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
-   <a href="export.html" class="active" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
+   <a href="misses.html" class="active" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
  <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
@@ -225,43 +225,57 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
 <div class="main">
  <header class="hdr">
   <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
-  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Snapshot export</b></nav>
-  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="export.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="export-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Misses &amp; rework</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab" href="misses.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab active" href="misses-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
   <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
   <span class="badge outline">synced 12 min ago</span>
   <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
- <main class="content"><div class="page">
-  <div class="row between"><div><h1>Snapshot export</h1><p class="sub">Freeze the figures you're about to quote, with the dataset SHAs they came from</p></div><span class="badge outline">parser v3</span></div>
-  <div class="alert warning" data-testid="quotable-banner"><svg><use href="#i-alert-triangle"/></svg><div><b>NOT QUOTABLE</b><p>parser v3 changed after the last parity run (2026-08-30, parser v2); re-run the parity procedure</p></div></div>
-  <div class="grid" style="grid-template-columns:1fr 2fr;align-items:start">
-   <div class="card"><div class="card-h"><div><div class="card-t">Export</div><div class="card-d">Markdown for humans, JSON for machines</div></div><span class="chip c1"><svg><use href="#i-download"/></svg></span></div>
-    <div class="card-c stack"><button class="btn block" data-testid="export-now"><svg class="i"><use href="#i-download"/></svg>Export snapshot</button><p class="muted xs" data-testid="export-framework-note">one snapshot per framework — currently: <b>TechieFlow</b></p><p class="muted xs">writes <span class="mono">data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md</span> + <span class="mono">tflens.json</span></p>
-     <hr class="sep"><table class="tbl kv" style="margin:0 -24px;width:calc(100% + 48px)"><tbody><tr><td>Parser</td><td>v3</td></tr><tr><td>Parity status</td><td><span class="badge warning">not quotable</span></td></tr><tr><td>Scope</td><td>5 repos · 12,480 records</td></tr></tbody></table></div></div>
-   <div class="card"><div class="card-h"><div><div class="card-t">Dataset SHAs</div><div class="card-d">The exact commit each stream was read at — copied into every snapshot</div></div></div>
-    <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="dataset-shas"><thead><tr><th>repo</th><th>branch</th><th>SHA</th><th>synced</th><th class="r"></th></tr></thead><tbody>
-     <tr><td>techierathore/TechieFlow</td><td class="mono">main</td><td class="mono">a91f3c2e7d</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/TechieRag</td><td class="mono">main</td><td class="mono">7c04e1b09a</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/TrBlazeUI</td><td class="mono">main</td><td class="mono">e3b9d40c11</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/blog</td><td class="mono">main</td><td class="mono">51aa0f9b3e</td><td class="muted">41 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-     <tr><td>techierathore/AI-First-Playbook</td><td class="mono">main</td><td class="mono">0d7e6a3f52</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
-    </tbody></table></div></div>
+  <main class="content"><div class="page" data-testid="misses-page">
+  <div class="row between wrap" style="gap:16px">
+   <div><h1>Misses &amp; rework</h1><p class="sub">Playbook axis — the layout is identical to the TechieFlow state; only the data and a few labels change</p></div>
+   <div class="row" style="gap:8px">
+    <span class="badge outline">all history</span>
+    <select class="input" style="width:190px;height:36px" data-testid="misses-period" disabled>
+     <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
+    </select>
+   </div>
   </div>
-  <div class="card"><div class="card-h"><div><div class="card-t">Past snapshots</div><div class="card-d">Your folders under data/reports — each row links to both files</div></div><span class="badge outline">2</span></div>
-   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="snapshots"><thead><tr><th>date</th><th>parser version</th><th>parity status</th><th>snapshot.md</th><th>tflens.json</th></tr></thead><tbody>
-    <tr><td>2026-08-30</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
-    <tr><td>2026-08-18</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
-   </tbody></table></div></div>
-  <div class="card" data-testid="parity-record"><div class="card-h"><div><div class="card-t">Last parity run</div><div class="card-d">data/parity-last.json — the independent script agreed with the engine</div></div><span class="badge success"><svg><use href="#i-check"/></svg>0 differences</span></div>
-   <div class="card-c grid g2" style="align-items:start">
-    <table class="tbl kv"><tbody><tr><td>Date</td><td>2026-08-30 11:22 UTC</td></tr><tr><td>Parser version</td><td>v2 <span class="badge warning" style="margin-left:6px">current is v3</span></td></tr><tr><td>Script hash</td><td class="mono">sha256:4b1e…9c07</td></tr><tr><td>Dataset SHAs</td><td class="mono xs">a91f3c2 · 7c04e1b · e3b9d40 · 51aa0f9 · 0d7e6a3</td></tr></tbody></table>
-    <div class="codeblk" data-testid="parity-output"><div class="cb-h"><span class="mono">parity-compare output</span><button class="btn ghost icon" title="Copy"><svg class="i"><use href="#i-copy"/></svg></button></div><pre>parity-compare: 0 differences across 214 keys
-engine    : TfLens.Analysis 0.1.0 (parser v2)
-script    : scripts/parity.py @ 4b1e…9c07
-dataset   : 5 repos, 12,168 records</pre></div>
-   </div></div>
+
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Framework is a provenance axis, and it never pools</b><p>Playbook process-gates (<span class="mono">phase_gate</span>) and TechieFlow assertion-gates (<span class="mono">gate</span>) are different axes and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks. The Framework switch is <b>rendered, not hidden</b>, for a surface one framework has and the other does not — that is the established pattern.</p></div></div>
+
+  <div class="empty" data-testid="playbook-empty">
+   <span class="chip c5"><svg><use href="#i-bug"/></svg></span>
+   <b>No Playbook miss data yet</b>
+   <p>The miss stream is a TechieFlow surface today. The Playbook emits <span class="mono">verification/telemetry/events.ndjson</span>, which carries no miss records — its Phase&nbsp;9 <span class="mono">/analyze-fix</span> produces the same judgement in prose and discards it. When a Playbook repo emits miss telemetry, this page fills in with the identical four bands and the identical guards.</p>
+   <div class="row" style="gap:8px;margin-top:8px">
+    <a class="btn" href="repos.html"><svg class="i"><use href="#i-plus"/></svg>Connect a Playbook repo</a>
+    <a class="btn outline" href="misses.html">View the TechieFlow axis</a>
+   </div>
+  </div>
+
+  <div class="grid g2" style="align-items:start">
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">What this page will show</div><div class="card-d">The same four bands, unchanged — the switch changes the data, never the layout or the rules</div></div><span class="badge outline">Phase 3</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl kv"><tbody>
+     <tr><td>Band 1 — KPI row</td><td class="sm">open · declined · this period · design-miss share · escape share · tokens on rework · measured USD</td></tr>
+     <tr><td>Band 2 — Where misses come from</td><td class="sm">origin phase × miss class, with the excluded-attribution count beneath, beside the failed-practice distribution and its <span class="mono">n of N assessed</span> denominator</td></tr>
+     <tr><td>Band 3 — Who was running</td><td class="sm">origin model and origin agent, <span class="mono">linked</span> records only, taint count visible, labelled observational</td></tr>
+     <tr><td>Band 4 — Cost of rework</td><td class="sm">measured · apportioned · unattributable, rendered as three columns and never as one</td></tr>
+     <tr><td>Detail table</td><td class="sm">every miss, with the raw record behind a disclosure</td></tr>
+    </tbody></table></div>
+   </div>
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Playbook stream health</div><div class="card-d">From Coverage — nothing here is a quality figure</div></div><span class="chip c5"><svg><use href="#i-activity"/></svg></span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Stream</th><th class="r">Records</th><th class="r">Newest</th><th>State</th></tr></thead><tbody>
+     <tr><td><span class="mono">events</span></td><td class="r">0</td><td class="r muted">—</td><td><span class="badge outline">no repo emits it yet</span></td></tr>
+     <tr><td><span class="mono">misses</span></td><td class="r">0</td><td class="r muted">—</td><td><span class="badge outline">not a Playbook surface</span></td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A zero here is <b>absence, not a good score</b>. Nothing on this page is rendered as a figure until there are records to render, and no figure below the minimum n is ever printed as a number.</p></div>
+   </div>
+  </div>
  </div></main>
 </div></div>
 </body>

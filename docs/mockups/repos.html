@@ -109,6 +109,65 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 .fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px;margin-left:8px}.fw .tab{height:28px;padding:0 10px;font-size:13px}.fw .tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.fw .tab .badge{height:18px;padding:0 6px;font-size:11px}.fw.dim{opacity:.7}
 .pws{display:flex;flex-direction:column;gap:4px;margin-top:2px}.pws .segs{display:flex;gap:4px}.pws .segs i{flex:1;height:6px;border-radius:999px;background:var(--muted);display:block}.pws .segs i.on{background:var(--success)}.pws .lbl{font-size:11px;color:var(--muted-foreground);display:flex;justify-content:space-between}
 .codeblk{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--muted)}.codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 14px;border-bottom:1px solid var(--border);background:var(--card);font-size:12px;color:var(--muted-foreground)}.codeblk pre{border:0;border-radius:0}
+/* ---- responsive (added 2026-08-28) — mockups must read true at 1280 and 390 ---- */
+@media (max-width:1100px){
+ .grid.g5,.grid.g4,.grid.g3{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+ .sidebar{width:56px}
+ .sb-head{padding:0 12px}
+ .brand,.grp-label,.nav .lbl,.mbadge,.sb-foot span,.sb-foot .switch{display:none}
+ .nav a{justify-content:center;padding:0}
+ .sb-foot{justify-content:center;padding:12px 8px}
+ .hdr{padding:0 12px;gap:8px}
+ .crumb>span,.crumb>svg{display:none}
+ .hdr>.badge.outline{display:none}
+ .fw .badge{display:none}
+ .content{padding:20px}
+ .card-c.flush{overflow-x:auto}
+ pre{overflow-x:auto}
+ .grid>*,.row,.main,.card,.stack>*{min-width:0}
+ .bars{overflow-x:auto}
+}
+@media (max-width:700px){
+ .grid.g2,.grid.g3,.grid.g4,.grid.g5{grid-template-columns:1fr}
+ .grid[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+ .hdr [data-testid="sync-now"]{font-size:0!important;gap:0;padding:0 10px}
+ .hdr [data-testid="user-menu"]{font-size:0!important;gap:0;padding:0 4px}
+ .hdr [data-testid="user-menu"] .avatar{font-size:12px!important}
+ .content{padding:16px 12px}
+ .content>.page{gap:16px}
+ h1{font-size:20px}
+ .card-h,.card-c,.card-f{padding-left:16px;padding-right:16px}
+ .card-f,.card-h{flex-wrap:wrap;gap:8px}
+ .tabs{flex-wrap:wrap}
+ .fw.tabs{flex-wrap:nowrap}
+ .tab{white-space:nowrap}
+ .bars{gap:10px;padding:8px 0 0}
+ .auth{flex-direction:column;min-height:100vh}
+ .brandp{width:100%;flex:none;padding:14px 20px;flex-direction:row;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--border)}
+ .brandp .tag,.brandp ul{display:none}
+ .brandp .word .mark{width:34px;height:34px;border-radius:9px}
+ .brandp .word .mark svg{width:18px;height:18px}
+ .brandp .word b{font-size:22px}
+ .brandp>.row{margin-left:auto}
+ .authr{padding:28px 16px;flex:1}
+ .dd{width:210px}
+}
+@media (max-width:820px){
+ .hdr>*{min-width:0}
+ .crumb{display:none}
+ .fw{margin-left:0}
+ .fw .tab{padding:0 9px;font-size:12px}
+ .hdr>.switch>svg{display:none!important}
+ .hdr>.switch{gap:0}
+}
+@media (max-width:480px){
+ .content{padding:12px 8px}
+ .fw .tab{padding:0 7px;font-size:11px}
+ [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
+ [data-testid="source-mode"] .tab svg{display:none}
+}
 </style>
 </head>
 <body>
@@ -119,6 +178,11 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
 <symbol id="i-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
 <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+<symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+<symbol id="i-cloud-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8l-4-4"/><path d="m12 21 4-4"/><path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284"/></symbol>
+<symbol id="i-hard-drive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
 <symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
 <symbol id="i-panel-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
@@ -145,7 +209,16 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
-function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
+function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}
+function sourceMode(m){
+ var api=m==='api';
+ document.getElementById('tab-api').classList.toggle('active',api);
+ document.getElementById('tab-import').classList.toggle('active',!api);
+ document.getElementById('mode-api').style.display=api?'flex':'none';
+ document.getElementById('mode-import').style.display=api?'none':'flex';
+ document.getElementById('btn-api').style.display=api?'':'none';
+ document.getElementById('btn-import').style.display=api?'none':'';
+}</script>
 <div class="shell">
 <aside class="sidebar" data-testid="sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
@@ -156,6 +229,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
    <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
+   <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
    <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
@@ -173,40 +247,74 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div class="row between"><div><h1>Repos</h1><p class="sub">Public GitHub repos you've connected</p></div><button class="btn" data-testid="connect-repo"><svg class="i"><use href="#i-plus"/></svg>Connect repo</button></div>
+  <div class="row between"><div><h1>Repos</h1><p class="sub">Sources you've added — fetched from a public repo, or imported from metric files</p></div><button class="btn" data-testid="connect-repo"><svg class="i"><use href="#i-plus"/></svg>Add source</button></div>
   <div class="grid g3">
-   <div class="card kpi"><div class="row"><span class="t">Connected repos</span><span class="chip c1"><svg><use href="#i-git-branch"/></svg></span></div><div class="v">5</div><div class="n">4 techieflow · 1 playbook</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,24 20,24 35,16 55,16 70,10 85,10 100,4"/></svg></div>
+   <div class="card kpi"><div class="row"><span class="t">Connected repos</span><span class="chip c1"><svg><use href="#i-git-branch"/></svg></span></div><div class="v">7</div><div class="n">5 synced · 2 imported · 6 techieflow · 1 playbook</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,24 20,24 35,16 55,16 70,10 85,10 100,4"/></svg></div>
    <div class="card kpi"><div class="row"><span class="t">Records synced</span><span class="chip c2"><svg><use href="#i-database"/></svg></span></div><div class="v">12,480</div><div class="n">+312 since yesterday</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,22 15,20 30,17 45,18 60,12 75,9 90,8 100,3"/></svg></div>
    <div class="card kpi"><div class="row"><span class="t">Last successful sync</span><span class="chip c4"><svg><use href="#i-clock"/></svg></span></div><div class="v">12 min ago</div><div class="n">2026-08-26 09:48 UTC · all 5 repos ok</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,14 15,12 30,15 45,11 60,14 75,10 90,12 100,9"/></svg></div>
   </div>
   <div class="card">
-   <div class="card-h"><div><div class="card-t">Connected repos</div><div class="card-d">Per-row Sync and Remove · errors show on hover</div></div><div class="inwrap" style="width:240px"><svg class="i lead"><use href="#i-search"/></svg><input class="input lead" placeholder="Filter repos…"></div></div>
-   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="repos-table"><thead><tr><th>Repo</th><th>Branch</th><th>Kind</th><th>Visibility</th><th>Status</th><th>Last sync</th><th class="r">Records</th><th class="r">Actions</th></tr></thead><tbody>
-    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TechieFlow</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">4,910</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TechieFlow"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TechieFlow"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
-    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TechieRag</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">2,206</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TechieRag"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TechieRag"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
-    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TrBlazeUI</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge outline">public</span></td><td><span class="badge warning">synced · stale</span></td><td class="muted">12 min ago</td><td class="r">3,118</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TrBlazeUI"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TrBlazeUI"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
-    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/blog</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge outline">public</span></td><td><span class="badge secondary">syncing…</span></td><td class="muted">41 min ago</td><td class="r">1,402</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-blog"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-blog"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
-    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/AI-First-Playbook</b></span></td><td class="mono">main</td><td><span class="badge" style="background:rgba(167,139,250,.14);color:var(--chart-5);border-color:rgba(167,139,250,.3)">playbook</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">844</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-AI-First-Playbook"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-AI-First-Playbook"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+   <div class="card-h"><div><div class="card-t">Connected repos</div><div class="card-d">Per-row <b>Sync</b> (fetched) or <b>Re-import</b> (imported), and Remove · errors show on hover</div></div><div class="inwrap" style="width:240px"><svg class="i lead"><use href="#i-search"/></svg><input class="input lead" placeholder="Filter repos…"></div></div>
+   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="repos-table"><thead><tr><th>Repo</th><th>Branch</th><th>Kind</th><th>Source</th><th>Visibility</th><th>Status</th><th>Last sync / import</th><th class="r">Records</th><th class="r">Actions</th></tr></thead><tbody>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TechieFlow</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge info" data-testid="repo-source">Synced</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">4,910</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TechieFlow"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TechieFlow"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TechieRag</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge info" data-testid="repo-source">Synced</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">2,206</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TechieRag"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TechieRag"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/TrBlazeUI</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge info" data-testid="repo-source">Synced</span></td><td><span class="badge outline">public</span></td><td><span class="badge warning">synced · stale</span></td><td class="muted">12 min ago</td><td class="r">3,118</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-TrBlazeUI"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-TrBlazeUI"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/blog</b></span></td><td class="mono">main</td><td><span class="badge info">techieflow</span></td><td><span class="badge info" data-testid="repo-source">Synced</span></td><td><span class="badge outline">public</span></td><td><span class="badge secondary">syncing…</span></td><td class="muted">41 min ago</td><td class="r">1,402</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-blog"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-blog"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-github"/></svg><b>techierathore/AI-First-Playbook</b></span></td><td class="mono">main</td><td><span class="badge" style="background:rgba(167,139,250,.14);color:var(--chart-5);border-color:rgba(167,139,250,.3)">playbook</span></td><td><span class="badge info" data-testid="repo-source">Synced</span></td><td><span class="badge outline">public</span></td><td><span class="badge success">synced</span></td><td class="muted">12 min ago</td><td class="r">844</td><td class="r"><button class="btn ghost icon" title="Sync" data-testid="repo-sync-AI-First-Playbook"><svg class="i"><use href="#i-refresh-cw"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-AI-First-Playbook"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-hard-drive"/></svg><b>acme/internal-platform</b></span></td><td class="muted">—</td><td><span class="badge info">techieflow</span></td><td><span class="badge secondary" data-testid="repo-source-internal-platform">Imported</span></td><td><span class="badge outline"><svg class="i" style="width:11px;height:11px"><use href="#i-lock"/></svg>private</span></td><td><span class="badge success">imported</span></td><td class="muted">2 days ago</td><td class="r">6,024</td><td class="r"><button class="btn ghost icon" title="Re-import" data-testid="repo-reimport-internal-platform"><svg class="i"><use href="#i-upload"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-internal-platform"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
+    <tr><td><span class="row"><svg class="i muted"><use href="#i-hard-drive"/></svg><b>acme/ops-runbooks</b></span></td><td class="muted">—</td><td><span class="badge" style="background:rgba(167,139,250,.14);color:var(--chart-5);border-color:rgba(167,139,250,.3)">playbook</span></td><td><span class="badge secondary" data-testid="repo-source-ops-runbooks">Imported</span></td><td><span class="badge outline"><svg class="i" style="width:11px;height:11px"><use href="#i-lock"/></svg>private</span></td><td><span class="badge warning">imported · 12 days ago</span></td><td class="muted">12 days ago</td><td class="r">1,318</td><td class="r"><button class="btn ghost icon" title="Re-import" data-testid="repo-reimport-ops-runbooks"><svg class="i"><use href="#i-upload"/></svg></button><button class="btn ghost icon" title="Remove" data-testid="repo-remove-ops-runbooks"><svg class="i"><use href="#i-trash-2"/></svg></button></td></tr>
    </tbody></table></div>
-   <div class="card-f" style="justify-content:space-between"><span class="muted sm">Showing 5 of 5</span><span class="row"><button class="btn outline sm" disabled>Previous</button><button class="btn outline sm" disabled>Next</button></span></div>
+   <div class="card-f" style="justify-content:space-between"><span class="muted sm">Showing 7 of 7 · <span class="muted">imported sources have no Sync — they are re-imported, and the poller skips them</span></span><span class="row"><button class="btn outline sm" disabled>Previous</button><button class="btn outline sm" disabled>Next</button></span></div>
   </div>
   <div class="grid g2" style="align-items:start">
-   <div class="panel"><div class="panel-lbl">Dialog: Connect a public GitHub repo (opens on click)</div>
+   <div class="panel"><div class="panel-lbl">Dialog: Add a source — two modes, one dialog (the tabs work — click them)</div>
     <div class="dialog"><div class="body">
-     <div><h3>Connect a public GitHub repo</h3><p class="muted sm">TfLens validates the repo before saving — nothing is written until it passes.</p></div>
-     <div class="field"><label class="label">GitHub URL or owner/name</label><input class="input mono" value="techierathore/TechieFlow" data-testid="connect-input"></div>
-     <div class="grid g2"><div class="field"><label class="label">Branch (optional)</label><input class="input mono" placeholder="default branch"></div><div class="field"><label class="label">Kind</label><select class="input"><option>Auto-detect</option><option>techieflow</option><option>playbook</option></select></div></div>
-     <div class="row"><button class="btn outline sm" data-testid="connect-validate"><svg class="i"><use href="#i-search"/></svg>Validate</button><span class="muted xs">GitHub API · public reads only</span></div>
-     <div class="vlist"><div><svg><use href="#i-check"/></svg>Repository exists</div><div><svg><use href="#i-check"/></svg>Public</div><div><svg><use href="#i-check"/></svg>Telemetry path found: <span class="mono">docs/metrics</span> (techieflow)</div></div>
-     <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>State: private repo</b><p>Private repos aren't supported in this release.</p></div></div>
-    </div><div class="card-f"><button class="btn outline">Cancel</button><button class="btn" data-testid="connect-submit"><svg class="i"><use href="#i-plus"/></svg>Connect</button></div></div>
+     <div><h3>Add a source</h3><p class="muted sm">Two ways in. Pick the one that matches where the telemetry lives.</p></div>
+     <div class="tabs" data-testid="source-mode" style="width:100%">
+      <button class="tab active" id="tab-api" onclick="sourceMode('api')" style="flex:1;justify-content:center;border:0;cursor:pointer"><svg class="i"><use href="#i-cloud-download"/></svg>Fetch via API</button>
+      <button class="tab" id="tab-import" onclick="sourceMode('import')" style="flex:1;justify-content:center;border:0;cursor:pointer"><svg class="i"><use href="#i-upload"/></svg>Import metric files</button>
+     </div>
+
+     <div id="mode-api" class="stack" style="gap:16px">
+      <p class="muted xs row" style="align-items:flex-start"><svg class="i" style="margin-top:2px"><use href="#i-info"/></svg><span>For <b>public</b> repos. TfLens validates the repo, then pulls on a schedule.</span></p>
+      <div class="field"><label class="label">GitHub URL or owner/name</label><input class="input mono" value="techierathore/TechieFlow" data-testid="connect-input"></div>
+      <div class="grid g2"><div class="field"><label class="label">Branch (optional)</label><input class="input mono" placeholder="default branch"></div><div class="field"><label class="label">Kind</label><select class="input"><option>Auto-detect</option><option>techieflow</option><option>playbook</option></select></div></div>
+      <div class="row"><button class="btn outline sm" data-testid="connect-validate"><svg class="i"><use href="#i-search"/></svg>Validate</button><span class="muted xs">GitHub API · public reads only</span></div>
+      <div class="vlist"><div><svg><use href="#i-check"/></svg>Repository exists</div><div><svg><use href="#i-check"/></svg>Public</div><div><svg><use href="#i-check"/></svg>Telemetry path found: <span class="mono">docs/metrics</span> (techieflow)</div></div>
+      <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>State: private repo</b><p>Private repos can&#39;t be fetched — <b>use Import metric files</b> to add this repo&#39;s telemetry without a credential. <button class="btn link" onclick="sourceMode('import')" style="font-size:13px">Switch to import →</button></p></div></div>
+     </div>
+
+     <div id="mode-import" class="stack" style="gap:16px;display:none">
+      <p class="muted xs row" style="align-items:flex-start"><svg class="i" style="margin-top:2px"><use href="#i-info"/></svg><span>For <b>private and corporate</b> repos. Upload the telemetry your framework already writes to disk — no credential, no network access to the repo, no change to the repo.</span></p>
+      <div class="field"><label class="label">Source name</label><input class="input mono" value="acme/internal-platform" data-testid="import-name"><span class="hint">Any name you&#39;ll recognise — it never leaves TfLens.</span></div>
+      <div class="grid g2"><div class="field"><label class="label">Framework</label><select class="input"><option>TechieFlow (docs/metrics)</option><option>AI-First-Playbook (verification/telemetry)</option></select></div><div class="field"><label class="label">project_type override</label><select class="input"><option>From the records (recommended)</option><option>app</option><option>library</option><option>docs</option><option>framework</option></select></div></div>
+      <div class="empty" style="padding:24px 16px;gap:6px" data-testid="import-drop"><span class="chip c1"><svg><use href="#i-upload"/></svg></span><b style="margin-top:4px">Drop a .zip of <span class="mono">docs/metrics/</span></b><p class="sm">…or the loose <span class="mono">.jsonl</span> / <span class="mono">.ndjson</span> files. Max 25 MB.</p><button class="btn outline sm" style="margin-top:6px">Choose files</button></div>
+      <div class="card" data-testid="import-preview" style="background:var(--muted)"><div class="card-h" style="padding:14px 16px 0"><div><div class="card-t" style="font-size:14px">Preview — nothing is written yet</div><div class="card-d">Review this, then press Import.</div></div><span class="badge outline mono">sha256 4f9c1a2e…</span></div>
+       <div class="card-c flush" style="padding:10px 0 0"><table class="tbl"><thead><tr><th>Stream</th><th class="r">Records</th><th>Date range</th><th class="r">Invalid</th></tr></thead><tbody>
+        <tr><td class="mono">runs</td><td class="r">1,884</td><td class="sm muted">2026-06-02 → 2026-08-27</td><td class="r">0</td></tr>
+        <tr><td class="mono">gates</td><td class="r">2,417</td><td class="sm muted">2026-06-02 → 2026-08-27</td><td class="r">2</td></tr>
+        <tr><td class="mono">sessions</td><td class="r">1,102</td><td class="sm muted">2026-06-02 → 2026-08-27</td><td class="r">0</td></tr>
+        <tr><td class="mono">commits</td><td class="r">598</td><td class="sm muted">2026-05-28 → 2026-08-27</td><td class="r">0</td></tr>
+        <tr><td class="mono">misses</td><td class="r">23</td><td class="sm muted">2026-08-28 → 2026-08-28</td><td class="r">0</td></tr>
+       </tbody></table></div>
+       <div class="card-f" style="justify-content:flex-start;padding:12px 16px"><p class="muted xs">2 invalid lines will be counted and skipped, never fatal. 1 field observed that SCHEMA.md doesn&#39;t document: <span class="mono">tier_reason</span> — it will be kept in <span class="mono">Overflow</span>.</p></div>
+      </div>
+      <div class="alert danger"><svg><use href="#i-x"/></svg><div><b>State: a rollup was uploaded instead of raw streams</b><p>That file is a <b>computed report</b> (<span class="mono">tflens.json</span> / <span class="mono">--rollup --json</span>), not telemetry. TfLens computes every figure itself from raw records — importing conclusions would let a wrong number in through the front door. Zip <span class="mono">docs/metrics/</span> instead.</p></div></div>
+     </div>
+
+    </div>
+    <div class="card-f">
+     <button class="btn outline">Cancel</button>
+     <button class="btn" id="btn-api" data-testid="connect-submit"><svg class="i"><use href="#i-plus"/></svg>Connect</button>
+     <button class="btn" id="btn-import" data-testid="import-submit" style="display:none"><svg class="i"><use href="#i-upload"/></svg>Import 6,024 records</button>
+    </div></div>
    </div>
    <div class="stack">
     <div class="panel"><div class="panel-lbl">AlertDialog: Remove repo (opens from the row action)</div>
-     <div class="dialog"><div class="body"><h3>Remove techierathore/blog?</h3><p class="muted">Stops syncing and deletes the parsed rows and raw archive for this repo. Your GitHub repo is untouched.</p></div><div class="card-f"><button class="btn outline">Cancel</button><button class="btn destructive"><svg class="i"><use href="#i-trash-2"/></svg>Remove</button></div></div>
+     <div class="dialog"><div class="body"><h3>Remove techierathore/blog?</h3><p class="muted">Stops syncing and deletes the parsed rows and raw archive for this source. Identical for a fetched and an imported source. Your GitHub repo, or your uploaded file, is untouched.</p></div><div class="card-f"><button class="btn outline">Cancel</button><button class="btn destructive"><svg class="i"><use href="#i-trash-2"/></svg>Remove</button></div></div>
     </div>
     <div class="panel"><div class="panel-lbl">State: new user</div>
-     <div class="empty" data-testid="repos-empty"><span class="chip c1"><svg><use href="#i-git-branch"/></svg></span><b>No repos connected yet</b><p>Connect a public GitHub repo that carries TechieFlow or Playbook telemetry.</p><button class="btn" style="margin-top:8px"><svg class="i"><use href="#i-plus"/></svg>Connect repo</button></div>
+     <div class="empty" data-testid="repos-empty"><span class="chip c1"><svg><use href="#i-git-branch"/></svg></span><b>No sources yet</b><p>Fetch a public GitHub repo, or import the metric files from a private one.</p><div class="row" style="gap:8px;margin-top:8px"><button class="btn"><svg class="i"><use href="#i-cloud-download"/></svg>Fetch via API</button><button class="btn outline"><svg class="i"><use href="#i-upload"/></svg>Import metric files</button></div></div>
     </div>
    </div>
   </div>
