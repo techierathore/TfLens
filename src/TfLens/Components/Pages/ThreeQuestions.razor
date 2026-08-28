@@ -19,7 +19,7 @@
 
 <div class="tflens-stack">
 
-    @* TR-007 — the Typography components do not resolve in 2.0.0, so the heading is plain markup carrying
+    @* TR-013 — the Typography components do not resolve in 2.0.0, so the heading is plain markup carrying
        the library's own utility classes. *@
     <div>
         <h1 class="text-2xl font-semibold tracking-tight">Three questions</h1>
@@ -89,7 +89,7 @@
             <TabsList>
                 @foreach (var vType in objTypes)
                 {
-                    @* TR-006 (TabsTrigger attributes) — TabsTrigger captures no unmatched attributes, so
+                    @* TR-010 (TabsTrigger attributes) — TabsTrigger captures no unmatched attributes, so
                        the test id lives on the span it renders around; a click on the span still activates
                        the trigger. *@
                     <TabsTrigger Value="@vType">

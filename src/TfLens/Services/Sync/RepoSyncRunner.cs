@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using TfLens.Core;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Import;
 
 namespace TfLens.Services.Sync;
 
@@ -149,6 +150,15 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
     /// <returns>What happened to that repository.</returns>
     private async Task<RepoSyncResult> SyncOneAsync(SyncWork aWork, UserRepo aRepo, CancellationToken aCancellationToken)
     {
+        // REQ-FN-085 — an imported source has no repository TfLens can reach. Returning before the
+        // state read means a poller tick makes NO outbound request for it and leaves its counts,
+        // its LastImportTs and its error state exactly as it found them; a Sync that "failed" would
+        // otherwise write an error onto a perfectly healthy row. Its action is Re-import.
+        if (!ImportedSourceRules.CanSync(aRepo.SourceKind))
+        {
+            return new RepoSyncResult(aRepo.Repo, SyncOutcome.Skipped, null, 0, null);
+        }
+
         var vPrevious = await ReadStateAsync(aWork, aRepo, aCancellationToken).ConfigureAwait(false);
 
         try
@@ -361,6 +371,9 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
             SessionsCount = Count(aCounts, StreamNames.Sessions),
             CommitsCount = Count(aCounts, StreamNames.Commits),
             EventsCount = Count(aCounts, StreamNames.Events),
+            // REQ-FN-071: one count for the whole misses stream — the parser has already split its
+            // three record kinds, but the file, and therefore the Coverage row, is one.
+            MissesCount = Count(aCounts, StreamNames.Misses),
             SessionDuplicatesCollapsed = aSessionDuplicatesCollapsed
         };
 

@@ -44,6 +44,22 @@ public static class Fixtures
     /// <summary>The isolation counterpart to <see cref="StoreTestUserId"/>; likewise not a real account.</summary>
     public const int StoreTestSecondUserId = 90003;
 
+    /// <summary>
+    /// Reserved user id for the miss-stream store tests, and its isolation counterpart.
+    /// </summary>
+    /// <remarks>
+    /// A second reserved <i>pair</i> rather than a reuse of 90002/90003, because
+    /// <c>PostgresStore.RebuildAsync(userId)</c> clears every stream row for the user it is given and
+    /// replays from whatever raw archive the caller points at. Two database test classes that both
+    /// rebuild the same reserved user cannot run at the same time without one emptying the other's
+    /// tables mid-assertion — which xUnit's per-class parallelism makes a coin toss rather than a bug
+    /// you can reproduce. Separate ids make the two classes genuinely independent.
+    /// </remarks>
+    public const int MissStoreTestUserId = 90004;
+
+    /// <summary>The isolation counterpart to <see cref="MissStoreTestUserId"/>; likewise not a real account.</summary>
+    public const int MissStoreTestSecondUserId = 90005;
+
     /// <summary>The busy fixture repository, <c>project_type app</c>.</summary>
     public const string TrSetupRepo = "techierathore/TrSetup";
 

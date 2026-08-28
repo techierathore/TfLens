@@ -63,6 +63,33 @@ Three things a reader should know before trusting a screen here:
 
 ---
 
+## Observed 2026-08-28 — the Phase 3 screens
+
+The three screens this build changed were driven again on the same Release build at
+`http://localhost:5099`, headless Chromium at **1440×900**, signed in as
+`tflensdemo@techierathore.com` (userId 2, Manager). This was a documentation observe pass, not a
+`*verify all` run: it records **what rendered**, screen by screen, and each screen's section below
+carries its own *Observed* block.
+
+| Screen | `data-testid`s present | Tables (rows) | Blank icons | Page-level horizontal scroll | Console / page errors |
+|---|---|---|---|---|---|
+| `/misses` | 74 | `miss-origin` 2 · `miss-whymissed-table` 7 · `miss-origin-model-table` 1 · `miss-origin-agent-table` 1 · `miss-detail-table` 4 | 0 | none | none |
+| `/repos` | 40 (+10 in the Add-source dialog, +8 in its import mode) | `repos-table` 4 | 0 | none | none |
+| `/` — Coverage | 66 | four `repo-streams-*`, **5 rows each** | 0 | none | none |
+
+**The live dataset is small on purpose, and small is not broken.** userId 2 holds **4 misses, 4
+miss-fixes and 0 amendments**, all in one `project_type` segment (`framework`). So on `/misses` most
+of the money figures legitimately render `—` and one distribution note renders
+`insufficient data (n=1)`. That is the product working: an absent measurement is an em dash and a
+figure below `MetricsConstants.MinN` is a refusal, never a zero. Before filing a bug against a `—` on
+this page, check the record count behind it.
+
+Screenshots refreshed by this pass: `docs/devguide-images/misses.png`, `repos.png`,
+`repos-add-source.png`, `repos-import-mode.png`, `coverage.png`. Driver:
+`tests/.artifacts/harness/devguide-shots-phase3.mjs`.
+
+---
+
 ## Contents
 
 - [How to run and drive it](#how-to-run-and-drive-it)
@@ -78,6 +105,7 @@ Three things a reader should know before trusting a screen here:
 - [`/three-questions`](#three-questions)
 - [`/harness`](#harness)
 - [`/routing`](#routing)
+- [`/misses`](#misses)
 - [`/export`](#export)
 - [The Playbook axis](#the-playbook-axis)
 - [Route and file index](#route-and-file-index)
@@ -145,6 +173,11 @@ Current values in the codebase — check yours against this list before adding a
 | `Routing.razor` | `edit-prices-table` | 100 | rate card + observed-unpriced |
 | `ExportSurface.razor` | all four | 512 | SHAs, snapshots, 3 + 7 facts |
 | `Repos.razor` | `repos-table` | 10 | unbounded (pager on) |
+| `Repos.razor` | `import-preview-streams` | 16 | 6 (one per stream in the bundle) |
+| `Misses.razor` | `miss-whymissed-table` | 32 | 7 (the closed `why_missed` vocabulary) + any unlisted value |
+| `Misses.razor` | `miss-origin-model-table` | 32 | one per observed model |
+| `Misses.razor` | `miss-origin-agent-table` | 32 | one per observed agent |
+| `Misses.razor` | `miss-detail-table` | 25 | unbounded (pager on) |
 | **`Profile.razor`** | **`profile-values`** | **not set → 5** | **exactly 5** |
 
 `Profile.razor` is the live trap: `BuildRows()` returns exactly five `ProfileRow`s, which is exactly the
@@ -166,6 +199,14 @@ package's own `lucide.json` render an **empty placeholder** with no error and no
 A probe over all twelve routes found **0 blank icons** today, so the codebase is currently clean — this
 is the rule that keeps it that way. `ShellNavigation.Items` already uses `circle-question-mark` for
 Three questions for exactly this reason.
+
+**Confirmed again 2026-08-28 as `TR-022`,** and it is worth knowing *why* it bites: `lucide.json`
+carries **two** maps, `icons` and `aliases`, and `LucideIcon` looks the name up in `icons` only. So a
+name that is genuinely in the package's own metadata still resolves to nothing. The measured-USD
+tile's accent chip on `/misses` shipped briefly as `check-circle` and rendered an empty coloured
+square; it is `circle-check` now. Settle any name against
+`~/.nuget/packages/trblazeui.icons.lucide/<version>/content/lucide.json` — if it is under `aliases`,
+it will not render. The 2026-08-28 pass measured **0 blank icons** on `/misses`, `/repos` and `/`.
 
 ### 3. Cookie names must not contain `:`
 
@@ -271,6 +312,103 @@ trigger wraps; a click on the span still activates the trigger:
 <TabsTrigger Value="drift"><span data-testid="routing-tab-drift">Routing drift</span></TabsTrigger>
 ```
 
+### 10. `trblazeui.css`'s spacing/sizing scale has **holes** — `w-20` renders at zero width
+
+This is the one that will cost you an hour. `<Progress Value="24" Class="w-20" />` renders with a
+**width of exactly 0**: no error, no warning, no console message. It does not look broken — it looks
+like a control somebody deliberately hid.
+
+The cause is that `trblazeui.css` is not a Tailwind build. It carries only the utilities the library's
+own components happen to use, so the scale *reads* as complete while several steps are simply absent:
+
+| Present | **Absent** |
+|---|---|
+| `.w-2 .w-3 .w-4 … .w-14 .w-16 .w-40 .w-64 .w-72` | **`w-20`** |
+| `mt-2`, `mt-4` | **`mt-3`** |
+| `my-2`, `my-6` | **`my-4`** |
+
+Because both neighbours of every hole ship, the gap is invisible until a build lands on the wrong
+step. Found on the failed-practice share bars on `/misses` (`miss-whymissed`), which rendered as a
+zero-width `Progress` beside a perfectly correct percentage, and on the `Separator`s in the cost
+band. Recorded as `TR-021` — sibling of `TR-002`, where the responsive variants were byte-identical
+no-ops rather than absent.
+
+**Before you ship a screen, grep the class names you used against `trblazeui.css`.** Then either use
+a step the file actually ships (`w-16` is what `Misses.razor` settled on) or declare the rule in the
+page's own scoped CSS. A geometry gate only catches this when the collapse happens to cause an
+overlap — most of the time it catches nothing at all.
+
+### 11. `DialogContent` never scrolls, and the page has to own the scroll itself
+
+`DialogContent` renders a fixed, centred panel with **no height cap and no `overflow` on any of its
+parts**, and exposes only `Class`, `ShowCloseButton` and `ChildContent` — no `MaxHeight`, no
+`ScrollBody`. A dialog taller than the viewport simply grows past it: the overlay does not scroll,
+and `DialogFooter` with its primary action is unreachable below the fold. `TR-019`, found on the
+Add-source dialog on `/repos`, whose import mode carries a mode fork, four fields, a drop zone, a
+preview table and a summary — at 390×844 the **Import** button could not be pressed.
+
+The fix in this codebase is that the page owns the scroll: everything between `DialogHeader` and
+`DialogFooter` sits in a single `.tflens-dialog-body` (`Components/Pages/Repos.razor.css`) with
+`max-height: 68vh; overflow-y: auto` — `56vh` under `@media (max-height: 700px)`. `vh` and `max-h-*`
+are not in the shipped stylesheet either (gotcha 10 / `TR-002`), so the rule has to live in scoped
+CSS rather than in a utility class.
+
+**Know the side effect before you read a gate report.** A control scrolled out of that body still
+reports its **true** bounding rect to `getBoundingClientRect`. A naive overlap check therefore sees
+the clipped control colliding with the footer and reports a visual failure that does not exist on
+screen. Either scroll the body to the control first, or intersect against the body's own rect.
+
+### 12. `SelectValue` shows the raw bound value until `SelectContent` has rendered once
+
+`SelectItem` registers its `Text` with the parent only when it is **rendered**, and `SelectContent`
+renders nothing until the popover is opened. So at first paint the parent's value→text map is empty
+and `SelectValue` falls back to `Value.ToString()`: the closed trigger shows the internal key. Open
+the popover once and it is correct for the rest of the circuit, which makes it look intermittent
+rather than deterministic. `TR-020`.
+
+The period filter on `/misses` (`misses-period`) has to read **All history (default)** on first view
+(BRD-125) and read `all`. The fix is `DisplayTextSelector` on `Select` — a `Func<TValue, string>` the
+component consults without waiting for the items to render:
+
+```razor
+<Select TValue="string" Value="@objPeriod" ValueChanged="OnPeriodChangedAsync"
+        DisplayTextSelector="@PeriodTextOf">
+```
+
+Keep the `Text` on each `SelectItem` as well; the open popover uses it. Verified 2026-08-28: the
+closed trigger reads `All history (default)`.
+
+### 13. `SourceKind` has **two vocabularies** and they must never be collapsed
+
+The `"UserRepo"."SourceKind"` column stores `api` | `import` (BRD-132). The badge on `/repos` and on
+Coverage says **Synced** | **Imported**. These are two different vocabularies for one fact, and both
+are deliberate: the stored value is a wire contract (it is also the export's `source_kind` key), the
+badge wording is UI copy.
+
+**Always render through `SourceKinds.DisplayName(...)`; never write either literal in markup.**
+
+```razor
+<Badge data-testid="@($"repo-source-{vRow.Repo.Name}")">
+    @SourceKinds.DisplayName(vRow.Repo.SourceKind)
+</Badge>
+```
+
+| Helper | Lives in | What it answers |
+|---|---|---|
+| `SourceKinds.Api` / `.Import` | `Contracts/IdentityRecords.cs` | the stored values, `api` / `import` |
+| `SourceKinds.ApiLabel` / `.ImportLabel` | same | the badge words, `Synced` / `Imported` |
+| `SourceKinds.DisplayName(kind)` | same | stored → badge; an absent or unrecognised value reads as `Api` |
+| `ImportedSourceRules.IsImported` / `.CanSync` | `Import/ImportedSourceRules.cs` | aliases the same constants — the module declares no second vocabulary |
+
+**The two were collapsed once during the 2026-08-28 build** — the stored value was briefly the badge
+wording — and had to be undone. That would have made rewording a badge into a schema migration and
+changed the export key under a downstream consumer. `tests/TfLens.Guardrails.Tests/SourceKindVocabularyTests.cs`
+now pins it (`StoredSourceKindsAreTheBrdVocabulary`, `DisplayLabelsAreDistinctFromTheStoredValues`,
+`AnUnknownStoredValueReadsAsFetched`), and `SourceKindIsNeverASegmentTests` pins the other half of
+ADR-021: origin is *displayed* everywhere it could matter and **divides no figure**. Nothing in
+TfLens branches on `SourceKind` except which sources the poller visits and which value stands as a
+source's dataset identity.
+
 ---
 
 ## The shell: `MainLayout`
@@ -289,7 +427,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 | Region | Component | `data-testid` | Service call | Behind it |
 |---|---|---|---|---|
 | Sidebar shell | `SidebarProvider CookieKey="@SidebarPreference.CookieName"` → `Sidebar` | `app-sidebar` | — | `tflens-sidebar` cookie, written by TrBlazeUI |
-| Nav items | `SidebarMenuButton` ×6 | `nav-repos`, `nav-coverage`, `nav-three-questions`, `nav-harness`, `nav-routing`, `nav-export` | — | `ShellNavigation.Items` (order, label, Lucide name, section, `HasFrameworkSwitch` all live here) |
+| Nav items | `SidebarMenuButton` ×7 | `nav-repos`, `nav-coverage`, `nav-three-questions`, `nav-harness`, `nav-routing`, **`nav-misses`**, `nav-export` | — | `ShellNavigation.Items` (order, label, Lucide name, section, `HasFrameworkSwitch` all live here). `/misses` was added 2026-08-28 **between** Routing and Snapshot export, icon `bug` |
 | Repo badge | `SidebarMenuBadge` | `nav-repo-count` | `ShellState.RepoCount` | `IRepoRegistry.ListAsync(userId)` → `SELECT * FROM "UserRepo" WHERE "UserId" = @aUserId` |
 | Sidebar theme toggle | `ThemeToggle` | `theme-toggle-sidebar` | `ShellPreferences.SetThemeAsync` | JS `tflens.setTheme` → `tflens-theme` cookie + `<html class="dark">` |
 | Breadcrumb | `Breadcrumb` in `ShellHeader.razor` | — | `ShellNavigation.Breadcrumb(path)` | static table; `/profile` comes from `ExtraCrumbs` |
@@ -301,8 +439,9 @@ theme toggle, user menu) and the page container that every authenticated screen 
 | Toasts | `ToastProvider Position="BottomRight"` | — | `ToastService` | — |
 
 `ShellHeader.ShowsFrameworkSwitch` → `ShellNavigation.ShowsFrameworkSwitch(path)` → the item's
-`HasFrameworkSwitch` flag. It is **true on the five report routes only** — not on `/repos`, not on
-`/profile`. Verified live.
+`HasFrameworkSwitch` flag. It is **true on the six report routes only** (`/`, `/three-questions`,
+`/harness`, `/routing`, `/misses`, `/export`) — not on `/repos`, not on `/profile`. Verified live;
+`/misses` observed carrying `framework-switch` on 2026-08-28.
 
 ### States
 
@@ -598,12 +737,34 @@ the card is populated from claims even when the body shows the failure alert.
 
 ## `/repos`
 
-**File:** `src/TfLens/Components/Pages/Repos.razor` · `@page "/repos"` · authenticated ·
-`MainLayout` · breadcrumb `Workspace › Repos` · **no Framework switch**
+**Files:** `src/TfLens/Components/Pages/Repos.razor` (+ `.razor.js`, `.razor.css`) · `@page "/repos"` ·
+authenticated · `MainLayout` · breadcrumb `Workspace › Repos` · **no Framework switch**
 
 ![Repos](./devguide-images/repos.png)
 
-**What it is for.** The only screen that writes. Connect a public GitHub repo, sync one, remove one.
+**What it is for.** The only screen that writes. Add a source, sync one, re-import one, remove one.
+
+**Changed 2026-08-28 (F-IMPORT).** There are now **two ways a source gets into TfLens**, and the page
+forks on that from the first press to the last column:
+
+| | *Fetch via API* | *Import metric files* |
+|---|---|---|
+| How data arrives | TfLens fetches from a public GitHub repo | the user uploads the metric files |
+| Stored `SourceKind` | `api` | `import` |
+| Source badge | **Synced** | **Imported** |
+| Dataset identity | `"SyncState"."LastSha"` (commit SHA) | `"UserRepo"."BundleSha"` (sha256 of the bundle) |
+| Row action | Sync (`repo-sync-{name}`) | **Re-import** (`repo-reimport-{name}`) |
+| Poller visits it | yes | **never** — `ImportedSourceRules.CanSync` is false |
+| Dialog flow | validate, *then* Connect | preview, *then* Import |
+
+The two are one `Dialog` with two panels, not two dialogs. Origin is *delivery*, not data: it is
+displayed here, on Coverage and in the export, and it **divides no figure** anywhere (ADR-021, and
+`SourceKindIsNeverASegmentTests` pins it). See
+[cross-cutting gotcha 13](#13-sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed) before
+you touch either vocabulary.
+
+![The Add-source dialog, Fetch via API](./devguide-images/repos-add-source.png)
+![The same dialog in Import metric files mode](./devguide-images/repos-import-mode.png)
 
 ### Injected services
 
@@ -624,22 +785,96 @@ three-argument ones.
 
 | Control | Component | `data-testid` | Method | Behind it |
 |---|---|---|---|---|
-| Connect repo | `Button` | `connect-repo` | `OpenConnectDialog()` | resets dialog state only |
-| KPI: connected | `StatTile` | `kpi-repos` | `objRows.Count` | `RepoRegistry.ListWithCountsAsync(userId)` |
+| Add source | `Button` | `connect-repo` | `OpenAddSourceDialog(SourceKinds.Api)` | resets **both** panels' state, opens on the API mode |
+| KPI: connected | `StatTile` | `kpi-repos` | `objRows.Count` | `RepoRegistry.ListWithCountsAsync(userId)`; the sub-line splits `n synced · n imported · n techieflow · n playbook` |
 | KPI: records | `StatTile` | `kpi-records` | `objRows.Sum(r => r.RecordCount)` | **`"SyncState"` counters** — see gotcha 6 |
 | KPI: last sync | `StatTile` | `kpi-last-sync` | `RelativeTime.Describe(ShellState.LastSyncUtc, now)` | max `LastSyncTs` with no error |
 | Grid | `DataTable TData=RepoListItem ShowToolbar ShowPagination InitialPageSize="10"` | `repos-table` | `ListWithCountsAsync` | joins `"UserRepo"` to `"SyncState"` per user |
+| Repo cell | `<a>` or plain span | — | `ImportedSourceRules.IsImported` | a fetched row links to `github.com/{repo}` with a `github` icon; an **imported row is not a link** and carries `hard-drive` — there is no GitHub page to open |
+| **Source cell** | `Badge` | `repo-source-{name}` | `SourceKinds.DisplayName(row.Repo.SourceKind)` | **never a literal** — gotcha 13 |
 | Status cell | `Badge` / `Tooltip` | `repo-status-{name}` | `RepoListItem.Status` | `pending` when `Sync is null`, `error` when `LastError is not null`, else `synced`; the tooltip carries the **redacted** `LastError` (`SyncErrorRedactor`) |
-| Row sync | `Button Variant=Ghost Size=IconSmall` | `repo-sync-{name}` | `SyncRepoAsync(row)` | `IRepoSyncRunner.SyncRepoAsync(userId, repo)` |
-| Row remove | `Button Variant=Ghost Size=IconSmall` | `repo-remove-{name}` | `OpenRemoveDialog(row)` | — |
+| Last sync / import | `<span>` | — | `LastActivityText(row)` | one column, two meanings — `LastSyncTs` for a fetched source, `LastImportTs` for an imported one |
+| Row sync | `Button Variant=Ghost Size=IconSmall` | `repo-sync-{name}` | `SyncRepoAsync(row)` | **rendered only when `ImportedSourceRules.CanSync(kind)`** → `IRepoSyncRunner.SyncRepoAsync(userId, repo)` |
+| Row re-import | `Button Variant=Ghost Size=IconSmall` | `repo-reimport-{name}` | `OpenReimportDialog(row)` | opens the same dialog straight onto the import panel, name and framework pre-filled and locked |
+| Row remove | `Button Variant=Ghost Size=IconSmall` | `repo-remove-{name}` | `OpenRemoveDialog(row)` | identical for both source kinds |
+| Source note | `<p>` | `repos-source-note` | — | *"Imported sources have no Sync — they are re-imported, and the poller skips them."* |
+| Mode fork | `Tabs` → `TabsTrigger` ×2 | `source-mode`, `source-mode-api`, `source-mode-import` | `OnSourceModeChangedAsync` | switching modes calls `ForgetBundleAsync()` + `ResetPreview()` — a staged bundle never survives a mode change |
+| — *Fetch via API panel* | `<div>` | `source-panel-api` | | |
 | Connect input | `Input` | `connect-input` | binds | `RepoInputParser` accepts a URL or `owner/name` |
 | Branch | `Input` | `connect-branch` | binds | null → default branch |
 | Kind | `Select` | `connect-kind` | binds | `auto` / `techieflow` / `playbook` |
 | Validate | `Button Variant=Outline` | `connect-validate` | `ValidateAsync()` | `RepoRegistry.ValidateAsync` → `IGitHubStreamFetcher.GetRepoAsync` + `PathExistsAsync` |
 | Validation lines | `CheckLine.razor` ×3 | `connect-validation` | `RepoValidation.Exists/IsPublic/TelemetryPath` | — |
+| **Private-repo exit** | `Alert Warning` + `Button` | `connect-private`, `connect-switch-import` | `SwitchToImportModeAsync()` | **new** — carries `objConnectInput` across into `objImportName` instead of dead-ending (BRD-100) |
 | Connect | `Button` | `connect-submit` | `ConnectAsync()` | `RepoRegistry.ConnectAsync` (re-validates server-side) → `WriteUserRepoAsync` → queued first sync |
+| — *Import metric files panel* | `<div>` | `source-panel-import` | | |
+| Source name | `Input` | `import-name` | binds `objImportName` | `RepoInputParser` again — an imported source still has an `owner/name`; **disabled on a re-import** |
+| Framework | `Select` | `import-framework` | binds | drives the expected path hint (`docs/metrics/` vs `verification/telemetry/`) |
+| Project type | `Select` | `import-project-type` | — | **disabled by design**: the import service takes no override, so the records keep the type they were written with |
+| Drop zone | `div.tflens-drop` + `<input type=file>` | `import-drop`, `import-choose`, `import-chosen` | `Repos.razor.js` `watchImport` / `openFilePicker` | capture-phase `dragover`/`drop` on `document`, because the zone lives inside a portalled dialog Blazor re-renders |
+| Previewing | `Spinner` + text | `import-previewing` | `OnBundleSelectedAsync` `[JSInvokable]` | posts to `POST /api/import/preview` |
+| Refusal | `Alert Danger` | `import-refusal` | `ImportResponse.Reason` → `RefusalTitle` | one of eight `ImportRefusalReason` values, message rendered verbatim |
+| Preview card | `Card` + `DataTable InitialPageSize` | `import-preview`, `import-preview-streams`, `import-preview-summary`, `import-bundle-sha` | `objImportPreview` | per stream: records · date range · invalid lines; the badge is `BundleSha[..8]` |
+| Framework mismatch | `Alert Warning` | `import-framework-mismatch` | `FrameworkMismatch(response.Framework)` | the bundle's own streams disagree with the chosen framework |
+| Import | `Button` | `import-submit` | `ImportAsync()` | enabled only on `CanImport`; label reads *"Import {n} records"* — it states what pressing it writes |
+| Import progress | `Progress` | `import-progress` | `objImportPhase` / `objImportProgress` | 30 → 80 → 100, a three-step estimate, not a measurement |
+| Cancel | `Button Variant=Outline` | `add-source-cancel` | `CloseAddSourceDialogAsync()` | also calls `ForgetBundleAsync()` — closing the dialog drops the staged bytes |
 | Remove confirm | `AlertDialog` | `remove-title`, `remove-description`, `remove-cancel`, `remove-confirm` | `ConfirmRemoveAsync()` | `RepoRegistry.RemoveAsync` → `ITelemetryStore.DeleteRepoDataAsync` + raw archive under `data/raw/` |
-| Empty | `Empty` | `repos-empty`, `repos-empty-connect` | — | — |
+| Empty | `Empty` | `repos-empty`, `repos-empty-connect`, `repos-empty-import` | — | the empty state offers **both** modes |
+
+### The import data path
+
+The bytes **never enter the circuit**. `Repos.razor.js` posts them straight to a minimal-API endpoint
+and only the file names and the total size cross into Blazor:
+
+```
+Repos.razor.js  postBundle(route, source)      // multipart/form-data, credentials: same-origin
+   │                                            // buildStoredZip() bundles loose files client-side
+   │                                            // __RequestVerificationToken lifted from the page
+   ▼
+POST /api/import/preview   ·   POST /api/import/commit      (Services/Import/ImportEndpoints.cs)
+   │   .RequireAuthorization() + IAntiforgery.ValidateRequestAsync — both, on both routes
+   ▼
+TfLens.Core.Import.TelemetryImportService
+   ├─ UploadBounds     — extension ∈ {.zip,.jsonl,.ndjson}; ≤ 25 MB; TryConfine() proves every
+   │                     written path resolves inside data/raw/<userId>/
+   ├─ SafeZipReader    — ≤ 512 entries, ≤ 100 MB expanded, ≤ 50 MB per entry; refuses absolute
+   │                     paths, `..` segments and symlinks
+   ├─ RollupDetector   — refuses a *computed* file (a rollup/snapshot) rather than raw records
+   └─ then the SAME pipeline the fetcher uses:
+      StreamParser → Dedupe → ITelemetryStore.UpsertAsync
+```
+
+Three things about that pipeline are the point of the design:
+
+1. **Preview writes nothing at all.** `PreviewAsync` runs every gate and parses, then throws the
+   result away; `CommitAsync` is the only press that writes. The preview's source name is the
+   sentinel `TelemetryImportService.PreviewRepo` (`"(preview)"`).
+2. **An imported record is indistinguishable from a fetched one once it is stored.** Same parser,
+   same dedupe, same `UpsertAsync`, same tables. There is no `SourceKind` column on any stream table.
+3. **The bytes land in the raw archive *before* anything parses them**
+   (`data/raw/<userId>/<owner>/<name>/{stream}-{bundleSha}.jsonl`), so a parser exception after that
+   point still leaves an archive that Coverage's **Rebuild** can replay.
+
+`CommitAsync` then calls `StampSourceRowAsync`, which is where the source becomes real:
+
+- **it creates the `"UserRepo"` row if there isn't one** — an import is how a private or corporate
+  repository becomes a source at all (BRD-131), so it cannot require a prior connect that could never
+  succeed. The created row is `SourceKind = import`, `IsPublic = false`, `BundleSha`, `LastImportTs`.
+- **it writes the `"SyncState"` counts** — read back **from the stored rows**, not added up from what
+  the bundle presented, so re-importing an identical bundle (which legitimately adds zero records)
+  still leaves the row showing its true totals.
+- **it clears `LastSha` in the same write.** The XOR of REQ-FN-084 spans two tables: `BundleSha` on
+  `"UserRepo"`, `LastSha` on `"SyncState"`. A source connected by API and later imported would
+  otherwise carry two answers to *"which bytes produced these figures"*, which is exactly the
+  ambiguity a parity run exists to remove. `ImportedSourceRules.AssertSingleDatasetIdentity` asserts
+  it at the end of the write.
+
+**Every refusal is structural and none has an override** (REQ-NFR-014, REQ-FN-086) — the eight values
+of `ImportRefusalReason` are `UnsupportedExtension`, `TooLarge`, `UnsafeArchive`, `PrecomputedRollup`,
+`Empty`, `NothingRecognised`, `MixedFrameworks` and `None`. `PrecomputedRollup` is the interesting
+one: a file of computed figures is refused *by name and by payload shape* (`RollupDetector`), because
+importing somebody's rollup would let a number into TfLens that no record supports.
 
 **`DeleteRepoDataAsync` removes all three layers**, scoped to `(userId, repo)`: every stream table row
 (`"Run"`, `"Gate"`, `"Session"`, `"Commit"`, `"PbEvent"`), the `"SyncState"` row, and the `"UserRepo"`
@@ -661,8 +896,42 @@ not null && !AlreadyConnected`.
 - **Rate limit** — `GitHubRateLimitException` → `Alert Variant=Warning` `connect-rate-limit`, on both
   Validate and Connect. Checked *before* the private/problem alerts, so a rate limit never masquerades
   as a validation failure.
-- **Private repo** — `Alert Variant=Warning` `connect-private` with `RepoRegistry.PrivateRepoMessage`.
+- **Private repo** — `Alert Variant=Warning` `connect-private` with `RepoRegistry.PrivateRepoMessage`,
+  **and an inline exit**: `connect-switch-import` moves the typed `owner/name` into the import panel.
+  This is the one refusal on the page that now offers a way forward instead of dead-ending.
 - **Other refusal** — `Alert` `connect-problem`, `Warning` when `AlreadyConnected`, else `Danger`.
+- **Import: nothing staged** — the drop zone alone; `import-submit` is disabled (`CanImport` requires a
+  preview *and* a name).
+- **Import: previewing** — `import-previewing`, spinner; the file picker and drop are disabled.
+- **Import: refused** — `import-refusal`, an `Alert Danger` whose title comes from the
+  `ImportRefusalReason` and whose body is the service's message verbatim. No preview is shown.
+- **Import: previewed** — `import-preview` with the per-stream table, the summary lines and the
+  `import-bundle-sha` badge. Nothing has been written yet.
+- **Import: committing** — `import-progress`, phase text plus a `Progress`. On success the dialog
+  closes and a toast reads *"Imported"* / *"Re-imported"* with records added and duplicates collapsed.
+- **Re-import** — the same dialog with `objIsReimport = true`: the title reads *"Re-import a source"*,
+  the mode tabs are **not rendered**, and `import-name` is disabled.
+
+### Observed 2026-08-28
+
+Signed in as userId 2 at 1440×900. **40 `data-testid`s on the page**, `repos-table` with 4 rows, 0
+blank icons, no page-level horizontal scroll, no console or page errors.
+
+- All four rows are `Synced` (`repo-source-{name}` × 4), so the **Imported** badge and the
+  `repo-reimport-{name}` action are documented from the code, not from a live row — this workspace
+  has no imported source. KPI sub-line read `4 synced · 0 imported · 4 techieflow · 0 playbook`.
+- Column order as rendered: Repo · Branch · Kind · **Source** · Visibility · Status · **Last sync /
+  import** · Records · Actions.
+- `repos-source-note` rendered.
+- Add-source dialog opened: `source-mode`, `source-mode-api`, `source-mode-import`,
+  `source-panel-api`, `connect-input`, `connect-branch`, `connect-kind`, `connect-validate`,
+  `add-source-cancel`, `connect-submit`.
+- Clicking `source-mode-import` swapped the panel: `source-panel-import`, `import-name`,
+  `import-framework`, `import-project-type`, `import-drop`, `import-choose`, `add-source-cancel`,
+  `import-submit`. The API panel's controls left the DOM entirely — the two panels are `@if`-forked,
+  not hidden.
+- Not exercised in this pass: an actual upload, the preview table, and any refusal path. Those are
+  documented from `TelemetryImportService` / `ImportEndpoints`, not observed.
 
 ### Known issues (runtime-observed 2026-08-27)
 
@@ -695,7 +964,31 @@ not null && !AlreadyConnected`.
 - `ReloadAsync` also calls `ShellState.RefreshAsync(userId)`, which is what keeps the sidebar badge and
   the header last-sync badge in step after a connect/remove. Drop that call and the shell goes stale.
 - `data-testid="repo-sync-{name}"` uses `UserRepo.Name` (the segment after `/`), not `owner/name`. Two
-  connected repos with the same name under different owners collide on that id.
+  connected repos with the same name under different owners collide on that id. The same is true of
+  `repo-reimport-{name}` and `repo-source-{name}`.
+- **`repo-sync-{name}` and `repo-reimport-{name}` are mutually exclusive.** A row renders exactly one
+  of them, chosen by `ImportedSourceRules.CanSync`. A test that asserts a Sync button on every row
+  will fail the moment a workspace holds an imported source — and a test that asserts *both* is
+  asserting a state the page cannot produce.
+- **The `Actions` column now renders one action button plus Remove**, not always two. The
+  "is it blank?" note above still holds: they are icon-only.
+- **The dialog body scrolls, the dialog does not.** `.tflens-dialog-body` is load-bearing — see
+  [cross-cutting gotcha 11](#11-dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself).
+  Remove it and the import mode's footer goes below the fold at phone height. It also means a geometry
+  gate can report a false overlap against the footer for a control scrolled out of view.
+- **Closing or switching modes forgets the staged bundle** (`ForgetBundleAsync` → JS `clearBundle`).
+  That is deliberate: a bundle staged under *Fetch via API* and committed after a mode switch would be
+  imported into a source the user was no longer looking at. If you add a third mode, call it too.
+- **The antiforgery token is read out of the page by the JS module**
+  (`input[name="__RequestVerificationToken"]`), because the post is a hand-built `fetch`, not a Blazor
+  form. Both endpoints call `IAntiforgery.ValidateRequestAsync` and answer an
+  `AntiforgeryValidationException` as a refusal. If the token input ever stops being rendered on this
+  page, import fails with a refusal that looks like a server problem.
+- **`import-project-type` is disabled on purpose.** The import service takes no `project_type`
+  override; records keep the type they were written with (SCHEMA.md §0.5). Enabling the control would
+  be an offer TfLens cannot honour.
+- **An imported row's `IsPublic` is `false` and that is not a private-repo warning.** It records that
+  the source is not reachable over the API. Nothing polls it and nothing warns about it.
 
 ---
 
@@ -721,12 +1014,17 @@ store holds.
 | KPI: newest age | `StatTile` | `kpi-newest-age` | `NewestRecord()` → `AgeText` | max `NewestTs` across all shown streams |
 | KPI: sync errors | `StatTile` | `kpi-sync-errors` | `SyncErrorCount`, `LastErrorDetail` | `"SyncState"."LastError"` |
 | Repo card | `Card` | `repo-card-{name}` | `BuildCard(repo, syncStates)` | one per repo on the **selected framework** |
-| SHA badge | `<a>` + `Badge` | `repo-sha-{name}` | `RepoCard.ShortSha` / `CommitUrl` | `LastSha[..7]`, opens `github.com/{repo}/commit/{sha}` |
-| Status badge | `Badge` | `repo-state-{name}` | `RepoCard.StatusText` | `sync error` / `N streams stale` / `not synced yet` / `synced` |
-| Stream table | `DataTable TData=StreamRow … InitialPageSize="16"` | `repo-streams-{name}` | `BuildRow(repo, stream)` | rows come from `FrameworkNames.Streams(framework)` |
-| Stale badge | `Badge Variant=Destructive` | `stale-{name}-{stream}` | `StreamRow.IsStale` | cadence stream **and** `DaysSince >= StalenessDays` |
-| Staleness alert | `Alert Warning AccentBorder` | `repo-stale-{name}` | `StalenessMessage(staleStreams)` | names the streams and the configured threshold |
+| **Source badge** | `Badge` | `repo-source-badge-{name}` | `SourceKinds.DisplayName(repo.SourceKind)` | **Synced** / **Imported**; origin is shown here and pools nowhere (BRD-136) |
+| SHA badge | `<a>` **or** plain `<span>` + `Badge` | `repo-sha-{name}` | `RepoCard.ShortSha` ← `ImportedSourceRules.DatasetIdentity(Sync?.LastSha, Repo.BundleSha)` | a fetched source shows the commit SHA and **links** to `github.com/{repo}/commit/{sha}`; an imported source shows `sha256 {8 chars}` of the bundle and is **not a link** — there is no commit to open (ADR-022) |
+| Status badge | `Badge` | `repo-state-{name}` | `RepoCard.StatusText` | `sync error` / `N streams stale` / `not synced yet` / `imported` / `synced` |
+| Stream table | `DataTable TData=StreamRow … InitialPageSize="16"` | `repo-streams-{name}` | `BuildRow(repo, stream, isImported)` | rows come from `FrameworkNames.Streams(framework)` — **five** on TechieFlow since 2026-08-28 |
+| Stale badge | `Badge Variant=Destructive` | `stale-{name}-{stream}` | `StreamRow.IsStale` | cadence stream **and** `DaysSince >= StalenessDays` **and not imported** |
+| Staleness alert | `Alert Warning AccentBorder` | `repo-stale-{name}` | `StalenessMessage(staleStreams)` | names the streams and the configured threshold; **fetched sources only** |
+| **Import-age alert** | `Alert Info AccentBorder` | `repo-import-age-{name}` | `ImportAgeMessage(card)` | replaces the staleness alert on an imported source: *"Imported {n} days ago. This source can't refresh itself — re-import to update."* |
+| **No-fixes alert** | `Alert Warning AccentBorder` | `repo-no-fixes-{name}` | `objReposWithoutFixes` | this repo emitted `miss` records and no `miss-fix` record |
+| **Reclassified alert** | `Alert Warning AccentBorder` | `repo-reclassified-{name}` | `DeclaredTypesFor(repo)` when `Count > 1` | names both `project_type` segments as **periods** of one project |
 | Per-repo error | `Alert Danger` | `repo-error-{name}` | `Sync.LastError` | redacted at write time |
+| **Miss data quality** | `Card` | `miss-quality`, `miss-quality-total`, `escapes-missing-why`, `orphan-misses`, `miss-backfilled`, `misses-without-fixes`, `reclassified-summary` | `MissFigures.Compute(...)` over this user's miss streams | counts only — **there is no rate anywhere in this card** |
 | Unknown fields | `Collapsible` | `unknown-fields`, `unknown-fields-trigger`, `unknown-group-{key}`, `unknown-fields-none` | `BuildUnknownFields()` | field **names only** |
 | Newer-schema alert | `Alert Info` | `schema-version-alert` | `objAboveSchemaV1` | records with `"V" > 1` |
 | Rebuild | `Card` + `AlertDialog` | `rebuild-card`, `rebuild`, `rebuild-title`, `rebuild-cancel`, `rebuild-confirm`, `rebuild-progress`, `rebuild-report`, `rebuild-per-stream` | `ConfirmRebuildAsync()` | `ITelemetryStore.RebuildAsync(userId)` |
@@ -753,6 +1051,36 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"
   already filtered to what SCHEMA.md does not document** — an `Overflow` payload must never reach a
   caller.
 - Newer-schema facts come from `MAX("V")::int … WHERE "V" > 1`.
+- **The `misses` row is one stream over three tables.** `"Miss"`, `"MissFix"` and `"MissAmend"` are
+  `UNION`ed inside the `misses` branch and reported as a **single** row per repository, because
+  `misses.jsonl` is one file (ADR-018). Do not "fix" this into three rows — Coverage counts streams as
+  the emitter writes them.
+
+### The miss data-quality card
+
+`Coverage.razor` calls `MissFigures.Compute` itself over `ReadMissesAsync` / `ReadMissFixesAsync` /
+`ReadMissAmendsAsync` / `ReadRunsAsync` — **the same engine call `/misses` renders**, so this page
+cannot report a different number from that one. What it renders is deliberately restricted to
+**counts**, and every one of them is a fact about the *records*, not about the work:
+
+| Fact | `data-testid` | Source | Why it is here and not on `/misses` |
+|---|---|---|---|
+| `n misses · n fixes` | `miss-quality-total` | `MissesTotal`, `MissFixesTotal` | scale of the stream |
+| Escapes with no `why_missed` | `escapes-missing-why` | `MissAnalysis.EscapesMissingWhy` | something got past every gate and nobody recorded why — the most valuable record in the stream, arriving incomplete |
+| Records that link to nothing | `orphan-misses` | `OrphanFixes` + `OrphanAmends` + `AmendmentsIgnored` | counted rather than dropped: a dropped orphan is a fact nobody can see |
+| Backfilled, held out of every miss figure | `miss-backfilled` | `BackfilledMissesExcluded`, `BackfilledMissFixesExcluded` | the third provenance separation, **applied and displayed** |
+| Misses recorded, no fixes recorded | `misses-without-fixes` (workspace) · `repo-no-fixes-{name}` (per repo) | `objReposWithoutFixes` | a **telemetry gap, not a defect backlog** — with no fixes every miss reads as open and no time-to-close or rework-cost figure exists at all |
+| Reclassification split | `reclassified-summary` (workspace) · `repo-reclassified-{name}` (per repo) | `DeclaredTypesFor(repo)` | a repo appearing under more than one `project_type`; the segments are **never pooled**, so each is described as a *period* of the project |
+
+`EscapesMissingWhy` is bounded by the same eligibility floor the `/misses` distribution uses —
+`MetricsConstants.FieldSince["why_missed"] = 2026-08-28`. An escape written before the field existed
+had no field to leave empty, so counting it would raise the warning loudest against exactly the
+records nobody can now complete.
+
+All of these become **warnings** in the status strip (`BuildWarnings`), in this order: sync failures →
+stale streams → misses-without-fixes → escapes-missing-why → orphan records → reclassification →
+undocumented fields → `v > 1`. **None of them is an error and none reddens a repo's health badge.**
+An incomplete stream is a habit still forming, not a broken system.
 
 ### States
 
@@ -765,6 +1093,25 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"
 - **Redirect** — if `ReadUserReposAsync` returns nothing at all (`objHasAnyRepo == false`),
   `OnParametersSetAsync` navigates to `/repos`. Coverage is the landing route only for a user who has
   something to cover.
+
+### Observed 2026-08-28
+
+Signed in as userId 2 at 1440×900. **66 `data-testid`s**, four `repo-streams-*` tables at **5 rows
+each**, 0 blank icons, no page-level horizontal scroll, no console or page errors.
+
+- Status strip read `CHECK — 5 warnings`, and the miss warnings appeared in the documented order:
+  two sync failures, then `1 escapes carry no why_missed`, then undocumented fields, then `v = 2`.
+- `repo-source-badge-{name}` rendered **Synced** on all four cards; no imported source exists in this
+  workspace, so the `sha256 …` badge, `repo-import-age-{name}`, `repo-no-fixes-{name}` and
+  `repo-reclassified-{name}` are documented from code and were **not** observed rendering.
+- The `misses` row rendered on every repo card. Three repos read `misses 0`; `techierathore/TechieFlow`
+  read `misses 8 · backfilled 0` — that is the **union of the three tables** (4 misses + 4 fixes + 0
+  amendments), not a miss count. `/misses` shows `4` for the same data, and both are right.
+- `miss-quality` rendered with `miss-quality-total` = `4 misses · 4 fixes`, `escapes-missing-why` =
+  `1 of 4 misses`, `orphan-misses` = `0 records` (0 orphan fixes · 0 orphan amendments · 0 ignored
+  amendments), `miss-backfilled` = `0 misses · 0 fix records`. `misses-without-fixes` and
+  `reclassified-summary` did **not** render — correctly, since neither condition holds.
+- `stat-sparkline` renders on the gate-records KPI (`ReadDailySeriesAsync`).
 
 ### Gotchas
 
@@ -785,6 +1132,27 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"
   `ShellPreferences.Changed`, which compares `objFramework` to `objPreferences.Framework` and calls
   `ReloadAsync`. The figures are re-read on the new axis, never filtered from what is on screen.
 - `SidebarMenuBadge` shows all repos; this page's `objCards.Count` shows one axis. They will differ.
+- **An imported source is never stale and never gets the hook/pushing diagnosis.** `BuildRow` passes
+  `isImported` and forces `IsStale = false`; the card renders `repo-import-age-{name}` instead of
+  `repo-stale-{name}`. A snapshot is not unhealthy for being a snapshot, and advice about a git hook
+  would be advice about a clone TfLens cannot see. Its age reads as **days since import**
+  (`LastImportTs`), not days since the newest record.
+- **`repo-sha-{name}` is the same test id for two different things.** A fetched source puts it on an
+  `<a>` to GitHub; an imported one puts it on a plain `<span>` reading `sha256 …`. A test that asserts
+  `href` on that id passes only on fetched sources. Behind both is
+  `ImportedSourceRules.DatasetIdentity`, which **throws** if a row ever carries both `LastSha` and
+  `BundleSha` — one dataset, one identity (ADR-022).
+- **The `misses` stream row is genuinely five-of-five on TechieFlow now.** If you are counting stream
+  rows anywhere (`InitialPageSize="16"` still covers it), `FrameworkNames.Streams("techieflow")` is
+  `runs · gates · sessions · commits · misses`. Playbook is still the single `events` row.
+- **`misses` is a third stream that carries `Backfilled`.** `BuildRow`'s `CarriesBackfilled` is now
+  `Runs or Gates or Misses`; `sessions` and `commits` still render `—`. All three miss tables have a
+  `"Backfilled"` column and the coverage SQL filters on it. That count is *what was stored*; the
+  `miss-backfilled` fact on the data-quality card is *what was held out of every figure*. They are two
+  different questions and will not always be the same number.
+- **The miss facts are read on the TechieFlow axis only.** The Playbook has no `misses.jsonl` and no
+  `project_type` segmentation to be reclassified within, so the whole read is skipped there rather
+  than reported as zero — an empty stream and a stream that cannot exist are different facts.
 
 ### Deviation from `docs/TfLens-UIDesign.md`
 
@@ -1092,6 +1460,254 @@ and matches the screenshot.
 
 ---
 
+## `/misses`
+
+**Files:** `src/TfLens/Components/Pages/Misses.razor` (1,766 lines) + `Misses.razor.css` ·
+`@page "/misses"` · authenticated · `MainLayout` · breadcrumb `Reports › Misses & rework` ·
+Framework switch **shown** · sidebar item `nav-misses`, between Routing and Snapshot export.
+
+![Misses & rework](./devguide-images/misses.png)
+
+**What it is for.** What was missed, which practice let it through, and what the repair cost. It is
+the sixth report page and the first one built on the `misses` stream (BRD-118..BRD-126, REQ-UI-035..038).
+
+**Read this before you fix anything here.** Six behaviours on this page look like defects and are not.
+Every one of them is a rule with a test behind it, and "correcting" any of them turns a refusal to
+answer into a flattering number:
+
+1. **Measured and apportioned rework cost are never blended.** `MissCost` has exactly three members —
+   `Sole`, `Apportioned`, `NoneCount` — so a combined figure has no property to bind to (ADR-019).
+   Reflection tests in **two** projects pin it: `MissInvariantContractTests.MissCostExposesNoPropertyThatCouldHoldABlendedFigure`
+   and `.NoMissResultTypeCarriesATotalOrBlendedFigure` in `tests/TfLens.Guardrails.Tests`, and
+   `MissInvariantTests.MissCostCarriesTheSplitAndNothingElse` in `tests/TfLens.Core.Tests`.
+2. **Per-model, per-agent and per-phase figures count `OriginConfidence == "linked"` records only**,
+   and **the excluded count is rendered, never hidden** (`miss-taint-count`, always, even at zero).
+   An exclusion the reader cannot see is indistinguishable from a bug.
+3. **The `why_missed` distribution's denominator is the records that *carry* the field**, printed on
+   the card's face (`miss-whymissed-denominator`), and bounded by the eligibility floor
+   `MetricsConstants.FieldSince["why_missed"] = 2026-08-28`. Never the miss count.
+4. **`wont-fix` is never folded into open.** It is its own tile. `deferred` *is* open. The
+   producer's collapse check asks a different question and the two are **deliberately not reconciled**.
+5. **The period filter narrows the record set and re-runs `MissFigures.Compute`.** It does not
+   recompute anything in the view. That is why every engine rule still applies under a filter, and
+   why a narrow window degrades to `insufficient data (n=…)` rather than to a wrong number.
+6. **An absent cost renders `—`, never `$0.00`,** and every `Figure` renders through
+   `Components/Shared/FigureText.razor` ([gotcha 7](#7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor)).
+
+### Control → data path
+
+The page injects `ITelemetryStore` **directly** — it does not go through `IMetricsEngine`, because it
+has to re-run the computation per period. Four reads, then one engine call:
+
+```csharp
+objAllMisses = await objStore.ReadMissesAsync(userId, framework);      // "Miss"
+objAllFixes  = await objStore.ReadMissFixesAsync(userId, framework);   // "MissFix"
+objAllAmends = await objStore.ReadMissAmendsAsync(userId, framework);  // "MissAmend"
+objAllRuns   = await objStore.ReadRunsAsync(userId, framework);        // per-phase denominator
+objRateCard  = await RateCard.LoadAsync(objOptions.Value.PricesPath);
+
+// Recompute(), on load and on every period change:
+objFold   = MissAmendFolder.Fold(vMisses, vAmends);      // read-time fold, before any figure
+objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
+```
+
+`MissFigures.Compute` folds amendments **again** internally — that is not redundant. The page keeps
+its own `objFold` because the detail table and the raw-record disclosure render *records*, and they
+must show the same folded values the figures were computed from. **`MissAmendFolder.Fold` runs before
+a single figure is counted**, so a `why_missed` supplied only by a later `miss-amend` reaches the
+distribution (REQ-FN-075) while the stored `"Miss"` row still carries `null` — an amend *completes* a
+record, it never edits one.
+
+| Region | Component | `data-testid` | Source |
+|---|---|---|---|
+| Period badge | `Badge Variant=Outline` | `misses-period-label` | `PeriodOption.Badge` — the window is stated even when the select is closed |
+| Period filter | `Select` + `DisplayTextSelector` | `misses-period` | `PeriodOptions` = all history (default) / 7 / 30 / 90 days → `OnPeriodChangedAsync` → `Recompute()` |
+| Standing escape note | `Alert Info AccentBorder` | `miss-escape-note` | constant page copy, never a tooltip (BRD-118) |
+| Type tabs | `Tabs` / `TabsTrigger` | `miss-type`, `miss-type-{type}` | `MissAnalysis.ProjectTypes`; badge is `SegmentOf(type).Misses` |
+| Open misses | `StatTile` | `kpi-open` | `MissSegmentFigures.OpenMisses`; sub-line names the deferred count |
+| Declined | `StatTile` | `kpi-wontfix` | `WontFix` — its own tile, never part of open |
+| Misses this period | `StatTile` | `kpi-period` | `Misses`; sub-line `n closed · n open · n declined` |
+| Median time to close | `StatTile` → `FigureText` | `kpi-median-close`, `kpi-median-close-value` | `MedianTimeToCloseHours` — timed over `Verified` misses only; a `wont-fix` is a decision and a `deferred` has not closed |
+| Design-miss share | `StatTile` → `FigureText` | `kpi-design-share`, `-value` | `DesignMissShare` = `miss_class == "unspecified-gap"` ÷ all misses |
+| Escape share | `StatTile` → `FigureText` | `kpi-escape-share`, `-value` | `EscapeShare` = `found_by ∈ {owner, production}` ÷ all misses |
+| Tokens on rework | `StatTile` → `FigureText` | `kpi-rework-tokens`, `-value` | `Cost.TokensPerMissFixed.**Sole**` — the measured column only |
+| Measured USD | `StatTile` (plain span) | `kpi-rework-usd`, `-value` | `MeasuredUsdDisplay` ← the **OpenCode** row's `MeasuredUsdTotal`, or `—` |
+| Rate-card estimate | `Card Class="tflens-estimate"` | `kpi-rework-usd-estimate`, `-value`, `-label`, `kpi-rework-usd-unpriced` | `EstimateUsd` — non-OpenCode fixes priced through `RateCard`, carrying `RateCard.EstimateLabel` |
+| Origin cross-tab | hand-rolled `<table class="tflens-table">` | `miss-origin`, `miss-origin-{phase}`, `miss-origin-unattributed`, `miss-origin-none` | `SegmentTaint.Linked` grouped by `OriginPhase` × `MissClass`, plus `Attribution.MissRatePerOriginPhase` for Runs / Misses-per-run |
+| Attribution exclusion | `<p>` in `CardFooter` | `miss-taint-count` | `MissAttributionSet.AttributionExcluded` + `ExcludedByConfidence` + `Reason` — **always rendered** |
+| Failed practice | `DataTable … InitialPageSize="32"` | `miss-whymissed`, `miss-whymissed-table`, `miss-whymissed-denominator`, `miss-whymissed-note`, `miss-whymissed-eligibility` | `FailedPracticeDistribution` over the vocabulary of `MissAmendFolder.AmendableFields["why_missed"]` |
+| Observational warning | `Alert Warning AccentBorder` | `miss-observational` | standing copy (BRD-124) — *this band does not show causation* |
+| By origin model | `DataTable … InitialPageSize="32"` | `miss-origin-model`, `-table`, `-none` | `Attribution.ByOriginModel` |
+| By origin agent | `DataTable … InitialPageSize="32"` | `miss-origin-agent`, `-table`, `-none` | `Attribution.ByOriginAgent` + the dominant class read off the same linked records |
+| Cost: measured | `Card` → `FigureText` | `miss-cost-measured`, `miss-cost-sole`, `miss-cost-measured-usd` | `Cost.TokensPerMissFixed.Sole`, `Cost.SoleRecords` |
+| Cost: apportioned | `Card` → `FigureText` | `miss-cost-apportioned`, `-value` | `Cost.TokensPerMissFixed.Apportioned`, `Cost.SharedRecords` |
+| Cost: unattributable | `Card` | `miss-cost-unattributable`, `miss-cost-none`, `miss-cost-attribution-missing` | `Cost.TokensPerMissFixed.NoneCount`, `Cost.AttributionMissing` |
+| No-blend note | `<p>` | `miss-cost-no-blend` | states ADR-019 on the page |
+| Detail table | `DataTable ShowToolbar ShowPagination InitialPageSize="25"` | `miss-detail`, `miss-detail-table`, `miss-raw-{missId}` | `DetailRows` over `SegmentMisses` (folded), newest first |
+| Raw record | `Collapsible` → `CodeBlock` | `miss-raw-trigger`, `miss-raw`, `miss-raw-note` | the stored record as JSON, `overflow` reduced to **field names only** (SCHEMA.md §9) |
+
+### The four bands, and why each rule is shaped that way
+
+**Band 2 — the origin cross-tab is `linked`-only, and says so twice.** `MissAttributionTaint.Partition`
+splits the segment's misses on `OriginConfidence == "linked"`; everything else is counted into
+`ExcludedByConfidence` (an absent value buckets as `not-recorded`, deliberately *not* as `unknown`,
+which is a real value in the producer's vocabulary). The excluded records get an `unattributed` row in
+the table **and** the `miss-taint-count` footer, which names the count, the breakdown and the reason
+verbatim from `MissAttributionTaint.ExclusionReason`. There is no parameter, flag or overload that
+returns those records to a figure — relaxing the rule means editing `MissAttributionTaint.cs`
+(REQ-NFR-013).
+
+`OriginConfidence` is derived by `tf-emit.sh` and never written by an agent, and the emitter forces
+`origin_model` / `origin_harness` to `null` when its lookup fails. That is what makes the guarantee
+real rather than aspirational: the filter is on a value the producer controls.
+
+**Band 2 — the failed-practice denominator.** `MissFigures.CountBy` skips a `null` entirely: a null is
+not a bucket, not an `other`, not a zero. So `WhyMissedN` counts only records that carry the field,
+and every share on the card is read against that. The card's badge prints
+`{Assessed} of {Eligible} misses assessed` and the footer separates the two ways a miss can be absent
+from the numerator:
+
+- **not assessed** — the field was available and nobody filled it in;
+- **predates the field** — the record was written before `FieldSince["why_missed"] = 2026-08-28`, and
+  it leaves the denominator entirely rather than being backfilled with a value nobody assessed.
+
+The rows themselves come from the **closed vocabulary** in
+`MissAmendFolder.AmendableFields["why_missed"]`, not from what the data happened to contain, so a
+practice that caught nothing renders a real `0` rather than vanishing. Values the engine reports but
+the vocabulary does not know are appended.
+
+**Band 3 is labelled observational on the page.** Miss counts per model and per agent are confounded
+by which model gets the hard work. `miss-observational` says so in an `Alert`, not a tooltip, and the
+`n linked` badge on both cards repeats the attribution basis.
+
+**Band 4 — three columns and never one.** *Measured* is `cost_attribution: sole` — one fix run, one
+miss, the whole token window is that miss's cost. *Apportioned* is `shared:n`, one window divided
+equally across `n` misses: **arithmetic, not measurement**, and stated as such. *Unattributable* is
+`cost_attribution: none` — a count, never a divisor. `AttributionMissing` (absent or unrecognised) is
+a **fourth** number and is deliberately **not** folded into `NoneCount`: `none` is a value the emitter
+wrote, absent is nobody having said, and those are different facts.
+
+Measured dollars come from OpenCode records only and are never summed across harnesses
+(`MissFigures.HarnessRow` does not even *read* a `cost_usd` on another harness's record). Rate-card
+dollars live on their own dashed card, on their own row, carrying `RateCard.EstimateLabel` and
+exported under a key ending `_usd_estimate` — the measured tile's key does not. Models the card does
+not price are **named** in `kpi-rework-usd-unpriced` and left out, never costed at zero.
+
+**One known divergence from the reference is deliberate.** `analyse_misses` in `tf-metrics.sh`
+computes `sum(tokens_out or 0) / len(sole)`, averaging a repair whose tokens were never recorded in as
+a zero. `MissFigures.MoneyFor` divides by the records that actually **carry** a count. Recorded as
+`TF-005` / `DECISIONS.md` D-012. The two agree on every dataset where every `sole` record carries
+`tokens_out`, so the divergence is latent rather than live — **do not "fix" it by matching the
+reference**, parity would go green by adopting the weaker number.
+
+### States
+
+- **Loading** — `objIsLoaded == false` → one `Card` of three `Skeleton` lines, the same block every
+  report page uses.
+- **Error** — `Alert Danger AccentBorder` `misses-error` with the exception message; `objResult` and
+  `objFold` are both reset to `Empty` first.
+- **Empty (TechieFlow)** — `objResult.MissesTotal == 0` → `Empty` `misses-empty` / `misses-empty-connect`,
+  *"TfLens reads `docs/metrics/misses.jsonl`; it never writes one."*
+- **Empty (Playbook)** — `PlaybookEmpty` **plus** `misses-playbook-plan`, a table describing the four
+  bands, and `misses-playbook-zero-note`. The Framework switch is rendered rather than hidden for a
+  surface one framework has and the other does not (BRD-126); the note says explicitly that a zero
+  here is **absence, not a good score**.
+- **Playbook, non-empty** — `PlaybookAxisNote` replaces the escape note. The layout does not change.
+- **Insufficient data** — any `Figure` below `MinN` = 3 renders `insufficient data (n=…)` through
+  `FigureText`, shrunk by `SmallWhenNoNumber` so a refusal is never at headline size. A distribution
+  below `MinN` renders its own `…-note` line instead.
+- **Absent** — `NotApplicable` renders `—`. So does an absent measured or estimated dollar amount.
+
+### Observed 2026-08-28
+
+Signed in as userId 2 at 1440×900. **74 `data-testid`s**, 0 blank icons, no page-level horizontal
+scroll, no console or page errors. Tables: `miss-origin` 2 rows, `miss-whymissed-table` 7,
+`miss-origin-model-table` 1, `miss-origin-agent-table` 1, `miss-detail-table` 4.
+
+The dataset is **4 misses / 4 fixes / 0 amendments**, all in one segment. `miss-type` rendered a
+single tab, `framework` (badge 4). What actually rendered:
+
+| Control | Rendered | Reading it |
+|---|---|---|
+| `misses-period` | `All history (default)` | the `DisplayTextSelector` fix for TR-020 is working — without it this reads `all` |
+| `kpi-open` | `0` | `3 closed · 0 open · 1 declined` |
+| `kpi-wontfix` | `1` | the declined miss is here and **not** in open |
+| `kpi-median-close` | `0h` | three closed misses, so the figure is above `MinN` |
+| `kpi-design-share` | `0%` | a real zero: no `unspecified-gap` in 4 misses |
+| `kpi-escape-share` | `50%` | 2 of 4 `found_by ∈ {owner, production}` |
+| `kpi-rework-tokens` | `—` | **0 of 4** fixes are `cost_attribution: sole` — an absence, not a zero |
+| `kpi-rework-usd` | `—` | no OpenCode fix record carries `cost_usd` |
+| `kpi-rework-usd-estimate` | `—` | no non-OpenCode fix carries both a token count and a priced model |
+| `miss-origin` | 1 phase row (`log-miss`) + `miss-origin-unattributed` | `1 other + 1 partial-implementation = 2`, over 3 runs → `67%` |
+| `miss-taint-count` | `2 of 4 misses excluded … (inferred: 2)` | the exclusion is on the page, as required |
+| `miss-whymissed` | 7 rows, `instruction-ignored 1 · 100%`, 6 at `0 · —` | the closed vocabulary renders in full |
+| `miss-whymissed-note` | `insufficient data (n=1)` | one assessed record cannot carry a share honestly |
+| `miss-origin-model-table` | `claude-opus-5 · 1 · 100%` | linked records only (2 of 4) |
+| `miss-origin-agent-table` | `flow-master · 2 · 100% · other` | " |
+| `miss-cost-*` | `—` / `—` / `0` | measured, apportioned, unattributable — three columns, no blend |
+| `miss-detail-table` | 4 rows, `miss-raw-MISS-TechieFlow-20260828-01..04` | one row per miss |
+
+**Six of the figures on this page render `—` or `insufficient data`, and that is the correct
+answer for this dataset.** The first instinct on seeing that screen is that the page is broken. It
+is not: 4 records, 0 of them `sole`-attributed, 1 of them carrying `why_missed`.
+
+Not observed in this pass: the Playbook state, the empty state, any period other than *All history*,
+the raw-record disclosure open, and any apportioned or measured-dollar figure (no record supports one).
+
+### Gotchas
+
+- **Do not add a blended cost figure, even "just for the export".** `MissCost` cannot hold one, and
+  three reflection tests across two projects assert that no miss result type carries a total or
+  blended member. The page states the rule on itself in `miss-cost-no-blend`.
+- **`miss-taint-count` renders even when nothing was excluded.** Hiding it at zero would make "no
+  exclusions" look identical to "the footer was never built". Same reasoning as `/harness`'s
+  `harness-null-footnote`.
+- **`SegmentTaint` re-partitions on every access.** It is a computed property calling
+  `MissAttributionTaint.Partition(SegmentMisses)`, and `SegmentMisses` re-filters `objFold.Misses`
+  each time. That is deliberate — one rule in one place, not a `Where` clause copied into the view —
+  but it means the origin band does real work per render. If this page ever gets slow with thousands
+  of misses, memoise `SegmentTaint` per `(period, type)`; do **not** inline the predicate.
+- **`LinkKey` is spelled differently in the page and in the engine.** `MissFigures.LinkKey` is
+  `repo + " " + missId`; `Misses.razor`'s private `LinkKey` is `$"{repo}{missId}"`. Both are internally
+  consistent — nothing joins across the two — but they are not interchangeable, so do not "share" one
+  without checking every call site.
+- **A record whose `ts` TfLens cannot parse stays in every period window.** `IsInPeriod` returns
+  `true` on a parse failure. Silently dropping a record because its own clock string is odd would
+  understate every figure with no visible reason.
+- **The period filter is per-circuit and is not persisted.** Reload and you are back on *All history*.
+  So is the type tab (`OnTypeSelectedAsync` sets a field and returns `Task.CompletedTask`).
+- **`Recompute()` resets the raw disclosure** (`objRawMissId = null; objIsRawOpen = false`). A change
+  of period closing the open record is intentional — the record may not be in the new window.
+- **`CollapsibleContent` is guarded by an `@if`, not merely closed.** `TR-018`: a closed
+  `CollapsibleContent` still lays its children out and overlaps what follows. Do not remove the guard.
+- **`Progress Class="w-16"`, not `w-20`.** See
+  [cross-cutting gotcha 10](#10-trblazeuicsss-spacingsizing-scale-has-holes--w-20-renders-at-zero-width) —
+  `w-20` is absent from the shipped stylesheet and the share bars rendered at zero width.
+- **The chip icons are `circle-check`, not `check-circle`.** `TR-022`; the alias renders an empty box.
+- **This page reads `ITelemetryStore` directly and so bypasses `MemoryAnalysisCache`.** It is not
+  served by the `CachingMetricsEngine` at all, which means it is *not* subject to
+  [gotcha 5](#5-memoryanalysiscache-is-keyed-on-the-syncstate-version) — seeded rows show up here
+  immediately while `/three-questions` may still serve a cached analysis. Two pages, two freshnesses.
+- **`FrameworkNames` is the axis, `project_type` is the segment, and they are different things.**
+  There is deliberately no "all types" entry on `MissAnalysis.Live` and no total row anywhere on the
+  page — the same rule as `/three-questions` (ADR-007).
+
+### Deviation from `docs/TfLens-UIDesign.md`
+
+- The design specifies `Progress` bars at `w-20` in the failed-practice card. The code ships `w-16`
+  because `w-20` is not in `trblazeui.css` (TR-021). Restore the design's value only alongside a
+  scoped-CSS rule that actually defines the width.
+- The design's period control is a plain `Select`; the code adds `DisplayTextSelector` and a
+  `misses-period-label` badge beside it, because the closed trigger otherwise shows the raw key
+  (TR-020) and because the window should be legible without opening anything.
+- The design puts the origin cross-tab in a `DataTable`. The code hand-rolls a `<table
+  class="tflens-table">` inside `.tflens-scroll-x`, because `DataTableColumn` needs a compile-time
+  property per column and `miss_class` has no closed vocabulary — the columns are whatever the linked
+  records carry. The `why_missed`, model, agent and detail tables *are* `DataTable`s, all with an
+  explicit `InitialPageSize` ([gotcha 1](#1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse)).
+
+---
+
 ## `/export`
 
 **Files:** `src/TfLens/Components/Pages/Export.razor` (`@page "/export"`, ~95 lines — decides *which
@@ -1227,6 +1843,14 @@ Selecting **Playbook** in the header switch writes `tflens-framework=playbook` a
 > captured run — 9 identical sessions, no `parentID` anywhere — which is why `SchemaStatus` stays
 > `EmitterSourceDerived` and every Playbook figure carries the `playbook-provisional` caveat.
 
+**`/misses` is the sixth report route and has a Playbook state of its own** (added 2026-08-28). It
+renders `PlaybookAxisNote` when the axis is Playbook and non-empty, and `PlaybookEmpty` plus
+`misses-playbook-plan` / `misses-playbook-zero-note` when it is empty — which today it always is,
+because `events.ndjson` carries no miss records. The plan card describes the same four bands rather
+than hiding the page: the switch changes the data, never the layout or the rules (BRD-126). It also
+says on its face that a zero there is **absence, not a good score**. Not driven in the 2026-08-28
+observe pass.
+
 ![/export on the Playbook axis](./devguide-images/export-playbook.png)
 
 **Shared components** (`src/TfLens/Components/Shared/Playbook/`):
@@ -1283,6 +1907,7 @@ returns a single `events` stream, so the repo card's table renders one row rathe
 | `/three-questions` | `Components/Pages/ThreeQuestions.razor` | `MainLayout` | fallback policy | **yes** |
 | `/harness` | `Components/Pages/Harness.razor` | `MainLayout` | fallback policy | **yes** |
 | `/routing` | `Components/Pages/Routing.razor` | `MainLayout` | fallback policy | **yes** |
+| `/misses` | `Components/Pages/Misses.razor` | `MainLayout` | fallback policy | **yes** |
 | `/export` | `Components/Pages/Export.razor` + `Export/ExportSurface.razor` | `MainLayout` | fallback policy | **yes** |
 | `/not-found` | `Components/Pages/NotFound.razor` | `MainLayout` | fallback policy | no |
 | `/Error` | `Components/Pages/Error.razor` | — | — | — |
@@ -1306,5 +1931,7 @@ has signed in — without them the sign-in form cannot be interactive at all.
 | `POST /auth/login`, `/auth/register`, `/auth/forgot-password`, `/auth/reset-password` | `AuthEndpoints.cs` | anonymous |
 | `POST /auth/logout` | `AuthEndpoints.cs` | authorized |
 | `GET /api/export/download` | `ExportEndpoints.cs` | authorized |
+| **`POST /api/import/preview`** | **`Services/Import/ImportEndpoints.cs`** | **authorized + antiforgery** |
+| **`POST /api/import/commit`** | **`Services/Import/ImportEndpoints.cs`** | **authorized + antiforgery** |
 | `GET /healthz` | `HealthEndpoint.cs` | anonymous |
 | **`GET /signout`** | **nowhere — 404** | — |

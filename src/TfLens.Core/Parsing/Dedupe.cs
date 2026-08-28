@@ -22,7 +22,15 @@ public sealed record DedupeResult<T>(IReadOnlyList<T> Records, int Collapsed);
 ///   <item><term><c>runs</c></term><description><c>(UserId, Repo, Ts, App, Cmd)</c> — <c>UcRunIdentity</c>. First wins (BRD-28).</description></item>
 ///   <item><term><c>gates</c></term><description><c>(UserId, Repo, Ts, App, ReqId, RunId)</c> — <c>UcGateIdentity</c>. First wins (BRD-28).</description></item>
 ///   <item><term><c>events</c></term><description><c>(UserId, Repo, Ts, EventType, SessionId)</c> — <c>UcPbEventIdentity</c>. First wins (provisional, ADR-010).</description></item>
+///   <item><term><c>misses</c> / <c>miss</c></term><description><c>(UserId, Repo, MissId)</c> — <c>UcMissUserRepoMissId</c>. <b>Earliest <c>ts</c> wins</b>: a miss is opened once, so a duplicate is a re-parse of the same archived file rather than new information (BRD-114).</description></item>
+///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, FixRunId)</c> — <c>UcMissFixUserRepoMissIdFixRunId</c>. <b>Latest <c>ts</c> wins</b> (BRD-114).</description></item>
+///   <item><term><c>misses</c> / <c>miss-amend</c></term><description><c>(UserId, Repo, MissId, Field, Ts)</c> — <c>UcMissAmendUserRepoMissIdFieldTs</c>. <b>Earliest wins</b>; because <c>Ts</c> is itself in the key, a collision is byte-for-byte the same fact (BRD-114, §5.5.7).</description></item>
 /// </list>
+/// <para>
+/// None of the three miss rules needs the <c>merge=union</c> handling <c>commits</c> needs: misses are
+/// events on one machine and cannot be independently reconstructed elsewhere (SCHEMA.md §5's reasoning,
+/// applied unchanged — REQ-FN-073).
+/// </para>
 /// <para>
 /// A commit record carrying no <c>sha</c>, and a session record carrying no <c>session_id</c>, are
 /// <b>kept</b> rather than collapsed — the reference does the same, on the reasoning that a record with
@@ -190,6 +198,110 @@ public static class Dedupe
         }
 
         return string.CompareOrdinal(aCandidate.Ts, aKept.Ts) > 0;
+    }
+
+    /// <summary>
+    /// Collapses <c>miss</c> records sharing a <c>miss_id</c> within one user and repository, keeping
+    /// the one with the <b>earliest</b> <c>ts</c>.
+    /// </summary>
+    /// <remarks>
+    /// A miss is opened exactly once (the emitter's §5.5.4 collapse rule guarantees it), so two records
+    /// carrying one <c>miss_id</c> are the same event seen twice — a re-parse of the same archived file,
+    /// or two archived snapshots overlapping. Keeping the earliest makes the stored opening time the
+    /// real one whatever order the files arrive in, which is what median time-to-close stands on
+    /// (BRD-114, REQ-FN-073).
+    /// </remarks>
+    /// <param name="aRecords">The miss records as parsed, in file order.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    public static DedupeResult<MissRecord> Misses(IReadOnlyList<MissRecord> aRecords) =>
+        KeepBest(
+            aRecords,
+            aR => string.IsNullOrEmpty(aR.MissId) ? null : Key(aR.UserId, aR.Repo, aR.MissId),
+            (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) < 0);
+
+    /// <summary>
+    /// Collapses <c>miss-fix</c> records sharing <c>miss_id + fix_run_id</c> within one user and
+    /// repository, keeping the one with the <b>latest</b> <c>ts</c>.
+    /// </summary>
+    /// <remarks>
+    /// One repair run produces one fix record per miss it repaired, so the pair is the natural key. The
+    /// later write is the more complete one — the emitter injects the token window after the run closes.
+    /// A record whose <c>fix_run_id</c> is absent (the deliberate <c>log-miss --fixed</c> path, §5.5.3)
+    /// keys on the empty string, exactly as the store's <c>COALESCE("FixRunId", '')</c> unique index
+    /// does, so the two spellings of the rule cannot drift (BRD-114, REQ-FN-073).
+    /// </remarks>
+    /// <param name="aRecords">The fix records as parsed, in file order.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    public static DedupeResult<MissFixRecord> MissFixes(IReadOnlyList<MissFixRecord> aRecords) =>
+        KeepBest(
+            aRecords,
+            aR => string.IsNullOrEmpty(aR.MissId)
+                ? null
+                : Key(aR.UserId, aR.Repo, aR.MissId, aR.FixRunId ?? string.Empty),
+            (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) > 0);
+
+    /// <summary>
+    /// Collapses <c>miss-amend</c> records sharing <c>miss_id + field + ts</c> within one user and
+    /// repository, keeping the earliest.
+    /// </summary>
+    /// <remarks>
+    /// Amendments are additive and each one is a distinct fact, so <c>ts</c> is part of the key rather
+    /// than a tie-break: two amendments of the same field at different instants are two facts, and only
+    /// a byte-identical re-parse of the same archived file collapses. Folding happens at read time, so
+    /// nothing here decides which amendment <i>wins</i> — that is <c>MissAmendFolder</c>'s job, and it
+    /// re-applies the null-check while it does it (ADR-020, REQ-FN-073).
+    /// </remarks>
+    /// <param name="aRecords">The amend records as parsed, in file order.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    public static DedupeResult<MissAmendRecord> MissAmends(IReadOnlyList<MissAmendRecord> aRecords) =>
+        KeepFirst(
+            aRecords,
+            aR => string.IsNullOrEmpty(aR.MissId)
+                ? null
+                : Key(aR.UserId, aR.Repo, aR.MissId, aR.Field, aR.Ts));
+
+    /// <summary>
+    /// The shared keyed collapse that keeps whichever record a rule says is better.
+    /// </summary>
+    /// <typeparam name="T">The record type.</typeparam>
+    /// <param name="aRecords">The records as parsed, in file order.</param>
+    /// <param name="aKeyOf">Produces the natural key, or <c>null</c> for a record that has none and is always kept.</param>
+    /// <param name="aIsBetter">True when the candidate should replace the record already held for the key.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aRecords"/> is <c>null</c>.</exception>
+    private static DedupeResult<T> KeepBest<T>(
+        IReadOnlyList<T> aRecords, Func<T, string?> aKeyOf, Func<T, T, bool> aIsBetter)
+    {
+        ArgumentNullException.ThrowIfNull(aRecords);
+
+        var vKept = new List<T>(aRecords.Count);
+        var vIndexByKey = new Dictionary<string, int>(StringComparer.Ordinal);
+        var vCollapsed = 0;
+
+        foreach (var vRecord in aRecords)
+        {
+            var vKey = aKeyOf(vRecord);
+            if (vKey is null)
+            {
+                vKept.Add(vRecord);
+                continue;
+            }
+
+            if (!vIndexByKey.TryGetValue(vKey, out var vIndex))
+            {
+                vIndexByKey[vKey] = vKept.Count;
+                vKept.Add(vRecord);
+                continue;
+            }
+
+            vCollapsed++;
+            if (aIsBetter(vRecord, vKept[vIndex]))
+            {
+                vKept[vIndex] = vRecord;
+            }
+        }
+
+        return new DedupeResult<T>(vKept, vCollapsed);
     }
 
     /// <summary>

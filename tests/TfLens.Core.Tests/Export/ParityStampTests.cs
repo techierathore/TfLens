@@ -19,16 +19,27 @@ namespace TfLens.Core.Tests.Export;
 /// </remarks>
 public sealed class ParityStampTests : IDisposable
 {
-    /// <summary>The digest recorded for <c>.tfcore/telemetry/tf-metrics.sh</c> by the 2026-08-27 run.</summary>
+    /// <summary>The digest recorded for <c>.tfcore/telemetry/tf-metrics.sh</c> by the 2026-08-28 run.</summary>
     /// <remarks>
-    /// Updated on 2026-08-27 from <c>sha256:326b586e…4412</c>, which is the whole point of the clause
-    /// this class tests: the framework shipped a fix to the oracle that same day — <c>dedupe_sessions</c>
-    /// and the new <c>pooled.session_duplicates_collapsed</c> — so the reference TfLens is measured
-    /// against is a different file, and the stamp recorded against the old one is correctly stale. The
+    /// <para>
+    /// <b>This constant is never updated to make a test pass.</b> It is re-pinned only after the parity
+    /// procedure has been re-run end to end against the new oracle and recorded — the constant follows
+    /// the audit record, and the audit record follows a passing run. Editing it on its own would falsify
+    /// exactly the thing the clause exists to protect.
+    /// </para>
+    /// <para>
+    /// Re-pinned 2026-08-28 from <c>sha256:960d12b4…3f3c</c>. The framework shipped an oracle that reads
+    /// the fifth stream — <c>STREAMS</c> gained <c>misses</c>, and with it <c>analyse_misses()</c>, a
+    /// top-level <c>misses</c> block and two new <c>per_repo</c> keys. That is a different reference, so
+    /// the stamp recorded against the old one went correctly stale and <c>/export</c> read NOT QUOTABLE
+    /// until BRD §13 was executed again: parser 1.2.0, empty diff, 29 miss figures covered, recorded as
+    /// <c>DECISIONS.md</c> §6 <b>P-003</b>. Before that: re-pinned 2026-08-27 from
+    /// <c>sha256:326b586e…4412</c>, when the oracle gained <c>dedupe_sessions()</c> (P-001, P-002). The
     /// oracle is framework-owned and read-only here; the constant follows it, never the other way round.
+    /// </para>
     /// </remarks>
     private const string RecordedOracleHash =
-        "sha256:960d12b497f5093e98f696800805e8ceb70efb63c2560489d99fa96fe5c03f3c";
+        "sha256:f4b2667a265f2ff3afa4d4ee0330b8bf15f92acf494d3852eec5c0813a7d09a7";
 
     /// <summary>The SHA-256 of the three bytes <c>abc</c> — the standard vector, hashed by no code here.</summary>
     private const string AbcDigest =

@@ -46,6 +46,60 @@ public static class FrameworkNames
 }
 
 /// <summary>
+/// How a connected source's telemetry arrives (added 2026-08-28, F-IMPORT).
+/// </summary>
+/// <remarks>
+/// The <b>only</b> structural trace of origin in the whole store: no stream table carries it and no
+/// figure segments on it, because a miss is a miss whoever's clone it came from (ADR-021, BRD-136).
+/// It is displayed — on <c>/repos</c>, on Coverage and in the export's per-repo block — and pooled
+/// nowhere. The behaviour behind an <see cref="Import"/> source belongs to REQ-FN-082..REQ-FN-087.
+/// </remarks>
+/// <remarks>
+/// <b>Stored value versus displayed label.</b> BRD-132 fixes the column's vocabulary as
+/// <c>api</c> | <c>import</c> and the badge's wording as <i>Synced</i> | <i>Imported</i>; they are
+/// deliberately different words. The stored value names the <i>mode the user chose</i> in the
+/// Add-source dialog and is what the export's <c>source_kind</c> key carries, so it must stay stable
+/// even if the badge is reworded; the label describes the row's <i>current state</i> to a reader.
+/// Collapsing the two — storing the label — would make a copy change a schema change.
+/// Use <see cref="DisplayName"/> at every rendering site rather than a literal.
+/// </remarks>
+public static class SourceKinds
+{
+    /// <summary>Fetched from GitHub by the poller and the Sync button; carries <c>LastSha</c>.</summary>
+    public const string Api = "api";
+
+    /// <summary>Uploaded as a bundle of metric files; carries <c>BundleSha</c> and <c>LastImportTs</c>.</summary>
+    public const string Import = "import";
+
+    /// <summary>The value a source row carries when nothing set one — a fetched source.</summary>
+    public const string Default = Api;
+
+    /// <summary>Badge wording for <see cref="Api"/> (BRD-132).</summary>
+    public const string ApiLabel = "Synced";
+
+    /// <summary>Badge wording for <see cref="Import"/> (BRD-132).</summary>
+    public const string ImportLabel = "Imported";
+
+    /// <summary>
+    /// Maps a stored source kind to the label shown on <c>/repos</c> and Coverage.
+    /// </summary>
+    /// <remarks>An unrecognised or absent value reads as <see cref="Api"/>, matching the column default.</remarks>
+    /// <param name="aSourceKind">The stored <c>SourceKind</c>.</param>
+    /// <returns>The badge wording.</returns>
+    public static string DisplayName(string? aSourceKind) =>
+        IsImport(aSourceKind) ? ImportLabel : ApiLabel;
+
+    /// <summary>
+    /// Tests whether a stored source kind names an imported source.
+    /// </summary>
+    /// <remarks>An unrecognised or absent value reads as <see cref="Api"/>, matching the column default.</remarks>
+    /// <param name="aSourceKind">The stored <c>SourceKind</c>.</param>
+    /// <returns><c>true</c> when the source's data was uploaded.</returns>
+    public static bool IsImport(string? aSourceKind) =>
+        string.Equals(aSourceKind, Import, StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>
 /// A public GitHub repository one user has connected, stored in the <c>"UserRepo"</c> table.
 /// </summary>
 /// <remarks>
@@ -80,6 +134,37 @@ public sealed record UserRepo
 
     /// <summary>ISO-8601 timestamp the repository was connected.</summary>
     public required string ConnectedTs { get; init; }
+
+    /// <summary>
+    /// <see cref="SourceKinds.Api"/> (<c>api</c>) or <see cref="SourceKinds.Import"/> (<c>import</c>) — how the data arrives.
+    /// </summary>
+    /// <remarks>
+    /// <b>Schema only at this point.</b> The column exists so the import cluster has somewhere to write;
+    /// the behaviour it drives — skipping imported sources in the poller and in Sync, the Re-import
+    /// action, the badge — is <b>REQ-FN-085</b> / <b>REQ-FN-087</b> and is not implemented here.
+    /// Nothing pools or segments on it (ADR-021).
+    /// </remarks>
+    public string SourceKind { get; init; } = SourceKinds.Default;
+
+    /// <summary>
+    /// sha256 of the uploaded bundle — an imported source's dataset identity; <c>null</c> when fetched.
+    /// </summary>
+    /// <remarks>
+    /// <b>Schema only at this point (REQ-FN-084).</b> The bundle hash stands exactly where a fetched
+    /// source's commit SHA stands: raw-archive file name, Coverage row, the export's <c>per_repo</c>
+    /// block and the dataset a parity run pins. The invariant the import cluster enforces in code is that
+    /// a <see cref="UserRepo"/> carries <see cref="SyncState.LastSha"/> <b>or</b> this, never both.
+    /// </remarks>
+    public string? BundleSha { get; init; }
+
+    /// <summary>
+    /// When the source was last imported; <c>null</c> when fetched.
+    /// </summary>
+    /// <remarks>
+    /// <b>Schema only at this point (REQ-FN-085).</b> A poller tick and a header Sync must leave it
+    /// untouched, because neither makes an outbound request for an imported source.
+    /// </remarks>
+    public DateTimeOffset? LastImportTs { get; init; }
 }
 
 /// <summary>
@@ -164,6 +249,17 @@ public sealed record SyncState
 
     /// <summary>Rows stored for the Playbook <c>events</c> stream.</summary>
     public int EventsCount { get; init; }
+
+    /// <summary>
+    /// Rows stored for the <c>misses</c> stream, summed across its three tables (REQ-FN-071).
+    /// </summary>
+    /// <remarks>
+    /// One count for one stream: <c>misses.jsonl</c> is a single file whose records land in
+    /// <c>"Miss"</c>, <c>"MissFix"</c> and <c>"MissAmend"</c>, so Coverage's per-repo stream table goes
+    /// from four rows to five rather than to seven. A repository that does not emit the file keeps this
+    /// at zero — the same fact a 404 states, and never an error (BRD-112).
+    /// </remarks>
+    public int MissesCount { get; init; }
 
     /// <summary>
     /// Session records ingest discarded because another record already carried that <c>session_id</c>.

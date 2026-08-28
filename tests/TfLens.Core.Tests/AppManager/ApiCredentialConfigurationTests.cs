@@ -114,20 +114,26 @@ public sealed class ApiCredentialConfigurationTests
     }
 
     /// <summary>
-    /// The pair is NEVER sent on <c>/UserSvc/*</c>, because it breaks those calls outright.
+    /// The pair is sent on <c>/UserSvc/*</c> too, because without it the application scope goes unresolved.
     /// </summary>
     /// <remarks>
-    /// Measured live on 2026-08-27: <c>GET /UserSvc/profile</c> answers <c>200</c> with no pair and
-    /// <c>403 NO_APP_ACCESS</c> with one, because attaching an application identity turns a
-    /// token-scoped user read into an application-access check that the demo account fails. Sending the
-    /// pair everywhere took a page that had always worked and broke it the moment credentials were
-    /// configured — a regression that only appears in deployments that HAVE the pair, which is the worst
-    /// kind to leave untested. The rule is also right on its own terms: an application credential does
-    /// not belong on a request the bearer token already scopes.
+    /// <para>
+    /// This assertion is the reverse of the one it replaces, and the reversal is deliberate. Measured on
+    /// 2026-08-27, <c>GET /UserSvc/profile</c> answered <c>200</c> with no pair and
+    /// <c>403 NO_APP_ACCESS</c> with one, so the client excluded <c>/UserSvc/*</c> to keep the Profile
+    /// page alive. That <c>403</c> was an AppManager-side defect — reported as AM-002 — and the owner
+    /// fixed it on 2026-08-28.
+    /// </para>
+    /// <para>
+    /// Re-measured live that day: with the pair the endpoint answers <c>200</c> and
+    /// <c>applicationRole: "Manager"</c>; without it, <c>200</c> with <c>applicationRole</c> as an
+    /// <b>empty string</b>, because nothing tells AppManager which application to scope the role to. The
+    /// exclusion had stopped protecting the page and started starving it, so it is gone.
+    /// </para>
     /// </remarks>
     /// <returns>The running test.</returns>
     [Fact]
-    public async Task TheConfiguredPairIsNeverSentOnUserSvcCalls()
+    public async Task TheConfiguredPairIsSentOnUserSvcCallsAsWell()
     {
         var vHandler = new StubHttpMessageHandler()
             .Script("/UserSvc/profile", """{"success":true,"data":{"userId":2}}""");
@@ -136,8 +142,8 @@ public sealed class ApiCredentialConfigurationTests
         await vClient.GetProfileAsync("bearer-token-value");
 
         var vRequest = vHandler.RequestFor("/UserSvc/profile");
-        vRequest.Headers.Should().NotContainKey("X-Api-Key");
-        vRequest.Headers.Should().NotContainKey("X-Api-Secret");
+        vRequest.Headers.Should().ContainKey("X-Api-Key");
+        vRequest.Headers.Should().ContainKey("X-Api-Secret");
     }
 
     /// <summary>

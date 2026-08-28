@@ -22,6 +22,9 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly List<SessionRecord> objSessions = [];
     private readonly List<CommitRecord> objCommits = [];
     private readonly List<PbEventRecord> objPbEvents = [];
+    private readonly List<MissRecord> objMisses = [];
+    private readonly List<MissFixRecord> objMissFixes = [];
+    private readonly List<MissAmendRecord> objMissAmends = [];
     private readonly List<UserRepo> objRepos = [];
 
     /// <summary>
@@ -45,6 +48,32 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     public FixtureTelemetryStore WithSessionCollapses(int aUserId, string aRepo, int aCollapsed)
     {
         objSessionCollapses[(aUserId, aRepo)] = aCollapsed;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets how a repository's data arrived — <c>api</c> or <c>import</c> (BRD-132, REQ-FN-087).
+    /// </summary>
+    /// <remarks>
+    /// Origin is a property of <b>delivery</b>. It is stored on <c>"UserRepo"</c>, no stream table
+    /// carries it, and nothing on the figure path reads it, so setting it here must change the export's
+    /// <c>source_kind</c> key and <b>no figure at all</b> — which is what
+    /// <c>SourceKindIsShownAndNeverSegmentedTests</c> uses this for.
+    /// </remarks>
+    /// <param name="aUserId">The user the repository belongs to.</param>
+    /// <param name="aRepo">The <c>owner/name</c>.</param>
+    /// <param name="aSourceKind">The stored source kind.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore WithSourceKind(int aUserId, string aRepo, string aSourceKind)
+    {
+        for (var vIndex = 0; vIndex < objRepos.Count; vIndex++)
+        {
+            if (objRepos[vIndex].UserId == aUserId && objRepos[vIndex].Repo == aRepo)
+            {
+                objRepos[vIndex] = objRepos[vIndex] with { SourceKind = aSourceKind };
+            }
+        }
+
         return this;
     }
 
@@ -135,6 +164,53 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         objPbEvents.AddRange(aEvents);
         return this;
     }
+
+    /// <summary>
+    /// Seeds the three <c>misses.jsonl</c> record kinds, for the miss figure tests (REQ-FN-077).
+    /// </summary>
+    /// <remarks>
+    /// The rows are served exactly as stored — <b>amendments are not folded here</b>, because folding is
+    /// the engine's read-time job and a fixture that pre-folded them would prove nothing (ADR-020).
+    /// </remarks>
+    /// <param name="aUserId">The user id the records are attributed to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> the records belong to.</param>
+    /// <param name="aFramework">The provenance axis the repository sits on.</param>
+    /// <param name="aMisses">The <c>miss</c> records to serve.</param>
+    /// <param name="aFixes">The <c>miss-fix</c> records to serve.</param>
+    /// <param name="aAmends">The <c>miss-amend</c> records to serve.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SeedMisses(
+        int aUserId,
+        string aRepo,
+        string aFramework,
+        IEnumerable<MissRecord>? aMisses = null,
+        IEnumerable<MissFixRecord>? aFixes = null,
+        IEnumerable<MissAmendRecord>? aAmends = null)
+    {
+        RegisterRepo(aUserId, aRepo, aFramework);
+        objMisses.AddRange(aMisses ?? []);
+        objMissFixes.AddRange(aFixes ?? []);
+        objMissAmends.AddRange(aAmends ?? []);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissRecord>> ReadMissesAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissRecord>>(
+            objMisses.Where(aRecord => aRecord.UserId == aUserId && Matches(aRecord.Repo, aFramework, aRepo)).ToList());
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissFixRecord>> ReadMissFixesAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissFixRecord>>(
+            objMissFixes.Where(aRecord => aRecord.UserId == aUserId && Matches(aRecord.Repo, aFramework, aRepo)).ToList());
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissAmendRecord>> ReadMissAmendsAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissAmendRecord>>(
+            objMissAmends.Where(aRecord => aRecord.UserId == aUserId && Matches(aRecord.Repo, aFramework, aRepo)).ToList());
 
     /// <summary>Records how many times the engine has read the gate stream, so memoisation is observable.</summary>
     public int GateReads { get; private set; }

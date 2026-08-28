@@ -106,10 +106,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="sub">Last rendered: 2026-08-27</div>
+    <div class="sub">Last rendered: 2026-08-28</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-27 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
         <li><a href="#cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</a></li>
@@ -122,6 +123,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor">7. A Figure may only ever be rendered through Components/Shared/FigureText.razor</a></li>
         <li class="h3"><a href="#missing-using-degrades-to-a-raw-unknown-element-not-a-build-failure">8. Missing @using degrades to a raw unknown element, not a build failure</a></li>
         <li class="h3"><a href="#tabstrigger-captures-no-unmatched-attributes">9. TabsTrigger captures no unmatched attributes</a></li>
+        <li class="h3"><a href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">10. trblazeui.css&#x27;s spacing/sizing scale has holes — w-20 renders at zero width</a></li>
+        <li class="h3"><a href="#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">11. DialogContent never scrolls, and the page has to own the scroll itself</a></li>
+        <li class="h3"><a href="#selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">12. SelectValue shows the raw bound value until SelectContent has rendered once</a></li>
+        <li class="h3"><a href="#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">13. SourceKind has two vocabularies and they must never be collapsed</a></li>
         <li><a href="#the-shell-mainlayout">The shell: MainLayout</a></li>
         <li class="h3"><a href="#control-data-path">Control → data path</a></li>
         <li class="h3"><a href="#states">States</a></li>
@@ -151,13 +156,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#repos">/repos</a></li>
         <li class="h3"><a href="#injected-services">Injected services</a></li>
         <li class="h3"><a href="#control-data-path-7">Control → data path</a></li>
+        <li class="h3"><a href="#the-import-data-path">The import data path</a></li>
         <li class="h3"><a href="#states-7">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
         <li><a href="#coverage-health">/ — Coverage / health</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
         <li class="h3"><a href="#the-sql-behind-the-numbers">The SQL behind the numbers</a></li>
+        <li class="h3"><a href="#the-miss-data-quality-card">The miss data-quality card</a></li>
         <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#three-questions">/three-questions</a></li>
@@ -177,11 +186,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-11">States</a></li>
         <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-4">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#export">/export</a></li>
+        <li><a href="#misses">/misses</a></li>
         <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
+        <li class="h3"><a href="#the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way</a></li>
         <li class="h3"><a href="#states-12">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28-3">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li><a href="#export">/export</a></li>
+        <li class="h3"><a href="#control-data-path-12">Control → data path</a></li>
+        <li class="h3"><a href="#states-13">States</a></li>
+        <li class="h3"><a href="#gotchas-13">Gotchas</a></li>
+        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-6">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#the-playbook-axis">The Playbook axis</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
@@ -189,12 +205,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
         <li><a href="#runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-27 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
         <li><a href="#cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</a></li>
@@ -207,6 +224,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor">7. A Figure may only ever be rendered through Components/Shared/FigureText.razor</a></li>
         <li class="h3"><a href="#missing-using-degrades-to-a-raw-unknown-element-not-a-build-failure">8. Missing @using degrades to a raw unknown element, not a build failure</a></li>
         <li class="h3"><a href="#tabstrigger-captures-no-unmatched-attributes">9. TabsTrigger captures no unmatched attributes</a></li>
+        <li class="h3"><a href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">10. trblazeui.css&#x27;s spacing/sizing scale has holes — w-20 renders at zero width</a></li>
+        <li class="h3"><a href="#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">11. DialogContent never scrolls, and the page has to own the scroll itself</a></li>
+        <li class="h3"><a href="#selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">12. SelectValue shows the raw bound value until SelectContent has rendered once</a></li>
+        <li class="h3"><a href="#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">13. SourceKind has two vocabularies and they must never be collapsed</a></li>
         <li><a href="#the-shell-mainlayout">The shell: MainLayout</a></li>
         <li class="h3"><a href="#control-data-path">Control → data path</a></li>
         <li class="h3"><a href="#states">States</a></li>
@@ -236,13 +257,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#repos">/repos</a></li>
         <li class="h3"><a href="#injected-services">Injected services</a></li>
         <li class="h3"><a href="#control-data-path-7">Control → data path</a></li>
+        <li class="h3"><a href="#the-import-data-path">The import data path</a></li>
         <li class="h3"><a href="#states-7">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
         <li><a href="#coverage-health">/ — Coverage / health</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
         <li class="h3"><a href="#the-sql-behind-the-numbers">The SQL behind the numbers</a></li>
+        <li class="h3"><a href="#the-miss-data-quality-card">The miss data-quality card</a></li>
         <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#three-questions">/three-questions</a></li>
@@ -262,11 +287,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-11">States</a></li>
         <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-4">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#export">/export</a></li>
+        <li><a href="#misses">/misses</a></li>
         <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
+        <li class="h3"><a href="#the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way</a></li>
         <li class="h3"><a href="#states-12">States</a></li>
+        <li class="h3"><a href="#observed-2026-08-28-3">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li><a href="#export">/export</a></li>
+        <li class="h3"><a href="#control-data-path-12">Control → data path</a></li>
+        <li class="h3"><a href="#states-13">States</a></li>
+        <li class="h3"><a href="#gotchas-13">Gotchas</a></li>
+        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-6">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#the-playbook-axis">The Playbook axis</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
@@ -318,6 +350,30 @@ were behavioural, not rendering — they are listed against their screens below 
 </li>
 </ul>
 <hr>
+<h2 id="observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens<a class="anchor-link" href="#observed-2026-08-28-the-phase-3-screens">#</a></h2>
+<p>The three screens this build changed were driven again on the same Release build at
+<code>http://localhost:5099</code>, headless Chromium at <strong>1440×900</strong>, signed in as
+<code>tflensdemo@techierathore.com</code> (userId 2, Manager). This was a documentation observe pass, not a
+<code>*verify all</code> run: it records <strong>what rendered</strong>, screen by screen, and each screen's section below
+carries its own <em>Observed</em> block.</p>
+<table>
+<thead><tr><th>Screen</th><th><code>data-testid</code>s present</th><th>Tables (rows)</th><th>Blank icons</th><th>Page-level horizontal scroll</th><th>Console / page errors</th></tr></thead>
+<tbody>
+<tr><td><code>/misses</code></td><td>74</td><td><code>miss-origin</code> 2 · <code>miss-whymissed-table</code> 7 · <code>miss-origin-model-table</code> 1 · <code>miss-origin-agent-table</code> 1 · <code>miss-detail-table</code> 4</td><td>0</td><td>none</td><td>none</td></tr>
+<tr><td><code>/repos</code></td><td>40 (+10 in the Add-source dialog, +8 in its import mode)</td><td><code>repos-table</code> 4</td><td>0</td><td>none</td><td>none</td></tr>
+<tr><td><code>/</code> — Coverage</td><td>66</td><td>four <code>repo-streams-*</code>, <strong>5 rows each</strong></td><td>0</td><td>none</td><td>none</td></tr>
+</tbody>
+</table>
+<p><strong>The live dataset is small on purpose, and small is not broken.</strong> userId 2 holds <strong>4 misses, 4
+miss-fixes and 0 amendments</strong>, all in one <code>project_type</code> segment (<code>framework</code>). So on <code>/misses</code> most
+of the money figures legitimately render <code>—</code> and one distribution note renders
+<code>insufficient data (n=1)</code>. That is the product working: an absent measurement is an em dash and a
+figure below <code>MetricsConstants.MinN</code> is a refusal, never a zero. Before filing a bug against a <code>—</code> on
+this page, check the record count behind it.</p>
+<p>Screenshots refreshed by this pass: <code>docs/devguide-images/misses.png</code>, <code>repos.png</code>,
+<code>repos-add-source.png</code>, <code>repos-import-mode.png</code>, <code>coverage.png</code>. Driver:
+<code>tests/.artifacts/harness/devguide-shots-phase3.mjs</code>.</p>
+<hr>
 <h2 id="contents">Contents<a class="anchor-link" href="#contents">#</a></h2>
 <ul>
 <li><a href="#how-to-run-and-drive-it">How to run and drive it</a>
@@ -345,6 +401,8 @@ were behavioural, not rendering — they are listed against their screens below 
 <li><a href="#harness"><code>/harness</code></a>
 </li>
 <li><a href="#routing"><code>/routing</code></a>
+</li>
+<li><a href="#misses"><code>/misses</code></a>
 </li>
 <li><a href="#export"><code>/export</code></a>
 </li>
@@ -392,6 +450,11 @@ explicit <code>InitialPageSize</code> renders its first <strong>5</strong> rows 
 <tr><td><code>Routing.razor</code></td><td><code>edit-prices-table</code></td><td>100</td><td>rate card + observed-unpriced</td></tr>
 <tr><td><code>ExportSurface.razor</code></td><td>all four</td><td>512</td><td>SHAs, snapshots, 3 + 7 facts</td></tr>
 <tr><td><code>Repos.razor</code></td><td><code>repos-table</code></td><td>10</td><td>unbounded (pager on)</td></tr>
+<tr><td><code>Repos.razor</code></td><td><code>import-preview-streams</code></td><td>16</td><td>6 (one per stream in the bundle)</td></tr>
+<tr><td><code>Misses.razor</code></td><td><code>miss-whymissed-table</code></td><td>32</td><td>7 (the closed <code>why_missed</code> vocabulary) + any unlisted value</td></tr>
+<tr><td><code>Misses.razor</code></td><td><code>miss-origin-model-table</code></td><td>32</td><td>one per observed model</td></tr>
+<tr><td><code>Misses.razor</code></td><td><code>miss-origin-agent-table</code></td><td>32</td><td>one per observed agent</td></tr>
+<tr><td><code>Misses.razor</code></td><td><code>miss-detail-table</code></td><td>25</td><td>unbounded (pager on)</td></tr>
 <tr><td><strong><code>Profile.razor</code></strong></td><td><strong><code>profile-values</code></strong></td><td><strong>not set → 5</strong></td><td><strong>exactly 5</strong></td></tr>
 </tbody>
 </table>
@@ -413,6 +476,13 @@ package's own <code>lucide.json</code> render an <strong>empty placeholder</stro
 <p>A probe over all twelve routes found <strong>0 blank icons</strong> today, so the codebase is currently clean — this
 is the rule that keeps it that way. <code>ShellNavigation.Items</code> already uses <code>circle-question-mark</code> for
 Three questions for exactly this reason.</p>
+<p><strong>Confirmed again 2026-08-28 as <code>TR-022</code>,</strong> and it is worth knowing <em>why</em> it bites: <code>lucide.json</code>
+carries <strong>two</strong> maps, <code>icons</code> and <code>aliases</code>, and <code>LucideIcon</code> looks the name up in <code>icons</code> only. So a
+name that is genuinely in the package's own metadata still resolves to nothing. The measured-USD
+tile's accent chip on <code>/misses</code> shipped briefly as <code>check-circle</code> and rendered an empty coloured
+square; it is <code>circle-check</code> now. Settle any name against
+<code>~/.nuget/packages/trblazeui.icons.lucide/&lt;version&gt;/content/lucide.json</code> — if it is under <code>aliases</code>,
+it will not render. The 2026-08-28 pass measured <strong>0 blank icons</strong> on <code>/misses</code>, <code>/repos</code> and <code>/</code>.</p>
 <h3 id="cookie-names-must-not-contain">3. Cookie names must not contain <code>:</code><a class="anchor-link" href="#cookie-names-must-not-contain">#</a></h3>
 <p>A cookie <em>name</em> is an RFC 6265 token, in which <code>:</code> is a separator, so <strong>ASP.NET Core silently drops any
 request cookie containing one</strong>. The browser stores and sends the colon form quite happily, so the
@@ -491,6 +561,84 @@ believe the comments.</p>
 <p>You cannot put <code>data-testid</code> on a <code>TabsTrigger</code>. Every tab in the app puts it on the <code>&lt;span&gt;</code> the
 trigger wraps; a click on the span still activates the trigger:</p>
 <pre><code class="language-razor">&lt;TabsTrigger Value="drift"&gt;&lt;span data-testid="routing-tab-drift"&gt;Routing drift&lt;/span&gt;&lt;/TabsTrigger&gt;</code></pre>
+<h3 id="trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">10. <code>trblazeui.css</code>'s spacing/sizing scale has <strong>holes</strong> — <code>w-20</code> renders at zero width<a class="anchor-link" href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">#</a></h3>
+<p>This is the one that will cost you an hour. <code>&lt;Progress Value="24" Class="w-20" /&gt;</code> renders with a
+<strong>width of exactly 0</strong>: no error, no warning, no console message. It does not look broken — it looks
+like a control somebody deliberately hid.</p>
+<p>The cause is that <code>trblazeui.css</code> is not a Tailwind build. It carries only the utilities the library's
+own components happen to use, so the scale <em>reads</em> as complete while several steps are simply absent:</p>
+<table>
+<thead><tr><th>Present</th><th><strong>Absent</strong></th></tr></thead>
+<tbody>
+<tr><td><code>.w-2 .w-3 .w-4 … .w-14 .w-16 .w-40 .w-64 .w-72</code></td><td><strong><code>w-20</code></strong></td></tr>
+<tr><td><code>mt-2</code>, <code>mt-4</code></td><td><strong><code>mt-3</code></strong></td></tr>
+<tr><td><code>my-2</code>, <code>my-6</code></td><td><strong><code>my-4</code></strong></td></tr>
+</tbody>
+</table>
+<p>Because both neighbours of every hole ship, the gap is invisible until a build lands on the wrong
+step. Found on the failed-practice share bars on <code>/misses</code> (<code>miss-whymissed</code>), which rendered as a
+zero-width <code>Progress</code> beside a perfectly correct percentage, and on the <code>Separator</code>s in the cost
+band. Recorded as <code>TR-021</code> — sibling of <code>TR-002</code>, where the responsive variants were byte-identical
+no-ops rather than absent.</p>
+<p><strong>Before you ship a screen, grep the class names you used against <code>trblazeui.css</code>.</strong> Then either use
+a step the file actually ships (<code>w-16</code> is what <code>Misses.razor</code> settled on) or declare the rule in the
+page's own scoped CSS. A geometry gate only catches this when the collapse happens to cause an
+overlap — most of the time it catches nothing at all.</p>
+<h3 id="dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">11. <code>DialogContent</code> never scrolls, and the page has to own the scroll itself<a class="anchor-link" href="#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">#</a></h3>
+<p><code>DialogContent</code> renders a fixed, centred panel with <strong>no height cap and no <code>overflow</code> on any of its
+parts</strong>, and exposes only <code>Class</code>, <code>ShowCloseButton</code> and <code>ChildContent</code> — no <code>MaxHeight</code>, no
+<code>ScrollBody</code>. A dialog taller than the viewport simply grows past it: the overlay does not scroll,
+and <code>DialogFooter</code> with its primary action is unreachable below the fold. <code>TR-019</code>, found on the
+Add-source dialog on <code>/repos</code>, whose import mode carries a mode fork, four fields, a drop zone, a
+preview table and a summary — at 390×844 the <strong>Import</strong> button could not be pressed.</p>
+<p>The fix in this codebase is that the page owns the scroll: everything between <code>DialogHeader</code> and
+<code>DialogFooter</code> sits in a single <code>.tflens-dialog-body</code> (<code>Components/Pages/Repos.razor.css</code>) with
+<code>max-height: 68vh; overflow-y: auto</code> — <code>56vh</code> under <code>@media (max-height: 700px)</code>. <code>vh</code> and <code>max-h-*</code>
+are not in the shipped stylesheet either (gotcha 10 / <code>TR-002</code>), so the rule has to live in scoped
+CSS rather than in a utility class.</p>
+<p><strong>Know the side effect before you read a gate report.</strong> A control scrolled out of that body still
+reports its <strong>true</strong> bounding rect to <code>getBoundingClientRect</code>. A naive overlap check therefore sees
+the clipped control colliding with the footer and reports a visual failure that does not exist on
+screen. Either scroll the body to the control first, or intersect against the body's own rect.</p>
+<h3 id="selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">12. <code>SelectValue</code> shows the raw bound value until <code>SelectContent</code> has rendered once<a class="anchor-link" href="#selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">#</a></h3>
+<p><code>SelectItem</code> registers its <code>Text</code> with the parent only when it is <strong>rendered</strong>, and <code>SelectContent</code>
+renders nothing until the popover is opened. So at first paint the parent's value→text map is empty
+and <code>SelectValue</code> falls back to <code>Value.ToString()</code>: the closed trigger shows the internal key. Open
+the popover once and it is correct for the rest of the circuit, which makes it look intermittent
+rather than deterministic. <code>TR-020</code>.</p>
+<p>The period filter on <code>/misses</code> (<code>misses-period</code>) has to read <strong>All history (default)</strong> on first view
+(BRD-125) and read <code>all</code>. The fix is <code>DisplayTextSelector</code> on <code>Select</code> — a <code>Func&lt;TValue, string&gt;</code> the
+component consults without waiting for the items to render:</p>
+<pre><code class="language-razor">&lt;Select TValue="string" Value="@objPeriod" ValueChanged="OnPeriodChangedAsync"
+        DisplayTextSelector="@PeriodTextOf"&gt;</code></pre>
+<p>Keep the <code>Text</code> on each <code>SelectItem</code> as well; the open popover uses it. Verified 2026-08-28: the
+closed trigger reads <code>All history (default)</code>.</p>
+<h3 id="sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">13. <code>SourceKind</code> has <strong>two vocabularies</strong> and they must never be collapsed<a class="anchor-link" href="#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">#</a></h3>
+<p>The <code>"UserRepo"."SourceKind"</code> column stores <code>api</code> | <code>import</code> (BRD-132). The badge on <code>/repos</code> and on
+Coverage says <strong>Synced</strong> | <strong>Imported</strong>. These are two different vocabularies for one fact, and both
+are deliberate: the stored value is a wire contract (it is also the export's <code>source_kind</code> key), the
+badge wording is UI copy.</p>
+<p><strong>Always render through <code>SourceKinds.DisplayName(...)</code>; never write either literal in markup.</strong></p>
+<pre><code class="language-razor">&lt;Badge data-testid="@($"repo-source-{vRow.Repo.Name}")"&gt;
+    @SourceKinds.DisplayName(vRow.Repo.SourceKind)
+&lt;/Badge&gt;</code></pre>
+<table>
+<thead><tr><th>Helper</th><th>Lives in</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><code>SourceKinds.Api</code> / <code>.Import</code></td><td><code>Contracts/IdentityRecords.cs</code></td><td>the stored values, <code>api</code> / <code>import</code></td></tr>
+<tr><td><code>SourceKinds.ApiLabel</code> / <code>.ImportLabel</code></td><td>same</td><td>the badge words, <code>Synced</code> / <code>Imported</code></td></tr>
+<tr><td><code>SourceKinds.DisplayName(kind)</code></td><td>same</td><td>stored → badge; an absent or unrecognised value reads as <code>Api</code></td></tr>
+<tr><td><code>ImportedSourceRules.IsImported</code> / <code>.CanSync</code></td><td><code>Import/ImportedSourceRules.cs</code></td><td>aliases the same constants — the module declares no second vocabulary</td></tr>
+</tbody>
+</table>
+<p><strong>The two were collapsed once during the 2026-08-28 build</strong> — the stored value was briefly the badge
+wording — and had to be undone. That would have made rewording a badge into a schema migration and
+changed the export key under a downstream consumer. <code>tests/TfLens.Guardrails.Tests/SourceKindVocabularyTests.cs</code>
+now pins it (<code>StoredSourceKindsAreTheBrdVocabulary</code>, <code>DisplayLabelsAreDistinctFromTheStoredValues</code>,
+<code>AnUnknownStoredValueReadsAsFetched</code>), and <code>SourceKindIsNeverASegmentTests</code> pins the other half of
+ADR-021: origin is <em>displayed</em> everywhere it could matter and <strong>divides no figure</strong>. Nothing in
+TfLens branches on <code>SourceKind</code> except which sources the poller visits and which value stands as a
+source's dataset identity.</p>
 <hr>
 <h2 id="the-shell-mainlayout">The shell: <code>MainLayout</code><a class="anchor-link" href="#the-shell-mainlayout">#</a></h2>
 <p><strong>File:</strong> <code>src/TfLens/Components/Layout/MainLayout.razor</code> · default layout for every route
@@ -504,7 +652,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Service call</th><th>Behind it</th></tr></thead>
 <tbody>
 <tr><td>Sidebar shell</td><td><code>SidebarProvider CookieKey="@SidebarPreference.CookieName"</code> → <code>Sidebar</code></td><td><code>app-sidebar</code></td><td>—</td><td><code>tflens-sidebar</code> cookie, written by TrBlazeUI</td></tr>
-<tr><td>Nav items</td><td><code>SidebarMenuButton</code> ×6</td><td><code>nav-repos</code>, <code>nav-coverage</code>, <code>nav-three-questions</code>, <code>nav-harness</code>, <code>nav-routing</code>, <code>nav-export</code></td><td>—</td><td><code>ShellNavigation.Items</code> (order, label, Lucide name, section, <code>HasFrameworkSwitch</code> all live here)</td></tr>
+<tr><td>Nav items</td><td><code>SidebarMenuButton</code> ×7</td><td><code>nav-repos</code>, <code>nav-coverage</code>, <code>nav-three-questions</code>, <code>nav-harness</code>, <code>nav-routing</code>, <strong><code>nav-misses</code></strong>, <code>nav-export</code></td><td>—</td><td><code>ShellNavigation.Items</code> (order, label, Lucide name, section, <code>HasFrameworkSwitch</code> all live here). <code>/misses</code> was added 2026-08-28 <strong>between</strong> Routing and Snapshot export, icon <code>bug</code></td></tr>
 <tr><td>Repo badge</td><td><code>SidebarMenuBadge</code></td><td><code>nav-repo-count</code></td><td><code>ShellState.RepoCount</code></td><td><code>IRepoRegistry.ListAsync(userId)</code> → <code>SELECT * FROM "UserRepo" WHERE "UserId" = @aUserId</code></td></tr>
 <tr><td>Sidebar theme toggle</td><td><code>ThemeToggle</code></td><td><code>theme-toggle-sidebar</code></td><td><code>ShellPreferences.SetThemeAsync</code></td><td>JS <code>tflens.setTheme</code> → <code>tflens-theme</code> cookie + <code>&lt;html class="dark"&gt;</code></td></tr>
 <tr><td>Breadcrumb</td><td><code>Breadcrumb</code> in <code>ShellHeader.razor</code></td><td>—</td><td><code>ShellNavigation.Breadcrumb(path)</code></td><td>static table; <code>/profile</code> comes from <code>ExtraCrumbs</code></td></tr>
@@ -517,8 +665,9 @@ theme toggle, user menu) and the page container that every authenticated screen 
 </tbody>
 </table>
 <p><code>ShellHeader.ShowsFrameworkSwitch</code> → <code>ShellNavigation.ShowsFrameworkSwitch(path)</code> → the item's
-<code>HasFrameworkSwitch</code> flag. It is <strong>true on the five report routes only</strong> — not on <code>/repos</code>, not on
-<code>/profile</code>. Verified live.</p>
+<code>HasFrameworkSwitch</code> flag. It is <strong>true on the six report routes only</strong> (<code>/</code>, <code>/three-questions</code>,
+<code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) — not on <code>/repos</code>, not on <code>/profile</code>. Verified live;
+<code>/misses</code> observed carrying <code>framework-switch</code> on 2026-08-28.</p>
 <h3 id="states">States<a class="anchor-link" href="#states">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>MainLayout.OnParametersSetAsync</code> awaits the cascading <code>AuthenticationState</code>, then <code>ShellState.EnsureLoadedAsync(userId)</code>. Until it returns, <code>RepoCount</code> is 0 and the badge shows <code>0</code>.
@@ -764,10 +913,31 @@ the card is populated from claims even when the body shows the failure alert.</p
 </ul>
 <hr>
 <h2 id="repos"><code>/repos</code><a class="anchor-link" href="#repos">#</a></h2>
-<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Repos.razor</code> · <code>@page "/repos"</code> · authenticated ·
-<code>MainLayout</code> · breadcrumb <code>Workspace › Repos</code> · <strong>no Framework switch</strong></p>
+<p><strong>Files:</strong> <code>src/TfLens/Components/Pages/Repos.razor</code> (+ <code>.razor.js</code>, <code>.razor.css</code>) · <code>@page "/repos"</code> ·
+authenticated · <code>MainLayout</code> · breadcrumb <code>Workspace › Repos</code> · <strong>no Framework switch</strong></p>
 <p><img src="./devguide-images/repos.png" alt="Repos" style="max-width:100%"></p>
-<p><strong>What it is for.</strong> The only screen that writes. Connect a public GitHub repo, sync one, remove one.</p>
+<p><strong>What it is for.</strong> The only screen that writes. Add a source, sync one, re-import one, remove one.</p>
+<p><strong>Changed 2026-08-28 (F-IMPORT).</strong> There are now <strong>two ways a source gets into TfLens</strong>, and the page
+forks on that from the first press to the last column:</p>
+<table>
+<thead><tr><th></th><th><em>Fetch via API</em></th><th><em>Import metric files</em></th></tr></thead>
+<tbody>
+<tr><td>How data arrives</td><td>TfLens fetches from a public GitHub repo</td><td>the user uploads the metric files</td></tr>
+<tr><td>Stored <code>SourceKind</code></td><td><code>api</code></td><td><code>import</code></td></tr>
+<tr><td>Source badge</td><td><strong>Synced</strong></td><td><strong>Imported</strong></td></tr>
+<tr><td>Dataset identity</td><td><code>"SyncState"."LastSha"</code> (commit SHA)</td><td><code>"UserRepo"."BundleSha"</code> (sha256 of the bundle)</td></tr>
+<tr><td>Row action</td><td>Sync (<code>repo-sync-{name}</code>)</td><td><strong>Re-import</strong> (<code>repo-reimport-{name}</code>)</td></tr>
+<tr><td>Poller visits it</td><td>yes</td><td><strong>never</strong> — <code>ImportedSourceRules.CanSync</code> is false</td></tr>
+<tr><td>Dialog flow</td><td>validate, <em>then</em> Connect</td><td>preview, <em>then</em> Import</td></tr>
+</tbody>
+</table>
+<p>The two are one <code>Dialog</code> with two panels, not two dialogs. Origin is <em>delivery</em>, not data: it is
+displayed here, on Coverage and in the export, and it <strong>divides no figure</strong> anywhere (ADR-021, and
+<code>SourceKindIsNeverASegmentTests</code> pins it). See
+<a href="#13-sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">cross-cutting gotcha 13</a> before
+you touch either vocabulary.</p>
+<p><img src="./devguide-images/repos-add-source.png" alt="The Add-source dialog, Fetch via API" style="max-width:100%">
+<img src="./devguide-images/repos-import-mode.png" alt="The same dialog in Import metric files mode" style="max-width:100%"></p>
 <h3 id="injected-services">Injected services<a class="anchor-link" href="#injected-services">#</a></h3>
 <pre><code class="language-razor">@inject IRepoListReader objRepoListReader   // == RepoRegistry (ReposRegistration.cs:46)
 @inject RepoRegistry    objRepoRegistry     // the CONCRETE class, not IRepoRegistry
@@ -782,24 +952,85 @@ three-argument ones.</p>
 <table>
 <thead><tr><th>Control</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead>
 <tbody>
-<tr><td>Connect repo</td><td><code>Button</code></td><td><code>connect-repo</code></td><td><code>OpenConnectDialog()</code></td><td>resets dialog state only</td></tr>
-<tr><td>KPI: connected</td><td><code>StatTile</code></td><td><code>kpi-repos</code></td><td><code>objRows.Count</code></td><td><code>RepoRegistry.ListWithCountsAsync(userId)</code></td></tr>
+<tr><td>Add source</td><td><code>Button</code></td><td><code>connect-repo</code></td><td><code>OpenAddSourceDialog(SourceKinds.Api)</code></td><td>resets <strong>both</strong> panels' state, opens on the API mode</td></tr>
+<tr><td>KPI: connected</td><td><code>StatTile</code></td><td><code>kpi-repos</code></td><td><code>objRows.Count</code></td><td><code>RepoRegistry.ListWithCountsAsync(userId)</code>; the sub-line splits <code>n synced · n imported · n techieflow · n playbook</code></td></tr>
 <tr><td>KPI: records</td><td><code>StatTile</code></td><td><code>kpi-records</code></td><td><code>objRows.Sum(r =&gt; r.RecordCount)</code></td><td><strong><code>"SyncState"</code> counters</strong> — see gotcha 6</td></tr>
 <tr><td>KPI: last sync</td><td><code>StatTile</code></td><td><code>kpi-last-sync</code></td><td><code>RelativeTime.Describe(ShellState.LastSyncUtc, now)</code></td><td>max <code>LastSyncTs</code> with no error</td></tr>
 <tr><td>Grid</td><td><code>DataTable TData=RepoListItem ShowToolbar ShowPagination InitialPageSize="10"</code></td><td><code>repos-table</code></td><td><code>ListWithCountsAsync</code></td><td>joins <code>"UserRepo"</code> to <code>"SyncState"</code> per user</td></tr>
+<tr><td>Repo cell</td><td><code>&lt;a&gt;</code> or plain span</td><td>—</td><td><code>ImportedSourceRules.IsImported</code></td><td>a fetched row links to <code>github.com/{repo}</code> with a <code>github</code> icon; an <strong>imported row is not a link</strong> and carries <code>hard-drive</code> — there is no GitHub page to open</td></tr>
+<tr><td><strong>Source cell</strong></td><td><code>Badge</code></td><td><code>repo-source-{name}</code></td><td><code>SourceKinds.DisplayName(row.Repo.SourceKind)</code></td><td><strong>never a literal</strong> — gotcha 13</td></tr>
 <tr><td>Status cell</td><td><code>Badge</code> / <code>Tooltip</code></td><td><code>repo-status-{name}</code></td><td><code>RepoListItem.Status</code></td><td><code>pending</code> when <code>Sync is null</code>, <code>error</code> when <code>LastError is not null</code>, else <code>synced</code>; the tooltip carries the <strong>redacted</strong> <code>LastError</code> (<code>SyncErrorRedactor</code>)</td></tr>
-<tr><td>Row sync</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-sync-{name}</code></td><td><code>SyncRepoAsync(row)</code></td><td><code>IRepoSyncRunner.SyncRepoAsync(userId, repo)</code></td></tr>
-<tr><td>Row remove</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-remove-{name}</code></td><td><code>OpenRemoveDialog(row)</code></td><td>—</td></tr>
+<tr><td>Last sync / import</td><td><code>&lt;span&gt;</code></td><td>—</td><td><code>LastActivityText(row)</code></td><td>one column, two meanings — <code>LastSyncTs</code> for a fetched source, <code>LastImportTs</code> for an imported one</td></tr>
+<tr><td>Row sync</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-sync-{name}</code></td><td><code>SyncRepoAsync(row)</code></td><td><strong>rendered only when <code>ImportedSourceRules.CanSync(kind)</code></strong> → <code>IRepoSyncRunner.SyncRepoAsync(userId, repo)</code></td></tr>
+<tr><td>Row re-import</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-reimport-{name}</code></td><td><code>OpenReimportDialog(row)</code></td><td>opens the same dialog straight onto the import panel, name and framework pre-filled and locked</td></tr>
+<tr><td>Row remove</td><td><code>Button Variant=Ghost Size=IconSmall</code></td><td><code>repo-remove-{name}</code></td><td><code>OpenRemoveDialog(row)</code></td><td>identical for both source kinds</td></tr>
+<tr><td>Source note</td><td><code>&lt;p&gt;</code></td><td><code>repos-source-note</code></td><td>—</td><td><em>"Imported sources have no Sync — they are re-imported, and the poller skips them."</em></td></tr>
+<tr><td>Mode fork</td><td><code>Tabs</code> → <code>TabsTrigger</code> ×2</td><td><code>source-mode</code>, <code>source-mode-api</code>, <code>source-mode-import</code></td><td><code>OnSourceModeChangedAsync</code></td><td>switching modes calls <code>ForgetBundleAsync()</code> + <code>ResetPreview()</code> — a staged bundle never survives a mode change</td></tr>
+<tr><td>— <em>Fetch via API panel</em></td><td><code>&lt;div&gt;</code></td><td><code>source-panel-api</code></td><td></td><td></td></tr>
 <tr><td>Connect input</td><td><code>Input</code></td><td><code>connect-input</code></td><td>binds</td><td><code>RepoInputParser</code> accepts a URL or <code>owner/name</code></td></tr>
 <tr><td>Branch</td><td><code>Input</code></td><td><code>connect-branch</code></td><td>binds</td><td>null → default branch</td></tr>
 <tr><td>Kind</td><td><code>Select</code></td><td><code>connect-kind</code></td><td>binds</td><td><code>auto</code> / <code>techieflow</code> / <code>playbook</code></td></tr>
 <tr><td>Validate</td><td><code>Button Variant=Outline</code></td><td><code>connect-validate</code></td><td><code>ValidateAsync()</code></td><td><code>RepoRegistry.ValidateAsync</code> → <code>IGitHubStreamFetcher.GetRepoAsync</code> + <code>PathExistsAsync</code></td></tr>
 <tr><td>Validation lines</td><td><code>CheckLine.razor</code> ×3</td><td><code>connect-validation</code></td><td><code>RepoValidation.Exists/IsPublic/TelemetryPath</code></td><td>—</td></tr>
+<tr><td><strong>Private-repo exit</strong></td><td><code>Alert Warning</code> + <code>Button</code></td><td><code>connect-private</code>, <code>connect-switch-import</code></td><td><code>SwitchToImportModeAsync()</code></td><td><strong>new</strong> — carries <code>objConnectInput</code> across into <code>objImportName</code> instead of dead-ending (BRD-100)</td></tr>
 <tr><td>Connect</td><td><code>Button</code></td><td><code>connect-submit</code></td><td><code>ConnectAsync()</code></td><td><code>RepoRegistry.ConnectAsync</code> (re-validates server-side) → <code>WriteUserRepoAsync</code> → queued first sync</td></tr>
+<tr><td>— <em>Import metric files panel</em></td><td><code>&lt;div&gt;</code></td><td><code>source-panel-import</code></td><td></td><td></td></tr>
+<tr><td>Source name</td><td><code>Input</code></td><td><code>import-name</code></td><td>binds <code>objImportName</code></td><td><code>RepoInputParser</code> again — an imported source still has an <code>owner/name</code>; <strong>disabled on a re-import</strong></td></tr>
+<tr><td>Framework</td><td><code>Select</code></td><td><code>import-framework</code></td><td>binds</td><td>drives the expected path hint (<code>docs/metrics/</code> vs <code>verification/telemetry/</code>)</td></tr>
+<tr><td>Project type</td><td><code>Select</code></td><td><code>import-project-type</code></td><td>—</td><td><strong>disabled by design</strong>: the import service takes no override, so the records keep the type they were written with</td></tr>
+<tr><td>Drop zone</td><td><code>div.tflens-drop</code> + <code>&lt;input type=file&gt;</code></td><td><code>import-drop</code>, <code>import-choose</code>, <code>import-chosen</code></td><td><code>Repos.razor.js</code> <code>watchImport</code> / <code>openFilePicker</code></td><td>capture-phase <code>dragover</code>/<code>drop</code> on <code>document</code>, because the zone lives inside a portalled dialog Blazor re-renders</td></tr>
+<tr><td>Previewing</td><td><code>Spinner</code> + text</td><td><code>import-previewing</code></td><td><code>OnBundleSelectedAsync</code> <code>[JSInvokable]</code></td><td>posts to <code>POST /api/import/preview</code></td></tr>
+<tr><td>Refusal</td><td><code>Alert Danger</code></td><td><code>import-refusal</code></td><td><code>ImportResponse.Reason</code> → <code>RefusalTitle</code></td><td>one of eight <code>ImportRefusalReason</code> values, message rendered verbatim</td></tr>
+<tr><td>Preview card</td><td><code>Card</code> + <code>DataTable InitialPageSize</code></td><td><code>import-preview</code>, <code>import-preview-streams</code>, <code>import-preview-summary</code>, <code>import-bundle-sha</code></td><td><code>objImportPreview</code></td><td>per stream: records · date range · invalid lines; the badge is <code>BundleSha[..8]</code></td></tr>
+<tr><td>Framework mismatch</td><td><code>Alert Warning</code></td><td><code>import-framework-mismatch</code></td><td><code>FrameworkMismatch(response.Framework)</code></td><td>the bundle's own streams disagree with the chosen framework</td></tr>
+<tr><td>Import</td><td><code>Button</code></td><td><code>import-submit</code></td><td><code>ImportAsync()</code></td><td>enabled only on <code>CanImport</code>; label reads <em>"Import {n} records"</em> — it states what pressing it writes</td></tr>
+<tr><td>Import progress</td><td><code>Progress</code></td><td><code>import-progress</code></td><td><code>objImportPhase</code> / <code>objImportProgress</code></td><td>30 → 80 → 100, a three-step estimate, not a measurement</td></tr>
+<tr><td>Cancel</td><td><code>Button Variant=Outline</code></td><td><code>add-source-cancel</code></td><td><code>CloseAddSourceDialogAsync()</code></td><td>also calls <code>ForgetBundleAsync()</code> — closing the dialog drops the staged bytes</td></tr>
 <tr><td>Remove confirm</td><td><code>AlertDialog</code></td><td><code>remove-title</code>, <code>remove-description</code>, <code>remove-cancel</code>, <code>remove-confirm</code></td><td><code>ConfirmRemoveAsync()</code></td><td><code>RepoRegistry.RemoveAsync</code> → <code>ITelemetryStore.DeleteRepoDataAsync</code> + raw archive under <code>data/raw/</code></td></tr>
-<tr><td>Empty</td><td><code>Empty</code></td><td><code>repos-empty</code>, <code>repos-empty-connect</code></td><td>—</td><td>—</td></tr>
+<tr><td>Empty</td><td><code>Empty</code></td><td><code>repos-empty</code>, <code>repos-empty-connect</code>, <code>repos-empty-import</code></td><td>—</td><td>the empty state offers <strong>both</strong> modes</td></tr>
 </tbody>
 </table>
+<h3 id="the-import-data-path">The import data path<a class="anchor-link" href="#the-import-data-path">#</a></h3>
+<p>The bytes <strong>never enter the circuit</strong>. <code>Repos.razor.js</code> posts them straight to a minimal-API endpoint
+and only the file names and the total size cross into Blazor:</p>
+<pre><code>Repos.razor.js  postBundle(route, source)      // multipart/form-data, credentials: same-origin
+   │                                            // buildStoredZip() bundles loose files client-side
+   │                                            // __RequestVerificationToken lifted from the page
+   ▼
+POST /api/import/preview   ·   POST /api/import/commit      (Services/Import/ImportEndpoints.cs)
+   │   .RequireAuthorization() + IAntiforgery.ValidateRequestAsync — both, on both routes
+   ▼
+TfLens.Core.Import.TelemetryImportService
+   ├─ UploadBounds     — extension ∈ {.zip,.jsonl,.ndjson}; ≤ 25 MB; TryConfine() proves every
+   │                     written path resolves inside data/raw/&lt;userId&gt;/
+   ├─ SafeZipReader    — ≤ 512 entries, ≤ 100 MB expanded, ≤ 50 MB per entry; refuses absolute
+   │                     paths, `..` segments and symlinks
+   ├─ RollupDetector   — refuses a *computed* file (a rollup/snapshot) rather than raw records
+   └─ then the SAME pipeline the fetcher uses:
+      StreamParser → Dedupe → ITelemetryStore.UpsertAsync</code></pre>
+<p>Three things about that pipeline are the point of the design:</p>
+<ol>
+<li><strong>Preview writes nothing at all.</strong> <code>PreviewAsync</code> runs every gate and parses, then throws the result away; <code>CommitAsync</code> is the only press that writes. The preview's source name is the sentinel <code>TelemetryImportService.PreviewRepo</code> (<code>"(preview)"</code>).
+</li>
+<li><strong>An imported record is indistinguishable from a fetched one once it is stored.</strong> Same parser, same dedupe, same <code>UpsertAsync</code>, same tables. There is no <code>SourceKind</code> column on any stream table.
+</li>
+<li><strong>The bytes land in the raw archive <em>before</em> anything parses them</strong> (<code>data/raw/&lt;userId&gt;/&lt;owner&gt;/&lt;name&gt;/{stream}-{bundleSha}.jsonl</code>), so a parser exception after that point still leaves an archive that Coverage's <strong>Rebuild</strong> can replay.
+</li>
+</ol>
+<p><code>CommitAsync</code> then calls <code>StampSourceRowAsync</code>, which is where the source becomes real:</p>
+<ul>
+<li><strong>it creates the <code>"UserRepo"</code> row if there isn't one</strong> — an import is how a private or corporate repository becomes a source at all (BRD-131), so it cannot require a prior connect that could never succeed. The created row is <code>SourceKind = import</code>, <code>IsPublic = false</code>, <code>BundleSha</code>, <code>LastImportTs</code>.
+</li>
+<li><strong>it writes the <code>"SyncState"</code> counts</strong> — read back <strong>from the stored rows</strong>, not added up from what the bundle presented, so re-importing an identical bundle (which legitimately adds zero records) still leaves the row showing its true totals.
+</li>
+<li><strong>it clears <code>LastSha</code> in the same write.</strong> The XOR of REQ-FN-084 spans two tables: <code>BundleSha</code> on <code>"UserRepo"</code>, <code>LastSha</code> on <code>"SyncState"</code>. A source connected by API and later imported would otherwise carry two answers to <em>"which bytes produced these figures"</em>, which is exactly the ambiguity a parity run exists to remove. <code>ImportedSourceRules.AssertSingleDatasetIdentity</code> asserts it at the end of the write.
+</li>
+</ul>
+<p><strong>Every refusal is structural and none has an override</strong> (REQ-NFR-014, REQ-FN-086) — the eight values
+of <code>ImportRefusalReason</code> are <code>UnsupportedExtension</code>, <code>TooLarge</code>, <code>UnsafeArchive</code>, <code>PrecomputedRollup</code>,
+<code>Empty</code>, <code>NothingRecognised</code>, <code>MixedFrameworks</code> and <code>None</code>. <code>PrecomputedRollup</code> is the interesting
+one: a file of computed figures is refused <em>by name and by payload shape</em> (<code>RollupDetector</code>), because
+importing somebody's rollup would let a number into TfLens that no record supports.</p>
 <p><strong><code>DeleteRepoDataAsync</code> removes all three layers</strong>, scoped to <code>(userId, repo)</code>: every stream table row
 (<code>"Run"</code>, <code>"Gate"</code>, <code>"Session"</code>, <code>"Commit"</code>, <code>"PbEvent"</code>), the <code>"SyncState"</code> row, and the <code>"UserRepo"</code>
 row itself. <code>RepoRegistry.RemoveAsync</code> then removes the raw archive, which the store never touches.
@@ -818,9 +1049,38 @@ not null &amp;&amp; !AlreadyConnected</code>.</p>
 </li>
 <li><strong>Rate limit</strong> — <code>GitHubRateLimitException</code> → <code>Alert Variant=Warning</code> <code>connect-rate-limit</code>, on both Validate and Connect. Checked <em>before</em> the private/problem alerts, so a rate limit never masquerades as a validation failure.
 </li>
-<li><strong>Private repo</strong> — <code>Alert Variant=Warning</code> <code>connect-private</code> with <code>RepoRegistry.PrivateRepoMessage</code>.
+<li><strong>Private repo</strong> — <code>Alert Variant=Warning</code> <code>connect-private</code> with <code>RepoRegistry.PrivateRepoMessage</code>, <strong>and an inline exit</strong>: <code>connect-switch-import</code> moves the typed <code>owner/name</code> into the import panel. This is the one refusal on the page that now offers a way forward instead of dead-ending.
 </li>
 <li><strong>Other refusal</strong> — <code>Alert</code> <code>connect-problem</code>, <code>Warning</code> when <code>AlreadyConnected</code>, else <code>Danger</code>.
+</li>
+<li><strong>Import: nothing staged</strong> — the drop zone alone; <code>import-submit</code> is disabled (<code>CanImport</code> requires a preview <em>and</em> a name).
+</li>
+<li><strong>Import: previewing</strong> — <code>import-previewing</code>, spinner; the file picker and drop are disabled.
+</li>
+<li><strong>Import: refused</strong> — <code>import-refusal</code>, an <code>Alert Danger</code> whose title comes from the <code>ImportRefusalReason</code> and whose body is the service's message verbatim. No preview is shown.
+</li>
+<li><strong>Import: previewed</strong> — <code>import-preview</code> with the per-stream table, the summary lines and the <code>import-bundle-sha</code> badge. Nothing has been written yet.
+</li>
+<li><strong>Import: committing</strong> — <code>import-progress</code>, phase text plus a <code>Progress</code>. On success the dialog closes and a toast reads <em>"Imported"</em> / <em>"Re-imported"</em> with records added and duplicates collapsed.
+</li>
+<li><strong>Re-import</strong> — the same dialog with <code>objIsReimport = true</code>: the title reads <em>"Re-import a source"</em>, the mode tabs are <strong>not rendered</strong>, and <code>import-name</code> is disabled.
+</li>
+</ul>
+<h3 id="observed-2026-08-28">Observed 2026-08-28<a class="anchor-link" href="#observed-2026-08-28">#</a></h3>
+<p>Signed in as userId 2 at 1440×900. <strong>40 <code>data-testid</code>s on the page</strong>, <code>repos-table</code> with 4 rows, 0
+blank icons, no page-level horizontal scroll, no console or page errors.</p>
+<ul>
+<li>All four rows are <code>Synced</code> (<code>repo-source-{name}</code> × 4), so the <strong>Imported</strong> badge and the <code>repo-reimport-{name}</code> action are documented from the code, not from a live row — this workspace has no imported source. KPI sub-line read <code>4 synced · 0 imported · 4 techieflow · 0 playbook</code>.
+</li>
+<li>Column order as rendered: Repo · Branch · Kind · <strong>Source</strong> · Visibility · Status · <strong>Last sync / import</strong> · Records · Actions.
+</li>
+<li><code>repos-source-note</code> rendered.
+</li>
+<li>Add-source dialog opened: <code>source-mode</code>, <code>source-mode-api</code>, <code>source-mode-import</code>, <code>source-panel-api</code>, <code>connect-input</code>, <code>connect-branch</code>, <code>connect-kind</code>, <code>connect-validate</code>, <code>add-source-cancel</code>, <code>connect-submit</code>.
+</li>
+<li>Clicking <code>source-mode-import</code> swapped the panel: <code>source-panel-import</code>, <code>import-name</code>, <code>import-framework</code>, <code>import-project-type</code>, <code>import-drop</code>, <code>import-choose</code>, <code>add-source-cancel</code>, <code>import-submit</code>. The API panel's controls left the DOM entirely — the two panels are <code>@if</code>-forked, not hidden.
+</li>
+<li>Not exercised in this pass: an actual upload, the preview table, and any refusal path. Those are documented from <code>TelemetryImportService</code> / <code>ImportEndpoints</code>, not observed.
 </li>
 </ul>
 <h3 id="known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)<a class="anchor-link" href="#known-issues-runtime-observed-2026-08-27">#</a></h3>
@@ -844,7 +1104,21 @@ not null &amp;&amp; !AlreadyConnected</code>.</p>
 </li>
 <li><code>ReloadAsync</code> also calls <code>ShellState.RefreshAsync(userId)</code>, which is what keeps the sidebar badge and the header last-sync badge in step after a connect/remove. Drop that call and the shell goes stale.
 </li>
-<li><code>data-testid="repo-sync-{name}"</code> uses <code>UserRepo.Name</code> (the segment after <code>/</code>), not <code>owner/name</code>. Two connected repos with the same name under different owners collide on that id.
+<li><code>data-testid="repo-sync-{name}"</code> uses <code>UserRepo.Name</code> (the segment after <code>/</code>), not <code>owner/name</code>. Two connected repos with the same name under different owners collide on that id. The same is true of <code>repo-reimport-{name}</code> and <code>repo-source-{name}</code>.
+</li>
+<li><strong><code>repo-sync-{name}</code> and <code>repo-reimport-{name}</code> are mutually exclusive.</strong> A row renders exactly one of them, chosen by <code>ImportedSourceRules.CanSync</code>. A test that asserts a Sync button on every row will fail the moment a workspace holds an imported source — and a test that asserts <em>both</em> is asserting a state the page cannot produce.
+</li>
+<li><strong>The <code>Actions</code> column now renders one action button plus Remove</strong>, not always two. The "is it blank?" note above still holds: they are icon-only.
+</li>
+<li><strong>The dialog body scrolls, the dialog does not.</strong> <code>.tflens-dialog-body</code> is load-bearing — see <a href="#11-dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">cross-cutting gotcha 11</a>. Remove it and the import mode's footer goes below the fold at phone height. It also means a geometry gate can report a false overlap against the footer for a control scrolled out of view.
+</li>
+<li><strong>Closing or switching modes forgets the staged bundle</strong> (<code>ForgetBundleAsync</code> → JS <code>clearBundle</code>). That is deliberate: a bundle staged under <em>Fetch via API</em> and committed after a mode switch would be imported into a source the user was no longer looking at. If you add a third mode, call it too.
+</li>
+<li><strong>The antiforgery token is read out of the page by the JS module</strong> (<code>input[name="__RequestVerificationToken"]</code>), because the post is a hand-built <code>fetch</code>, not a Blazor form. Both endpoints call <code>IAntiforgery.ValidateRequestAsync</code> and answer an <code>AntiforgeryValidationException</code> as a refusal. If the token input ever stops being rendered on this page, import fails with a refusal that looks like a server problem.
+</li>
+<li><strong><code>import-project-type</code> is disabled on purpose.</strong> The import service takes no <code>project_type</code> override; records keep the type they were written with (SCHEMA.md §0.5). Enabling the control would be an offer TfLens cannot honour.
+</li>
+<li><strong>An imported row's <code>IsPublic</code> is <code>false</code> and that is not a private-repo warning.</strong> It records that the source is not reachable over the API. Nothing polls it and nothing warns about it.
 </li>
 </ul>
 <hr>
@@ -866,12 +1140,17 @@ store holds.</p>
 <tr><td>KPI: newest age</td><td><code>StatTile</code></td><td><code>kpi-newest-age</code></td><td><code>NewestRecord()</code> → <code>AgeText</code></td><td>max <code>NewestTs</code> across all shown streams</td></tr>
 <tr><td>KPI: sync errors</td><td><code>StatTile</code></td><td><code>kpi-sync-errors</code></td><td><code>SyncErrorCount</code>, <code>LastErrorDetail</code></td><td><code>"SyncState"."LastError"</code></td></tr>
 <tr><td>Repo card</td><td><code>Card</code></td><td><code>repo-card-{name}</code></td><td><code>BuildCard(repo, syncStates)</code></td><td>one per repo on the <strong>selected framework</strong></td></tr>
-<tr><td>SHA badge</td><td><code>&lt;a&gt;</code> + <code>Badge</code></td><td><code>repo-sha-{name}</code></td><td><code>RepoCard.ShortSha</code> / <code>CommitUrl</code></td><td><code>LastSha[..7]</code>, opens <code>github.com/{repo}/commit/{sha}</code></td></tr>
-<tr><td>Status badge</td><td><code>Badge</code></td><td><code>repo-state-{name}</code></td><td><code>RepoCard.StatusText</code></td><td><code>sync error</code> / <code>N streams stale</code> / <code>not synced yet</code> / <code>synced</code></td></tr>
-<tr><td>Stream table</td><td><code>DataTable TData=StreamRow … InitialPageSize="16"</code></td><td><code>repo-streams-{name}</code></td><td><code>BuildRow(repo, stream)</code></td><td>rows come from <code>FrameworkNames.Streams(framework)</code></td></tr>
-<tr><td>Stale badge</td><td><code>Badge Variant=Destructive</code></td><td><code>stale-{name}-{stream}</code></td><td><code>StreamRow.IsStale</code></td><td>cadence stream <strong>and</strong> <code>DaysSince &gt;= StalenessDays</code></td></tr>
-<tr><td>Staleness alert</td><td><code>Alert Warning AccentBorder</code></td><td><code>repo-stale-{name}</code></td><td><code>StalenessMessage(staleStreams)</code></td><td>names the streams and the configured threshold</td></tr>
+<tr><td><strong>Source badge</strong></td><td><code>Badge</code></td><td><code>repo-source-badge-{name}</code></td><td><code>SourceKinds.DisplayName(repo.SourceKind)</code></td><td><strong>Synced</strong> / <strong>Imported</strong>; origin is shown here and pools nowhere (BRD-136)</td></tr>
+<tr><td>SHA badge</td><td><code>&lt;a&gt;</code> <strong>or</strong> plain <code>&lt;span&gt;</code> + <code>Badge</code></td><td><code>repo-sha-{name}</code></td><td><code>RepoCard.ShortSha</code> ← <code>ImportedSourceRules.DatasetIdentity(Sync?.LastSha, Repo.BundleSha)</code></td><td>a fetched source shows the commit SHA and <strong>links</strong> to <code>github.com/{repo}/commit/{sha}</code>; an imported source shows <code>sha256 {8 chars}</code> of the bundle and is <strong>not a link</strong> — there is no commit to open (ADR-022)</td></tr>
+<tr><td>Status badge</td><td><code>Badge</code></td><td><code>repo-state-{name}</code></td><td><code>RepoCard.StatusText</code></td><td><code>sync error</code> / <code>N streams stale</code> / <code>not synced yet</code> / <code>imported</code> / <code>synced</code></td></tr>
+<tr><td>Stream table</td><td><code>DataTable TData=StreamRow … InitialPageSize="16"</code></td><td><code>repo-streams-{name}</code></td><td><code>BuildRow(repo, stream, isImported)</code></td><td>rows come from <code>FrameworkNames.Streams(framework)</code> — <strong>five</strong> on TechieFlow since 2026-08-28</td></tr>
+<tr><td>Stale badge</td><td><code>Badge Variant=Destructive</code></td><td><code>stale-{name}-{stream}</code></td><td><code>StreamRow.IsStale</code></td><td>cadence stream <strong>and</strong> <code>DaysSince &gt;= StalenessDays</code> <strong>and not imported</strong></td></tr>
+<tr><td>Staleness alert</td><td><code>Alert Warning AccentBorder</code></td><td><code>repo-stale-{name}</code></td><td><code>StalenessMessage(staleStreams)</code></td><td>names the streams and the configured threshold; <strong>fetched sources only</strong></td></tr>
+<tr><td><strong>Import-age alert</strong></td><td><code>Alert Info AccentBorder</code></td><td><code>repo-import-age-{name}</code></td><td><code>ImportAgeMessage(card)</code></td><td>replaces the staleness alert on an imported source: <em>"Imported {n} days ago. This source can't refresh itself — re-import to update."</em></td></tr>
+<tr><td><strong>No-fixes alert</strong></td><td><code>Alert Warning AccentBorder</code></td><td><code>repo-no-fixes-{name}</code></td><td><code>objReposWithoutFixes</code></td><td>this repo emitted <code>miss</code> records and no <code>miss-fix</code> record</td></tr>
+<tr><td><strong>Reclassified alert</strong></td><td><code>Alert Warning AccentBorder</code></td><td><code>repo-reclassified-{name}</code></td><td><code>DeclaredTypesFor(repo)</code> when <code>Count &gt; 1</code></td><td>names both <code>project_type</code> segments as <strong>periods</strong> of one project</td></tr>
 <tr><td>Per-repo error</td><td><code>Alert Danger</code></td><td><code>repo-error-{name}</code></td><td><code>Sync.LastError</code></td><td>redacted at write time</td></tr>
+<tr><td><strong>Miss data quality</strong></td><td><code>Card</code></td><td><code>miss-quality</code>, <code>miss-quality-total</code>, <code>escapes-missing-why</code>, <code>orphan-misses</code>, <code>miss-backfilled</code>, <code>misses-without-fixes</code>, <code>reclassified-summary</code></td><td><code>MissFigures.Compute(...)</code> over this user's miss streams</td><td>counts only — <strong>there is no rate anywhere in this card</strong></td></tr>
 <tr><td>Unknown fields</td><td><code>Collapsible</code></td><td><code>unknown-fields</code>, <code>unknown-fields-trigger</code>, <code>unknown-group-{key}</code>, <code>unknown-fields-none</code></td><td><code>BuildUnknownFields()</code></td><td>field <strong>names only</strong></td></tr>
 <tr><td>Newer-schema alert</td><td><code>Alert Info</code></td><td><code>schema-version-alert</code></td><td><code>objAboveSchemaV1</code></td><td>records with <code>"V" &gt; 1</code></td></tr>
 <tr><td>Rebuild</td><td><code>Card</code> + <code>AlertDialog</code></td><td><code>rebuild-card</code>, <code>rebuild</code>, <code>rebuild-title</code>, <code>rebuild-cancel</code>, <code>rebuild-confirm</code>, <code>rebuild-progress</code>, <code>rebuild-report</code>, <code>rebuild-per-stream</code></td><td><code>ConfirmRebuildAsync()</code></td><td><code>ITelemetryStore.RebuildAsync(userId)</code></td></tr>
@@ -894,7 +1173,33 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"</code></pre>
 </li>
 <li>Newer-schema facts come from <code>MAX("V")::int … WHERE "V" &gt; 1</code>.
 </li>
+<li><strong>The <code>misses</code> row is one stream over three tables.</strong> <code>"Miss"</code>, <code>"MissFix"</code> and <code>"MissAmend"</code> are <code>UNION</code>ed inside the <code>misses</code> branch and reported as a <strong>single</strong> row per repository, because <code>misses.jsonl</code> is one file (ADR-018). Do not "fix" this into three rows — Coverage counts streams as the emitter writes them.
+</li>
 </ul>
+<h3 id="the-miss-data-quality-card">The miss data-quality card<a class="anchor-link" href="#the-miss-data-quality-card">#</a></h3>
+<p><code>Coverage.razor</code> calls <code>MissFigures.Compute</code> itself over <code>ReadMissesAsync</code> / <code>ReadMissFixesAsync</code> /
+<code>ReadMissAmendsAsync</code> / <code>ReadRunsAsync</code> — <strong>the same engine call <code>/misses</code> renders</strong>, so this page
+cannot report a different number from that one. What it renders is deliberately restricted to
+<strong>counts</strong>, and every one of them is a fact about the <em>records</em>, not about the work:</p>
+<table>
+<thead><tr><th>Fact</th><th><code>data-testid</code></th><th>Source</th><th>Why it is here and not on <code>/misses</code></th></tr></thead>
+<tbody>
+<tr><td><code>n misses · n fixes</code></td><td><code>miss-quality-total</code></td><td><code>MissesTotal</code>, <code>MissFixesTotal</code></td><td>scale of the stream</td></tr>
+<tr><td>Escapes with no <code>why_missed</code></td><td><code>escapes-missing-why</code></td><td><code>MissAnalysis.EscapesMissingWhy</code></td><td>something got past every gate and nobody recorded why — the most valuable record in the stream, arriving incomplete</td></tr>
+<tr><td>Records that link to nothing</td><td><code>orphan-misses</code></td><td><code>OrphanFixes</code> + <code>OrphanAmends</code> + <code>AmendmentsIgnored</code></td><td>counted rather than dropped: a dropped orphan is a fact nobody can see</td></tr>
+<tr><td>Backfilled, held out of every miss figure</td><td><code>miss-backfilled</code></td><td><code>BackfilledMissesExcluded</code>, <code>BackfilledMissFixesExcluded</code></td><td>the third provenance separation, <strong>applied and displayed</strong></td></tr>
+<tr><td>Misses recorded, no fixes recorded</td><td><code>misses-without-fixes</code> (workspace) · <code>repo-no-fixes-{name}</code> (per repo)</td><td><code>objReposWithoutFixes</code></td><td>a <strong>telemetry gap, not a defect backlog</strong> — with no fixes every miss reads as open and no time-to-close or rework-cost figure exists at all</td></tr>
+<tr><td>Reclassification split</td><td><code>reclassified-summary</code> (workspace) · <code>repo-reclassified-{name}</code> (per repo)</td><td><code>DeclaredTypesFor(repo)</code></td><td>a repo appearing under more than one <code>project_type</code>; the segments are <strong>never pooled</strong>, so each is described as a <em>period</em> of the project</td></tr>
+</tbody>
+</table>
+<p><code>EscapesMissingWhy</code> is bounded by the same eligibility floor the <code>/misses</code> distribution uses —
+<code>MetricsConstants.FieldSince["why_missed"] = 2026-08-28</code>. An escape written before the field existed
+had no field to leave empty, so counting it would raise the warning loudest against exactly the
+records nobody can now complete.</p>
+<p>All of these become <strong>warnings</strong> in the status strip (<code>BuildWarnings</code>), in this order: sync failures →
+stale streams → misses-without-fixes → escapes-missing-why → orphan records → reclassification →
+undocumented fields → <code>v &gt; 1</code>. <strong>None of them is an error and none reddens a repo's health badge.</strong>
+An incomplete stream is a habit still forming, not a broken system.</p>
 <h3 id="states-8">States<a class="anchor-link" href="#states-8">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>objIsLoaded == false</code> → one <code>Card</code> with three <code>Skeleton</code> lines.
@@ -904,6 +1209,21 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"</code></pre>
 <li><strong>Empty</strong> — <code>objCards.Count == 0</code> → <code>Empty</code> <code>coverage-empty</code>, titled <em>"No {framework} repos connected"</em> with a <strong>Manage repos</strong> action. Reached when the user has repos but none on the selected axis.
 </li>
 <li><strong>Redirect</strong> — if <code>ReadUserReposAsync</code> returns nothing at all (<code>objHasAnyRepo == false</code>), <code>OnParametersSetAsync</code> navigates to <code>/repos</code>. Coverage is the landing route only for a user who has something to cover.
+</li>
+</ul>
+<h3 id="observed-2026-08-28-2">Observed 2026-08-28<a class="anchor-link" href="#observed-2026-08-28-2">#</a></h3>
+<p>Signed in as userId 2 at 1440×900. <strong>66 <code>data-testid</code>s</strong>, four <code>repo-streams-*</code> tables at <strong>5 rows
+each</strong>, 0 blank icons, no page-level horizontal scroll, no console or page errors.</p>
+<ul>
+<li>Status strip read <code>CHECK — 5 warnings</code>, and the miss warnings appeared in the documented order: two sync failures, then <code>1 escapes carry no why_missed</code>, then undocumented fields, then <code>v = 2</code>.
+</li>
+<li><code>repo-source-badge-{name}</code> rendered <strong>Synced</strong> on all four cards; no imported source exists in this workspace, so the <code>sha256 …</code> badge, <code>repo-import-age-{name}</code>, <code>repo-no-fixes-{name}</code> and <code>repo-reclassified-{name}</code> are documented from code and were <strong>not</strong> observed rendering.
+</li>
+<li>The <code>misses</code> row rendered on every repo card. Three repos read <code>misses 0</code>; <code>techierathore/TechieFlow</code> read <code>misses 8 · backfilled 0</code> — that is the <strong>union of the three tables</strong> (4 misses + 4 fixes + 0 amendments), not a miss count. <code>/misses</code> shows <code>4</code> for the same data, and both are right.
+</li>
+<li><code>miss-quality</code> rendered with <code>miss-quality-total</code> = <code>4 misses · 4 fixes</code>, <code>escapes-missing-why</code> = <code>1 of 4 misses</code>, <code>orphan-misses</code> = <code>0 records</code> (0 orphan fixes · 0 orphan amendments · 0 ignored amendments), <code>miss-backfilled</code> = <code>0 misses · 0 fix records</code>. <code>misses-without-fixes</code> and <code>reclassified-summary</code> did <strong>not</strong> render — correctly, since neither condition holds.
+</li>
+<li><code>stat-sparkline</code> renders on the gate-records KPI (<code>ReadDailySeriesAsync</code>).
 </li>
 </ul>
 <h3 id="gotchas-8">Gotchas<a class="anchor-link" href="#gotchas-8">#</a></h3>
@@ -919,6 +1239,16 @@ UNION ALL … "Gate" … "Session" … "Commit" … "PbEvent"</code></pre>
 <li><code>OnParametersSetAsync</code> bails if <code>objIsLoaded</code>, so it loads <strong>once</strong> per component instance. Re-querying on a framework change is <code>OnFrameworkChanged</code>, subscribed to <code>ShellPreferences.Changed</code>, which compares <code>objFramework</code> to <code>objPreferences.Framework</code> and calls <code>ReloadAsync</code>. The figures are re-read on the new axis, never filtered from what is on screen.
 </li>
 <li><code>SidebarMenuBadge</code> shows all repos; this page's <code>objCards.Count</code> shows one axis. They will differ.
+</li>
+<li><strong>An imported source is never stale and never gets the hook/pushing diagnosis.</strong> <code>BuildRow</code> passes <code>isImported</code> and forces <code>IsStale = false</code>; the card renders <code>repo-import-age-{name}</code> instead of <code>repo-stale-{name}</code>. A snapshot is not unhealthy for being a snapshot, and advice about a git hook would be advice about a clone TfLens cannot see. Its age reads as <strong>days since import</strong> (<code>LastImportTs</code>), not days since the newest record.
+</li>
+<li><strong><code>repo-sha-{name}</code> is the same test id for two different things.</strong> A fetched source puts it on an <code>&lt;a&gt;</code> to GitHub; an imported one puts it on a plain <code>&lt;span&gt;</code> reading <code>sha256 …</code>. A test that asserts <code>href</code> on that id passes only on fetched sources. Behind both is <code>ImportedSourceRules.DatasetIdentity</code>, which <strong>throws</strong> if a row ever carries both <code>LastSha</code> and <code>BundleSha</code> — one dataset, one identity (ADR-022).
+</li>
+<li><strong>The <code>misses</code> stream row is genuinely five-of-five on TechieFlow now.</strong> If you are counting stream rows anywhere (<code>InitialPageSize="16"</code> still covers it), <code>FrameworkNames.Streams("techieflow")</code> is <code>runs · gates · sessions · commits · misses</code>. Playbook is still the single <code>events</code> row.
+</li>
+<li><strong><code>misses</code> is a third stream that carries <code>Backfilled</code>.</strong> <code>BuildRow</code>'s <code>CarriesBackfilled</code> is now <code>Runs or Gates or Misses</code>; <code>sessions</code> and <code>commits</code> still render <code>—</code>. All three miss tables have a <code>"Backfilled"</code> column and the coverage SQL filters on it. That count is <em>what was stored</em>; the <code>miss-backfilled</code> fact on the data-quality card is <em>what was held out of every figure</em>. They are two different questions and will not always be the same number.
+</li>
+<li><strong>The miss facts are read on the TechieFlow axis only.</strong> The Playbook has no <code>misses.jsonl</code> and no <code>project_type</code> segmentation to be reclassified within, so the whole read is skipped there rather than reported as zero — an empty stream and a stream that cannot exist are different facts.
 </li>
 </ul>
 <h3 id="deviation-from-docs-tflens-uidesign-md-3">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-3">#</a></h3>
@@ -1189,6 +1519,212 @@ only one of them was ever needed. If you are touching this file, the CSS bars ca
 delta) — the delta got promoted from the separate "Delta" row into the same grid. That is an improvement
 and matches the screenshot.</p>
 <hr>
+<h2 id="misses"><code>/misses</code><a class="anchor-link" href="#misses">#</a></h2>
+<p><strong>Files:</strong> <code>src/TfLens/Components/Pages/Misses.razor</code> (1,766 lines) + <code>Misses.razor.css</code> ·
+<code>@page "/misses"</code> · authenticated · <code>MainLayout</code> · breadcrumb <code>Reports › Misses &amp; rework</code> ·
+Framework switch <strong>shown</strong> · sidebar item <code>nav-misses</code>, between Routing and Snapshot export.</p>
+<p><img src="./devguide-images/misses.png" alt="Misses &amp; rework" style="max-width:100%"></p>
+<p><strong>What it is for.</strong> What was missed, which practice let it through, and what the repair cost. It is
+the sixth report page and the first one built on the <code>misses</code> stream (BRD-118..BRD-126, REQ-UI-035..038).</p>
+<p><strong>Read this before you fix anything here.</strong> Six behaviours on this page look like defects and are not.
+Every one of them is a rule with a test behind it, and "correcting" any of them turns a refusal to
+answer into a flattering number:</p>
+<ol>
+<li><strong>Measured and apportioned rework cost are never blended.</strong> <code>MissCost</code> has exactly three members — <code>Sole</code>, <code>Apportioned</code>, <code>NoneCount</code> — so a combined figure has no property to bind to (ADR-019). Reflection tests in <strong>two</strong> projects pin it: <code>MissInvariantContractTests.MissCostExposesNoPropertyThatCouldHoldABlendedFigure</code> and <code>.NoMissResultTypeCarriesATotalOrBlendedFigure</code> in <code>tests/TfLens.Guardrails.Tests</code>, and <code>MissInvariantTests.MissCostCarriesTheSplitAndNothingElse</code> in <code>tests/TfLens.Core.Tests</code>.
+</li>
+<li><strong>Per-model, per-agent and per-phase figures count <code>OriginConfidence == "linked"</code> records only</strong>, and <strong>the excluded count is rendered, never hidden</strong> (<code>miss-taint-count</code>, always, even at zero). An exclusion the reader cannot see is indistinguishable from a bug.
+</li>
+<li><strong>The <code>why_missed</code> distribution's denominator is the records that <em>carry</em> the field</strong>, printed on the card's face (<code>miss-whymissed-denominator</code>), and bounded by the eligibility floor <code>MetricsConstants.FieldSince["why_missed"] = 2026-08-28</code>. Never the miss count.
+</li>
+<li><strong><code>wont-fix</code> is never folded into open.</strong> It is its own tile. <code>deferred</code> <em>is</em> open. The producer's collapse check asks a different question and the two are <strong>deliberately not reconciled</strong>.
+</li>
+<li><strong>The period filter narrows the record set and re-runs <code>MissFigures.Compute</code>.</strong> It does not recompute anything in the view. That is why every engine rule still applies under a filter, and why a narrow window degrades to <code>insufficient data (n=…)</code> rather than to a wrong number.
+</li>
+<li><strong>An absent cost renders <code>—</code>, never <code>$0.00</code>,</strong> and every <code>Figure</code> renders through <code>Components/Shared/FigureText.razor</code> (<a href="#7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor">gotcha 7</a>).
+</li>
+</ol>
+<h3 id="control-data-path-11">Control → data path<a class="anchor-link" href="#control-data-path-11">#</a></h3>
+<p>The page injects <code>ITelemetryStore</code> <strong>directly</strong> — it does not go through <code>IMetricsEngine</code>, because it
+has to re-run the computation per period. Four reads, then one engine call:</p>
+<pre><code class="language-csharp">objAllMisses = await objStore.ReadMissesAsync(userId, framework);      // "Miss"
+objAllFixes  = await objStore.ReadMissFixesAsync(userId, framework);   // "MissFix"
+objAllAmends = await objStore.ReadMissAmendsAsync(userId, framework);  // "MissAmend"
+objAllRuns   = await objStore.ReadRunsAsync(userId, framework);        // per-phase denominator
+objRateCard  = await RateCard.LoadAsync(objOptions.Value.PricesPath);
+
+// Recompute(), on load and on every period change:
+objFold   = MissAmendFolder.Fold(vMisses, vAmends);      // read-time fold, before any figure
+objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);</code></pre>
+<p><code>MissFigures.Compute</code> folds amendments <strong>again</strong> internally — that is not redundant. The page keeps
+its own <code>objFold</code> because the detail table and the raw-record disclosure render <em>records</em>, and they
+must show the same folded values the figures were computed from. <strong><code>MissAmendFolder.Fold</code> runs before
+a single figure is counted</strong>, so a <code>why_missed</code> supplied only by a later <code>miss-amend</code> reaches the
+distribution (REQ-FN-075) while the stored <code>"Miss"</code> row still carries <code>null</code> — an amend <em>completes</em> a
+record, it never edits one.</p>
+<table>
+<thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Period badge</td><td><code>Badge Variant=Outline</code></td><td><code>misses-period-label</code></td><td><code>PeriodOption.Badge</code> — the window is stated even when the select is closed</td></tr>
+<tr><td>Period filter</td><td><code>Select</code> + <code>DisplayTextSelector</code></td><td><code>misses-period</code></td><td><code>PeriodOptions</code> = all history (default) / 7 / 30 / 90 days → <code>OnPeriodChangedAsync</code> → <code>Recompute()</code></td></tr>
+<tr><td>Standing escape note</td><td><code>Alert Info AccentBorder</code></td><td><code>miss-escape-note</code></td><td>constant page copy, never a tooltip (BRD-118)</td></tr>
+<tr><td>Type tabs</td><td><code>Tabs</code> / <code>TabsTrigger</code></td><td><code>miss-type</code>, <code>miss-type-{type}</code></td><td><code>MissAnalysis.ProjectTypes</code>; badge is <code>SegmentOf(type).Misses</code></td></tr>
+<tr><td>Open misses</td><td><code>StatTile</code></td><td><code>kpi-open</code></td><td><code>MissSegmentFigures.OpenMisses</code>; sub-line names the deferred count</td></tr>
+<tr><td>Declined</td><td><code>StatTile</code></td><td><code>kpi-wontfix</code></td><td><code>WontFix</code> — its own tile, never part of open</td></tr>
+<tr><td>Misses this period</td><td><code>StatTile</code></td><td><code>kpi-period</code></td><td><code>Misses</code>; sub-line <code>n closed · n open · n declined</code></td></tr>
+<tr><td>Median time to close</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-median-close</code>, <code>kpi-median-close-value</code></td><td><code>MedianTimeToCloseHours</code> — timed over <code>Verified</code> misses only; a <code>wont-fix</code> is a decision and a <code>deferred</code> has not closed</td></tr>
+<tr><td>Design-miss share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-design-share</code>, <code>-value</code></td><td><code>DesignMissShare</code> = <code>miss_class == "unspecified-gap"</code> ÷ all misses</td></tr>
+<tr><td>Escape share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-escape-share</code>, <code>-value</code></td><td><code>EscapeShare</code> = <code>found_by ∈ {owner, production}</code> ÷ all misses</td></tr>
+<tr><td>Tokens on rework</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-rework-tokens</code>, <code>-value</code></td><td><code>Cost.TokensPerMissFixed.**Sole**</code> — the measured column only</td></tr>
+<tr><td>Measured USD</td><td><code>StatTile</code> (plain span)</td><td><code>kpi-rework-usd</code>, <code>-value</code></td><td><code>MeasuredUsdDisplay</code> ← the <strong>OpenCode</strong> row's <code>MeasuredUsdTotal</code>, or <code>—</code></td></tr>
+<tr><td>Rate-card estimate</td><td><code>Card Class="tflens-estimate"</code></td><td><code>kpi-rework-usd-estimate</code>, <code>-value</code>, <code>-label</code>, <code>kpi-rework-usd-unpriced</code></td><td><code>EstimateUsd</code> — non-OpenCode fixes priced through <code>RateCard</code>, carrying <code>RateCard.EstimateLabel</code></td></tr>
+<tr><td>Origin cross-tab</td><td>hand-rolled <code>&lt;table class="tflens-table"&gt;</code></td><td><code>miss-origin</code>, <code>miss-origin-{phase}</code>, <code>miss-origin-unattributed</code>, <code>miss-origin-none</code></td><td><code>SegmentTaint.Linked</code> grouped by <code>OriginPhase</code> × <code>MissClass</code>, plus <code>Attribution.MissRatePerOriginPhase</code> for Runs / Misses-per-run</td></tr>
+<tr><td>Attribution exclusion</td><td><code>&lt;p&gt;</code> in <code>CardFooter</code></td><td><code>miss-taint-count</code></td><td><code>MissAttributionSet.AttributionExcluded</code> + <code>ExcludedByConfidence</code> + <code>Reason</code> — <strong>always rendered</strong></td></tr>
+<tr><td>Failed practice</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-whymissed</code>, <code>miss-whymissed-table</code>, <code>miss-whymissed-denominator</code>, <code>miss-whymissed-note</code>, <code>miss-whymissed-eligibility</code></td><td><code>FailedPracticeDistribution</code> over the vocabulary of <code>MissAmendFolder.AmendableFields["why_missed"]</code></td></tr>
+<tr><td>Observational warning</td><td><code>Alert Warning AccentBorder</code></td><td><code>miss-observational</code></td><td>standing copy (BRD-124) — <em>this band does not show causation</em></td></tr>
+<tr><td>By origin model</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-origin-model</code>, <code>-table</code>, <code>-none</code></td><td><code>Attribution.ByOriginModel</code></td></tr>
+<tr><td>By origin agent</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-origin-agent</code>, <code>-table</code>, <code>-none</code></td><td><code>Attribution.ByOriginAgent</code> + the dominant class read off the same linked records</td></tr>
+<tr><td>Cost: measured</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-measured</code>, <code>miss-cost-sole</code>, <code>miss-cost-measured-usd</code></td><td><code>Cost.TokensPerMissFixed.Sole</code>, <code>Cost.SoleRecords</code></td></tr>
+<tr><td>Cost: apportioned</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-apportioned</code>, <code>-value</code></td><td><code>Cost.TokensPerMissFixed.Apportioned</code>, <code>Cost.SharedRecords</code></td></tr>
+<tr><td>Cost: unattributable</td><td><code>Card</code></td><td><code>miss-cost-unattributable</code>, <code>miss-cost-none</code>, <code>miss-cost-attribution-missing</code></td><td><code>Cost.TokensPerMissFixed.NoneCount</code>, <code>Cost.AttributionMissing</code></td></tr>
+<tr><td>No-blend note</td><td><code>&lt;p&gt;</code></td><td><code>miss-cost-no-blend</code></td><td>states ADR-019 on the page</td></tr>
+<tr><td>Detail table</td><td><code>DataTable ShowToolbar ShowPagination InitialPageSize="25"</code></td><td><code>miss-detail</code>, <code>miss-detail-table</code>, <code>miss-raw-{missId}</code></td><td><code>DetailRows</code> over <code>SegmentMisses</code> (folded), newest first</td></tr>
+<tr><td>Raw record</td><td><code>Collapsible</code> → <code>CodeBlock</code></td><td><code>miss-raw-trigger</code>, <code>miss-raw</code>, <code>miss-raw-note</code></td><td>the stored record as JSON, <code>overflow</code> reduced to <strong>field names only</strong> (SCHEMA.md §9)</td></tr>
+</tbody>
+</table>
+<h3 id="the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way<a class="anchor-link" href="#the-four-bands-and-why-each-rule-is-shaped-that-way">#</a></h3>
+<p><strong>Band 2 — the origin cross-tab is <code>linked</code>-only, and says so twice.</strong> <code>MissAttributionTaint.Partition</code>
+splits the segment's misses on <code>OriginConfidence == "linked"</code>; everything else is counted into
+<code>ExcludedByConfidence</code> (an absent value buckets as <code>not-recorded</code>, deliberately <em>not</em> as <code>unknown</code>,
+which is a real value in the producer's vocabulary). The excluded records get an <code>unattributed</code> row in
+the table <strong>and</strong> the <code>miss-taint-count</code> footer, which names the count, the breakdown and the reason
+verbatim from <code>MissAttributionTaint.ExclusionReason</code>. There is no parameter, flag or overload that
+returns those records to a figure — relaxing the rule means editing <code>MissAttributionTaint.cs</code>
+(REQ-NFR-013).</p>
+<p><code>OriginConfidence</code> is derived by <code>tf-emit.sh</code> and never written by an agent, and the emitter forces
+<code>origin_model</code> / <code>origin_harness</code> to <code>null</code> when its lookup fails. That is what makes the guarantee
+real rather than aspirational: the filter is on a value the producer controls.</p>
+<p><strong>Band 2 — the failed-practice denominator.</strong> <code>MissFigures.CountBy</code> skips a <code>null</code> entirely: a null is
+not a bucket, not an <code>other</code>, not a zero. So <code>WhyMissedN</code> counts only records that carry the field,
+and every share on the card is read against that. The card's badge prints
+<code>{Assessed} of {Eligible} misses assessed</code> and the footer separates the two ways a miss can be absent
+from the numerator:</p>
+<ul>
+<li><strong>not assessed</strong> — the field was available and nobody filled it in;
+</li>
+<li><strong>predates the field</strong> — the record was written before <code>FieldSince["why_missed"] = 2026-08-28</code>, and it leaves the denominator entirely rather than being backfilled with a value nobody assessed.
+</li>
+</ul>
+<p>The rows themselves come from the <strong>closed vocabulary</strong> in
+<code>MissAmendFolder.AmendableFields["why_missed"]</code>, not from what the data happened to contain, so a
+practice that caught nothing renders a real <code>0</code> rather than vanishing. Values the engine reports but
+the vocabulary does not know are appended.</p>
+<p><strong>Band 3 is labelled observational on the page.</strong> Miss counts per model and per agent are confounded
+by which model gets the hard work. <code>miss-observational</code> says so in an <code>Alert</code>, not a tooltip, and the
+<code>n linked</code> badge on both cards repeats the attribution basis.</p>
+<p><strong>Band 4 — three columns and never one.</strong> <em>Measured</em> is <code>cost_attribution: sole</code> — one fix run, one
+miss, the whole token window is that miss's cost. <em>Apportioned</em> is <code>shared:n</code>, one window divided
+equally across <code>n</code> misses: <strong>arithmetic, not measurement</strong>, and stated as such. <em>Unattributable</em> is
+<code>cost_attribution: none</code> — a count, never a divisor. <code>AttributionMissing</code> (absent or unrecognised) is
+a <strong>fourth</strong> number and is deliberately <strong>not</strong> folded into <code>NoneCount</code>: <code>none</code> is a value the emitter
+wrote, absent is nobody having said, and those are different facts.</p>
+<p>Measured dollars come from OpenCode records only and are never summed across harnesses
+(<code>MissFigures.HarnessRow</code> does not even <em>read</em> a <code>cost_usd</code> on another harness's record). Rate-card
+dollars live on their own dashed card, on their own row, carrying <code>RateCard.EstimateLabel</code> and
+exported under a key ending <code>_usd_estimate</code> — the measured tile's key does not. Models the card does
+not price are <strong>named</strong> in <code>kpi-rework-usd-unpriced</code> and left out, never costed at zero.</p>
+<p><strong>One known divergence from the reference is deliberate.</strong> <code>analyse_misses</code> in <code>tf-metrics.sh</code>
+computes <code>sum(tokens_out or 0) / len(sole)</code>, averaging a repair whose tokens were never recorded in as
+a zero. <code>MissFigures.MoneyFor</code> divides by the records that actually <strong>carry</strong> a count. Recorded as
+<code>TF-005</code> / <code>DECISIONS.md</code> D-012. The two agree on every dataset where every <code>sole</code> record carries
+<code>tokens_out</code>, so the divergence is latent rather than live — <strong>do not "fix" it by matching the
+reference</strong>, parity would go green by adopting the weaker number.</p>
+<h3 id="states-12">States<a class="anchor-link" href="#states-12">#</a></h3>
+<ul>
+<li><strong>Loading</strong> — <code>objIsLoaded == false</code> → one <code>Card</code> of three <code>Skeleton</code> lines, the same block every report page uses.
+</li>
+<li><strong>Error</strong> — <code>Alert Danger AccentBorder</code> <code>misses-error</code> with the exception message; <code>objResult</code> and <code>objFold</code> are both reset to <code>Empty</code> first.
+</li>
+<li><strong>Empty (TechieFlow)</strong> — <code>objResult.MissesTotal == 0</code> → <code>Empty</code> <code>misses-empty</code> / <code>misses-empty-connect</code>, <em>"TfLens reads <code>docs/metrics/misses.jsonl</code>; it never writes one."</em>
+</li>
+<li><strong>Empty (Playbook)</strong> — <code>PlaybookEmpty</code> <strong>plus</strong> <code>misses-playbook-plan</code>, a table describing the four bands, and <code>misses-playbook-zero-note</code>. The Framework switch is rendered rather than hidden for a surface one framework has and the other does not (BRD-126); the note says explicitly that a zero here is <strong>absence, not a good score</strong>.
+</li>
+<li><strong>Playbook, non-empty</strong> — <code>PlaybookAxisNote</code> replaces the escape note. The layout does not change.
+</li>
+<li><strong>Insufficient data</strong> — any <code>Figure</code> below <code>MinN</code> = 3 renders <code>insufficient data (n=…)</code> through <code>FigureText</code>, shrunk by <code>SmallWhenNoNumber</code> so a refusal is never at headline size. A distribution below <code>MinN</code> renders its own <code>…-note</code> line instead.
+</li>
+<li><strong>Absent</strong> — <code>NotApplicable</code> renders <code>—</code>. So does an absent measured or estimated dollar amount.
+</li>
+</ul>
+<h3 id="observed-2026-08-28-3">Observed 2026-08-28<a class="anchor-link" href="#observed-2026-08-28-3">#</a></h3>
+<p>Signed in as userId 2 at 1440×900. <strong>74 <code>data-testid</code>s</strong>, 0 blank icons, no page-level horizontal
+scroll, no console or page errors. Tables: <code>miss-origin</code> 2 rows, <code>miss-whymissed-table</code> 7,
+<code>miss-origin-model-table</code> 1, <code>miss-origin-agent-table</code> 1, <code>miss-detail-table</code> 4.</p>
+<p>The dataset is <strong>4 misses / 4 fixes / 0 amendments</strong>, all in one segment. <code>miss-type</code> rendered a
+single tab, <code>framework</code> (badge 4). What actually rendered:</p>
+<table>
+<thead><tr><th>Control</th><th>Rendered</th><th>Reading it</th></tr></thead>
+<tbody>
+<tr><td><code>misses-period</code></td><td><code>All history (default)</code></td><td>the <code>DisplayTextSelector</code> fix for TR-020 is working — without it this reads <code>all</code></td></tr>
+<tr><td><code>kpi-open</code></td><td><code>0</code></td><td><code>3 closed · 0 open · 1 declined</code></td></tr>
+<tr><td><code>kpi-wontfix</code></td><td><code>1</code></td><td>the declined miss is here and <strong>not</strong> in open</td></tr>
+<tr><td><code>kpi-median-close</code></td><td><code>0h</code></td><td>three closed misses, so the figure is above <code>MinN</code></td></tr>
+<tr><td><code>kpi-design-share</code></td><td><code>0%</code></td><td>a real zero: no <code>unspecified-gap</code> in 4 misses</td></tr>
+<tr><td><code>kpi-escape-share</code></td><td><code>50%</code></td><td>2 of 4 <code>found_by ∈ {owner, production}</code></td></tr>
+<tr><td><code>kpi-rework-tokens</code></td><td><code>—</code></td><td><strong>0 of 4</strong> fixes are <code>cost_attribution: sole</code> — an absence, not a zero</td></tr>
+<tr><td><code>kpi-rework-usd</code></td><td><code>—</code></td><td>no OpenCode fix record carries <code>cost_usd</code></td></tr>
+<tr><td><code>kpi-rework-usd-estimate</code></td><td><code>—</code></td><td>no non-OpenCode fix carries both a token count and a priced model</td></tr>
+<tr><td><code>miss-origin</code></td><td>1 phase row (<code>log-miss</code>) + <code>miss-origin-unattributed</code></td><td><code>1 other + 1 partial-implementation = 2</code>, over 3 runs → <code>67%</code></td></tr>
+<tr><td><code>miss-taint-count</code></td><td><code>2 of 4 misses excluded … (inferred: 2)</code></td><td>the exclusion is on the page, as required</td></tr>
+<tr><td><code>miss-whymissed</code></td><td>7 rows, <code>instruction-ignored 1 · 100%</code>, 6 at <code>0 · —</code></td><td>the closed vocabulary renders in full</td></tr>
+<tr><td><code>miss-whymissed-note</code></td><td><code>insufficient data (n=1)</code></td><td>one assessed record cannot carry a share honestly</td></tr>
+<tr><td><code>miss-origin-model-table</code></td><td><code>claude-opus-5 · 1 · 100%</code></td><td>linked records only (2 of 4)</td></tr>
+<tr><td><code>miss-origin-agent-table</code></td><td><code>flow-master · 2 · 100% · other</code></td><td>"</td></tr>
+<tr><td><code>miss-cost-*</code></td><td><code>—</code> / <code>—</code> / <code>0</code></td><td>measured, apportioned, unattributable — three columns, no blend</td></tr>
+<tr><td><code>miss-detail-table</code></td><td>4 rows, <code>miss-raw-MISS-TechieFlow-20260828-01..04</code></td><td>one row per miss</td></tr>
+</tbody>
+</table>
+<p><strong>Six of the figures on this page render <code>—</code> or <code>insufficient data</code>, and that is the correct
+answer for this dataset.</strong> The first instinct on seeing that screen is that the page is broken. It
+is not: 4 records, 0 of them <code>sole</code>-attributed, 1 of them carrying <code>why_missed</code>.</p>
+<p>Not observed in this pass: the Playbook state, the empty state, any period other than <em>All history</em>,
+the raw-record disclosure open, and any apportioned or measured-dollar figure (no record supports one).</p>
+<h3 id="gotchas-12">Gotchas<a class="anchor-link" href="#gotchas-12">#</a></h3>
+<ul>
+<li><strong>Do not add a blended cost figure, even "just for the export".</strong> <code>MissCost</code> cannot hold one, and three reflection tests across two projects assert that no miss result type carries a total or blended member. The page states the rule on itself in <code>miss-cost-no-blend</code>.
+</li>
+<li><strong><code>miss-taint-count</code> renders even when nothing was excluded.</strong> Hiding it at zero would make "no exclusions" look identical to "the footer was never built". Same reasoning as <code>/harness</code>'s <code>harness-null-footnote</code>.
+</li>
+<li><strong><code>SegmentTaint</code> re-partitions on every access.</strong> It is a computed property calling <code>MissAttributionTaint.Partition(SegmentMisses)</code>, and <code>SegmentMisses</code> re-filters <code>objFold.Misses</code> each time. That is deliberate — one rule in one place, not a <code>Where</code> clause copied into the view — but it means the origin band does real work per render. If this page ever gets slow with thousands of misses, memoise <code>SegmentTaint</code> per <code>(period, type)</code>; do <strong>not</strong> inline the predicate.
+</li>
+<li><strong><code>LinkKey</code> is spelled differently in the page and in the engine.</strong> <code>MissFigures.LinkKey</code> is <code>repo + " " + missId</code>; <code>Misses.razor</code>'s private <code>LinkKey</code> is <code>$"{repo}{missId}"</code>. Both are internally consistent — nothing joins across the two — but they are not interchangeable, so do not "share" one without checking every call site.
+</li>
+<li><strong>A record whose <code>ts</code> TfLens cannot parse stays in every period window.</strong> <code>IsInPeriod</code> returns <code>true</code> on a parse failure. Silently dropping a record because its own clock string is odd would understate every figure with no visible reason.
+</li>
+<li><strong>The period filter is per-circuit and is not persisted.</strong> Reload and you are back on <em>All history</em>. So is the type tab (<code>OnTypeSelectedAsync</code> sets a field and returns <code>Task.CompletedTask</code>).
+</li>
+<li><strong><code>Recompute()</code> resets the raw disclosure</strong> (<code>objRawMissId = null; objIsRawOpen = false</code>). A change of period closing the open record is intentional — the record may not be in the new window.
+</li>
+<li><strong><code>CollapsibleContent</code> is guarded by an <code>@if</code>, not merely closed.</strong> <code>TR-018</code>: a closed <code>CollapsibleContent</code> still lays its children out and overlaps what follows. Do not remove the guard.
+</li>
+<li><strong><code>Progress Class="w-16"</code>, not <code>w-20</code>.</strong> See <a href="#10-trblazeuicsss-spacingsizing-scale-has-holes--w-20-renders-at-zero-width">cross-cutting gotcha 10</a> — <code>w-20</code> is absent from the shipped stylesheet and the share bars rendered at zero width.
+</li>
+<li><strong>The chip icons are <code>circle-check</code>, not <code>check-circle</code>.</strong> <code>TR-022</code>; the alias renders an empty box.
+</li>
+<li><strong>This page reads <code>ITelemetryStore</code> directly and so bypasses <code>MemoryAnalysisCache</code>.</strong> It is not served by the <code>CachingMetricsEngine</code> at all, which means it is <em>not</em> subject to <a href="#5-memoryanalysiscache-is-keyed-on-the-syncstate-version">gotcha 5</a> — seeded rows show up here immediately while <code>/three-questions</code> may still serve a cached analysis. Two pages, two freshnesses.
+</li>
+<li><strong><code>FrameworkNames</code> is the axis, <code>project_type</code> is the segment, and they are different things.</strong> There is deliberately no "all types" entry on <code>MissAnalysis.Live</code> and no total row anywhere on the page — the same rule as <code>/three-questions</code> (ADR-007).
+</li>
+</ul>
+<h3 id="deviation-from-docs-tflens-uidesign-md-5">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-5">#</a></h3>
+<ul>
+<li>The design specifies <code>Progress</code> bars at <code>w-20</code> in the failed-practice card. The code ships <code>w-16</code> because <code>w-20</code> is not in <code>trblazeui.css</code> (TR-021). Restore the design's value only alongside a scoped-CSS rule that actually defines the width.
+</li>
+<li>The design's period control is a plain <code>Select</code>; the code adds <code>DisplayTextSelector</code> and a <code>misses-period-label</code> badge beside it, because the closed trigger otherwise shows the raw key (TR-020) and because the window should be legible without opening anything.
+</li>
+<li>The design puts the origin cross-tab in a <code>DataTable</code>. The code hand-rolls a <code>&lt;table class="tflens-table"&gt;</code> inside <code>.tflens-scroll-x</code>, because <code>DataTableColumn</code> needs a compile-time property per column and <code>miss_class</code> has no closed vocabulary — the columns are whatever the linked records carry. The <code>why_missed</code>, model, agent and detail tables <em>are</em> <code>DataTable</code>s, all with an explicit <code>InitialPageSize</code> (<a href="#1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse">gotcha 1</a>).
+</li>
+</ul>
+<hr>
 <h2 id="export"><code>/export</code><a class="anchor-link" href="#export">#</a></h2>
 <p><strong>Files:</strong> <code>src/TfLens/Components/Pages/Export.razor</code> (<code>@page "/export"</code>, ~95 lines — decides <em>which
 state</em>) and <code>src/TfLens/Components/Pages/Export/ExportSurface.razor</code>
@@ -1200,7 +1736,7 @@ quote — so it is also the page that says whether quoting it is honest.</p>
 <p><code>Export.razor</code> renders <code>&lt;ExportSurface UserId Framework /&gt;</code> for TechieFlow, and the same component
 wrapped in <code>&lt;PlaybookState&gt;</code> for Playbook. The surface is byte-identical between the two states, which
 is the point: they cannot drift apart into two slightly different export screens.</p>
-<h3 id="control-data-path-11">Control → data path<a class="anchor-link" href="#control-data-path-11">#</a></h3>
+<h3 id="control-data-path-12">Control → data path<a class="anchor-link" href="#control-data-path-12">#</a></h3>
 <table>
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead>
 <tbody>
@@ -1236,7 +1772,7 @@ evidence. <code>NoParityMessage</code> draws the same distinction for the card b
 recorded run as exactly equal to no run at all.</p>
 <p><code>BannerLiteral</code> (<code>"{status} — {reason}"</code>) is set as the alert's <code>title</code> attribute so the exact wording
 is one searchable string in the DOM.</p>
-<h3 id="states-12">States<a class="anchor-link" href="#states-12">#</a></h3>
+<h3 id="states-13">States<a class="anchor-link" href="#states-13">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>objIsLoaded</code> is guarded by <code>objLoadedKey == $"{UserId}|{Framework}"</code>, so a change of either re-reads. There is no skeleton on this surface; it renders with empty tables first.
 </li>
@@ -1247,7 +1783,7 @@ is one searchable string in the DOM.</p>
 <li><strong>Exporting</strong> — <code>objIsExporting</code> disables the button and swaps in a <code>Spinner</code>; success and failure both toast, and <code>ReloadAsync</code> runs in <code>finally</code>.
 </li>
 </ul>
-<h3 id="gotchas-12">Gotchas<a class="anchor-link" href="#gotchas-12">#</a></h3>
+<h3 id="gotchas-13">Gotchas<a class="anchor-link" href="#gotchas-13">#</a></h3>
 <ul>
 <li><strong><code>objShaRows</code> and <code>objSnapshots</code> are rebuilt as fresh instances on every reload, never cleared in place.</strong> <code>DataTable</code> takes its rows as a parameter, and a parameter whose reference has not changed is not re-processed — mutating these lists would leave a just-written snapshot invisible until the page was navigated away from.
 </li>
@@ -1266,7 +1802,7 @@ is one searchable string in the DOM.</p>
 <li>Download links go through an authorized minimal-API endpoint that <strong>derives the reports root from the auth cookie</strong> and takes no user id, so one user cannot fetch another's snapshot by editing a query string.
 </li>
 </ul>
-<h3 id="deviation-from-docs-tflens-uidesign-md-5">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-5">#</a></h3>
+<h3 id="deviation-from-docs-tflens-uidesign-md-6">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-6">#</a></h3>
 <ul>
 <li>The design's past-snapshots table is <code>date · parser version · parity status · links</code>; the code adds a <strong>framework</strong> column between date and parser version. Correct — snapshots are per framework.
 </li>
@@ -1305,6 +1841,13 @@ Note also that the archived <code>events-*.jsonl</code> in <code>data/raw/</code
 captured run — 9 identical sessions, no <code>parentID</code> anywhere — which is why <code>SchemaStatus</code> stays
 <code>EmitterSourceDerived</code> and every Playbook figure carries the <code>playbook-provisional</code> caveat.</p>
 </blockquote>
+<p><strong><code>/misses</code> is the sixth report route and has a Playbook state of its own</strong> (added 2026-08-28). It
+renders <code>PlaybookAxisNote</code> when the axis is Playbook and non-empty, and <code>PlaybookEmpty</code> plus
+<code>misses-playbook-plan</code> / <code>misses-playbook-zero-note</code> when it is empty — which today it always is,
+because <code>events.ndjson</code> carries no miss records. The plan card describes the same four bands rather
+than hiding the page: the switch changes the data, never the layout or the rules (BRD-126). It also
+says on its face that a zero there is <strong>absence, not a good score</strong>. Not driven in the 2026-08-28
+observe pass.</p>
 <p><img src="./devguide-images/export-playbook.png" alt="/export on the Playbook axis" style="max-width:100%"></p>
 <p><strong>Shared components</strong> (<code>src/TfLens/Components/Shared/Playbook/</code>):</p>
 <table>
@@ -1357,6 +1900,7 @@ returns a single <code>events</code> stream, so the repo card's table renders on
 <tr><td><code>/three-questions</code></td><td><code>Components/Pages/ThreeQuestions.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/harness</code></td><td><code>Components/Pages/Harness.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/routing</code></td><td><code>Components/Pages/Routing.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
+<tr><td><code>/misses</code></td><td><code>Components/Pages/Misses.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/export</code></td><td><code>Components/Pages/Export.razor</code> + <code>Export/ExportSurface.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/not-found</code></td><td><code>Components/Pages/NotFound.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr>
 <tr><td><code>/Error</code></td><td><code>Components/Pages/Error.razor</code></td><td>—</td><td>—</td><td>—</td></tr>
@@ -1376,6 +1920,8 @@ has signed in — without them the sign-in form cannot be interactive at all.</p
 <tr><td><code>POST /auth/login</code>, <code>/auth/register</code>, <code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td><td><code>AuthEndpoints.cs</code></td><td>anonymous</td></tr>
 <tr><td><code>POST /auth/logout</code></td><td><code>AuthEndpoints.cs</code></td><td>authorized</td></tr>
 <tr><td><code>GET /api/export/download</code></td><td><code>ExportEndpoints.cs</code></td><td>authorized</td></tr>
+<tr><td><strong><code>POST /api/import/preview</code></strong></td><td><strong><code>Services/Import/ImportEndpoints.cs</code></strong></td><td><strong>authorized + antiforgery</strong></td></tr>
+<tr><td><strong><code>POST /api/import/commit</code></strong></td><td><strong><code>Services/Import/ImportEndpoints.cs</code></strong></td><td><strong>authorized + antiforgery</strong></td></tr>
 <tr><td><code>GET /healthz</code></td><td><code>HealthEndpoint.cs</code></td><td>anonymous</td></tr>
 <tr><td><strong><code>GET /signout</code></strong></td><td><strong>nowhere — 404</strong></td><td>—</td></tr>
 </tbody>

@@ -218,10 +218,11 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         var vReport = await vStore.RebuildAsync(Fixtures.StoreTestUserId);
         var vRebuilt = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
-        vReport.FilesReplayed.Should().Be(4);
+        vReport.FilesReplayed.Should().Be(5, "the fifth stream, misses, joined the set on 2026-08-28");
         vRebuilt.Should().Be(vLive, "a rebuild reads only data/raw and must land on the same numbers");
-        vReport.InvalidLines.Should().Be(4, "one malformed line per stream file");
-        vReport.DuplicatesCollapsed.Should().Be(7);
+        vReport.InvalidLines.Should().Be(
+            6, "one malformed line per stream file, plus the misses fixture's unknown `kind` line");
+        vReport.DuplicatesCollapsed.Should().Be(8, "the misses fixture opens one miss twice");
     }
 
     /// <summary>

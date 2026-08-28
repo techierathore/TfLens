@@ -1,4 +1,6 @@
 using TfLens.Core.Abstractions;
+using TfLens.Core.AppManager;
+using TfLens.Core.Contracts;
 
 namespace TfLens.Services.Commands;
 
@@ -21,7 +23,12 @@ public static class CommandRunner
     /// <summary>The <c>export</c> verb — writes the snapshot pair for a user and framework.</summary>
     public const string Export = "export";
 
-    private static readonly string[] Verbs = [Rebuild, Sync, Export];
+    /// <summary>
+    /// The <c>provision-test-accounts</c> verb — restores the Usage Guide's test accounts (REQ-NFR-012).
+    /// </summary>
+    public const string ProvisionTestAccounts = "provision-test-accounts";
+
+    private static readonly string[] Verbs = [Rebuild, Sync, Export, ProvisionTestAccounts];
 
     /// <summary>
     /// Tells whether the first argument names a command verb rather than a host switch.
@@ -48,6 +55,7 @@ public static class CommandRunner
             Rebuild => await RunRebuildAsync(vScope.ServiceProvider, aArgs),
             Sync => await RunSyncAsync(vScope.ServiceProvider, aArgs),
             Export => await RunExportAsync(vScope.ServiceProvider, aArgs),
+            ProvisionTestAccounts => await RunProvisionTestAccountsAsync(vScope.ServiceProvider, aArgs),
             _ => throw new ArgumentOutOfRangeException(nameof(aArgs), vVerb, "Unknown verb.")
         };
     }
@@ -148,6 +156,134 @@ public static class CommandRunner
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Restores the AppManager accounts the Usage Guide documents (REQ-NFR-012).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The repeatable procedure the requirement asks for. The accounts live on a shared external
+    /// service, so nothing in this repository can rebuild them from a schema — but the credential the
+    /// suite uses <b>is</b> in this repository, in <c>docs/TfLens-UsageGuide.md</c>, and that is enough
+    /// to make the restore mechanical: for every account the guide lists, sign in with the documented
+    /// password; if that fails, register the account with that password and
+    /// <c>applicationRoleCode: "Manager"</c>.
+    /// </para>
+    /// <para>
+    /// <b>Idempotent by construction.</b> An account that already works is signed into and left exactly
+    /// as it was — nothing is renamed, no password is set, no role is re-applied. Registration only ever
+    /// runs for an account AppManager does not have.
+    /// </para>
+    /// <para>
+    /// <b>It prints no credential.</b> The passwords it handles come from the guide and go no further
+    /// than the request body; the report carries the email, the userId and the application role only.
+    /// </para>
+    /// <para>
+    /// One case it deliberately cannot repair on its own: an account that exists in AppManager under a
+    /// <i>different</i> password. Registration then answers <c>DUPLICATE_EMAIL</c>, and the only fixes
+    /// are outside this repository — reset the password through <c>/forgot-password</c>, or delete and
+    /// re-create the account in the AppManager admin UI, then correct the guide. The verb says so in as
+    /// many words rather than failing opaquely, because that is the exact state that blocked the suite
+    /// on 2026-08-28.
+    /// </para>
+    /// </remarks>
+    /// <param name="aServices">A scoped service provider.</param>
+    /// <param name="aArgs">The command line; optional <c>--guide &lt;path&gt;</c> overrides the guide's location.</param>
+    /// <returns>Zero when every documented account can sign in, 1 when any could not be restored.</returns>
+    private static async Task<int> RunProvisionTestAccountsAsync(IServiceProvider aServices, string[] aArgs)
+    {
+        var vClient = aServices.GetRequiredService<IAppManagerClient>();
+        var vGuidePath = ReadOption(aArgs, "--guide") ?? TestAccountRegistry.LocateGuide(AppContext.BaseDirectory);
+
+        IReadOnlyList<TestAccount> vAccounts;
+        try
+        {
+            vAccounts = TestAccountRegistry.Read(vGuidePath);
+        }
+        catch (Exception vReadEx) when (vReadEx is FileNotFoundException or InvalidOperationException)
+        {
+            Console.Error.WriteLine($"{ProvisionTestAccounts}: {vReadEx.Message}");
+            return 1;
+        }
+
+        Console.WriteLine($"{ProvisionTestAccounts}: reading {vGuidePath}");
+
+        if (vAccounts.Count == 0)
+        {
+            Console.Error.WriteLine(
+                $"{ProvisionTestAccounts}: the Test-users table lists no account with both an email " +
+                "and a password, so there is nothing to restore.");
+            return 1;
+        }
+
+        var vFailures = 0;
+
+        foreach (var vAccount in vAccounts)
+        {
+            var vOutcome = await RestoreOneAccountAsync(vClient, vAccount);
+
+            Console.WriteLine($"  {vAccount.Email,-38} {vOutcome.Summary}");
+
+            if (!vOutcome.Restored)
+            {
+                vFailures++;
+            }
+        }
+
+        Console.WriteLine(
+            $"{ProvisionTestAccounts}: {vAccounts.Count - vFailures} of {vAccounts.Count} documented " +
+            $"accounts usable.");
+
+        return vFailures == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Signs one documented account in, registering it first when AppManager does not have it.
+    /// </summary>
+    /// <param name="aClient">The live AppManager client.</param>
+    /// <param name="aAccount">The account as the Usage Guide records it.</param>
+    /// <returns>Whether the account now works, and a one-line report that carries no credential.</returns>
+    private static async Task<(bool Restored, string Summary)> RestoreOneAccountAsync(
+        IAppManagerClient aClient,
+        TestAccount aAccount)
+    {
+        try
+        {
+            var vAuth = await aClient.LoginAsync(aAccount.Email, aAccount.Password);
+
+            return (true, $"already usable  userId {vAuth.UserId}  applicationRole " +
+                          $"'{vAuth.ApplicationRole}'");
+        }
+        catch (AppManagerException vLoginEx) when (vLoginEx.Code == AppManagerException.Codes.InvalidCredentials)
+        {
+            // Either the account does not exist, or it exists under another password. Registration is
+            // what tells the two apart, and it is safe: it cannot overwrite an existing account.
+        }
+        catch (AppManagerException vLoginEx)
+        {
+            return (false, $"cannot sign in — AppManager answered {vLoginEx.Code}");
+        }
+
+        try
+        {
+            var vCreated = await aClient.RegisterAsync(
+                new RegisterRequest(aAccount.Email, aAccount.Password, aAccount.FirstName, aAccount.LastName));
+
+            return (true, $"registered      userId {vCreated.UserId}  applicationRole " +
+                          $"'{vCreated.ApplicationRole}'");
+        }
+        catch (AppManagerException vRegisterEx) when (vRegisterEx.Code == AppManagerException.Codes.DuplicateEmail)
+        {
+            return (false,
+                "EXISTS UNDER ANOTHER PASSWORD — AppManager holds this address but rejects the password " +
+                "the Usage Guide records. Reset it through /forgot-password, or delete and re-create the " +
+                "account in the AppManager admin UI, then correct the guide's Test-users table.");
+        }
+        catch (AppManagerException vRegisterEx)
+        {
+            return (false, $"could not be registered — AppManager answered {vRegisterEx.Code}");
+        }
     }
 
     /// <summary>Reads <c>--user &lt;id&gt;</c> from the command line.</summary>

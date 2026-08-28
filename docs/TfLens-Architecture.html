@@ -816,15 +816,26 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </div>
 <p>Every stream table also carries <code>UserId</code> (omitted from the boxes above for brevity). Unique indexes implement the dedupe keys per user: <code>UcCommitUserRepoSha (UserId, Repo, Sha)</code>, <code>UcRunIdentity (UserId, Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (UserId, Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionUserRepoId (UserId, Repo, SessionId)</code>. The miss tables (added 2026-08-28) follow the same house style — every identifier double-quoted, <code>UserId</code> a real column and part of every unique index (ADR-013), <code>CREATE TABLE IF NOT EXISTS</code> so <code>database/001-schema.sql</code> stays idempotent at every startup with no migration framework:</p>
 <pre><code class="language-sql">-- unique keys (the dedupe rules, encoded)
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMiss"      ON "Miss"      ("UserId","Repo","MissId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMissFix"   ON "MissFix"   ("UserId","Repo","MissId","FixRunId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMissAmend" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"            ON "Miss"      ("UserId","Repo","MissId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId" ON "MissFix"   ("UserId","Repo","MissId",COALESCE("FixRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
 -- read paths
-CREATE INDEX IF NOT EXISTS "IxMissUserRepo"    ON "Miss"      ("UserId","Repo");
-CREATE INDEX IF NOT EXISTS "IxMissOriginModel" ON "Miss"      ("UserId","OriginModel");
-CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo" ON "MissFix"   ("UserId","Repo");
-CREATE INDEX IF NOT EXISTS "IxMissFixMissId"   ON "MissFix"   ("UserId","MissId");
-CREATE INDEX IF NOT EXISTS "IxMissAmendMissId" ON "MissAmend" ("UserId","MissId");</code></pre>
+CREATE INDEX IF NOT EXISTS "IxMissUserRepo"      ON "Miss"      ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissOriginModel"   ON "Miss"      ("UserId","OriginModel");
+CREATE INDEX IF NOT EXISTS "IxMissMissId"        ON "Miss"      ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo"   ON "MissFix"   ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissFixMissId"     ON "MissFix"   ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissAmendUserRepo" ON "MissAmend" ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissId");</code></pre>
+<p><em>Corrected 2026-08-28 during the F-MISS build, against the code as built.</em> Three things in the block above were wrong when first written and are recorded here rather than left to diverge:</p>
+<ol>
+<li><strong>Index naming.</strong> The draft used a <code>Ux…</code> prefix, which appears nowhere else in this codebase; the Coding Standards and every pre-existing index in <code>database/001-schema.sql</code> use <code>Uc{Table}{Column}</code> for unique and <code>Ix{Table}{Column}</code> for read paths. The built names follow the repo convention.
+</li>
+<li><strong><code>MissFix</code> uniqueness must coalesce.</strong> <code>FixRunId</code> is <strong>nullable by design</strong> — the <code>log-miss --fixed</code> path deliberately omits it — and in PostgreSQL a <code>NULL</code> in a unique index never collides with another <code>NULL</code>, so the drafted key would have let unlimited duplicates of exactly the records the dedupe rule (BRD-114) exists to collapse. The built index keys on <code>COALESCE("FixRunId",'')</code>. One consequence worth knowing: two <code>--fixed</code> records for the <em>same</em> miss, both omitting <code>fix_run_id</code>, collapse to one (latest wins). That is the stated rule applied honestly, not a defect.
+</li>
+<li><strong>The ER boxes omit the common record fields.</strong> The three miss boxes above show only their distinguishing columns; as built, all three carry the full common set (<code>V</code>, <code>App</code>, <code>ProjectType</code>, <code>ProjectTypeInferred</code>, <code>Backfilled</code>, <code>Harness</code>, <code>Ts</code>, <code>SourceSha</code>, <code>Overflow</code>) like every other stream table. Without <code>ProjectType</code> on <code>Miss</code>, the per-<code>project_type</code> segmentation §6 requires would be impossible.
+</li>
+</ol>
 <p><code>ITelemetryStore</code> gains <code>ReadMissesAsync</code>, <code>ReadMissFixesAsync</code> and <code>ReadMissAmendsAsync</code> mirroring <code>ReadGatesAsync</code>'s signature; <code>UpsertAsync</code> handles the three new <code>ParseResult</code> collections; and <strong><code>DeleteRepoDataAsync</code> must purge all three</strong> — missing one leaves orphaned rows that reappear in every figure, which is the worst class of bug in a product whose promise is correct numbers. <code>SyncState</code> gains a <code>misses</code> row per repo, so Coverage's per-repo stream table goes from four rows to five. <code>AuthSession</code> token columns are encrypted at rest with ASP.NET Data Protection. <code>PbEvent</code> columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as <code>NULL</code>, never <code>0</code> (SCHEMA.md §2.5).</p>
 <h2 id="metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
 <p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>

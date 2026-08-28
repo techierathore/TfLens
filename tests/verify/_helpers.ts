@@ -114,10 +114,38 @@ export async function visualCheck(page: Page, ids: string[], width: number): Pro
         items.push({ id, el, r });
       }
 
+      // What a reader can actually SEE. A wide table parked inside an `overflow-x-auto` box — the
+      // idiom the DevGuide prescribes, and which the off-viewport branch above already tolerates —
+      // has rows whose own getBoundingClientRect reports the FULL, unclipped width: a 5-column
+      // cross-tab inside a 490px card reports 879px and appears to collide with the next column,
+      // when on screen it is clipped by its scroll box and nothing overlaps at all. Clipping each
+      // rect to its clipping ancestors before the intersection test is what makes the overlap gate
+      // measure the rendered page rather than the layout tree. A control genuinely hidden by an
+      // ancestor clips to an empty box and is dropped by the zero-size guard below, so this cannot
+      // hide a real occlusion — only an imaginary one.
+      const clip = (el: Element, r: DOMRect): DOMRect => {
+        let left = r.left, top = r.top, right = r.right, bottom = r.bottom;
+        for (let p: Element | null = el.parentElement; p; p = p.parentElement) {
+          const cs = getComputedStyle(p as HTMLElement);
+          const clipsX = cs.overflowX === 'auto' || cs.overflowX === 'scroll' || cs.overflowX === 'hidden';
+          const clipsY = cs.overflowY === 'auto' || cs.overflowY === 'scroll' || cs.overflowY === 'hidden';
+          if (!clipsX && !clipsY) continue;
+          const pr = p.getBoundingClientRect();
+          if (clipsX) { left = Math.max(left, pr.left); right = Math.min(right, pr.right); }
+          if (clipsY) { top = Math.max(top, pr.top); bottom = Math.min(bottom, pr.bottom); }
+        }
+        return new DOMRect(left, top, Math.max(0, right - left), Math.max(0, bottom - top));
+      };
+
+      for (const item of items) {
+        item.r = clip(item.el, item.r);
+      }
+
       const tol = 2;
       for (let i = 0; i < items.length; i++) {
         for (let j = i + 1; j < items.length; j++) {
           const A = items[i], B = items[j];
+          if (A.r.width <= tol || A.r.height <= tol || B.r.width <= tol || B.r.height <= tol) continue;
           if (A.el.contains(B.el) || B.el.contains(A.el)) continue;
           // Full geometric containment is the badge-inside-its-row case (a SidebarMenuBadge
           // laid over the empty right end of its nav item). That is a design idiom, not an

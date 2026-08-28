@@ -1,9 +1,11 @@
-// REQ-FN-063 / REQ-FN-064 smoke — the BRD §13 parity gate, driven against the running app.
-// Proves the quotable banner reports the REAL state of data/parity-last.json. On 2026-08-27 the
-// procedure produced an EMPTY DIFF for the first time — the framework's fix to tf-metrics.sh
-// (dedupe_sessions + pooled.session_duplicates_collapsed) removed the session-count disagreement,
-// and TfLens now persists and reports the collapse count too — so the record was written and the
-// banner flipped from NOT QUOTABLE to quotable.
+// REQ-FN-063 / REQ-FN-064 / REQ-FN-080 smoke — the BRD §13 parity gate, driven against the running app.
+// Proves the quotable banner reports the REAL state of data/parity-last.json.
+//
+// Re-pinned 2026-08-28. The framework shipped an oracle that reads the fifth stream (STREAMS gained
+// "misses", and with it analyse_misses() and a 29-figure `misses` block), which invalidated the
+// 2026-08-27 stamp exactly as REQ-FN-063 clause 3 says it must — /export went NOT QUOTABLE on its own.
+// The block was implemented, parity was re-run end to end at parser 1.2.0 with an empty diff, and the
+// record was rewritten (DECISIONS.md P-003). The date and digest below track that run, not the old one.
 import { test, expect } from '@playwright/test';
 import { signIn, gotoScreen, testid, visualCheck, DESKTOP, MOBILE } from './_helpers';
 
@@ -27,8 +29,8 @@ test('parity gate: /export banner reports the recorded passing run as quotable',
   const facts = await testid(page, 'parity-facts');
   const factsText = (await facts.innerText()).trim();
   console.log('PARITY FACTS: ' + factsText.replace(/\s+/g, ' ').slice(0, 600));
-  expect(factsText).toContain('2026-08-27');
-  expect(factsText).toContain('960d12b4');
+  expect(factsText).toContain('2026-08-28');
+  expect(factsText).toContain('f4b2667a');
 
   // The compare output is the evidence, not a summary of it: it must say PASS.
   const output = await testid(page, 'parity-output');

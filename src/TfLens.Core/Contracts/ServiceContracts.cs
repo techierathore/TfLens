@@ -182,6 +182,22 @@ public sealed record ParseResult
     /// <summary>Playbook event records, when <see cref="Stream"/> is <see cref="StreamKind.Events"/>.</summary>
     public IReadOnlyList<PbEventRecord> PbEvents { get; init; } = [];
 
+    /// <summary>
+    /// <c>miss</c> records, when <see cref="Stream"/> is <see cref="StreamKind.Misses"/>.
+    /// </summary>
+    /// <remarks>
+    /// One <c>misses.jsonl</c> file produces all three of <see cref="Misses"/>,
+    /// <see cref="MissFixes"/> and <see cref="MissAmends"/> in a single pass — the stream's records do
+    /// not all share a shape (ADR-018, REQ-FN-072).
+    /// </remarks>
+    public IReadOnlyList<MissRecord> Misses { get; init; } = [];
+
+    /// <summary><c>miss-fix</c> records, after the dedupe on <c>(MissId, FixRunId)</c>.</summary>
+    public IReadOnlyList<MissFixRecord> MissFixes { get; init; } = [];
+
+    /// <summary><c>miss-amend</c> records, stored verbatim and folded only at read time (ADR-020).</summary>
+    public IReadOnlyList<MissAmendRecord> MissAmends { get; init; } = [];
+
     /// <summary>Lines that were not valid JSON; counted and skipped, never fatal.</summary>
     public int InvalidLines { get; init; }
 
@@ -212,7 +228,8 @@ public sealed record ParseResult
     public int RecordsAboveSchemaV1 { get; init; }
 
     /// <summary>Total records stored from this file, across every record type.</summary>
-    public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count;
+    public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count
+        + Misses.Count + MissFixes.Count + MissAmends.Count;
 }
 
 /// <summary>What a rebuild-from-raw replayed.</summary>

@@ -165,3 +165,7 @@
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-27/techieflow/tflens.json
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-27/playbook/tflens.json
 /mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/parity-last.json
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/Fixtures/techierathore__TrBlazeUI/misses.jsonl
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/Fixtures/techierathore__TrSetup/misses.jsonl
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-28/techieflow/tflens.json
+/mnt/c/1MyCode/TfLens/tests/TfLens.Core.Tests/bin/Release/net10.0/data/reports/2/2026-08-28/playbook/tflens.json

@@ -403,14 +403,15 @@ public sealed class AppManagerClient : IAppManagerClient
     }
 
     /// <summary>
-    /// Whether the API-key pair is sent on this path — <c>true</c> for <c>/AuthSvc/*</c> only.
+    /// Whether the API-key pair is sent on this path — <c>true</c> for <c>/AuthSvc/*</c> and
+    /// <c>/UserSvc/*</c>, which is every path this client calls.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The pair identifies the calling <b>application</b>, and the guide (§Authentication) makes it one
-    /// of two interchangeable ways to supply that: the headers, or an explicit <c>applicationId</c>. It
-    /// is therefore only needed where AppManager must resolve an application and the body cannot say so.
-    /// Measured against the live API on 2026-08-27, whole pair versus none:
+    /// The pair identifies the calling <b>application</b>. The guide (§Authentication) makes it one of
+    /// two ways to supply that — the headers, or an explicit <c>applicationId</c> in the body — but the
+    /// two are not interchangeable everywhere, so the rule is measured against the live API rather than
+    /// read off the guide. <b>Measured 2026-08-28</b>, whole pair versus none:
     /// </para>
     /// <list type="table">
     ///   <item><term><c>/AuthSvc/forgot-password</c></term>
@@ -420,26 +421,41 @@ public sealed class AppManagerClient : IAppManagerClient
     ///     (<c>INVALID_RESET_TOKEN</c>). <b>Requires it.</b> These two are the only endpoints that refuse
     ///     a body <c>applicationId</c>, which is why the pair is not optional for this app.</description></item>
     ///   <item><term><c>/UserSvc/profile</c></term>
-    ///     <description>none → <c>200</c>; pair → <c>403 NO_APP_ACCESS</c>. <b>Broken by it.</b></description></item>
+    ///     <description>none → <c>200</c> but <c>applicationRole</c> comes back <b>empty</b>;
+    ///     pair → <c>200</c> with <c>applicationRole: "Manager"</c>. <b>Needs it to answer completely.</b></description></item>
     ///   <item><term>login · validate · change-password</term>
     ///     <description>identical either way — login already carries <c>applicationId</c> in its body, so
-    ///     licence and role stay scoped (guide §4.2) with nothing lost by omitting the headers.</description></item>
+    ///     licence and role stay scoped (guide §4.2) whether or not the headers are present.</description></item>
     /// </list>
     /// <para>
-    /// <b>Why <c>/UserSvc/*</c> is excluded.</b> Those calls are already scoped by the bearer token, which
-    /// names the user. Adding an application identity turns the request into "does THIS user have access
-    /// to THIS application", and AppManager answers <c>NO_APP_ACCESS</c> for the demo account — the same
-    /// account whose login returns an empty <c>applicationRole</c>. That is an AppManager-side grant that
-    /// Application 1 does not hold for this user, not a TfLens defect: sending the pair everywhere simply
-    /// made an existing gap fatal on a page that had always worked. Granting the user access to
-    /// Application 1 in the AppManager admin UI is the root fix, and this rule is correct regardless —
-    /// an application credential has no business on a user-scoped, token-authenticated read.
+    /// <b>Why <c>/UserSvc/*</c> was excluded until 2026-08-28, and why it no longer is.</b> The rule
+    /// originally sent the pair on <c>/AuthSvc/*</c> alone. That was not a stylistic choice: measured on
+    /// 2026-08-27, <c>GET /UserSvc/profile</c> answered <c>200</c> with no pair and
+    /// <c>403 NO_APP_ACCESS</c> with one, for every account tried — so attaching the application identity
+    /// took the Profile page down outright the moment credentials were configured. It was reported as an
+    /// <b>AppManager-side defect</b> (AM-002 in <c>docs/TfLens-AppManager-Feedback.md</c>): the
+    /// registration that created those users reported an application role for Application 1, so the role
+    /// row the profile lookup could not find should have existed.
+    /// </para>
+    /// <para>
+    /// The owner fixed AM-002 (and its sibling AM-001) in AppManager on <b>2026-08-28</b>. Re-measured
+    /// live that day: with the pair, <c>/UserSvc/profile</c> returns <c>200</c> and
+    /// <c>applicationRole: "Manager"</c>; <b>without</b> it, still <c>200</c> — but the application scope
+    /// is unresolved and <c>applicationRole</c> is returned as an empty string. The exclusion therefore
+    /// reversed sign: it was protective while the defect stood, and became the reason the app could not
+    /// read a role AppManager was finally willing to give it. The pair now goes on every path.
+    /// </para>
+    /// <para>
+    /// The history is kept rather than deleted because the earlier reasoning was correct on its evidence,
+    /// and because a future <c>NO_APP_ACCESS</c> on this path means AM-002 has regressed — which is
+    /// worth recognising immediately rather than rediscovering. See <c>DECISIONS.md</c> D-006.
     /// </para>
     /// </remarks>
     /// <param name="aPath">The AppManager path being called.</param>
     /// <returns><c>true</c> when the pair should be attached.</returns>
     private static bool SendsApiKeyHeaders(string aPath) =>
-        aPath.StartsWith("/AuthSvc/", StringComparison.OrdinalIgnoreCase);
+        aPath.StartsWith("/AuthSvc/", StringComparison.OrdinalIgnoreCase)
+        || aPath.StartsWith("/UserSvc/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Builds one request, applying the header rule and the always-present application id.

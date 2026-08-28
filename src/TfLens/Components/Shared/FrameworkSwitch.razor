@@ -4,7 +4,9 @@
     `Tabs` used as a segmented control, one trigger per provenance axis, each carrying that framework's
     connected-repo count. Choosing a framework writes the `tflens:framework` cookie and then re-loads the
     route, so every figure on the page is re-queried on the new axis rather than filtered client-side
-    (ADR-016). It renders on the five report routes only — see ShellNavigation.ShowsFrameworkSwitch.
+    (ADR-016). It renders on the six report routes only — see ShellNavigation.ShowsFrameworkSwitch.
+    `/misses` joined that set on 2026-08-28 (BRD-126): the switch is rendered, never hidden, for a
+    surface one framework has and the other does not, and the Playbook axis shows `playbook-empty`.
 *@
 @implements IDisposable
 @inject ShellPreferences objPreferences

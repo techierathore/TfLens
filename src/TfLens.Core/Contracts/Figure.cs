@@ -153,6 +153,27 @@ public static class MetricsConstants
     public static readonly IReadOnlyDictionary<string, string> LateGates =
         new Dictionary<string, string> { ["perf"] = "2026-08-10" };
 
+    /// <summary>
+    /// Optional fields that entered a stream after collection started, with the date they were added.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The same rule as <see cref="LateGates"/>, one table over.</b> A gate added mid-stream is
+    /// structurally understated in a raw distribution; a <i>field</i> added mid-stream is structurally
+    /// understated in a raw denominator, because the records written before it existed had no field to
+    /// fill. Both are read against what could have been observed, never against the total, and both
+    /// report the excluded count rather than dropping it silently (SCHEMA.md §3.5, §5.5.6).
+    /// </para>
+    /// <para>
+    /// A miss written before <c>why_missed</c> shipped is therefore <b>not</b> an unassessed miss: it
+    /// leaves that field's denominator entirely and is reported as <c>why_missed_predates_field</c>
+    /// beside <c>why_missed_eligible</c>. Keep in step with <c>FIELD_SINCE</c> in <c>tf-metrics.sh</c>,
+    /// and add a row here whenever an optional field is added to any stream (REQ-FN-076, BRD-117).
+    /// </para>
+    /// </remarks>
+    public static readonly IReadOnlyDictionary<string, string> FieldSince =
+        new Dictionary<string, string> { ["why_missed"] = "2026-08-28" };
+
     /// <summary>Verdicts that are not failures, and so do not enter the gate distribution.</summary>
     public static readonly IReadOnlyList<string> NonFailureVerdicts = ["Verified", "Done (pre-existing)"];
 

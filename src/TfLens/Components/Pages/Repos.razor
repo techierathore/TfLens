@@ -1,16 +1,26 @@
 @*
-    REQ-UI-011 / REQ-UI-012 / REQ-UI-013 — the Repos screen.
+    REQ-UI-011 / REQ-UI-012 / REQ-UI-013 / REQ-UI-040 / REQ-UI-041 — the Repos screen.
 
-    The only screen that writes: connect a public GitHub repo, sync one, remove one. Everything it reads
-    is scoped to the signed-in user by parameter, never by filter (ADR-013). The Connect dialog validates
-    before it saves and only enables Connect once all three checks are green.
+    The only screen that writes: add a source (fetched from a public repo, or imported from metric
+    files), sync one, re-import one, remove one. Everything it reads is scoped to the signed-in user
+    by parameter, never by filter (ADR-013).
+
+    The Add-source dialog opens on a deliberate, visible mode fork (BRD-131): **Fetch via API**
+    validates before it saves and only enables Connect once all three checks are green; **Import
+    metric files** previews before it commits and only enables Import once the preview has landed
+    (BRD-138). Nothing is written by a preview — the preview endpoint extracts into memory and
+    touches the filesystem at no point.
 *@
 @page "/repos"
+@using System.Text.Json
 @using TfLens.Core.GitHub
+@using TfLens.Core.Import
 @using TfLens.Core.Repos
+@using TfLens.Services.Import
 @implements IAsyncDisposable
 @inject IRepoListReader objRepoListReader
 @inject RepoRegistry objRepoRegistry
+@inject ITelemetryStore objStore
 @inject IServiceProvider objServices
 @inject ShellState objShellState
 @inject ToastService objToastService
@@ -23,24 +33,24 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <TypographyH2>Repos</TypographyH2>
-            <TypographyMuted>Public GitHub repos you've connected</TypographyMuted>
+            <TypographyMuted>Sources you've added — fetched from a public repo, or imported from metric files</TypographyMuted>
         </div>
-        <Button OnClick="OpenConnectDialog" data-testid="connect-repo">
+        <Button OnClick="@(() => OpenAddSourceDialog(SourceKinds.Api))" data-testid="connect-repo">
             <LucideIcon Name="plus" Size="16" />
-            Connect repo
+            Add source
         </Button>
     </div>
 
     <StatGroup Columns="3" data-testid="repos-kpis">
         <StatTile Title="Connected repos"
                   Value="@objRows.Count.ToString()"
-                  Description="@KindBreakdown"
+                  Description="@SourceBreakdown"
                   IconName="git-branch"
                   Accent="StatAccent.Chart1"
                   data-testid="kpi-repos" />
         <StatTile Title="Records synced"
                   Value="@objRows.Sum(aRow => aRow.RecordCount).ToString("N0")"
-                  Description="across every stream of every repo"
+                  Description="across every stream of every source"
                   IconName="database"
                   Accent="StatAccent.Chart2"
                   data-testid="kpi-records" />
@@ -66,18 +76,26 @@
     }
     else if (objRows.Count == 0)
     {
-        <Empty Title="No repos connected yet"
-               Description="Connect a public GitHub repo that carries TechieFlow or Playbook telemetry."
+        <Empty Title="No sources yet"
+               Description="Fetch a public GitHub repo, or import the metric files from a private one."
                Size="EmptySize.Default"
                data-testid="repos-empty">
             <Icon>
                 <LucideIcon Name="git-branch" Size="40" />
             </Icon>
             <ChildContent>
-                <Button OnClick="OpenConnectDialog" data-testid="repos-empty-connect">
-                    <LucideIcon Name="plus" Size="16" />
-                    Connect repo
-                </Button>
+                <span class="flex flex-wrap items-center justify-center gap-2">
+                    <Button OnClick="@(() => OpenAddSourceDialog(SourceKinds.Api))" data-testid="repos-empty-connect">
+                        <LucideIcon Name="cloud-download" Size="16" />
+                        Fetch via API
+                    </Button>
+                    <Button Variant="ButtonVariant.Outline"
+                            OnClick="@(() => OpenAddSourceDialog(SourceKinds.Import))"
+                            data-testid="repos-empty-import">
+                        <LucideIcon Name="upload" Size="16" />
+                        Import metric files
+                    </Button>
+                </span>
             </ChildContent>
         </Empty>
     }
@@ -86,7 +104,9 @@
         <Card>
             <CardHeader>
                 <CardTitle>Connected repos</CardTitle>
-                <CardDescription>Per-row Sync and Remove · a failed sync shows its reason on hover</CardDescription>
+                <CardDescription>
+                    Per-row Sync (fetched) or Re-import (imported), and Remove · a failed sync shows its reason on hover
+                </CardDescription>
             </CardHeader>
             <CardContent Class="pt-0">
                 <DataTable TData="RepoListItem"
@@ -100,20 +120,30 @@
                         <DataTableColumn TData="RepoListItem" TValue="string"
                                          Property="@(aRow => aRow.Repo.Repo)" Header="Repo" Sortable Filterable>
                             <CellTemplate Context="vRow">
-                                <a class="flex items-center gap-2 hover:underline"
-                                   href="@($"https://github.com/{vRow.Repo.Repo}")"
-                                   target="_blank"
-                                   rel="noopener noreferrer">
-                                    <LucideIcon Name="github" Size="14" Class="text-muted-foreground" />
-                                    <span class="font-medium">@vRow.Repo.Repo</span>
-                                </a>
+                                @if (ImportedSourceRules.IsImported(vRow.Repo.SourceKind))
+                                {
+                                    <span class="flex items-center gap-2">
+                                        <LucideIcon Name="hard-drive" Size="14" Class="text-muted-foreground" />
+                                        <span class="font-medium">@vRow.Repo.Repo</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <a class="flex items-center gap-2 hover:underline"
+                                       href="@($"https://github.com/{vRow.Repo.Repo}")"
+                                       target="_blank"
+                                       rel="noopener noreferrer">
+                                        <LucideIcon Name="github" Size="14" Class="text-muted-foreground" />
+                                        <span class="font-medium">@vRow.Repo.Repo</span>
+                                    </a>
+                                }
                             </CellTemplate>
                         </DataTableColumn>
 
                         <DataTableColumn TData="RepoListItem" TValue="string"
                                          Property="@(aRow => aRow.Repo.Branch)" Header="Branch" Sortable>
                             <CellTemplate Context="vRow">
-                                <span class="font-mono text-xs">@vRow.Repo.Branch</span>
+                                <span class="font-mono text-xs">@BranchText(vRow)</span>
                             </CellTemplate>
                         </DataTableColumn>
 
@@ -124,10 +154,28 @@
                             </CellTemplate>
                         </DataTableColumn>
 
+                        @* REQ-UI-041 / BRD-132 — the stored value is api|import; the badge word is Synced|Imported. *@
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => SourceKinds.DisplayName(aRow.Repo.SourceKind))"
+                                         Header="Source" Sortable>
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="@(ImportedSourceRules.IsImported(vRow.Repo.SourceKind) ? BadgeVariant.Secondary : BadgeVariant.Default)"
+                                       data-testid="@($"repo-source-{vRow.Repo.Name}")">
+                                    @SourceKinds.DisplayName(vRow.Repo.SourceKind)
+                                </Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+
                         <DataTableColumn TData="RepoListItem" TValue="string"
                                          Property="@(aRow => aRow.Repo.IsPublic ? "public" : "private")" Header="Visibility">
                             <CellTemplate Context="vRow">
-                                <Badge Variant="BadgeVariant.Outline">@(vRow.Repo.IsPublic ? "public" : "private")</Badge>
+                                <Badge Variant="BadgeVariant.Outline">
+                                    @if (!vRow.Repo.IsPublic)
+                                    {
+                                        <LucideIcon Name="lock" Size="11" />
+                                    }
+                                    @(vRow.Repo.IsPublic ? "public" : "private")
+                                </Badge>
                             </CellTemplate>
                         </DataTableColumn>
 
@@ -153,18 +201,17 @@
                                 }
                                 else
                                 {
-                                    <Badge Variant="@(vRow.Status == RepoSyncStatuses.Synced ? BadgeVariant.Default : BadgeVariant.Secondary)"
-                                           data-testid="@($"repo-status-{vRow.Repo.Name}")">@vRow.Status</Badge>
+                                    <Badge Variant="@(vRow.Status == RepoSyncStatuses.Pending ? BadgeVariant.Secondary : BadgeVariant.Default)"
+                                           data-testid="@($"repo-status-{vRow.Repo.Name}")">@StatusTextOf(vRow)</Badge>
                                 }
                             </CellTemplate>
                         </DataTableColumn>
 
                         <DataTableColumn TData="RepoListItem" TValue="string"
-                                         Property="@(aRow => aRow.LastSyncTs ?? string.Empty)" Header="Last sync" Sortable>
+                                         Property="@(aRow => aRow.LastSyncTs ?? string.Empty)"
+                                         Header="Last sync / import" Sortable>
                             <CellTemplate Context="vRow">
-                                <span class="text-muted-foreground">
-                                    @RelativeTime.Describe(RelativeTime.Parse(vRow.LastSyncTs), DateTimeOffset.UtcNow)
-                                </span>
+                                <span class="text-muted-foreground">@LastActivityText(vRow)</span>
                             </CellTemplate>
                         </DataTableColumn>
 
@@ -179,21 +226,36 @@
                                          Property="@(aRow => aRow.Repo.Name)" Header="Actions">
                             <CellTemplate Context="vRow">
                                 <span class="flex items-center gap-1">
-                                    <Button Variant="ButtonVariant.Ghost"
-                                            Size="ButtonSize.IconSmall"
-                                            AriaLabel="@($"Sync {vRow.Repo.Repo}")"
-                                            Disabled="@objSyncingRepos.Contains(vRow.Repo.Repo)"
-                                            OnClick="@(() => SyncRepoAsync(vRow))"
-                                            data-testid="@($"repo-sync-{vRow.Repo.Name}")">
-                                        @if (objSyncingRepos.Contains(vRow.Repo.Repo))
-                                        {
-                                            <Spinner Size="SpinnerSize.Small" />
-                                        }
-                                        else
-                                        {
-                                            <LucideIcon Name="refresh-cw" Size="14" />
-                                        }
-                                    </Button>
+                                    @* REQ-UI-041 / BRD-135 — an imported source gets Re-import, never a Sync
+                                       button that would do nothing: the runner skips it server-side. *@
+                                    @if (ImportedSourceRules.CanSync(vRow.Repo.SourceKind))
+                                    {
+                                        <Button Variant="ButtonVariant.Ghost"
+                                                Size="ButtonSize.IconSmall"
+                                                AriaLabel="@($"Sync {vRow.Repo.Repo}")"
+                                                Disabled="@objSyncingRepos.Contains(vRow.Repo.Repo)"
+                                                OnClick="@(() => SyncRepoAsync(vRow))"
+                                                data-testid="@($"repo-sync-{vRow.Repo.Name}")">
+                                            @if (objSyncingRepos.Contains(vRow.Repo.Repo))
+                                            {
+                                                <Spinner Size="SpinnerSize.Small" />
+                                            }
+                                            else
+                                            {
+                                                <LucideIcon Name="refresh-cw" Size="14" />
+                                            }
+                                        </Button>
+                                    }
+                                    else
+                                    {
+                                        <Button Variant="ButtonVariant.Ghost"
+                                                Size="ButtonSize.IconSmall"
+                                                AriaLabel="@($"Re-import {vRow.Repo.Repo}")"
+                                                OnClick="@(() => OpenReimportDialog(vRow))"
+                                                data-testid="@($"repo-reimport-{vRow.Repo.Name}")">
+                                            <LucideIcon Name="upload" Size="14" />
+                                        </Button>
+                                    }
                                     <Button Variant="ButtonVariant.Ghost"
                                             Size="ButtonSize.IconSmall"
                                             AriaLabel="@($"Remove {vRow.Repo.Repo}")"
@@ -206,142 +268,389 @@
                         </DataTableColumn>
                     </Columns>
                 </DataTable>
+                <p class="mt-2 text-xs text-muted-foreground" data-testid="repos-source-note">
+                    Imported sources have no Sync — they are re-imported, and the poller skips them.
+                </p>
             </CardContent>
         </Card>
     }
 </div>
 
-@* REQ-UI-012 — Connect a public GitHub repo. *@
-<Dialog @bind-Open="objIsConnectOpen">
+@* REQ-UI-012 / REQ-UI-040 — one dialog, two modes. *@
+<Dialog @bind-Open="objIsAddSourceOpen">
     <DialogContent>
         <DialogHeader>
-            <DialogTitle>Connect a public GitHub repo</DialogTitle>
+            <DialogTitle>@(objIsReimport ? "Re-import a source" : "Add a source")</DialogTitle>
             <DialogDescription>
-                TfLens validates the repo before saving — nothing is written until it passes.
+                @(objIsReimport
+                    ? "Upload a newer bundle. Duplicate records collapse on their natural keys, so nothing is double-counted."
+                    : "Two ways in. Pick the one that matches where the telemetry lives.")
             </DialogDescription>
         </DialogHeader>
 
-        <div class="flex flex-col gap-4 py-2">
-            <Field>
-                <FieldLabel>GitHub URL or owner/name</FieldLabel>
-                <FieldContent>
-                    <Input @bind-Value="objConnectInput"
-                           Placeholder="techierathore/TrBlazeUI"
-                           Disabled="@objIsConnecting"
-                           data-testid="connect-input" />
-                </FieldContent>
-            </Field>
+        <div class="tflens-dialog-body">
 
-            <div class="trblazeui-grid gap-4">
-                <div class="trblazeui-col-12 trblazeui-col-md-6">
+            @if (!objIsReimport)
+            {
+                @* TR-010: TabsTrigger captures no unmatched attributes, so each trigger's test id
+                   lives on a span inside it; `Tabs` itself takes the mode's id. *@
+                <Tabs Value="@objSourceMode" ValueChanged="OnSourceModeChangedAsync" Class="w-full" data-testid="source-mode">
+                    <TabsList>
+                        <TabsTrigger Value="@SourceKinds.Api">
+                            <span class="flex items-center gap-1.5" data-testid="source-mode-api">
+                                <LucideIcon Name="cloud-download" Size="14" />
+                                <span>Fetch via API</span>
+                            </span>
+                        </TabsTrigger>
+                        <TabsTrigger Value="@SourceKinds.Import">
+                            <span class="flex items-center gap-1.5" data-testid="source-mode-import">
+                                <LucideIcon Name="upload" Size="14" />
+                                <span>Import metric files</span>
+                            </span>
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            }
+
+            @if (objSourceMode == SourceKinds.Api)
+            {
+                <div class="flex flex-col gap-4" data-testid="source-panel-api">
+                    <p class="text-xs text-muted-foreground">
+                        For <strong>public</strong> repos. TfLens validates the repo, then pulls on a schedule.
+                    </p>
+
                     <Field>
-                        <FieldLabel>Branch (optional)</FieldLabel>
+                        <FieldLabel>GitHub URL or owner/name</FieldLabel>
                         <FieldContent>
-                            <Input @bind-Value="objConnectBranch"
-                                   Placeholder="default branch"
+                            <Input @bind-Value="objConnectInput"
+                                   Placeholder="techierathore/TrBlazeUI"
                                    Disabled="@objIsConnecting"
-                                   data-testid="connect-branch" />
+                                   data-testid="connect-input" />
                         </FieldContent>
                     </Field>
+
+                    <div class="trblazeui-grid gap-4">
+                        <div class="trblazeui-col-12 trblazeui-col-md-6">
+                            <Field>
+                                <FieldLabel>Branch (optional)</FieldLabel>
+                                <FieldContent>
+                                    <Input @bind-Value="objConnectBranch"
+                                           Placeholder="default branch"
+                                           Disabled="@objIsConnecting"
+                                           data-testid="connect-branch" />
+                                </FieldContent>
+                            </Field>
+                        </div>
+                        <div class="trblazeui-col-12 trblazeui-col-md-6">
+                            <Field>
+                                <FieldLabel>Kind</FieldLabel>
+                                <FieldContent>
+                                    <Select TValue="string" @bind-Value="objConnectKind" Class="w-full">
+                                        <SelectTrigger data-testid="connect-kind">
+                                            <SelectValue Placeholder="Auto-detect" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem TValue="string" Value="@AutoDetectKind" Text="Auto-detect">Auto-detect</SelectItem>
+                                            <SelectItem TValue="string" Value="@FrameworkNames.TechieFlow" Text="techieflow">techieflow</SelectItem>
+                                            <SelectItem TValue="string" Value="@FrameworkNames.Playbook" Text="playbook">playbook</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FieldContent>
+                            </Field>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <Button Variant="ButtonVariant.Outline"
+                                Size="ButtonSize.Small"
+                                Disabled="@(objIsValidating || objIsConnecting || string.IsNullOrWhiteSpace(objConnectInput))"
+                                OnClick="ValidateAsync"
+                                data-testid="connect-validate">
+                            @if (objIsValidating)
+                            {
+                                <Spinner Size="SpinnerSize.Small" />
+                            }
+                            else
+                            {
+                                <LucideIcon Name="search" Size="16" />
+                            }
+                            Validate
+                        </Button>
+                        <span class="text-xs text-muted-foreground">GitHub API · public reads only</span>
+                    </div>
+
+                    @if (objValidation is not null)
+                    {
+                        <div class="flex flex-col gap-1.5 text-sm" data-testid="connect-validation">
+                            <CheckLine Ok="@objValidation.Exists" Text="Repository exists" />
+                            <CheckLine Ok="@objValidation.IsPublic" Text="Public" />
+                            <CheckLine Ok="@(objValidation.TelemetryPath is not null)"
+                                       Text="@TelemetryLine(objValidation)" />
+                        </div>
+                    }
+
+                    @if (objRateLimitMessage is not null)
+                    {
+                        <Alert Variant="AlertVariant.Warning" data-testid="connect-rate-limit">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                            <AlertTitle>GitHub rate limit</AlertTitle>
+                            <AlertDescription>@objRateLimitMessage</AlertDescription>
+                        </Alert>
+                    }
+                    else if (objValidation is not null && objValidation.Exists && !objValidation.IsPublic)
+                    {
+                        @* BRD-100 as amended — the refusal now has an exit rather than a dead end. *@
+                        <Alert Variant="AlertVariant.Warning" data-testid="connect-private">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                            <AlertTitle>Private repo</AlertTitle>
+                            <AlertDescription>
+                                <span>@PrivateRepoMessage</span>
+                                <Button Variant="ButtonVariant.Link"
+                                        Size="ButtonSize.Small"
+                                        OnClick="SwitchToImportModeAsync"
+                                        data-testid="connect-switch-import">
+                                    Switch to import →
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    }
+                    else if (objValidation is not null && !objValidation.IsConnectable)
+                    {
+                        <Alert Variant="@(objValidation.AlreadyConnected ? AlertVariant.Warning : AlertVariant.Danger)"
+                               data-testid="connect-problem">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                            <AlertTitle>@(objValidation.AlreadyConnected ? "Already connected" : "Can't connect this repo")</AlertTitle>
+                            <AlertDescription>@objValidation.Message</AlertDescription>
+                        </Alert>
+                    }
+
+                    @if (objIsConnecting)
+                    {
+                        <div class="flex flex-col gap-2" data-testid="connect-progress">
+                            <span class="text-sm text-muted-foreground">@objConnectPhase</span>
+                            <Progress Value="@objConnectProgress" />
+                        </div>
+                    }
                 </div>
-                <div class="trblazeui-col-12 trblazeui-col-md-6">
+            }
+            else
+            {
+                <div class="flex flex-col gap-4" data-testid="source-panel-import">
+                    @* The endpoints validate this token; a Blazor-rendered one is what the fetch sends. *@
+                    <AntiforgeryToken />
+
+                    <p class="text-xs text-muted-foreground">
+                        For <strong>private and corporate</strong> repos. Upload the telemetry your framework
+                        already writes to disk — no credential, no access to the repo.
+                    </p>
+
                     <Field>
-                        <FieldLabel>Kind</FieldLabel>
+                        <FieldLabel>Source name</FieldLabel>
                         <FieldContent>
-                            <Select TValue="string" @bind-Value="objConnectKind" Class="w-full">
-                                <SelectTrigger data-testid="connect-kind">
-                                    <SelectValue Placeholder="Auto-detect" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem TValue="string" Value="@AutoDetectKind" Text="Auto-detect">Auto-detect</SelectItem>
-                                    <SelectItem TValue="string" Value="@FrameworkNames.TechieFlow" Text="techieflow">techieflow</SelectItem>
-                                    <SelectItem TValue="string" Value="@FrameworkNames.Playbook" Text="playbook">playbook</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Input @bind-Value="objImportName"
+                                   Placeholder="acme/internal-platform"
+                                   Disabled="@(objIsReimport || objIsImporting)"
+                                   data-testid="import-name" />
                         </FieldContent>
+                        <FieldDescription>An <code>owner/name</code> you'll recognise. TfLens never contacts it.</FieldDescription>
                     </Field>
-                </div>
-            </div>
 
-            <div class="flex flex-wrap items-center gap-3">
-                <Button Variant="ButtonVariant.Outline"
-                        Size="ButtonSize.Small"
-                        Disabled="@(objIsValidating || objIsConnecting || string.IsNullOrWhiteSpace(objConnectInput))"
-                        OnClick="ValidateAsync"
-                        data-testid="connect-validate">
-                    @if (objIsValidating)
+                    <div class="trblazeui-grid gap-4">
+                        <div class="trblazeui-col-12 trblazeui-col-md-6">
+                            <Field>
+                                <FieldLabel>Framework</FieldLabel>
+                                <FieldContent>
+                                    <Select TValue="string" @bind-Value="objImportFramework" Class="w-full">
+                                        <SelectTrigger data-testid="import-framework">
+                                            <SelectValue Placeholder="TechieFlow" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem TValue="string" Value="@FrameworkNames.TechieFlow" Text="TechieFlow (docs/metrics)">TechieFlow (docs/metrics)</SelectItem>
+                                            <SelectItem TValue="string" Value="@FrameworkNames.Playbook" Text="AI-First-Playbook (verification/telemetry)">AI-First-Playbook (verification/telemetry)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FieldContent>
+                            </Field>
+                        </div>
+                        <div class="trblazeui-col-12 trblazeui-col-md-6">
+                            <Field>
+                                <FieldLabel>project_type override</FieldLabel>
+                                <FieldContent>
+                                    <Select TValue="string" Value="@ProjectTypeFromRecords" Disabled="true" Class="w-full">
+                                        <SelectTrigger data-testid="import-project-type">
+                                            <SelectValue Placeholder="From the records (recommended)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem TValue="string" Value="@ProjectTypeFromRecords" Text="From the records (recommended)">From the records (recommended)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FieldContent>
+                                @* The import service takes no override, so an enabled control here
+                                   would be a control that does nothing. See notes[] for the signature. *@
+                                <FieldDescription>Each record's own <code>project_type</code> is used — no override.</FieldDescription>
+                            </Field>
+                        </div>
+                    </div>
+
+                    @* BRD-138 — the drop zone. Nothing is written by choosing a file: the bytes go to
+                       the preview endpoint, which extracts into memory and never touches the disk. *@
+                    <div class="tflens-drop" data-testid="import-drop">
+                        <input type="file"
+                               id="tflens-import-file"
+                               class="tflens-file-input"
+                               multiple
+                               accept=".zip,.jsonl,.ndjson"
+                               aria-label="Choose telemetry files to import" />
+                        <LucideIcon Name="upload" Size="22" />
+                        <span class="text-sm font-medium">Drop a .zip of @TelemetryPathHint</span>
+                        <span class="text-xs text-muted-foreground">
+                            …or the loose .jsonl / .ndjson files. Max 25 MB.
+                        </span>
+                        <Button Variant="ButtonVariant.Outline"
+                                Size="ButtonSize.Small"
+                                Disabled="@(objIsPreviewing || objIsImporting)"
+                                OnClick="OpenFilePickerAsync"
+                                data-testid="import-choose">
+                            Choose files
+                        </Button>
+                        @if (objImportFileNames.Count > 0)
+                        {
+                            <span class="text-xs text-muted-foreground" data-testid="import-chosen">
+                                @ChosenFilesText
+                            </span>
+                        }
+                    </div>
+
+                    @if (objIsPreviewing)
                     {
-                        <Spinner Size="SpinnerSize.Small" />
+                        <div class="flex items-center gap-2 text-sm text-muted-foreground" data-testid="import-previewing">
+                            <Spinner Size="SpinnerSize.Small" />
+                            <span>Reading the bundle — nothing is written yet…</span>
+                        </div>
                     }
-                    else
+
+                    @if (objImportRefusal is not null)
                     {
-                        <LucideIcon Name="search" Size="16" />
+                        @* BRD-140 / BRD-139 — the service's own sentence, rendered verbatim. *@
+                        <Alert Variant="AlertVariant.Danger" data-testid="import-refusal">
+                            <LucideIcon Name="x" Size="16" />
+                            <AlertTitle>@objImportRefusalTitle</AlertTitle>
+                            <AlertDescription>@objImportRefusal</AlertDescription>
+                        </Alert>
                     }
-                    Validate
-                </Button>
-                <span class="text-xs text-muted-foreground">GitHub API · public reads only</span>
-            </div>
 
-            @if (objValidation is not null)
-            {
-                <div class="flex flex-col gap-1.5 text-sm" data-testid="connect-validation">
-                    <CheckLine Ok="@objValidation.Exists" Text="Repository exists" />
-                    <CheckLine Ok="@objValidation.IsPublic" Text="Public" />
-                    <CheckLine Ok="@(objValidation.TelemetryPath is not null)"
-                               Text="@TelemetryLine(objValidation)" />
-                </div>
-            }
+                    @if (objImportPreview is not null)
+                    {
+                        <Card data-testid="import-preview">
+                            <CardHeader>
+                                <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <CardTitle Class="text-sm">Preview — nothing is written yet</CardTitle>
+                                        <CardDescription>Review this, then press Import.</CardDescription>
+                                    </div>
+                                    <Badge Variant="BadgeVariant.Outline" data-testid="import-bundle-sha">
+                                        sha256 @ShortBundleSha
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent Class="pt-0">
+                                <div class="tflens-preview-table w-full overflow-x-auto">
+                                    @* TR-009: ShowPagination="false" only hides the pager — the grid still
+                                       truncates to InitialPageSize, so it is set above the six streams a
+                                       bundle can carry. *@
+                                    <DataTable TData="ImportStreamRow"
+                                               Data="@objImportPreview.Streams"
+                                               ShowToolbar="false"
+                                               ShowPagination="false"
+                                               InitialPageSize="16"
+                                               AriaLabel="Bundle preview"
+                                               data-testid="import-preview-streams">
+                                        <Columns>
+                                            <DataTableColumn TData="ImportStreamRow" TValue="string"
+                                                             Property="@(aRow => aRow.Stream)" Header="Stream">
+                                                <CellTemplate Context="vStream">
+                                                    <span class="font-mono text-xs">@vStream.Stream</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+                                            <DataTableColumn TData="ImportStreamRow" TValue="string"
+                                                             Property="@(aRow => aRow.RecordsText)" Header="Records">
+                                                <CellTemplate Context="vStream">
+                                                    <span class="tabular-nums">@vStream.RecordsText</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+                                            <DataTableColumn TData="ImportStreamRow" TValue="string"
+                                                             Property="@(aRow => aRow.DateRangeText)" Header="Date range">
+                                                <CellTemplate Context="vStream">
+                                                    <span class="whitespace-nowrap text-xs text-muted-foreground">@vStream.DateRangeText</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+                                            <DataTableColumn TData="ImportStreamRow" TValue="string"
+                                                             Property="@(aRow => aRow.InvalidLinesText)" Header="Invalid">
+                                                <CellTemplate Context="vStream">
+                                                    <span class="tabular-nums">@vStream.InvalidLinesText</span>
+                                                </CellTemplate>
+                                            </DataTableColumn>
+                                        </Columns>
+                                    </DataTable>
+                                </div>
 
-            @if (objRateLimitMessage is not null)
-            {
-                <Alert Variant="AlertVariant.Warning" data-testid="connect-rate-limit">
-                    <LucideIcon Name="triangle-alert" Size="16" />
-                    <AlertTitle>GitHub rate limit</AlertTitle>
-                    <AlertDescription>@objRateLimitMessage</AlertDescription>
-                </Alert>
-            }
-            else if (objValidation is not null && objValidation.Exists && !objValidation.IsPublic)
-            {
-                <Alert Variant="AlertVariant.Warning" data-testid="connect-private">
-                    <LucideIcon Name="triangle-alert" Size="16" />
-                    <AlertTitle>Private repo</AlertTitle>
-                    <AlertDescription>@RepoRegistry.PrivateRepoMessage</AlertDescription>
-                </Alert>
-            }
-            else if (objValidation is not null && !objValidation.IsConnectable)
-            {
-                <Alert Variant="@(objValidation.AlreadyConnected ? AlertVariant.Warning : AlertVariant.Danger)"
-                       data-testid="connect-problem">
-                    <LucideIcon Name="triangle-alert" Size="16" />
-                    <AlertTitle>@(objValidation.AlreadyConnected ? "Already connected" : "Can't connect this repo")</AlertTitle>
-                    <AlertDescription>@objValidation.Message</AlertDescription>
-                </Alert>
-            }
+                                <p class="mt-3 text-xs text-muted-foreground" data-testid="import-preview-summary">
+                                    @PreviewSummary
+                                </p>
 
-            @if (objIsConnecting)
-            {
-                <div class="flex flex-col gap-2" data-testid="connect-progress">
-                    <span class="text-sm text-muted-foreground">@objConnectPhase</span>
-                    <Progress Value="@objConnectProgress" />
+                                @if (objImportFrameworkMismatch is not null)
+                                {
+                                    <div class="mt-3">
+                                        <Alert Variant="AlertVariant.Warning" data-testid="import-framework-mismatch">
+                                            <LucideIcon Name="triangle-alert" Size="16" />
+                                            <AlertTitle>Framework</AlertTitle>
+                                            <AlertDescription>@objImportFrameworkMismatch</AlertDescription>
+                                        </Alert>
+                                    </div>
+                                }
+                            </CardContent>
+                        </Card>
+                    }
+
+                    @if (objIsImporting)
+                    {
+                        <div class="flex flex-col gap-2" data-testid="import-progress">
+                            <span class="text-sm text-muted-foreground">@objImportPhase</span>
+                            <Progress Value="@objImportProgress" />
+                        </div>
+                    }
                 </div>
             }
         </div>
 
         <DialogFooter>
             <DialogClose AsChild="true">
-                <Button Variant="ButtonVariant.Outline" Disabled="@objIsConnecting">Cancel</Button>
+                <Button Variant="ButtonVariant.Outline"
+                        Disabled="@(objIsConnecting || objIsImporting)"
+                        OnClick="CloseAddSourceDialogAsync"
+                        data-testid="add-source-cancel">Cancel</Button>
             </DialogClose>
-            <Button Disabled="@(objValidation?.IsConnectable != true || objIsConnecting)"
-                    OnClick="ConnectAsync"
-                    data-testid="connect-submit">
-                <LucideIcon Name="plus" Size="16" />
-                Connect
-            </Button>
+            @if (objSourceMode == SourceKinds.Api)
+            {
+                <Button Disabled="@(objValidation?.IsConnectable != true || objIsConnecting)"
+                        OnClick="ConnectAsync"
+                        data-testid="connect-submit">
+                    <LucideIcon Name="plus" Size="16" />
+                    Connect
+                </Button>
+            }
+            else
+            {
+                <Button Disabled="@(!CanImport)" OnClick="ImportAsync" data-testid="import-submit">
+                    <LucideIcon Name="upload" Size="16" />
+                    @ImportButtonText
+                </Button>
+            }
         </DialogFooter>
     </DialogContent>
 </Dialog>
 
-@* REQ-UI-013 — Remove a connected repo. *@
+@* REQ-UI-013 / BRD-141 — remove a source. Identical for a fetched and an imported one. *@
 <AlertDialog @bind-Open="objIsRemoveOpen">
     <AlertDialogContent>
         <AlertDialogHeader>
@@ -351,7 +660,7 @@
             <AlertDialogDescription>
                 <span data-testid="remove-description">
                     Stops syncing and deletes the parsed rows and raw archive for
-                    @(objRemoveTarget?.Repo.Repo). Your GitHub repo is untouched.
+                    @(objRemoveTarget?.Repo.Repo). Your GitHub repo, or your uploaded file, is untouched.
                 </span>
             </AlertDialogDescription>
         </AlertDialogHeader>
@@ -375,21 +684,38 @@
     /// <summary>The Kind select's "let TfLens work it out" option.</summary>
     private const string AutoDetectKind = "auto";
 
-    /// <summary>Path the collocated Escape-key module is served from.</summary>
-    private const string EscapeModulePath = "./Components/Pages/Repos.razor.js";
+    /// <summary>The only <c>project_type</c> option the import service supports — the records' own.</summary>
+    private const string ProjectTypeFromRecords = "records";
+
+    /// <summary>Path the collocated browser-side module is served from.</summary>
+    private const string ReposModulePath = "./Components/Pages/Repos.razor.js";
+
+    /// <summary>
+    /// BRD-100 as amended — the refusal that names the way out.
+    /// </summary>
+    /// <remarks>
+    /// Aliases <see cref="RepoRegistry.PrivateRepoMessage"/> so the page and the validator refuse in
+    /// the same words. It was briefly duplicated here while the registry was owned by another cluster.
+    /// </remarks>
+    private const string PrivateRepoMessage = RepoRegistry.PrivateRepoMessage;
+
+    /// <summary>Reads the endpoints' camelCase JSON.</summary>
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
 
     private readonly HashSet<string> objSyncingRepos = new(StringComparer.OrdinalIgnoreCase);
 
-    private IJSObjectReference? objEscapeModule;
+    private IJSObjectReference? objReposModule;
     private DotNetObjectReference<Repos>? objSelfReference;
 
     private IReadOnlyList<RepoListItem> objRows = [];
     private bool objIsLoaded;
     private int? objUserId;
 
-    private bool objIsConnectOpen;
+    private bool objIsAddSourceOpen;
     private bool objIsRemoveOpen;
     private RepoListItem? objRemoveTarget;
+
+    private string objSourceMode = SourceKinds.Api;
 
     private string? objConnectInput;
     private string? objConnectBranch;
@@ -401,18 +727,37 @@
     private string objConnectPhase = "Connecting…";
     private double objConnectProgress;
 
+    private string? objImportName;
+    private string objImportFramework = FrameworkNames.TechieFlow;
+    private IReadOnlyList<string> objImportFileNames = [];
+    private long objImportBytes;
+    private ImportResponse? objImportPreview;
+    private string? objImportRefusal;
+    private string objImportRefusalTitle = "That bundle wasn't accepted";
+    private string? objImportFrameworkMismatch;
+    private bool objIsPreviewing;
+    private bool objIsImporting;
+    private bool objIsReimport;
+    private string objImportPhase = "Importing…";
+    private double objImportProgress;
+
     /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    /// <summary>The sub-line under the repo count — how the repos split across the two frameworks.</summary>
-    private string KindBreakdown
+    /// <summary>The sub-line under the repo count — how the sources split by origin and framework.</summary>
+    private string SourceBreakdown
     {
         get
         {
+            var vImported = objRows.Count(aRow => ImportedSourceRules.IsImported(aRow.Repo.SourceKind));
+            var vSynced = objRows.Count - vImported;
             var vTechieFlow = objRows.Count(aRow => aRow.Repo.Framework == FrameworkNames.TechieFlow);
             var vPlaybook = objRows.Count(aRow => aRow.Repo.Framework == FrameworkNames.Playbook);
-            return $"{vTechieFlow} techieflow · {vPlaybook} playbook";
+
+            return $"{vSynced} {SourceKinds.ApiLabel.ToLowerInvariant()} · "
+                + $"{vImported} {SourceKinds.ImportLabel.ToLowerInvariant()} · "
+                + $"{vTechieFlow} techieflow · {vPlaybook} playbook";
         }
     }
 
@@ -423,8 +768,74 @@
         {
             var vErrors = objRows.Count(aRow => aRow.LastError is not null);
             return vErrors == 0
-                ? $"{objRows.Count} repos · no sync errors"
-                : $"{objRows.Count} repos · {vErrors} with errors";
+                ? $"{objRows.Count} sources · no sync errors"
+                : $"{objRows.Count} sources · {vErrors} with errors";
+        }
+    }
+
+    /// <summary>Which telemetry directory the chosen framework writes, for the drop zone's hint.</summary>
+    private string TelemetryPathHint =>
+        objImportFramework == FrameworkNames.Playbook ? "verification/telemetry/" : "docs/metrics/";
+
+    /// <summary>The chosen files, as the drop zone lists them back.</summary>
+    private string ChosenFilesText =>
+        $"{string.Join(", ", objImportFileNames)} · {objImportBytes / 1024:N0} KB";
+
+    /// <summary>The first eight characters of the bundle hash, or an em dash.</summary>
+    private string ShortBundleSha =>
+        string.IsNullOrWhiteSpace(objImportPreview?.BundleSha)
+            ? "—"
+            : objImportPreview!.BundleSha![..Math.Min(8, objImportPreview.BundleSha!.Length)];
+
+    /// <summary>True only once a preview has landed and a legal source name is on screen (BRD-138).</summary>
+    private bool CanImport =>
+        objImportPreview is not null
+        && !objIsImporting
+        && !objIsPreviewing
+        && !string.IsNullOrWhiteSpace(objImportName);
+
+    /// <summary>The Import button's label, which states what pressing it will write.</summary>
+    private string ImportButtonText =>
+        objImportPreview is null
+            ? "Import"
+            : $"Import {objImportPreview.TotalRecords:N0} records";
+
+    /// <summary>What the preview found beyond the per-stream table, in words.</summary>
+    private string PreviewSummary
+    {
+        get
+        {
+            if (objImportPreview is null)
+            {
+                return string.Empty;
+            }
+
+            var vParts = new List<string>
+            {
+                $"{objImportPreview.TotalRecords:N0} records across "
+                    + $"{objImportPreview.Streams.Count} stream{(objImportPreview.Streams.Count == 1 ? string.Empty : "s")}",
+                $"date range {objImportPreview.EarliestTs ?? "—"} → {objImportPreview.LatestTs ?? "—"}",
+                $"{objImportPreview.TotalInvalidLines:N0} invalid line"
+                    + $"{(objImportPreview.TotalInvalidLines == 1 ? string.Empty : "s")} counted and skipped, never fatal"
+            };
+
+            if (objImportPreview.UnknownFields.Count > 0)
+            {
+                vParts.Add(
+                    $"{objImportPreview.UnknownFields.Count} field"
+                    + $"{(objImportPreview.UnknownFields.Count == 1 ? string.Empty : "s")} SCHEMA.md doesn't document "
+                    + $"({string.Join(", ", objImportPreview.UnknownFields)}) — kept in Overflow");
+            }
+
+            if (objImportPreview.UnrecognisedEntries.Count > 0)
+            {
+                vParts.Add(
+                    $"{objImportPreview.UnrecognisedEntries.Count} entr"
+                    + $"{(objImportPreview.UnrecognisedEntries.Count == 1 ? "y" : "ies")} in the bundle were not "
+                    + "telemetry and were ignored");
+            }
+
+            return string.Join(". ", vParts) + ".";
         }
     }
 
@@ -435,10 +846,10 @@
     }
 
     /// <summary>
-    /// Wires Escape-to-dismiss for the two overlays on this page once the circuit can reach the browser.
+    /// Wires the browser-side listeners once the circuit can reach the browser.
     /// </summary>
     /// <param name="aFirstRender">True on the render that follows the component's first render pass.</param>
-    /// <returns>A task that completes when the key listener is live.</returns>
+    /// <returns>A task that completes when the listeners are live.</returns>
     protected override async Task OnAfterRenderAsync(bool aFirstRender)
     {
         if (!aFirstRender)
@@ -449,22 +860,24 @@
         try
         {
             objSelfReference = DotNetObjectReference.Create(this);
-            objEscapeModule = await objJsRuntime.InvokeAsync<IJSObjectReference>("import", EscapeModulePath);
-            await objEscapeModule.InvokeVoidAsync("watchEscape", objSelfReference);
+            objReposModule = await objJsRuntime.InvokeAsync<IJSObjectReference>("import", ReposModulePath);
+            await objReposModule.InvokeVoidAsync("watchEscape", objSelfReference);
+            await objReposModule.InvokeVoidAsync("watchImport", objSelfReference);
         }
         catch (JSDisconnectedException)
         {
-            // The circuit went away before the listener could be attached; nothing to clean up here.
+            // The circuit went away before the listeners could be attached; nothing to clean up here.
         }
     }
 
     /// <summary>
-    /// Closes whichever overlay Escape should dismiss — the remove confirmation first, then Connect.
+    /// Closes whichever overlay Escape should dismiss — the remove confirmation first, then Add source.
     /// </summary>
     /// <remarks>
-    /// TrBlazeUI 2.0.0's <c>AlertDialog</c> has no Escape handling of its own (TR-014), and the Connect
-    /// <c>Dialog</c> stops honouring Escape once a validation result has re-rendered its content, so the
-    /// page owns the key. A connect that is already running is not interruptible and is left alone.
+    /// TrBlazeUI 2.0.0's <c>AlertDialog</c> has no Escape handling of its own (TR-014), and the
+    /// Add-source <c>Dialog</c> stops honouring Escape once a validation or preview result has
+    /// re-rendered its content, so the page owns the key. A connect or import that is already running
+    /// is not interruptible and is left alone.
     /// </remarks>
     /// <returns>A task that completes when the overlay has closed.</returns>
     [JSInvokable]
@@ -475,9 +888,10 @@
             objIsRemoveOpen = false;
             objRemoveTarget = null;
         }
-        else if (objIsConnectOpen && !objIsConnecting)
+        else if (objIsAddSourceOpen && !objIsConnecting && !objIsImporting)
         {
-            objIsConnectOpen = false;
+            objIsAddSourceOpen = false;
+            await ForgetBundleAsync();
         }
         else
         {
@@ -488,7 +902,56 @@
     }
 
     /// <summary>
-    /// Resolves the signed-in user and loads their repositories.
+    /// Previews a bundle the user dropped or chose (BRD-138).
+    /// </summary>
+    /// <remarks>
+    /// The bytes never enter the circuit: the browser posts them straight to the preview endpoint,
+    /// which writes nothing at all. Only the file names and the total size cross to the server here.
+    /// </remarks>
+    /// <param name="aNames">The chosen file names.</param>
+    /// <param name="aBytes">Their total size, for the drop zone's own line.</param>
+    /// <returns>A task that completes when the preview or its refusal is on screen.</returns>
+    [JSInvokable]
+    public async Task OnBundleSelectedAsync(string[] aNames, long aBytes)
+    {
+        ArgumentNullException.ThrowIfNull(aNames);
+
+        objImportFileNames = aNames;
+        objImportBytes = aBytes;
+        objImportPreview = null;
+        objImportRefusal = null;
+        objImportFrameworkMismatch = null;
+        objIsPreviewing = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var vResponse = await PostBundleAsync(ImportEndpoints.PreviewRoute, null);
+
+            if (vResponse is null)
+            {
+                objImportRefusal = "The browser could not reach TfLens to read the bundle.";
+            }
+            else if (vResponse.Accepted)
+            {
+                objImportPreview = vResponse;
+                objImportFrameworkMismatch = FrameworkMismatch(vResponse.Framework);
+            }
+            else
+            {
+                objImportRefusalTitle = RefusalTitle(vResponse.Reason);
+                objImportRefusal = vResponse.Message ?? "That bundle wasn't accepted.";
+            }
+        }
+        finally
+        {
+            objIsPreviewing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and loads their sources.
     /// </summary>
     /// <returns>A task that completes when the grid has its rows.</returns>
     protected override async Task OnParametersSetAsync()
@@ -511,7 +974,7 @@
     }
 
     /// <summary>
-    /// Re-reads the user's repositories and keeps the shell's badge and header in step.
+    /// Re-reads the user's sources and keeps the shell's badge and header in step.
     /// </summary>
     /// <returns>A task that completes when the grid and the shell agree.</returns>
     private async Task ReloadAsync()
@@ -526,8 +989,9 @@
         objIsLoaded = true;
     }
 
-    /// <summary>Opens the Connect dialog with a clean slate.</summary>
-    private void OpenConnectDialog()
+    /// <summary>Opens the Add-source dialog on one of its two modes, with a clean slate.</summary>
+    /// <param name="aMode"><see cref="SourceKinds.Api"/> or <see cref="SourceKinds.Import"/>.</param>
+    private void OpenAddSourceDialog(string aMode)
     {
         objConnectInput = null;
         objConnectBranch = null;
@@ -535,8 +999,242 @@
         objValidation = null;
         objRateLimitMessage = null;
         objIsConnecting = false;
-        objIsConnectOpen = true;
+
+        objSourceMode = aMode;
+        objIsReimport = false;
+        objImportName = null;
+        objImportFramework = FrameworkNames.TechieFlow;
+        ResetPreview();
+
+        objIsAddSourceOpen = true;
     }
+
+    /// <summary>Opens the dialog straight onto the import mode for a source that already exists.</summary>
+    /// <param name="aRow">The imported row whose bundle is being replaced.</param>
+    private void OpenReimportDialog(RepoListItem aRow)
+    {
+        objSourceMode = SourceKinds.Import;
+        objIsReimport = true;
+        objImportName = aRow.Repo.Repo;
+        objImportFramework = aRow.Repo.Framework;
+        objValidation = null;
+        objRateLimitMessage = null;
+        ResetPreview();
+
+        objIsAddSourceOpen = true;
+    }
+
+    /// <summary>Clears everything a previous bundle left on screen.</summary>
+    private void ResetPreview()
+    {
+        objImportFileNames = [];
+        objImportBytes = 0;
+        objImportPreview = null;
+        objImportRefusal = null;
+        objImportFrameworkMismatch = null;
+        objIsPreviewing = false;
+        objIsImporting = false;
+        objImportProgress = 0;
+    }
+
+    /// <summary>Switches mode from the tab strip.</summary>
+    /// <param name="aMode">The mode the user picked.</param>
+    /// <returns>A task that completes when the other panel is on screen.</returns>
+    private async Task OnSourceModeChangedAsync(string aMode)
+    {
+        objSourceMode = aMode;
+        await ForgetBundleAsync();
+        ResetPreview();
+    }
+
+    /// <summary>
+    /// Takes BRD-100's inline exit: carries the refused repo across into the import mode.
+    /// </summary>
+    /// <returns>A task that completes when the import panel is on screen.</returns>
+    private async Task SwitchToImportModeAsync()
+    {
+        objImportName = objConnectInput?.Trim();
+        objSourceMode = SourceKinds.Import;
+        await ForgetBundleAsync();
+        ResetPreview();
+    }
+
+    /// <summary>Opens the browser's file picker from the drop zone.</summary>
+    /// <returns>A task that completes when the picker has been asked to open.</returns>
+    private async Task OpenFilePickerAsync()
+    {
+        if (objReposModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await objReposModule.InvokeVoidAsync("openFilePicker");
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away; there is no picker to open.
+        }
+    }
+
+    /// <summary>Tells the browser to forget whatever bundle was chosen.</summary>
+    /// <returns>A task that completes when the selection is gone.</returns>
+    private async Task ForgetBundleAsync()
+    {
+        if (objReposModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await objReposModule.InvokeVoidAsync("clearBundle");
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away; the selection went with it.
+        }
+    }
+
+    /// <summary>Closes the dialog and drops any chosen bundle with it.</summary>
+    /// <returns>A task that completes when nothing is left staged.</returns>
+    private async Task CloseAddSourceDialogAsync()
+    {
+        objIsAddSourceOpen = false;
+        await ForgetBundleAsync();
+        ResetPreview();
+    }
+
+    /// <summary>
+    /// Posts the staged bundle to one of the two import endpoints.
+    /// </summary>
+    /// <param name="aRoute">The endpoint route.</param>
+    /// <param name="aSource"><c>owner/name</c> for the commit route; <c>null</c> for the preview route.</param>
+    /// <returns>What the endpoint answered, or <c>null</c> when it could not be reached.</returns>
+    private async Task<ImportResponse?> PostBundleAsync(string aRoute, string? aSource)
+    {
+        if (objReposModule is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var vRaw = await objReposModule.InvokeAsync<string>("postBundle", aRoute, aSource);
+            var vEnvelope = JsonSerializer.Deserialize<PostEnvelope>(vRaw, WebJson);
+
+            return string.IsNullOrWhiteSpace(vEnvelope?.Body)
+                ? null
+                : JsonSerializer.Deserialize<ImportResponse>(vEnvelope.Body, WebJson);
+        }
+        catch (JSException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (JSDisconnectedException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Commits the previewed bundle — the one press that writes anything (BRD-138).
+    /// </summary>
+    /// <returns>A task that completes when the grid shows the imported source.</returns>
+    private async Task ImportAsync()
+    {
+        if (objUserId is null || !CanImport)
+        {
+            return;
+        }
+
+        if (!RepoInputParser.TryParse(objImportName!.Trim(), out var vRef, out var vError))
+        {
+            objImportRefusalTitle = "That source name isn't usable";
+            objImportRefusal = vError;
+            return;
+        }
+
+        objIsImporting = true;
+        objImportPhase = "Archiving the bytes and parsing them…";
+        objImportProgress = 30;
+        objImportRefusal = null;
+        StateHasChanged();
+
+        try
+        {
+            var vResult = await PostBundleAsync(ImportEndpoints.CommitRoute, vRef!.Repo);
+
+            if (vResult is null)
+            {
+                objImportRefusalTitle = "The import couldn't be sent";
+                objImportRefusal = "The browser could not reach TfLens to commit the bundle.";
+                return;
+            }
+
+            if (!vResult.Accepted)
+            {
+                objImportRefusalTitle = RefusalTitle(vResult.Reason);
+                objImportRefusal = vResult.Message ?? "That bundle wasn't accepted.";
+                return;
+            }
+
+            objImportPhase = "Recording the source…";
+            objImportProgress = 80;
+            StateHasChanged();
+
+            objImportProgress = 100;
+            objIsAddSourceOpen = false;
+            await ForgetBundleAsync();
+
+            objToastService.Success(
+                $"{vRef.Repo} — {vResult.RecordsAdded:N0} records added, "
+                + $"{vResult.DuplicatesCollapsed:N0} duplicates collapsed.",
+                objIsReimport ? "Re-imported" : "Imported");
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't import the bundle");
+        }
+        finally
+        {
+            objIsImporting = false;
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Warns when the bundle's own layout disagrees with the framework the user picked.
+    /// </summary>
+    /// <param name="aDetected">The framework the preview recognised, or <c>null</c>.</param>
+    /// <returns>The warning, or <c>null</c> when the two agree.</returns>
+    private string? FrameworkMismatch(string? aDetected) =>
+        string.IsNullOrWhiteSpace(aDetected) || string.Equals(aDetected, objImportFramework, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"The bundle's files are {aDetected} telemetry, not {objImportFramework}. The source will be "
+                + $"recorded as {aDetected}.";
+
+    /// <summary>
+    /// Titles a refusal by its reason, leaving the service's own sentence to say what to do.
+    /// </summary>
+    /// <param name="aReason">The refusal reason the endpoint named.</param>
+    /// <returns>A short title.</returns>
+    private static string RefusalTitle(string? aReason) => aReason switch
+    {
+        nameof(ImportRefusalReason.PrecomputedRollup) => "That's a computed report, not telemetry",
+        nameof(ImportRefusalReason.UnsafeArchive) => "That archive isn't safe to open",
+        nameof(ImportRefusalReason.NothingRecognised) => "Nothing in that bundle was recognised",
+        nameof(ImportRefusalReason.MixedFrameworks) => "That bundle mixes two frameworks",
+        nameof(ImportRefusalReason.UnsupportedExtension) => "That file type isn't accepted",
+        nameof(ImportRefusalReason.TooLarge) => "That upload is too large",
+        nameof(ImportRefusalReason.Empty) => "That upload is empty",
+        _ => "That bundle wasn't accepted"
+    };
 
     /// <summary>
     /// Runs the three connect-time checks without saving anything.
@@ -610,7 +1308,7 @@
             var vRow = await WaitForFirstSyncAsync(vRepo.Repo);
 
             objConnectProgress = 100;
-            objIsConnectOpen = false;
+            objIsAddSourceOpen = false;
             ReportConnectOutcome(vRepo.Repo, vRow);
         }
         catch (GitHubRateLimitException vEx)
@@ -686,6 +1384,12 @@
     /// <returns>A task that completes when the row shows the new counts.</returns>
     private async Task SyncRepoAsync(RepoListItem aRow)
     {
+        if (!ImportedSourceRules.CanSync(aRow.Repo.SourceKind))
+        {
+            objToastService.Show(ImportedSourceRules.CannotSyncMessage, "Imported source");
+            return;
+        }
+
         var vRunner = objServices.GetService<IRepoSyncRunner>();
 
         if (vRunner is null || objUserId is null)
@@ -728,7 +1432,7 @@
     }
 
     /// <summary>
-    /// Opens the remove confirmation for one repository.
+    /// Opens the remove confirmation for one source.
     /// </summary>
     /// <param name="aRow">The row the user asked to remove.</param>
     private void OpenRemoveDialog(RepoListItem aRow)
@@ -738,7 +1442,7 @@
     }
 
     /// <summary>
-    /// Removes the repository the confirmation named — the only path that deletes anything.
+    /// Removes the source the confirmation named — the only path that deletes anything.
     /// </summary>
     /// <returns>A task that completes when the row and its data are gone.</returns>
     private async Task ConfirmRemoveAsync()
@@ -778,33 +1482,172 @@
             ? "Telemetry path found"
             : $"Telemetry path found: {aValidation.TelemetryPath} ({aValidation.Framework})";
 
+    /// <summary>
+    /// The Branch cell — an imported source was never read from a branch.
+    /// </summary>
+    /// <param name="aRow">The grid row.</param>
+    /// <returns>The branch, or an em dash.</returns>
+    private static string BranchText(RepoListItem aRow) =>
+        ImportedSourceRules.IsImported(aRow.Repo.SourceKind) || string.IsNullOrWhiteSpace(aRow.Repo.Branch)
+            ? "—"
+            : aRow.Repo.Branch;
+
+    /// <summary>
+    /// The Status badge's word — an imported source is "imported", never "synced" (BRD-135).
+    /// </summary>
+    /// <param name="aRow">The grid row.</param>
+    /// <returns>The status word.</returns>
+    private static string StatusTextOf(RepoListItem aRow) =>
+        ImportedSourceRules.IsImported(aRow.Repo.SourceKind) && aRow.Status != RepoSyncStatuses.Pending
+            ? "imported"
+            : aRow.Status;
+
+    /// <summary>
+    /// The Last-sync-or-import cell — it reads last <i>import</i> for an imported row (REQ-UI-041).
+    /// </summary>
+    /// <param name="aRow">The grid row.</param>
+    /// <returns>How long ago the source last took data on.</returns>
+    private static string LastActivityText(RepoListItem aRow) =>
+        ImportedSourceRules.IsImported(aRow.Repo.SourceKind)
+            ? RelativeTime.Describe(aRow.Repo.LastImportTs, DateTimeOffset.UtcNow)
+            : RelativeTime.Describe(RelativeTime.Parse(aRow.LastSyncTs), DateTimeOffset.UtcNow);
+
     /// <summary>Re-renders when the shell reloads the workspace.</summary>
     private void OnShellChanged() => InvokeAsync(StateHasChanged);
 
     /// <summary>
-    /// Unsubscribes the shell handler and tears down the Escape listener so neither leaks per navigation.
+    /// Unsubscribes the shell handler and tears down the browser-side listeners so neither leaks.
     /// </summary>
-    /// <returns>A task that completes once the browser-side listener and the module reference are gone.</returns>
+    /// <returns>A task that completes once the browser-side listeners and the module reference are gone.</returns>
     public async ValueTask DisposeAsync()
     {
         objShellState.Changed -= OnShellChanged;
 
-        if (objEscapeModule is not null)
+        if (objReposModule is not null)
         {
             try
             {
-                await objEscapeModule.InvokeVoidAsync("stopWatchingEscape");
-                await objEscapeModule.DisposeAsync();
+                await objReposModule.InvokeVoidAsync("stopWatchingEscape");
+                await objReposModule.InvokeVoidAsync("stopWatchingImport");
+                await objReposModule.DisposeAsync();
             }
             catch (JSDisconnectedException)
             {
-                // The circuit went away before the page did; the listener went with it.
+                // The circuit went away before the page did; the listeners went with it.
             }
 
-            objEscapeModule = null;
+            objReposModule = null;
         }
 
         objSelfReference?.Dispose();
         objSelfReference = null;
+    }
+
+    /// <summary>What the browser reports back from a post to an import endpoint.</summary>
+    /// <param name="Status">The HTTP status, or zero when the request never left the browser.</param>
+    /// <param name="Body">The raw response text.</param>
+    private sealed record PostEnvelope(int Status, string? Body);
+
+    /// <summary>
+    /// The shape both import endpoints answer in — preview and commit share it.
+    /// </summary>
+    /// <remarks>
+    /// A refusal carries <see cref="Reason"/> and <see cref="Message"/>; the message is written for a
+    /// human by the service and is rendered verbatim rather than paraphrased.
+    /// </remarks>
+    private sealed record ImportResponse
+    {
+        /// <summary>Whether the bundle was accepted.</summary>
+        public bool Accepted { get; init; }
+
+        /// <summary>The <c>ImportRefusalReason</c> name, when it was not.</summary>
+        public string? Reason { get; init; }
+
+        /// <summary>The refusal's own sentence, when it was not.</summary>
+        public string? Message { get; init; }
+
+        /// <summary>sha256 of the bundle — an imported source's dataset identity (ADR-022).</summary>
+        public string? BundleSha { get; init; }
+
+        /// <summary>The framework the bundle's file names identify, when they agree.</summary>
+        public string? Framework { get; init; }
+
+        /// <summary>Records the bundle holds, across every recognised stream.</summary>
+        public int TotalRecords { get; init; }
+
+        /// <summary>Lines the parser could not read, counted and skipped.</summary>
+        public int TotalInvalidLines { get; init; }
+
+        /// <summary>Earliest record timestamp across the bundle.</summary>
+        public string? EarliestTs { get; init; }
+
+        /// <summary>Latest record timestamp across the bundle.</summary>
+        public string? LatestTs { get; init; }
+
+        /// <summary>Field names SCHEMA.md does not document — names only, never values.</summary>
+        public IReadOnlyList<string> UnknownFields { get; init; } = [];
+
+        /// <summary>Entries in the archive that name no stream.</summary>
+        public IReadOnlyList<string> UnrecognisedEntries { get; init; } = [];
+
+        /// <summary>One row per recognised stream.</summary>
+        public IReadOnlyList<ImportStreamRow> Streams { get; init; } = [];
+
+        /// <summary>When the commit completed, ISO-8601.</summary>
+        public string? ImportedTs { get; init; }
+
+        /// <summary>Rows the commit newly wrote.</summary>
+        public int RecordsAdded { get; init; }
+
+        /// <summary>Rows the commit collapsed onto an existing natural key.</summary>
+        public int DuplicatesCollapsed { get; init; }
+    }
+
+    /// <summary>One stream of a previewed or committed bundle.</summary>
+    private sealed record ImportStreamRow
+    {
+        /// <summary>The stream's wire name.</summary>
+        public string Stream { get; init; } = string.Empty;
+
+        /// <summary>Records the preview counted in this stream.</summary>
+        public int Records { get; init; }
+
+        /// <summary>Records a commit newly wrote for this stream.</summary>
+        public int Added { get; init; }
+
+        /// <summary>Records a commit presented to the store for this stream.</summary>
+        public int Presented { get; init; }
+
+        /// <summary>Lines the parser could not read in this stream.</summary>
+        public int InvalidLines { get; init; }
+
+        /// <summary>Records that collapsed onto an existing natural key.</summary>
+        public int DuplicatesCollapsed { get; init; }
+
+        /// <summary>Earliest record timestamp in this stream.</summary>
+        public string? EarliestTs { get; init; }
+
+        /// <summary>Latest record timestamp in this stream.</summary>
+        public string? LatestTs { get; init; }
+
+        /// <summary>The record count as the preview table prints it.</summary>
+        public string RecordsText => (Records > 0 ? Records : Presented).ToString("N0");
+
+        /// <summary>The invalid-line count as the preview table prints it.</summary>
+        public string InvalidLinesText => InvalidLines.ToString("N0");
+
+        /// <summary>The stream's date range, to the day, or an em dash when it holds no record.</summary>
+        public string DateRangeText =>
+            EarliestTs is null || LatestTs is null
+                ? "—"
+                : $"{DayOf(EarliestTs)} → {DayOf(LatestTs)}";
+
+        /// <summary>
+        /// Trims an ISO-8601 timestamp to its date.
+        /// </summary>
+        /// <param name="aTimestamp">The stored value.</param>
+        /// <returns>The date part.</returns>
+        private static string DayOf(string aTimestamp) =>
+            aTimestamp.Length >= 10 ? aTimestamp[..10] : aTimestamp;
     }
 }

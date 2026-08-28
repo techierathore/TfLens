@@ -31,8 +31,18 @@ namespace TfLens.Core.Storage;
 /// </remarks>
 public sealed class PostgresStore : ITelemetryStore
 {
-    /// <summary>The stream tables, in the order a rebuild truncates them.</summary>
-    private static readonly string[] StreamTables = ["Run", "Gate", "Session", "Commit", "PbEvent"];
+    /// <summary>
+    /// The stream tables, in the order a rebuild truncates them and a repo removal purges them.
+    /// </summary>
+    /// <remarks>
+    /// <b>One list, both jobs.</b> <see cref="DeleteRepoDataAsync"/> and the rebuild's
+    /// <c>ClearStreamTablesAsync</c> both walk this array, so a new stream table cannot be added to one
+    /// and forgotten by the other — which is exactly how a removed repository would keep contributing
+    /// rows to every figure (REQ-FN-074, BRD-115). The three miss tables (2026-08-28) are here for that
+    /// reason and a guardrail test asserts it.
+    /// </remarks>
+    private static readonly string[] StreamTables =
+        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "PbEvent"];
 
     /// <summary>Resolved once — the schema script does not move while the process runs.</summary>
     private static string? SchemaPathCache;
@@ -101,6 +111,14 @@ public sealed class PostgresStore : ITelemetryStore
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(vConnection, InsertCommitSql, aParsed.Commits, aCancellationToken)
             .ConfigureAwait(false);
+        // The misses stream is one file and three tables (ADR-018): the parser has already split the
+        // records by their own `kind`, so this is three ordinary idempotent batches, not a discriminator.
+        vWritten += await ExecuteBatchAsync(vConnection, InsertMissSql, aParsed.Misses, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(vConnection, InsertMissFixSql, aParsed.MissFixes, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(vConnection, InsertMissAmendSql, aParsed.MissAmends, aCancellationToken)
+            .ConfigureAwait(false);
         // Playbook events split by record kind: a turn is a cumulative snapshot keyed on its messageID
         // and must overwrite a smaller one, a marker is keyed on kind+ts+session and never changes.
         // The two land on different partial unique indexes, so they cannot share one ON CONFLICT clause
@@ -138,6 +156,21 @@ public sealed class PostgresStore : ITelemetryStore
     public Task<IReadOnlyList<CommitRecord>> ReadCommitsAsync(
         int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
         ReadStreamAsync<CommitRecord>("Commit", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissRecord>> ReadMissesAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<MissRecord>("Miss", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissFixRecord>> ReadMissFixesAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<MissFixRecord>("MissFix", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissAmendRecord>> ReadMissAmendsAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<MissAmendRecord>("MissAmend", aUserId, aFramework, aRepo, aCancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<PbEventRecord>> ReadPbEventsAsync(
@@ -366,7 +399,12 @@ public sealed class PostgresStore : ITelemetryStore
                 "GatesCount"    = (SELECT COUNT(*) FROM "Gate"    g WHERE g."UserId" = t."UserId" AND g."Repo" = t."Repo"),
                 "SessionsCount" = (SELECT COUNT(*) FROM "Session" s WHERE s."UserId" = t."UserId" AND s."Repo" = t."Repo"),
                 "CommitsCount"  = (SELECT COUNT(*) FROM "Commit"  c WHERE c."UserId" = t."UserId" AND c."Repo" = t."Repo"),
-                "EventsCount"   = (SELECT COUNT(*) FROM "PbEvent" p WHERE p."UserId" = t."UserId" AND p."Repo" = t."Repo")
+                "EventsCount"   = (SELECT COUNT(*) FROM "PbEvent" p WHERE p."UserId" = t."UserId" AND p."Repo" = t."Repo"),
+                -- One stream, three tables: the misses count is their sum, so Coverage reports five
+                -- stream rows per repository rather than seven (REQ-FN-071).
+                "MissesCount"   = (SELECT COUNT(*) FROM "Miss"      m WHERE m."UserId" = t."UserId" AND m."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissFix"   f WHERE f."UserId" = t."UserId" AND f."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissAmend" a WHERE a."UserId" = t."UserId" AND a."Repo" = t."Repo")
             WHERE @aUserId IS NULL OR t."UserId" = @aUserId
             """;
 
@@ -531,6 +569,9 @@ public sealed class PostgresStore : ITelemetryStore
             StreamKind.Gates => "Gate",
             StreamKind.Sessions => "Session",
             StreamKind.Commits => "Commit",
+            // The daily series counts misses OPENED per day; fixes and amendments are lifecycle events
+            // on an existing miss and would double-count a defect if they joined the same line.
+            StreamKind.Misses => "Miss",
             StreamKind.Events => "PbEvent",
             _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream.")
         };
@@ -595,6 +636,7 @@ public sealed class PostgresStore : ITelemetryStore
             StreamKind.Gates => "gate",
             StreamKind.Sessions => "session",
             StreamKind.Commits => "commit",
+            StreamKind.Misses => "miss",
             StreamKind.Events => "event",
             _ => StreamNames.ToName(aStream)
         };
@@ -728,10 +770,16 @@ public sealed class PostgresStore : ITelemetryStore
     /// Per-repository, per-stream row counts, backfilled counts and newest timestamp (REQ-UI-014).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>"Ts"</c> is stored as ISO-8601 text, whose lexical order is its chronological order, so
-    /// <c>MAX</c> over the column is the newest record without a cast. Only <c>"Run"</c> and <c>"Gate"</c>
-    /// carry a <c>"Backfilled"</c> column — SCHEMA.md does not put the flag on the other three streams —
-    /// so those report zero rather than pretending the fact was captured.
+    /// <c>MAX</c> over the column is the newest record without a cast. <c>"Session"</c>, <c>"Commit"</c>
+    /// and <c>"PbEvent"</c> carry no <c>"Backfilled"</c> column — SCHEMA.md does not put the flag on
+    /// those streams — so they report zero rather than pretending the fact was captured.
+    /// </para>
+    /// <para>
+    /// <c>misses</c> reports as <b>one</b> row per repository over its three tables: the stream is one
+    /// file, so the Coverage stream table gains one row rather than three (BRD-127, REQ-FN-071).
+    /// </para>
     /// </remarks>
     private const string StreamCoverageSql = """
         SELECT "Repo", 'runs' AS "Stream", COUNT(*)::int AS "Records",
@@ -747,6 +795,16 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "Repo", 'commits', COUNT(*)::int, 0, MAX("Ts")
         FROM "Commit" WHERE "UserId" = @aUserId GROUP BY "Repo"
+        UNION ALL
+        SELECT "Repo", 'misses', COUNT(*)::int,
+               COUNT(*) FILTER (WHERE "Backfilled")::int, MAX("Ts")
+        FROM (
+            SELECT "Repo", "Ts", "Backfilled" FROM "Miss"      WHERE "UserId" = @aUserId
+            UNION ALL
+            SELECT "Repo", "Ts", "Backfilled" FROM "MissFix"   WHERE "UserId" = @aUserId
+            UNION ALL
+            SELECT "Repo", "Ts", "Backfilled" FROM "MissAmend" WHERE "UserId" = @aUserId
+        ) misses GROUP BY "Repo"
         UNION ALL
         SELECT "Repo", 'events', COUNT(*)::int, 0, MAX("Ts")
         FROM "PbEvent" WHERE "UserId" = @aUserId GROUP BY "Repo"
@@ -776,6 +834,18 @@ public sealed class PostgresStore : ITelemetryStore
         FROM "Commit", LATERAL jsonb_object_keys("Overflow") AS k
         WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL GROUP BY "Repo", k
         UNION ALL
+        -- The three miss tables report as one stream, so their keys are grouped together: a field
+        -- observed on both a miss and a miss-fix is one undocumented field, not two (REQ-FN-072).
+        SELECT "Repo", 'misses', k, COUNT(*)::int
+        FROM (
+            SELECT "Repo", "Overflow" FROM "Miss"      WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
+            UNION ALL
+            SELECT "Repo", "Overflow" FROM "MissFix"   WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
+            UNION ALL
+            SELECT "Repo", "Overflow" FROM "MissAmend" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
+        ) misses, LATERAL jsonb_object_keys("Overflow") AS k
+        GROUP BY "Repo", k
+        UNION ALL
         SELECT "Repo", 'events', k, COUNT(*)::int
         FROM "PbEvent", LATERAL jsonb_object_keys("Overflow") AS k
         WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL GROUP BY "Repo", k
@@ -800,6 +870,15 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "Repo", 'commits', MAX("V")::int, COUNT(*)::int
         FROM "Commit" WHERE "UserId" = @aUserId AND "V" > 1 GROUP BY "Repo"
+        UNION ALL
+        SELECT "Repo", 'misses', MAX("V")::int, COUNT(*)::int
+        FROM (
+            SELECT "Repo", "V" FROM "Miss"      WHERE "UserId" = @aUserId AND "V" > 1
+            UNION ALL
+            SELECT "Repo", "V" FROM "MissFix"   WHERE "UserId" = @aUserId AND "V" > 1
+            UNION ALL
+            SELECT "Repo", "V" FROM "MissAmend" WHERE "UserId" = @aUserId AND "V" > 1
+        ) misses GROUP BY "Repo"
         """;
 
     /// <summary>Idempotent insert for <c>runs</c>; conflicts on <c>UcRunIdentity</c> are no-ops.</summary>
@@ -850,6 +929,62 @@ public sealed class PostgresStore : ITelemetryStore
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@Sha,@Files,@Insertions,@Deletions,
             @SubjectPrefix,@Branch,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>Idempotent insert for a <c>miss</c>; conflicts on <c>UcMissUserRepoMissId</c> are no-ops.</summary>
+    private const string InsertMissSql = """
+        INSERT INTO "Miss" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
+            "Harness","MissId","ReqId","ReqClass","MissClass","Artifact","Severity","WhyMissed",
+            "OriginPhase","OriginAgent","OriginRunId","OriginConfidence","OriginModel","OriginHarness",
+            "FoundBy","FoundPhase","FoundGate","FoundRunId","FailureClass","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
+            @Harness,@MissId,@ReqId,@ReqClass,@MissClass,@Artifact,@Severity,@WhyMissed,
+            @OriginPhase,@OriginAgent,@OriginRunId,@OriginConfidence,@OriginModel,@OriginHarness,
+            @FoundBy,@FoundPhase,@FoundGate,@FoundRunId,@FailureClass,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Idempotent insert for a <c>miss-fix</c>; conflicts on <c>UcMissFixUserRepoMissIdFixRunId</c> are no-ops.
+    /// </summary>
+    /// <remarks>
+    /// <c>DO NOTHING</c> rather than keep-the-latest: within a file the parser already applied the
+    /// latest-wins rule, and across files a fix record's token window is written once by the emitter when
+    /// the run closes. Re-fetching an archived file therefore has nothing newer to offer.
+    /// </remarks>
+    private const string InsertMissFixSql = """
+        INSERT INTO "MissFix" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
+            "Harness","MissId","ReqId","FixRunId","FixCmd","FixAttempt","VerdictAfter","Reopened",
+            "CostAttribution","TokensIn","TokensOut","TokensCacheRead","TokensCacheWrite","CostUsd",
+            "TokensScope","Model","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
+            @Harness,@MissId,@ReqId,@FixRunId,@FixCmd,@FixAttempt,@VerdictAfter,@Reopened,
+            @CostAttribution,@TokensIn,@TokensOut,@TokensCacheRead,@TokensCacheWrite,@CostUsd,
+            @TokensScope,@Model,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Idempotent insert for a <c>miss-amend</c>; conflicts on
+    /// <c>UcMissAmendUserRepoMissIdFieldTs</c> are no-ops.
+    /// </summary>
+    /// <remarks>
+    /// The row is stored exactly as written and nothing is folded here: the allowlist, the closed
+    /// vocabulary and the never-overwrite rule are applied at read time, so a rebuild re-derives
+    /// identical values whatever order the archived files arrived in (ADR-020, REQ-FN-075).
+    /// </remarks>
+    private const string InsertMissAmendSql = """
+        INSERT INTO "MissAmend" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
+            "Harness","MissId","Field","Value","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
+            @Harness,@MissId,@Field,@Value,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -913,11 +1048,11 @@ public sealed class PostgresStore : ITelemetryStore
     private const string UpsertSyncStateSql = """
         INSERT INTO "SyncState" (
             "UserId","Repo","Kind","Branch","LastSha","LastSyncTs","LastError",
-            "RunsCount","GatesCount","SessionsCount","CommitsCount","EventsCount",
+            "RunsCount","GatesCount","SessionsCount","CommitsCount","EventsCount","MissesCount",
             "SessionDuplicatesCollapsed")
         VALUES (
             @UserId,@Repo,@Kind,@Branch,@LastSha,@LastSyncTs,@LastError,
-            @RunsCount,@GatesCount,@SessionsCount,@CommitsCount,@EventsCount,
+            @RunsCount,@GatesCount,@SessionsCount,@CommitsCount,@EventsCount,@MissesCount,
             @SessionDuplicatesCollapsed)
         ON CONFLICT ON CONSTRAINT "PkSyncState" DO UPDATE SET
             "Kind" = EXCLUDED."Kind",
@@ -930,14 +1065,26 @@ public sealed class PostgresStore : ITelemetryStore
             "SessionsCount" = EXCLUDED."SessionsCount",
             "CommitsCount" = EXCLUDED."CommitsCount",
             "EventsCount" = EXCLUDED."EventsCount",
+            "MissesCount" = EXCLUDED."MissesCount",
             "SessionDuplicatesCollapsed" = EXCLUDED."SessionDuplicatesCollapsed"
         """;
 
-    /// <summary>Writes one connected repository, replacing whatever was there.</summary>
+    /// <summary>
+    /// Writes one connected repository, replacing whatever was there.
+    /// </summary>
+    /// <remarks>
+    /// <c>"SourceKind"</c>, <c>"BundleSha"</c> and <c>"LastImportTs"</c> round-trip here so the import
+    /// cluster has a write path (REQ-FN-084, REQ-FN-085); <b>no import behaviour lives in this class</b>.
+    /// A fetched source writes <c>'Synced'</c> with both other columns <c>null</c>, which is what keeps
+    /// the "<c>LastSha</c> or <c>BundleSha</c>, never both" invariant true for everything TfLens writes
+    /// today.
+    /// </remarks>
     private const string UpsertUserRepoSql = """
         INSERT INTO "UserRepo" (
-            "UserId","Repo","Owner","Name","Branch","Kind","Framework","IsPublic","ConnectedTs")
-        VALUES (@UserId,@Repo,@Owner,@Name,@Branch,@Kind,@Framework,@IsPublic,@ConnectedTs)
+            "UserId","Repo","Owner","Name","Branch","Kind","Framework","IsPublic","ConnectedTs",
+            "SourceKind","BundleSha","LastImportTs")
+        VALUES (@UserId,@Repo,@Owner,@Name,@Branch,@Kind,@Framework,@IsPublic,@ConnectedTs,
+            @SourceKind,@BundleSha,@LastImportTs)
         ON CONFLICT ON CONSTRAINT "PkUserRepo" DO UPDATE SET
             "Owner" = EXCLUDED."Owner",
             "Name" = EXCLUDED."Name",
@@ -945,6 +1092,9 @@ public sealed class PostgresStore : ITelemetryStore
             "Kind" = EXCLUDED."Kind",
             "Framework" = EXCLUDED."Framework",
             "IsPublic" = EXCLUDED."IsPublic",
-            "ConnectedTs" = EXCLUDED."ConnectedTs"
+            "ConnectedTs" = EXCLUDED."ConnectedTs",
+            "SourceKind" = EXCLUDED."SourceKind",
+            "BundleSha" = EXCLUDED."BundleSha",
+            "LastImportTs" = EXCLUDED."LastImportTs"
         """;
 }

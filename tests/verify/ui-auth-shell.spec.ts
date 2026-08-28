@@ -241,13 +241,14 @@ test('REQ-UI-005 profile renders the AppManager values, the Manager badge and th
 // ─────────────────────────────────────────────────────────────────────────────
 // REQ-UI-006 — the app shell
 // ─────────────────────────────────────────────────────────────────────────────
-test('REQ-UI-006 app shell shows the six nav items in order, a repo-count badge and no /playbook item', async ({ page }) => {
+// Amended 2026-08-28 (BRD-5, BRD-124): SEVEN items — Misses & rework sits between Routing and Export.
+test('REQ-UI-006 app shell shows the seven nav items in order, a repo-count badge and no /playbook item', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/');
 
   await expect(page.locator('[data-testid="app-sidebar"]').first()).toBeVisible();
 
-  const ids = ['nav-repos', 'nav-coverage', 'nav-three-questions', 'nav-harness', 'nav-routing', 'nav-export'];
+  const ids = ['nav-repos', 'nav-coverage', 'nav-three-questions', 'nav-harness', 'nav-routing', 'nav-misses', 'nav-export'];
   for (const id of ids) {
     expect(await page.locator(`[data-testid="${id}"]`).count(), `${id} missing`).toBeGreaterThan(0);
   }

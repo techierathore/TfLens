@@ -1,0 +1,150 @@
+/* Misses & rework — the few measurements TrBlazeUI's shipped utility set cannot express.
+
+   TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
+   none of them, so anything painted with them is transparent (the KPI accent chips, every Alert tint).
+   Declaring them on the page root is the documented workaround — custom properties inherit, so every
+   TrBlazeUI control rendered inside this page picks them up. Values are the approved mockup's palette
+   (docs/mockups/misses.html), which reads on both the light and the dark surface. */
+.tflens-stack[b-s2fwlvxw9p] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    --chart-1: #60a5fa;
+    --chart-2: #34d399;
+    --chart-3: #f472b6;
+    --chart-4: #fbbf24;
+    --chart-5: #a78bfa;
+    --alert-success: #22c55e;
+    --alert-success-bg: rgba(34, 197, 94, .08);
+    --alert-info: #3b82f6;
+    --alert-info-bg: rgba(59, 130, 246, .08);
+    --alert-warning: #f59e0b;
+    --alert-warning-bg: rgba(245, 158, 11, .08);
+    --alert-danger: #ef4444;
+    --alert-danger-bg: rgba(239, 68, 68, .08);
+}
+
+/* TR-002: `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*` (no media query), so the
+   library's own grid helpers collapse to a fixed span at every width. The KPI rows drive
+   grid-template-columns directly instead — one column on a phone, four once there is room. */
+.tflens-kpi-row[b-s2fwlvxw9p]  .trblazeui-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+    .tflens-kpi-row[b-s2fwlvxw9p]  .trblazeui-grid > * {
+        grid-column: auto;
+    }
+
+.tflens-grid[b-s2fwlvxw9p] {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-width: 0;
+}
+
+    .tflens-grid > *[b-s2fwlvxw9p] {
+        min-width: 0;
+    }
+
+@media (min-width: 40rem) {
+    .tflens-kpi-row[b-s2fwlvxw9p]  .trblazeui-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 64rem) {
+    .tflens-kpi-4[b-s2fwlvxw9p]  .trblazeui-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .tflens-grid-2[b-s2fwlvxw9p] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tflens-grid-3[b-s2fwlvxw9p] {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* The cross-tab is the wider of the pair: it carries a column per observed miss class. The
+       minmax(0, …) is load-bearing — a bare `1.35fr` lets the table's intrinsic width push the column
+       past its share and shove the card beside it off the right edge of the page. */
+    .tflens-grid-origin[b-s2fwlvxw9p] {
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    }
+}
+
+/* The period select. TrBlazeUI's SelectTrigger sizes to its content, which on a phone lets the longest
+   option ("All history (default)") push the header row wider than the viewport. */
+.tflens-period[b-s2fwlvxw9p] {
+    width: 12rem;
+    max-width: 100%;
+}
+
+/* Any wide control — the cross-tab, a DataTable, the detail grid — scrolls inside its own box rather
+   than widening the page. The visual gate treats a control inside such a box as reachable. */
+.tflens-scroll-x[b-s2fwlvxw9p] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* The plain cross-tab. A DataTableColumn needs a compile-time property per column and `miss_class` has
+   no closed vocabulary, so the origin table's columns are built at render time from the observed
+   classes. It carries the same numbers a chart would, which is also REQ-NFR-005's requirement. */
+.tflens-table[b-s2fwlvxw9p] {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+    .tflens-table th[b-s2fwlvxw9p] {
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .tflens-table td[b-s2fwlvxw9p] {
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .tflens-table tbody tr:last-child td[b-s2fwlvxw9p] {
+        border-bottom: 0;
+    }
+
+    .tflens-table .tflens-num[b-s2fwlvxw9p] {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+/* The three cost headlines. Deliberately large, and deliberately never rendered as one number. */
+.tflens-money[b-s2fwlvxw9p] {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.tflens-money-inline[b-s2fwlvxw9p] {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* BRD-123 / REQ-NFR-013 clause 5 — the rate-card card must not be mistakable for a measured tile at a
+   glance. A dashed border and a warning-tinted surface, on its own row, is that difference. */
+.tflens-estimate[b-s2fwlvxw9p] {
+    border-style: dashed;
+    border-color: var(--alert-warning, #f59e0b);
+    background: var(--alert-warning-bg, rgba(245, 158, 11, .06));
+}

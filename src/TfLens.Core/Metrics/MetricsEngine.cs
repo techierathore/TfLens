@@ -47,6 +47,9 @@ public sealed class MetricsEngine : IMetricsEngine
         var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vRawCommits = await objStore.ReadCommitsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vMisses = await objStore.ReadMissesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vMissFixes = await objStore.ReadMissFixesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vMissAmends = await objStore.ReadMissAmendsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vRepos = await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false);
         var vEvents = await objStore.ReadPbEventsAsync(aUserId, null, aCancellationToken).ConfigureAwait(false);
         var vSyncStates = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
@@ -69,15 +72,23 @@ public sealed class MetricsEngine : IMetricsEngine
         // ---- stage 5: the pooled block, which both separations exempt
         var vPooled = Pooled.Compute(vRuns, vSessions, vCommits, vDuplicates, vGates, vSessionDuplicates);
 
+        // ---- stage 6: the miss block — live-only, segmented per project type, amendments folded at read
+        // time. It is computed beside the gate figures and never inside them: the miss escape share is a
+        // second, adjacent figure and the gates-derived escape rate above is untouched (REQ-FN-077).
+        var vMissFigures = MissFigures.Compute(vMisses, vMissFixes, vMissAmends, vRuns);
+
         objLogger.LogInformation(
-            "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Tainted} tainted REQs",
+            "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttributionExcluded} misses outside the per-origin figures",
             aUserId,
             aFramework,
             vGates.Count,
             vRuns.Count,
             vSessions.Count,
             vCommits.Count,
-            vTainted.Count);
+            vMissFigures.MissesTotal,
+            vMissFigures.MissFixesTotal,
+            vTainted.Count,
+            vMissFigures.Live.Values.Sum(aSegment => aSegment.Attribution.AttributionExcluded));
 
         return new AnalysisResult
         {
@@ -88,6 +99,7 @@ public sealed class MetricsEngine : IMetricsEngine
             Live = vLiveFigures,
             Backfilled = vBackfilledFigures,
             Pooled = vPooled,
+            Misses = vMissFigures,
             ParserVersion = ParserVersion.Current
         };
     }

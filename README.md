@@ -37,14 +37,16 @@ behind the [parity procedure](#parity-procedure).
 The following are **explicitly out of scope** for this release. Reproduced verbatim from
 `docs/TfLens-BRD.md` §3:
 
-- Any capture or ingestion endpoint; OTLP; per-machine agents.
+- Any capture layer, machine-to-machine ingestion API, OTLP endpoint, or per-machine agent. *(Amended 2026-08-28 — narrowed, not removed: the **Import metric files** mode on `/repos` is an authenticated file-picker on a page a human is signed into, and it is the **only** inbound path. Nothing can push data into TfLens automatically, no endpoint accepts an unauthenticated post, and neither framework is asked to grow an export command — the user uploads the files TechieFlow and the Playbook already write to disk. BRD-139 bounds the surface.)*
 - Writing anything to any repository, ever.
 - VPS / infra configuration (supplied separately).
-- Private GitHub repos (this release is public-repo-only; a per-user PAT is a later release).
+- Reading a private GitHub repo **over the API** (this release is public-repo-only for fetching; a per-user PAT is a later release). *(Amended 2026-08-28: a private or corporate repo is no longer out of reach — its telemetry is added through **Import metric files** instead, which needs no credential, no network access to the repo, and no change to the repo itself. What stays out of scope is TfLens authenticating to a private repo and pulling from it.)*
 - AppManager licensing, subscriptions, feature flags, payments, issues — none are called.
 - GitHub SSO — **deferred to Phase 2** (BRD-94): AppManager has no external-login endpoint, so it needs a bridge or an AppManager change first.
 - Roles beyond `Manager`; sharing a user's reports with another user.
-- Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing figure.
+- Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing and rework-estimate figures.
+- **Any blended rework-cost figure** (amended 2026-08-28): measured (`cost_attribution: sole`) and apportioned (`shared:n`) miss cost are never summed into one number, in the page, the export or parity — see BRD-122, BRD-130.
+- **Writing to any telemetry stream**, including `misses.jsonl`: TfLens consumes the miss stream and never emits into it. Recording a miss is TechieFlow's `*log-miss`, not TfLens's job.
 
 ---
 
@@ -88,7 +90,7 @@ There are two routes for the same settings, and which one you want depends on wh
 | Variable | Required | What it is |
 |----------|----------|------------|
 | `TfLensDbConnection` | **Yes** | Npgsql connection string, e.g. `Host=postgres;Port=5432;Database=tflens;Username=tflens;Password=…`. Startup fails if it is missing or the database is unreachable. |
-| `TfLensAppManagerApiKey` | **Pair — required for password reset** | AppManager API key, sent as `X-Api-Key` on `/AuthSvc/*` only. `/AuthSvc/forgot-password` and `/AuthSvc/reset-password` accept the application scope only from this header and fail `400 APPLICATION_ID_REQUIRED` without it. Never sent on `/UserSvc/*`, where it causes `403 NO_APP_ACCESS` (DECISIONS.md D-006). |
+| `TfLensAppManagerApiKey` | **Pair — required for password reset** | AppManager API key, sent as `X-Api-Key` on every AppManager path. `/AuthSvc/forgot-password` and `/AuthSvc/reset-password` accept the application scope only from this header and fail `400 APPLICATION_ID_REQUIRED` without it; `/UserSvc/profile` returns an empty `applicationRole` without it (DECISIONS.md D-006). |
 | `TfLensAppManagerApiSecret` | **Pair — required for password reset** | AppManager API secret, sent as `X-Api-Secret`. Set both or neither; a half pair fails startup. |
 | `TfLensGitHubToken` | **Strongly recommended** | Fine-grained, **contents-read-only** GitHub PAT (public repositories only). Raises the read rate limit from **60/h to 5,000/h** and grants no additional repository access — a private repo is still refused (BRD-100). *Corrected 2026-08-27: previously documented as changing no behaviour. Measured on a real deployment, 60/h is not enough to complete one sync pass over four repositories — they finish `error` with `GitHub rate limit reached`. See `docs/TfLens-Deployment-Checklist.md` §3.* |
 

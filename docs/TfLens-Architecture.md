@@ -601,16 +601,24 @@ Every stream table also carries `UserId` (omitted from the boxes above for brevi
 
 ```sql
 -- unique keys (the dedupe rules, encoded)
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMiss"      ON "Miss"      ("UserId","Repo","MissId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMissFix"   ON "MissFix"   ("UserId","Repo","MissId","FixRunId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UxMissAmend" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"            ON "Miss"      ("UserId","Repo","MissId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId" ON "MissFix"   ("UserId","Repo","MissId",COALESCE("FixRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
 -- read paths
-CREATE INDEX IF NOT EXISTS "IxMissUserRepo"    ON "Miss"      ("UserId","Repo");
-CREATE INDEX IF NOT EXISTS "IxMissOriginModel" ON "Miss"      ("UserId","OriginModel");
-CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo" ON "MissFix"   ("UserId","Repo");
-CREATE INDEX IF NOT EXISTS "IxMissFixMissId"   ON "MissFix"   ("UserId","MissId");
-CREATE INDEX IF NOT EXISTS "IxMissAmendMissId" ON "MissAmend" ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissUserRepo"      ON "Miss"      ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissOriginModel"   ON "Miss"      ("UserId","OriginModel");
+CREATE INDEX IF NOT EXISTS "IxMissMissId"        ON "Miss"      ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo"   ON "MissFix"   ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissFixMissId"     ON "MissFix"   ("UserId","MissId");
+CREATE INDEX IF NOT EXISTS "IxMissAmendUserRepo" ON "MissAmend" ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissId");
 ```
+
+*Corrected 2026-08-28 during the F-MISS build, against the code as built.* Three things in the block above were wrong when first written and are recorded here rather than left to diverge:
+
+1. **Index naming.** The draft used a `Ux…` prefix, which appears nowhere else in this codebase; the Coding Standards and every pre-existing index in `database/001-schema.sql` use `Uc{Table}{Column}` for unique and `Ix{Table}{Column}` for read paths. The built names follow the repo convention.
+2. **`MissFix` uniqueness must coalesce.** `FixRunId` is **nullable by design** — the `log-miss --fixed` path deliberately omits it — and in PostgreSQL a `NULL` in a unique index never collides with another `NULL`, so the drafted key would have let unlimited duplicates of exactly the records the dedupe rule (BRD-114) exists to collapse. The built index keys on `COALESCE("FixRunId",'')`. One consequence worth knowing: two `--fixed` records for the *same* miss, both omitting `fix_run_id`, collapse to one (latest wins). That is the stated rule applied honestly, not a defect.
+3. **The ER boxes omit the common record fields.** The three miss boxes above show only their distinguishing columns; as built, all three carry the full common set (`V`, `App`, `ProjectType`, `ProjectTypeInferred`, `Backfilled`, `Harness`, `Ts`, `SourceSha`, `Overflow`) like every other stream table. Without `ProjectType` on `Miss`, the per-`project_type` segmentation §6 requires would be impossible.
 
 `ITelemetryStore` gains `ReadMissesAsync`, `ReadMissFixesAsync` and `ReadMissAmendsAsync` mirroring `ReadGatesAsync`'s signature; `UpsertAsync` handles the three new `ParseResult` collections; and **`DeleteRepoDataAsync` must purge all three** — missing one leaves orphaned rows that reappear in every figure, which is the worst class of bug in a product whose promise is correct numbers. `SyncState` gains a `misses` row per repo, so Coverage's per-repo stream table goes from four rows to five. `AuthSession` token columns are encrypted at rest with ASP.NET Data Protection. `PbEvent` columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as `NULL`, never `0` (SCHEMA.md §2.5).
 

@@ -57,6 +57,8 @@ it is operated. Architectural decisions with an `ADR-nnn` id live in
 | D-011 | Dedupe keys | 2026-08-26 | The Playbook `events.ndjson` dedupe key, superseding the provisional row in D-004 |
 | S-001 | Playbook schema discovery | 2026-08-26 | No `events.ndjson` found; shape taken from the emitter source instead |
 | P-002 | Parity runs | 2026-08-27 | Parity re-run and re-recorded at parser 1.1.0 after the metric addition |
+| P-003 | Parity runs | 2026-08-28 | Parity re-run and re-recorded at parser 1.2.0 after the oracle learned the `misses` stream |
+| D-012 | Provenance | 2026-08-28 | An unrecorded token count stays unmeasured, even though the reference averages it as zero (TF-005) |
 
 ---
 
@@ -186,12 +188,13 @@ stamped into the build and into **every** export.
 | **Minor** | A field is newly recognised (moves out of `"Overflow"` into a column), or a metric is added. Old exports stay comparable for the metrics they carry. |
 | **Patch** | A defect fix that changes no correct output — or changes an output that was wrong. |
 
-**Current:** `1.1.0`.
+**Current:** `1.2.0`.
 
 | Version | Date | Why |
 |---------|------|-----|
 | `1.0.0` | 2026-08-26 | The first shipping parser. |
 | `1.1.0` | 2026-08-27 | **Minor — a metric was added:** `pooled.session_duplicates_collapsed`. The reference gained the same figure when `tf-metrics.sh` learned to de-duplicate the sessions stream (SCHEMA.md §4), and TfLens must emit every key the reference emits or the compare fails on a MISSING key. Nothing stored changed meaning and no dedupe key moved, so this is not a major bump; old exports stay comparable for the metrics they carry. Per the rule below the bump un-quoted every export until parity was re-run — see §6 P-002. |
+| `1.2.0` | 2026-08-28 | **Minor — metrics were added:** the whole `misses` block (29 figures), plus `per_repo.misses` and `per_repo.stale_types`. The reference gained them when `tf-metrics.sh` learned to read the fifth stream (`STREAMS` gained `misses`, and with it `analyse_misses()`), and TfLens must emit every key the reference emits or the compare fails on a MISSING key. Nothing stored changed meaning and no dedupe key moved, so this is not a major bump. The changed oracle had already un-quoted every export on its own — see §6 P-003. |
 
 **The rule that makes the version worth stamping:** the weekly snapshot export is quotable only if
 the last parity run on record (§6) postdates the last parser-version bump. The `/export` page renders
@@ -241,6 +244,29 @@ not belong on a request the bearer token already scopes — and it also sidestep
 grant gap (the demo user holds no access row for Application 1, the same gap that makes its
 `applicationRole` come back empty). Granting that access in the AppManager admin UI is the root fix and
 is recorded under PROJECT-STATUS "Known blockers".
+
+**Amended 2026-08-28 — the `/UserSvc/*` exclusion is REVERSED; the pair now goes on every path.** The
+amendment above was right on its evidence and is now wrong on the facts, so it is corrected rather than
+rewritten. Its `/UserSvc/profile` row — *none → `200`, pair → `403 NO_APP_ACCESS`* — described an
+**AppManager-side defect**, reported as AM-002 in `docs/TfLens-AppManager-Feedback.md` and fixed by the
+owner on 2026-08-28 together with AM-001. Re-measured live against
+`https://appmgrapi.techierathore.com` that day:
+
+| Endpoint | No pair | With pair |
+|---|---|---|
+| `/UserSvc/profile` | `200`, but `applicationRole` is an **empty string** | **`200` with `applicationRole: "Manager"`** |
+
+Everything else in the table above still holds. The exclusion therefore reversed sign: while the defect
+stood it kept the Profile page alive, and once the defect was fixed it became the only reason TfLens
+could not read an application role AppManager was finally willing to give it. `SendsApiKeyHeaders` now
+returns `true` for `/UserSvc/*` as well as `/AuthSvc/*` — every path this client calls.
+
+The original reasoning — *"an application credential does not belong on a request the bearer token
+already scopes"* — is retired as a general principle for this API. AppManager treats the pair as the
+**application selector**, not as a second authorisation: without it there is no application to scope the
+role to, which is precisely why the field comes back empty. Two consequences worth keeping: a
+`NO_APP_ACCESS` on this path in future means AM-002 has regressed, and the pair being required
+whole-or-not-at-all (the decision this entry is actually about) is unchanged.
 
 **Known tension to re-open if the acceptance is read strictly.** REQ-FN-010's acceptance line reads
 "a missing key or secret fails startup (REQ-FN-038)". Read literally that would make both variables
@@ -579,6 +605,103 @@ run on file no longer postdated the parser. Re-running the procedure and re-reco
 **QUOTABLE**. The mechanism is therefore not merely implemented but demonstrated end to end, which is
 the third clause of REQ-FN-063's acceptance.
 
+---
+
+### P-003 — Parity run 2026-08-28 (re-run at parser 1.2.0, first run covering the `misses` block)
+
+- **Date (UTC):**                2026-08-28
+- **Framework:**                 techieflow
+- **User id:**                   2
+- **Dataset (repo → SHA):**      `techierathore/TechieBlog` → `30e66161343661d94b8bd4b01e97c63a30b1c579`
+- **Dataset (repo → SHA):**      `techierathore/TechieFlow` → `4f6f5bbafa01f0362fdf95f3ad3837a6f3aa2556`
+- **Dataset (repo → SHA):**      `techierathore/TechieRag` → `4f6f0a3796481e01c408b6d93eb72d90ecb0176b`
+- **Dataset (repo → SHA):**      `techierathore/TrBlazeUI` → `49cf7a73f3f78219abccd1ecab49db797315a16c`
+- **tf-metrics.sh sha256:**      `sha256:f4b2667a265f2ff3afa4d4ee0330b8bf15f92acf494d3852eec5c0813a7d09a7`
+                                 (was `sha256:960d12b4…3f3c`)
+- **TfLens parser version:**     **1.2.0** (bumped from 1.1.0 — §3)
+- **Reference file:**            `tests/.artifacts/parity/reference.json`
+- **TfLens export:**             `src/TfLens/data/reports/2/2026-08-28/techieflow/tflens.json`
+- **Compare output:**
+
+```
+parity-compare: reference=tests/.artifacts/parity/reference.json
+parity-compare: tflens   =tests/.artifacts/parity/tflens.json
+
+  (24 INFO lines: 4 × ENV-OK per_repo[*].repo; 16 × ADDED-OK per_repo[*].{framework,events,
+   source_sha,source_kind}; 1 × KEYED per_repo; 2 × ADDED-OK extras / parity;
+   1 × COVERED misses — all 29 figures BRD-129 names present on both documents and compared)
+
+parity-compare: 0 finding(s), 24 allowed difference(s).
+parity-compare: PASS -- the two implementations agree key for key.
+```
+
+- **Figures agreed, key for key:** misses 4 · miss fixes 4 · orphan fixes 0 · open 0 · wont-fix 1 ·
+                                 resolved 3 · escapes_missing_why 1 · why_missed_n 1 ·
+                                 why_missed_eligible 4 · predates_field 0 · design_miss_share 0% ·
+                                 escape_share 50% · attributed_n 2 · attribution_excluded 2 ·
+                                 by_origin_model `{claude-opus-5: 1, ?: 1}` · cost_sole_n 0 ·
+                                 cost_shared_n 0 · cost_unattributable_n 4 ·
+                                 tokens_per_miss_measured `null` · cost_usd_records 0. Plus the whole
+                                 pre-existing surface: sessions 58 · tokens_total 15,319,316 ·
+                                 commits 211 · session_duplicates_collapsed 12.
+- **Extras spot-checked:**       no — `extras` still carries no oracle and is ADDED-OK on this run as on
+                                 every other. The new `extras.misses_repricing` sits under it for exactly
+                                 that reason: the reference computes no rate-card dollars.
+- **Verdict:**                   PASS (empty diff). `src/TfLens/data/parity-last.json` re-written at
+                                 parser 1.2.0; `/export` reads **QUOTABLE** again.
+
+**Why this run exists — the invalidation clause doing its job.** The framework replaced
+`.tfcore/telemetry/tf-metrics.sh` on 2026-08-28 with a version that reads the fifth stream:
+`STREAMS` gained `"misses"`, and with it an `analyse_misses()` function, a top-level `misses` block of
+29 figures, and two new `per_repo` keys (`misses`, `stale_types`). A changed reference invalidates the
+last stamp by design (REQ-FN-063 clause 3), so the export went un-quotable and
+`ParityStampTests.HashingAgreesWithTheDigestTheRecorderWrites` went red — correctly. **The constant was
+not edited to make the test green.** The block was implemented, the procedure was re-run end to end, and
+only then was the digest re-pinned, exactly as P-001 and P-002 did.
+
+**What was implemented, not allow-listed.** Three keys the new reference emits that TfLens did not:
+the whole `misses` object, `per_repo[].misses` and `per_repo[].stale_types`. A MISSING key always fails
+by design, and all three were closed by emitting them. One key **was** added to
+`tools/parity-compare.py`'s allow-list — `per_repo[].source_kind` (BRD-136) — which is a genuine
+structural difference: the reference reads a working tree and has no concept of how data arrived.
+
+**Two shapes, and why the export carries the pooled one.** `analyse_misses()` deliberately does not
+segment the miss stream — its own comment says *"raw counts and the miss-class distribution ARE
+poolable: a miss counts as a miss whoever missed it; only its attribution is confidence-bounded"* —
+while REQ-FN-077 segments TfLens's own miss figures per `project_type` and offers no "all types" tab.
+BRD-129 requires the export's block to diff against the reference's key for key, and a segmented block
+cannot. The `misses` key therefore carries the reference's shape and the Markdown carries both, labelled
+as two. It is produced by running **the engine's own** `MissFigures.Compute` a second time with the
+segment key collapsed, not by aggregating segment results in the exporter: aggregation would be a second
+implementation of every figure, and a mean cannot be pooled from rounded per-segment means anyway,
+because a segment below `MinN` carries no value to pool. `Segment` still has no "all types" bucket and
+`MissAnalysis.Live` still cannot express one.
+
+**One figure the reference bounds twice.** `cost_usd_per_miss_measured` / `cost_usd_records` are
+computed over `[f for f in sole if f.cost_usd is not None]` — the cost attribution bounds the dollars
+exactly as it bounds the token columns. `MissHarnessCost` is a per-*harness* row and carries no such
+bound, so reading `cost_usd_records` straight off it would count an apportioned repair as a measured
+one. The bound is applied the same way the segment collapse is — by handing `MissFigures.Compute` the
+record set the reference hands it — and is fixed by
+`MissExportTests.MeasuredDollarsAreBoundedByTheCostAttribution`. Both figures are `0` / `null` on this
+dataset, so the run would have passed either way; the fixture is what found it.
+
+**The dataset was rebuilt.** The four repositories under `tests/.artifacts/parity/` were re-materialised
+from the REQ-FN-027 raw archive under `src/TfLens/data/raw/2/**`, which had grown since P-002 (a new
+TechieFlow SHA carrying the first `misses-*.jsonl`, plus new runs/gates/sessions/commits snapshots on
+TechieFlow and TrBlazeUI). Every archived SHA for a stream is concatenated, because the store holds
+their union; the reconstructed per-repo counts reproduce the database exactly — gates 214/34/0/43, runs
+41/21/0/24, sessions 21/22/0/15, commits 101/44/0/66, misses 0/4/0/0 — and the reference's
+`session_duplicates_collapsed` of 12 matches the sum ingest recorded in `"SyncState"`.
+
+**One data defect found and reported, not silently absorbed.** `"UserRepo"."SourceKind"` in this
+deployment carries the string `Synced` — the *badge* wording — because the column was created with that
+DEFAULT before `database/001-schema.sql` was corrected to `api`. BRD-132 fixes the stored vocabulary at
+`api` | `import`, so the export canonicalises on the way out (anything that is not `import` is a fetched
+source, the same rule `SourceKinds.DisplayName` degrades by) rather than echoing a third spelling onto
+the wire. The column itself belongs to the import cluster and is untouched here; the rows want a
+one-line `UPDATE` and the column a corrected default.
+
 ## §7 Playbook schema discovery
 
 <!-- APPEND ONE ENTRY PER events.ndjson EXAMINED, NEWEST LAST.
@@ -607,6 +730,47 @@ the third clause of REQ-FN-063's acceptance.
 **Standing constraint, whatever the file turns out to contain.** Playbook process-gates
 (`phase_gate`) and TechieFlow assertion-gates (`gate`) are different axes and must never share a
 table, a column or a chart. They are not two spellings of one concept.
+
+### D-012 — An unrecorded token count stays unmeasured, even where the reference averages it as zero
+
+**Date:** 2026-08-28 · **See:** BRD-122, BRD-123, BRD-130, REQ-FN-079, REQ-NFR-013, TF-005
+
+`tokens_per_miss_measured` and `tokens_per_miss_apportioned` divide by the `miss-fix` records that
+**carry** `tokens_out`, not by every record with that cost attribution.
+
+**The reference does the opposite.** `analyse_misses` in `.tfcore/telemetry/tf-metrics.sh` computes
+`sum(tokens_out or 0) / len(sole)`, so a repair whose tokens were never recorded is averaged in as a
+repair that cost nothing. On the four-record example in TF-005 the reference reports `150.0` where
+TfLens reports `200.0` over three records and names the fourth unmeasured.
+
+**Why TfLens does not follow it.** Coercing an absent measurement to zero and then dividing by it is
+the precise failure this product exists to detect — it is the same shape as the `$0.84` fabrication
+removed on 2026-08-27, and the same shape as the pooled `cost_usd` the reference itself refuses to
+compute for exactly this reason. BRD-31..36 make "absent renders as an absence, never as `0`"
+structural rather than conventional, and `Figure` exists so that a refusal cannot be read as a
+number. Adopting the reference's arithmetic here would mean shipping a figure the product's own
+integrity rules forbid, in order to agree with a tool about a number both would then have wrong.
+
+**Why this does not fail BRD §13 today.** The divergence is **latent**. Every dataset observed so far
+carries `tokens_out` on every `sole` record, so both implementations produce the identical value and
+the parity gate passes (P-003, exit 0, 0 findings). It becomes live only on a stream where a
+`sole`-attributed fix omits the field. That is a real possibility — `tf-emit.sh` does not require it —
+which is why it is raised upstream as **TF-005** with two acceptable resolutions offered: exclude
+unrecorded records from the divisor and publish the denominator, **or** make `tokens_out` mandatory on
+a `sole` record so the absent case cannot arise. Either removes the disagreement at the source.
+
+**If the gate ever fails on these two keys**, that is this decision surfacing, not a regression. The
+fix is upstream, not a change to `MissFigures`. The call site carries a comment saying so, and
+`MissCostTests.AFixCarryingNoTokenCountIsNotCountedAsZero` pins the behaviour against a well-meant
+"correction".
+
+**Rejected alternative — adopt the reference's arithmetic to guarantee parity.** It would have made
+the gate unconditionally green and cost one line. It was rejected because a green parity gate is
+evidence that two implementations agree, and it is worth having only while both are trying to be
+right; buying agreement by adopting a figure believed to be wrong turns the product's headline claim
+into a formality.
+
+---
 
 ### S-001 — no `events.ndjson` found; shape taken from the emitter source instead, 2026-08-26
 

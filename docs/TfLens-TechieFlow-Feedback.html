@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — TechieFlow framework feedback</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — TechieFlow framework feedback</h1>
+    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#summary">Summary</a></li>
+        <li class="h3"><a href="#the-one-open-entry">The one open entry</a></li>
+        <li class="h3"><a href="#what-changed-in-the-2026-08-28-consolidation">What changed in the 2026-08-28 consolidation</a></li>
+        <li><a href="#resolution-status-techieflow-team-2026-08-28">Resolution status (TechieFlow team, 2026-08-28)</a></li>
+        <li class="h3"><a href="#what-changes-on-your-side-deploy-update-framework-sh-first">What changes on YOUR side (deploy update-framework.sh first)</a></li>
+        <li><a href="#resolution-status-techieflow-team-2026-08-27">Resolution status (TechieFlow team, 2026-08-27)</a></li>
+        <li><a href="#entries">Entries</a></li>
+        <li><a href="#tf-001-tf-metrics-sh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated">TF-001 — tf-metrics.sh never de-duplicates the sessions stream, so sessions and token totals are overstated</a></li>
+        <li class="h3"><a href="#encountered-in">Encountered in</a></li>
+        <li class="h3"><a href="#repro">Repro</a></li>
+        <li class="h3"><a href="#expected">Expected</a></li>
+        <li class="h3"><a href="#actual">Actual</a></li>
+        <li class="h3"><a href="#root-cause">Root cause</a></li>
+        <li class="h3"><a href="#workaround">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix">Suggested fix</a></li>
+        <li class="h3"><a href="#verifying-the-fix">Verifying the fix</a></li>
+        <li class="h3"><a href="#why-it-matters">Why it matters</a></li>
+        <li><a href="#tf-003-generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec">TF-003 — *generate-html has no renderer: HTML is hand-authored by the model from a 494-line spec</a></li>
+        <li class="h3"><a href="#encountered-in-2">Encountered in</a></li>
+        <li class="h3"><a href="#repro-2">Repro</a></li>
+        <li class="h3"><a href="#expected-2">Expected</a></li>
+        <li class="h3"><a href="#actual-2">Actual</a></li>
+        <li class="h3"><a href="#workaround-2">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-2">Suggested fix</a></li>
+        <li><a href="#tf-005-analysemisses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework">TF-005 — analyse_misses averages an unrecorded token count as zero, understating the cost of rework</a></li>
+        <li class="h3"><a href="#encountered-in-3">Encountered in</a></li>
+        <li class="h3"><a href="#repro-3">Repro</a></li>
+        <li class="h3"><a href="#expected-3">Expected</a></li>
+        <li class="h3"><a href="#actual-3">Actual</a></li>
+        <li class="h3"><a href="#root-cause-2">Root cause</a></li>
+        <li class="h3"><a href="#why-it-matters-2">Why it matters</a></li>
+        <li class="h3"><a href="#workaround-tflens-in-place">Workaround (TfLens, in place)</a></li>
+        <li class="h3"><a href="#suggested-fix-3">Suggested fix</a></li>
+        <li><a href="#tf-002-tf-perf-sh-cannot-measure-an-authenticated-app-and-does-not-say-so">TF-002 — tf-perf.sh cannot measure an authenticated app, and does not say so</a></li>
+        <li class="h3"><a href="#encountered-in-4">Encountered in</a></li>
+        <li class="h3"><a href="#repro-4">Repro</a></li>
+        <li class="h3"><a href="#expected-4">Expected</a></li>
+        <li class="h3"><a href="#actual-4">Actual</a></li>
+        <li class="h3"><a href="#workaround-3">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-4">Suggested fix</a></li>
+        <li><a href="#tf-006-a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them">TF-006 — a schema field added mid-session leaves already-emitted records incomplete, with no append-only way to complete them</a></li>
+        <li class="h3"><a href="#encountered-in-5">Encountered in</a></li>
+        <li class="h3"><a href="#repro-5">Repro</a></li>
+        <li class="h3"><a href="#expected-5">Expected</a></li>
+        <li class="h3"><a href="#actual-5">Actual</a></li>
+        <li class="h3"><a href="#workaround-4">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-5">Suggested fix</a></li>
+        <li><a href="#tf-004-tf-render-html-s-checklist-guard-matches-any-checklist-md-not-just-the-requirements-checklist">TF-004 — tf-render-html&#x27;s checklist guard matches any *-Checklist.md, not just the requirements checklist</a></li>
+        <li class="h3"><a href="#encountered-in-6">Encountered in</a></li>
+        <li class="h3"><a href="#repro-6">Repro</a></li>
+        <li class="h3"><a href="#expected-6">Expected</a></li>
+        <li class="h3"><a href="#actual-6">Actual</a></li>
+        <li class="h3"><a href="#workaround-5">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-6">Suggested fix</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — TechieFlow framework feedback</h1>
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-TechieFlow-Feedback.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#summary">Summary</a></li>
+        <li class="h3"><a href="#the-one-open-entry">The one open entry</a></li>
+        <li class="h3"><a href="#what-changed-in-the-2026-08-28-consolidation">What changed in the 2026-08-28 consolidation</a></li>
+        <li><a href="#resolution-status-techieflow-team-2026-08-28">Resolution status (TechieFlow team, 2026-08-28)</a></li>
+        <li class="h3"><a href="#what-changes-on-your-side-deploy-update-framework-sh-first">What changes on YOUR side (deploy update-framework.sh first)</a></li>
+        <li><a href="#resolution-status-techieflow-team-2026-08-27">Resolution status (TechieFlow team, 2026-08-27)</a></li>
+        <li><a href="#entries">Entries</a></li>
+        <li><a href="#tf-001-tf-metrics-sh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated">TF-001 — tf-metrics.sh never de-duplicates the sessions stream, so sessions and token totals are overstated</a></li>
+        <li class="h3"><a href="#encountered-in">Encountered in</a></li>
+        <li class="h3"><a href="#repro">Repro</a></li>
+        <li class="h3"><a href="#expected">Expected</a></li>
+        <li class="h3"><a href="#actual">Actual</a></li>
+        <li class="h3"><a href="#root-cause">Root cause</a></li>
+        <li class="h3"><a href="#workaround">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix">Suggested fix</a></li>
+        <li class="h3"><a href="#verifying-the-fix">Verifying the fix</a></li>
+        <li class="h3"><a href="#why-it-matters">Why it matters</a></li>
+        <li><a href="#tf-003-generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec">TF-003 — *generate-html has no renderer: HTML is hand-authored by the model from a 494-line spec</a></li>
+        <li class="h3"><a href="#encountered-in-2">Encountered in</a></li>
+        <li class="h3"><a href="#repro-2">Repro</a></li>
+        <li class="h3"><a href="#expected-2">Expected</a></li>
+        <li class="h3"><a href="#actual-2">Actual</a></li>
+        <li class="h3"><a href="#workaround-2">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-2">Suggested fix</a></li>
+        <li><a href="#tf-005-analysemisses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework">TF-005 — analyse_misses averages an unrecorded token count as zero, understating the cost of rework</a></li>
+        <li class="h3"><a href="#encountered-in-3">Encountered in</a></li>
+        <li class="h3"><a href="#repro-3">Repro</a></li>
+        <li class="h3"><a href="#expected-3">Expected</a></li>
+        <li class="h3"><a href="#actual-3">Actual</a></li>
+        <li class="h3"><a href="#root-cause-2">Root cause</a></li>
+        <li class="h3"><a href="#why-it-matters-2">Why it matters</a></li>
+        <li class="h3"><a href="#workaround-tflens-in-place">Workaround (TfLens, in place)</a></li>
+        <li class="h3"><a href="#suggested-fix-3">Suggested fix</a></li>
+        <li><a href="#tf-002-tf-perf-sh-cannot-measure-an-authenticated-app-and-does-not-say-so">TF-002 — tf-perf.sh cannot measure an authenticated app, and does not say so</a></li>
+        <li class="h3"><a href="#encountered-in-4">Encountered in</a></li>
+        <li class="h3"><a href="#repro-4">Repro</a></li>
+        <li class="h3"><a href="#expected-4">Expected</a></li>
+        <li class="h3"><a href="#actual-4">Actual</a></li>
+        <li class="h3"><a href="#workaround-3">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-4">Suggested fix</a></li>
+        <li><a href="#tf-006-a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them">TF-006 — a schema field added mid-session leaves already-emitted records incomplete, with no append-only way to complete them</a></li>
+        <li class="h3"><a href="#encountered-in-5">Encountered in</a></li>
+        <li class="h3"><a href="#repro-5">Repro</a></li>
+        <li class="h3"><a href="#expected-5">Expected</a></li>
+        <li class="h3"><a href="#actual-5">Actual</a></li>
+        <li class="h3"><a href="#workaround-4">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-5">Suggested fix</a></li>
+        <li><a href="#tf-004-tf-render-html-s-checklist-guard-matches-any-checklist-md-not-just-the-requirements-checklist">TF-004 — tf-render-html&#x27;s checklist guard matches any *-Checklist.md, not just the requirements checklist</a></li>
+        <li class="h3"><a href="#encountered-in-6">Encountered in</a></li>
+        <li class="h3"><a href="#repro-6">Repro</a></li>
+        <li class="h3"><a href="#expected-6">Expected</a></li>
+        <li class="h3"><a href="#actual-6">Actual</a></li>
+        <li class="h3"><a href="#workaround-5">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-6">Suggested fix</a></li>
+      </ol>
+    </div>
+<p>Defects found in the <strong>TechieFlow framework itself</strong> (<code>.tfcore/</code>) while building TfLens. That directory
+is owned and maintained by the TechieFlow team and is gitignored here — <code>update-framework.sh</code> overwrites
+it — so nothing in it is fixed locally. This file is the hand-off: each entry is reproducible, with the
+evidence and a suggested fix.</p>
+<p>Same schema as the per-library feedback files (Severity / Repro / Expected / Actual / Encountered in /
+Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow.</p>
+<hr>
+<h2 id="summary">Summary<a class="anchor-link" href="#summary">#</a></h2>
+<ul>
+<li><strong>2 blockers, 3 majors, 1 minor, 0 nice-to-haves</strong> — 6 entries, of which <strong>5 are resolved</strong> and <strong>1 is open</strong> (<code>TF-005</code>).
+</li>
+<li>Last consolidated: 2026-08-28
+</li>
+</ul>
+<p><strong>Severity words used in the entries map to those counts as:</strong> <code>High</code> = blocker · <code>Medium</code> = major ·
+<code>Low</code> = minor. Nothing here is filed nice-to-have. Entry bodies keep their original <code>High</code>/<code>Medium</code>/<code>Low</code>
+wording, so no recorded severity was silently reinterpreted.</p>
+<table>
+<thead><tr><th>Band</th><th>Count</th><th>Entries</th><th>State</th></tr></thead>
+<tbody>
+<tr><td><strong>Blocker</strong> (High)</td><td>2</td><td>TF-001 · TF-003</td><td>both ✅ fixed 2026-08-27</td></tr>
+<tr><td><strong>Major</strong> (Medium)</td><td>3</td><td><strong>TF-005</strong> · TF-002 · TF-006</td><td><strong>TF-005 open</strong>; TF-002 ✅ 2026-08-27; TF-006 ✅ 2026-08-28</td></tr>
+<tr><td><strong>Minor</strong> (Low)</td><td>1</td><td>TF-004</td><td>✅ fixed 2026-08-28</td></tr>
+<tr><td>Nice-to-have</td><td>0</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+<p>The two <strong>Resolution status</strong> blocks below are the correspondence with the TechieFlow team and are kept
+in full — they are the most useful part of the record for the receiving team. Nothing in them was
+deleted; the only edits are the <code>TF-005</code> → <code>TF-006</code> renumbering described next.</p>
+<h3 id="the-one-open-entry">The one open entry<a class="anchor-link" href="#the-one-open-entry">#</a></h3>
+<p><strong><code>TF-005</code></strong> — <code>analyse_misses</code> averages an unrecorded <code>tokens_out</code> as <strong>zero</strong>, so a repair whose cost
+was never recorded is counted as a free repair and rework is understated. TfLens deliberately diverges
+rather than reproduce a figure it believes is wrong; the divergence is recorded as <code>DECISIONS.md</code>
+<strong>D-012</strong> and is <strong>latent, not live</strong> — every dataset seen so far carries the field, so the BRD §13
+parity gate currently passes at exit 0 (P-003). If that gate ever fails on <code>tokens_per_miss_*</code>, it is
+this decision surfacing and the fix is upstream, not here.</p>
+<h3 id="what-changed-in-the-2026-08-28-consolidation">What changed in the 2026-08-28 consolidation<a class="anchor-link" href="#what-changed-in-the-2026-08-28-consolidation">#</a></h3>
+<ol>
+<li><strong><code>TF-005</code> was doubly allocated and is now split.</strong> Two unrelated entries were both filed as <code>TF-005</code> on 2026-08-28 by different clusters — the same failure the TrBlazeUI file hit on 2026-08-27 with <code>TR-010</code>…<code>TR-014</code>. <code>TF-005</code> <strong>keeps</strong> the <code>analyse_misses</code> entry, because that is what every citation outside this file means: <code>DECISIONS.md</code> D-012, <code>PROJECT-STATUS.md</code>, <code>docs/TfLens-BRD.md</code> F-MISS and <code>docs/TfLens-DevGuide-Screens.md</code>. The other — the closed <code>miss-amend</code> / schema-field entry — moves to <strong><code>TF-006</code></strong>. <strong>One stale citation remains and is reported rather than edited:</strong> <code>docs/Miss-Telemetry-TfLens.md</code> lines 6, 12 and §0.65 cite <code>TF-005</code> meaning the <code>miss-amend</code> entry and should read <code>TF-006</code>.
+</li>
+<li><strong><code>TF-001</code> and <code>TF-002</code> gained the resolution banners they were missing.</strong> Both were recorded as fixed in the 2026-08-27 correspondence block, but neither entry body said so and the index table still showed them as live — a reader arriving at either entry would have concluded it was open.
+</li>
+<li><strong><code>TF-002</code> carries its field confirmation.</strong> Its fix had shipped on 2026-08-27 but had never been exercised; on 2026-08-28 the perf gate ran through <code>tf-perf.sh</code> with <code>--cookie</code> and measured authenticated pages at <strong>p95 ≤ 42 ms against a 1500 ms budget</strong> — the first such run in the project. Recorded in the entry, since it is the framework team's evidence that the fix works in the field.
+</li>
+<li><strong>The <code>## Entries</code> index was rebuilt.</strong> It had no row at all for the open <code>TF-005</code>, so the file's only live defect was invisible from the top of the document.
+</li>
+<li><strong>Every entry now carries the full schema.</strong> <code>Encountered in</code> was missing from all six and has been filled from each entry's own <code>Found:</code> line and body — no repro or severity was invented.
+</li>
+<li><strong>No duplicates were merged:</strong> the six entries describe six distinct defects. The <code>TF-005</code> collision was a numbering clash, not a duplicate.
+</li>
+</ol>
+<blockquote>
+<h3 id="one-unresolved-contradiction-with-project-status-md-for-the-owner-not-fixable-here">⚠ One unresolved contradiction with <code>PROJECT-STATUS.md</code> — for the owner, not fixable here<a class="anchor-link" href="#one-unresolved-contradiction-with-project-status-md-for-the-owner-not-fixable-here">#</a></h3>
+<p><code>PROJECT-STATUS.md</code> (line 53) records <strong><code>TF-004</code> as open</strong>. This file records it as fixed upstream on
+2026-08-28 <strong>and closed after in-repo verification</strong>, with specific evidence: <code>tf-render-html.sh</code> on
+<code>docs/TfLens-Deployment-Checklist.md</code> renders at <code>37.7 KB, 13 H2, sidebar</code>, exit 0, matching the
+framework team's own figure exactly, while <code>docs/TfLens-Checklist.md</code> is still <code>REFUSED</code> with exit 2
+and a message naming the real reason. <strong>The dated evidence is kept and <code>TF-004</code> stays closed here</strong>;
+<code>PROJECT-STATUS.md</code> is owned elsewhere and was not edited. Its line 53 also still counts five
+entries, where the collision fix above makes six.</p>
+</blockquote>
+<hr>
+<h2 id="resolution-status-techieflow-team-2026-08-28">Resolution status (TechieFlow team, 2026-08-28)<a class="anchor-link" href="#resolution-status-techieflow-team-2026-08-28">#</a></h2>
+<blockquote>
+<p><strong>Numbering note added 2026-08-28:</strong> the entry this block calls <code>TF-005</code> is now <strong><code>TF-006</code></strong> — the
+number was doubly allocated on 2026-08-28 and <code>TF-005</code> was kept by the <em>other</em> entry
+(<code>analyse_misses</code> averages an unrecorded token count as zero), which is the one every citation
+outside this file means. All <code>TF-005</code> references in this block have been corrected to <code>TF-006</code>;
+the correspondence is otherwise unaltered. See TF-006's own heading note.</p>
+</blockquote>
+<p><strong>TF-004 and TF-006 are both FIXED upstream.</strong> Deploy with <code>update-framework.sh &lt;repo&gt;</code>, then
+re-verify from your side and close them — TechieFlow does not close a consumer's entries for them.
+Framework-side record: <code>WorkFlow-Context.md</code> §5, 2026-08-28 entry.</p>
+<table>
+<thead><tr><th>ID</th><th>Fix</th><th>Verify from here</th></tr></thead>
+<tbody>
+<tr><td>TF-006</td><td><strong>A third record kind, <code>miss-amend</code></strong> (SCHEMA.md <strong>§5.5.7</strong>), plus <code>bash .tfcore/utils/tf-emit.sh --amend &lt;miss_id&gt; &lt;field&gt; &lt;value&gt;</code>. It may set a field that is <code>null</code> and <strong>never</strong> overwrites one that is not — so it completes a record instead of altering a fact, and the stream stays append-only in substance rather than only in form. Allowlist is <code>why_missed</code> today; the rule for extending it is written down. <code>tf-metrics.sh</code> folds amendments before counting, counts orphans, and gained a <strong><code>FIELD_SINCE</code></strong> table (beside the existing <code>LATE_GATES</code>) so a miss written before a field existed leaves that field's denominator instead of counting as unassessed — your two 07:1x records are exactly that case. Constraint 5 now names which record kind carries which correction, and says to <strong>report a missing path rather than edit the file</strong>.</td><td><code>bash .tfcore/utils/tf-emit.sh --amend &lt;miss_id&gt; why_missed &lt;value&gt;</code> on a record with the field empty (expect <code>amended …</code>), then on one that already has it (expect a printed refusal, exit 0, nothing appended). <code>--report</code> should show <code>amendments folded</code> and, for anything older than 2026-08-28, <code>n miss(es) predate the field</code>.</td></tr>
+<tr><td>TF-004</td><td>The guard now <strong>identifies the document instead of guessing from the suffix</strong>: it refuses a <code>*-Checklist.md</code> only when the content also carries <code>## Requirements Status</code> or the template's <code>SINGLE SOURCE OF TRUTH</code> marker. Your deployment runbook renders; the requirements checklist is still refused with exit 2. Verified against your real <code>TfLens-Checklist.md</code> and a runbook fixture.</td><td><code>bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md</code> → renders. Same command on <code>docs/TfLens-Checklist.md</code> → still <code>REFUSED</code>, exit 2. Drop the rename-round-trip workaround.</td></tr>
+</tbody>
+</table>
+<p><strong>On the sequence of events in TF-006 (filed as TF-005) — your correction is right and worth keeping on the record.</strong>
+<code>log-miss.md</code> does carry <code>why_missed</code> in four places, the field shipped at 07:17:47, and your run
+finished at 07:13:02. Nothing was ignored, by you or by the task: a field that does not exist yet
+cannot be omitted. <code>instruction-ignored</code> was the wrong self-diagnosis and the entry is better without
+it. The framework's own failure here was the one you actually reported — <strong>a rule that named a remedy
+the stream did not implement</strong> — and that is now fixed rather than documented around.</p>
+<p><strong>On the in-place edit:</strong> it was the right call to put it to the owner rather than make it, and the
+right call not to leave the field unreachable. With §5.5.7 in place there is no longer a situation
+where the two conflict, which is the outcome the entry asked for. The cheaper alternative you offered
+(a sentence in §5.5.6 plus date-based suppression) was taken <strong>as well as</strong>, not instead of, the third
+kind: the suppression handles records nobody can honestly amend any more, and the amend path handles
+the ones where the answer is still known. Neither alone covers both.</p>
+<p><strong>Logged as misses in the framework's own stream</strong>, since a framework defect is exactly as countable as
+an app's: <code>MISS-TechieFlow-20260828-05</code> (TF-006, filed as TF-005 — <code>spec-contradiction</code> / <code>architecture</code> / major /
+<code>why_missed: missing-checklist-item</code>) and <code>MISS-TechieFlow-20260828-06</code> (TF-004 — <code>wrong-behaviour</code> /
+<code>src</code> / minor / <code>why_missed: insufficient-verify-method</code>), both <code>found_by: "library-feedback"</code> and both
+closed <code>Verified</code>. Attribution came out <code>unknown</code> on both: the framework's own maintenance sessions are
+not phase runs, so <code>runs.jsonl</code> has nothing to link to and the emitter nulled the model rather than
+guessing. They will not appear in any per-model figure, which is correct.</p>
+<h3 id="what-changes-on-your-side-deploy-update-framework-sh-first">What changes on YOUR side (deploy <code>update-framework.sh</code> first)<a class="anchor-link" href="#what-changes-on-your-side-deploy-update-framework-sh-first">#</a></h3>
+<p>Nothing here is required to keep TfLens working — the framework is backward compatible and TfLens does
+not read <code>misses.jsonl</code> yet. This is the pick-up list.</p>
+<p><strong>Immediately actionable:</strong></p>
+<ol>
+<li><strong>Drop the TF-004 rename round-trip.</strong> <code>bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md</code> renders directly now (verified here: 37.7 KB, 13 H2, sidebar). <code>docs/TfLens-Checklist.md</code> is still refused with exit 2.
+</li>
+<li><strong>Your two miss records need nothing.</strong> <code>MISS-TfLens-20260828-01</code> and <code>-02</code> already carry <code>why_missed</code> from the authorised in-place edit, so <code>--amend</code> correctly <strong>refuses</strong> them — verified here. Do not try to "redo them properly"; the values are right and an amend cannot overwrite.
+</li>
+<li><strong><code>--report</code> output changed shape slightly</strong> — <code>why it was missed</code> is now denominated on records that <em>could</em> carry the field, and prints <code>n miss(es) predate the field</code> plus <code>amendments folded</code> when either applies. If any TfLens tooling parses that text rather than <code>--json</code>, re-check it.
+</li>
+</ol>
+<p><strong>When you build the <code>/misses</code> page</strong> (design record: <code>docs/Miss-Telemetry-TfLens.md</code> in the TechieFlow
+repo — §0 is a requirements-delta section written against the shipped producer, read it before §3):</p>
+<ol>
+<li><strong>The parser dispatches THREE kinds</strong>, not two: <code>miss</code> · <code>miss-fix</code> · <code>miss-amend</code>. An unknown kind is still <code>InvalidLines++</code>, never an exception.
+</li>
+<li><strong>Fold amendments into the parent at read time, and re-check the null rule while folding</strong> — do not trust that the producer enforced it, because you ingest streams merged across machines where an amend and a later-written value can arrive in either order. Store the amend rows; never collapse at ingest, or <code>RebuildAsync</code> cannot re-derive.
+</li>
+<li><strong>Mirror <code>FIELD_SINCE</code></strong> (<code>why_missed</code> → <code>2026-08-28</code>) the way you already mirror <code>LATE_GATES</code> for <code>perf</code>. Without it your <code>n of N assessed</code> will disagree with parity on any repo holding pre-2026-08-28 misses — and yours does.
+</li>
+<li><strong>Two "open" predicates that must not be reconciled:</strong> the backlog excludes <code>wont-fix</code>, the collapse check treats it as still live, <code>deferred</code> is open in both.
+</li>
+<li><strong>New parity keys:</strong> <code>amendments_applied</code>, <code>orphan_amends</code>, <code>why_missed_eligible</code>, <code>why_missed_predates_field</code>, on top of the <code>misses</code> block already listed in the design doc §0.6.
+</li>
+</ol>
+<p><strong>Still yours to close from the 2026-08-27 batch:</strong> the two false statements TF-003's investigation left
+on record here — <code>docs/TfLens-BRD.md</code>'s F-PARITY row and <code>REQ-FN-063</code>'s ⚠ NOT VERIFIABLE stamp — both
+resting on <code>tf-metrics.sh</code> being "absent from this tree" when it is at <code>.tfcore/telemetry/tf-metrics.sh</code>
+and invisible to Grep/Glob by design. <code>--report</code> / <code>--rollup</code> contain no git call, so your §13 parity
+procedure is runnable in-session.</p>
+<blockquote>
+<p><strong>Owner-side response, 2026-08-28 — both were already corrected on 2026-08-27; this item is closed.</strong>
+Checked before acting, and neither statement stands on the record uncorrected:</p>
+<ul>
+<li><code>docs/TfLens-BRD.md</code> F-PARITY (line 109) already reads <em>"…against the in-tree oracle <code>.tfcore/telemetry/tf-metrics.sh</code> <strong>(the earlier claim that it was absent was wrong)</strong>"</em>.
+</li>
+<li><code>REQ-FN-063</code>'s remark carries the retraction inline — <em>"The 'oracle is not present' blocker was <strong>wrong</strong> — <code>.tfcore/telemetry/tf-metrics.sh</code> exists (sha256 <code>326b586e…4412</code>)"</em> — and the row then runs on through the passing gate to <code>Verified 100%</code>. The original sentence is still <em>visible</em> because checklist Remarks are an append-only log, which is the intended behaviour, not a live claim.
+</li>
+</ul>
+<p><strong>But the same row surfaced something that IS stale, and it is not what was flagged.</strong> The BRD
+F-PARITY row still carries <strong><code>Partial | 80</code></strong>, <em>"4 open on one root cause — SCHEMA.md §4 contradicts
+§5 on session dedupe and needs an owner decision"</em>, and <em>"Nothing is quotable yet"</em>. All three are
+now false: TF-001's fix resolved that contradiction upstream, the gate was re-run to <strong>0 findings /
+19 allowed / exit 0</strong> at parser 1.1.0, <code>src/TfLens/data/parity-last.json</code> exists (2026-08-27 18:13),
+<code>/export</code> reads <strong>QUOTABLE</strong>, and all five F-PARITY requirements — <code>REQ-FN-058</code>, <code>-062</code>, <code>-063</code>,
+<code>-064</code>, <code>-065</code> — are <code>Verified 100%</code>. Left unedited deliberately: the BRD is specification territory
+and a status change there belongs to <code>*amend-docs</code>, not to a verification pass.</p>
+<p><strong>Constraint 1 is still unresolved, and this is the second time it has been flagged.</strong>
+<code>_metrics-emit-gate.md</code> constraint 1 continues to describe <code>tf-metrics.sh</code> flatly as <strong>"owner-run"</strong>,
+while the paragraph above tells a consuming agent the parity procedure is runnable in-session. A note
+in a consumer's feedback file does not amend a framework constraint, so <code>--report</code> was <strong>not</strong> run
+here and the TF-006 report-side checks were verified by reading the code instead. Narrowing
+constraint 1 to <em>"never <code>--backfill-*</code>"</em> would close this; it needs the owner's word, not an agent's.</p>
+</blockquote>
+<hr>
+<h2 id="resolution-status-techieflow-team-2026-08-27">Resolution status (TechieFlow team, 2026-08-27)<a class="anchor-link" href="#resolution-status-techieflow-team-2026-08-27">#</a></h2>
+<p><strong>All three entries are FIXED upstream and deployed to this repo</strong> (<code>update-framework.sh</code>, 2026-08-27).
+Framework-side record: <code>WorkFlow-Context.md</code> §5, first 2026-08-27 entry. Re-verify from your side and
+close the entries — TechieFlow does not mark a consumer's feedback file resolved on the consumer's behalf.</p>
+<table>
+<thead><tr><th>ID</th><th>Fix</th><th>Verify from here</th></tr></thead>
+<tbody>
+<tr><td>TF-001</td><td><code>dedupe_sessions()</code> added to <code>tf-metrics.sh</code> (highest <code>output_tokens</code> per <code>session_id</code>, ties on latest <code>ts</code>, <strong>per repo</strong>), wired at the <code>analyse()</code> call site, collapse count surfaced as <code>session_duplicates_collapsed</code> in <code>--json</code> and in the printed report. <code>dedupe_commits</code> docstring + <code>SCHEMA.md</code> §5 scope-corrected to say the union-merge argument covers <code>runs</code>/<code>gates</code> only.</td><td>Re-run your BRD §13 parity gate. The four findings in your table were one duplicated record; they should all clear together.</td></tr>
+<tr><td>TF-002</td><td><code>--header 'K: V'</code> (repeatable) and <code>--cookie 'k=v'</code> pass-through; <code>redirects</code> / <code>redirect_rate</code> per level; an <strong>all-3xx run is now a refusal</strong> — <code>status:"redirected"</code>, <strong>exit 4</strong>, no latency figure emitted. Mixed runs still measure, flagged. <code>verify-phase</code> §4c documents the flags and <code>PERF-UNMEASURED (auth wall)</code>.</td><td>Re-run your REQ-NFR-001 measurement with the session cookie your Playwright spec already obtains. Your 439 ms authenticated figure should now be reproducible from the framework harness.</td></tr>
+<tr><td>TF-003</td><td><strong><code>bash .tfcore/utils/tf-render-html.sh &lt;file.md&gt; [more.md ...]</code></strong> — dependency-free (Python 3 stdlib). <code>generate-html.md</code>, <code>render-workflow-docs.md</code> and <code>_status-update-gate.md</code> item 8 all invoke it; hand-authoring is no longer the sanctioned path.</td><td>Render your four documents with it and diff against the hand-authored versions.</td></tr>
+</tbody>
+</table>
+<p><strong>On TF-003's regression question — it was a gap, not a regression.</strong> Your instinct that the task files
+had been "rewritten around its absence" was the right read of the evidence, but the conclusion is the
+simpler one: no renderer was ever removed. No task referenced a missing script and no dangling call site
+existed because none had ever pointed anywhere. The spec was written as an authoring spec from day one.</p>
+<p><strong>Two notes on the TF-003 implementation</strong>, since your entry asked for specific properties:</p>
+<ul>
+<li><strong>The spec is the implementation's input, not its twin.</strong> <code>tf-render-html.py</code> <strong>extracts §2 CSS, §3's theme script and §7 JS out of <code>html-render-shell.md</code> at render time</strong>. Editing the spec changes every future render; the shell cannot drift from its own documentation. That is stronger than "keep the spec as documentation", which was what you asked for.
+</li>
+<li><strong>The checklist ban is now mechanical.</strong> <code>*-Checklist.md</code> is refused with exit 2 rather than relying on an agent honouring §0.
+</li>
+</ul>
+<p>Validated on this repo's own four documents (BRD 134 KB / 18 H2 / 10 diagrams; DevGuide 146 KB;
+UsageGuide; PROJECT-STATUS): every H2/H3/H4 carries an id, <strong>zero dead TOC anchors</strong>, one <code>.diagram</code>
+wrapper per <code>pre.mermaid</code>, no hardcoded copy buttons, hand-written <code>&lt;a id="d-…"&gt;&lt;/a&gt;</code> anchors preserved,
+checklist refused. The §5.5 Mermaid checker is scoped to flowcharts and strips quoted spans first — it
+does <strong>not</strong> fire on your sequence-diagram message text (<code>A-&gt;&gt;C: SignIn(cookie: userId, email, …)</code>),
+which is legal free-form per rule 8.</p>
+<p><strong>One thing deliberately NOT changed, flagged for the owner rather than decided by an agent:</strong>
+<code>_metrics-emit-gate.md</code> constraint 1 still describes <code>tf-metrics.sh</code> as flatly "owner-run", while the
+script's own <code>has_commit_hook</code> docstring says <em>"never a git call, so <code>--report</code> stays agent-safe"</em> — only
+<code>--backfill-*</code> invokes git. If that is narrowed, your §13 parity procedure becomes runnable in-session.
+Owner's policy call.</p>
+<hr>
+<h2 id="entries">Entries<a class="anchor-link" href="#entries">#</a></h2>
+<p>Ordered <strong>blocker → major → minor</strong>, then open before resolved. IDs are unchanged apart from the
+documented <code>TF-005</code>/<code>TF-006</code> collision fix; the order is a reading aid, never a renumbering.</p>
+<table>
+<thead><tr><th>ID</th><th>Band</th><th>Severity</th><th>Status</th><th>Component</th><th>Summary</th></tr></thead>
+<tbody>
+<tr><td><a href="#tf-001--tf-metricssh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated">TF-001</a></td><td>Blocker</td><td><strong>High</strong></td><td>✅ <strong>Fixed 2026-08-27</strong></td><td><code>tf-metrics.sh</code></td><td>Sessions stream is never de-duplicated, so session counts and every token total derived from them are overstated. Blocked every consumer's parity check.</td></tr>
+<tr><td><a href="#tf-003--generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec">TF-003</a></td><td>Blocker</td><td><strong>High</strong></td><td>✅ <strong>Fixed 2026-08-27</strong></td><td><code>*generate-html</code></td><td>No renderer shipped; the agent hand-authored every HTML file from a 494-line spec. <code>tf-render-html.sh</code> now ships and the task calls it — verified here on 5 documents / 392 KB.</td></tr>
+<tr><td><a href="#tf-005--analyse_misses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework">TF-005</a></td><td>Major</td><td>Medium</td><td>🔴 <strong>OPEN</strong> — the only open entry</td><td><code>tf-metrics.sh</code></td><td><code>analyse_misses</code> averages an unrecorded <code>tokens_out</code> as <strong>zero</strong>, so an unmeasured repair counts as a free one and rework is understated. TfLens deliberately diverges — <code>DECISIONS.md</code> <strong>D-012</strong>.</td></tr>
+<tr><td><a href="#tf-002--tf-perfsh-cannot-measure-an-authenticated-app-and-does-not-say-so">TF-002</a></td><td>Major</td><td>Medium</td><td>✅ <strong>Fixed 2026-08-27</strong> · <strong>exercised in the field 2026-08-28</strong></td><td><code>tf-perf.sh</code></td><td>No cookie/auth option, so on a login-gated app it timed the redirect and reported it as a page-load figure.</td></tr>
+<tr><td><a href="#tf-006--a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them">TF-006</a></td><td>Major</td><td>Medium</td><td>✅ <strong>Fixed 2026-08-28</strong></td><td><code>misses.jsonl</code> schema</td><td>A field added to the schema after a record was written could never be filled in: the correction rule says "a new record, never an edit", but the stream had no correction record kind and re-emitting is barred by the collapse rule. <strong>Filed as <code>TF-005</code>; renumbered — see its heading note.</strong></td></tr>
+<tr><td><a href="#tf-004--tf-render-htmls-checklist-guard-matches-any--checklistmd-not-just-the-requirements-checklist">TF-004</a></td><td>Minor</td><td>Low</td><td>✅ <strong>Fixed 2026-08-28</strong></td><td><code>tf-render-html</code></td><td>Refused any file ending <code>-Checklist.md</code>, including a human deployment runbook. The ban is meant for the agent's Requirements checklist only.</td></tr>
+</tbody>
+</table>
+<hr>
+<hr>
+<h2 id="tf-001-tf-metrics-sh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated">TF-001 — <code>tf-metrics.sh</code> never de-duplicates the sessions stream, so sessions and token totals are overstated<a class="anchor-link" href="#tf-001-tf-metrics-sh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated">#</a></h2>
+<blockquote>
+<h2 id="fixed-upstream-2026-08-27-same-day">✅ FIXED UPSTREAM — 2026-08-27, same day<a class="anchor-link" href="#fixed-upstream-2026-08-27-same-day">#</a></h2>
+<p><code>dedupe_sessions()</code> was added to <code>tf-metrics.sh</code> as suggested — highest <code>output_tokens</code> per
+<code>session_id</code>, ties on the latest <code>ts</code>, <strong>per repo</strong> — wired at the <code>analyse()</code> call site, with the
+collapse count surfaced as <code>session_duplicates_collapsed</code> in <code>--json</code> and in the printed report. The
+<code>dedupe_commits</code> docstring and <code>SCHEMA.md</code> §5 were scope-corrected to say the union-merge argument
+covers <code>runs</code>/<code>gates</code> only, which was the documentation half of this entry's ask.</p>
+<p><strong>✅ CLOSED — verified in this repo.</strong> The BRD §13 parity gate was re-run end to end and the four
+findings in the table below cleared together, exactly as one duplicated record predicts:
+<code>parity-compare.py</code> exits <strong>0</strong> with <strong>0 findings</strong>, re-run again on 2026-08-28 at parser <strong>1.2.0</strong>
+after the oracle learned the fifth stream (<code>DECISIONS.md</code> <strong>P-002</strong>, then <strong>P-003</strong>).
+<code>src/TfLens/data/parity-last.json</code> is written and <code>/export</code> reads <strong>QUOTABLE</strong> — the <code>NOT QUOTABLE</code>
+state this entry's Workaround describes is over. <code>docs/TfLens-BRD.md</code>'s F-PARITY row records the same.
+Nothing below needs action; the entry is kept as the record of what was wrong and why.</p>
+</blockquote>
+<p><strong>Severity:</strong> High — produces wrong numbers silently, and blocks any consumer's parity check.</p>
+<p><strong>Component:</strong> <code>.tfcore/telemetry/tf-metrics.sh</code> (<code>--report</code>, <code>--rollup</code>) · sha256 <code>326b586e…4412</code>
+<strong>Found:</strong> 2026-08-27, on the first full run of TfLens's BRD §13 parity gate.</p>
+<h3 id="encountered-in">Encountered in<a class="anchor-link" href="#encountered-in">#</a></h3>
+<p>TfLens's BRD §13 parity gate — the acceptance requirement that every figure the app renders must match
+this script key for key before it may be quoted (<code>REQ-FN-058</code>, <code>-062</code>, <code>-063</code>, <code>-064</code>, <code>-065</code>). The
+gate is zero-tolerance, so one duplicated upstream record held the whole <code>/export</code> page at
+<code>NOT QUOTABLE</code>.</p>
+<h3 id="repro">Repro<a class="anchor-link" href="#repro">#</a></h3>
+<p>Any repo whose <code>docs/metrics/sessions.jsonl</code> holds two records sharing a <code>session_id</code> reproduces it.
+In <code>techierathore/TechieFlow</code> at <code>708fcff</code>, lines 9 and 10 of <code>sessions.jsonl</code> are byte-identical:</p>
+<pre><code>9  {"session_id":"cb2d3e32-ebbb-4cd6-8c64-1e8d81566179","output_tokens":43196, …}
+10 {"session_id":"cb2d3e32-ebbb-4cd6-8c64-1e8d81566179","output_tokens":43196, …}</code></pre>
+<pre><code class="language-bash">bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repo&gt; --json</code></pre>
+<h3 id="expected">Expected<a class="anchor-link" href="#expected">#</a></h3>
+<p>The record is counted <strong>once</strong>. <code>SCHEMA.md</code> §4 states the consumer rule in the same sentence that
+documents the duplication:</p>
+<blockquote>
+<p>"…the plugin appends a CUMULATIVE snapshot at every root-session idle (a TUI session idles after each
+turn; <code>opencode run</code> idles once), so several records may share a <code>session_id</code> — <strong>consumers take the
+record with the highest <code>output_tokens</code></strong> (or the latest <code>ts</code>) per <code>session_id</code>."</p>
+</blockquote>
+<h3 id="actual">Actual<a class="anchor-link" href="#actual">#</a></h3>
+<p>Counted twice. The parity compare against TfLens (which does implement §4) returns four findings, all
+the same record:</p>
+<table>
+<thead><tr><th>Key</th><th><code>tf-metrics.sh</code></th><th>TfLens</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td><code>per_repo[TechieFlow].sessions</code></td><td>21</td><td>20</td><td>1 session</td></tr>
+<tr><td><code>pooled.sessions</code></td><td>36</td><td>35</td><td>1 session</td></tr>
+<tr><td><code>pooled.tokens_total</code></td><td>7,810,195</td><td>7,762,638</td><td>47,557</td></tr>
+<tr><td><code>pooled.tokens_per_verified_req</code></td><td>156,203.9</td><td>155,252.8</td><td>951.1</td></tr>
+</tbody>
+</table>
+<p>The token delta is exactly the duplicated record's own tokens (<code>4,361 + 43,196 = 47,557</code>), and the
+<code>tokens_per_verified_req</code> difference falls out of it. One cause, four visible numbers.</p>
+<h3 id="root-cause">Root cause<a class="anchor-link" href="#root-cause">#</a></h3>
+<p><code>dedupe_commits()</code> exists at line 105; there is <strong>no session equivalent anywhere in the file</strong>. Sessions
+are read straight through at line 410:</p>
+<pre><code class="language-python">        g = read_stream(repo, "gates")
+        r = read_stream(repo, "runs")
+        s = read_stream(repo, "sessions")          # &lt;- never de-duplicated
+        # Per repo, not across them: two repos may legitimately share a short sha.
+        c, d = dedupe_commits(read_stream(repo, "commits"))
+        commit_dupes += d</code></pre>
+<p><strong>Why the omission looks deliberate but isn't.</strong> The <code>dedupe_commits</code> docstring closes with:</p>
+<blockquote>
+<p>"Only commits need this. runs/gates/sessions record events that happen on ONE machine and are never
+independently reconstructible, so a union merge cannot manufacture a second copy of them."</p>
+</blockquote>
+<p>That is <strong>correct about union merge</strong> — and union merge is not how these duplicates arise. Session
+duplicates come from the OpenCode plugin's cumulative snapshots, a separate mechanism documented in §4.
+<code>SCHEMA.md</code> §5 carries the same scoped claim. So §4 and §5 do <strong>not</strong> contradict each other; the
+docstring reasons about one source of duplication and concludes there are none at all.</p>
+<h3 id="workaround">Workaround<a class="anchor-link" href="#workaround">#</a></h3>
+<p>None available to a consumer. Making the consumer count duplicates too would restore parity while making
+<em>both</em> implementations wrong; in TfLens's case it would also contradict BRD-27 and break the unique index
+its store relies on (<code>UcSessionUserRepoId</code>). TfLens therefore stays correct and reports
+<code>NOT QUOTABLE</code> on its export page, which is the honest state until this is fixed upstream.</p>
+<h3 id="suggested-fix">Suggested fix<a class="anchor-link" href="#suggested-fix">#</a></h3>
+<p>A sibling to <code>dedupe_commits</code>, keyed on <code>session_id</code>, keeping the highest <code>output_tokens</code> and breaking
+ties on the latest <code>ts</code> — the rule §4 already states:</p>
+<pre><code class="language-python">def dedupe_sessions(records):
+    """Collapse session records that share a session_id, keeping the completest.
+
+    Duplicates are EXPECTED here too, but for a different reason than commits.
+    The OpenCode plugin appends a CUMULATIVE snapshot at every root-session idle
+    (SCHEMA.md §4), so one session legitimately produces several records and only
+    the largest is complete. The documented consumer rule is to take the record
+    with the highest output_tokens per session_id, ties broken on the latest ts.
+
+    Claude Code records stay one-per-session via SessionEnd, so they are
+    unaffected: a session_id seen once keeps its single record untouched."""
+    rank = lambda r: ((r.get("output_tokens") or 0), r.get("ts") or "")
+    best, order, dupes = {}, [], 0
+    for r in records:
+        sid = r.get("session_id")
+        if sid is None:          # no natural key: pass through, as commits does
+            order.append(r)
+            continue
+        if sid in best:
+            dupes += 1
+            if rank(r) &gt; rank(best[sid]):
+                best[sid] = r
+        else:
+            best[sid] = r
+            order.append(sid)     # placeholder, resolved below; keeps first-seen order
+    return [best[x] if not isinstance(x, dict) else x for x in order], dupes</code></pre>
+<p>Call site, line 410:</p>
+<pre><code class="language-diff">-        s = read_stream(repo, "sessions")
++        s, sd = dedupe_sessions(read_stream(repo, "sessions"))
++        session_dupes += sd</code></pre>
+<p>Three notes on the change:</p>
+<ul>
+<li><strong>De-duplicate per repo</strong>, exactly as commits does — two repos may legitimately carry the same <code>session_id</code>, and collapsing across them would under-count.
+</li>
+<li>Initialise <code>session_dupes = 0</code> beside <code>commit_dupes</code> and surface it the way commits already is ("prints how many it collapsed"), so the collapse is visible rather than silent.
+</li>
+<li>Correct the closing paragraph of the <code>dedupe_commits</code> docstring <strong>and</strong> the matching sentence in <code>SCHEMA.md</code> §5 to scope the claim to <em>union-merge</em> duplicates specifically — sessions have their own duplication source, handled by §4.
+</li>
+</ul>
+<h3 id="verifying-the-fix">Verifying the fix<a class="anchor-link" href="#verifying-the-fix">#</a></h3>
+<p>On the dataset above:</p>
+<table>
+<thead><tr><th>Key</th><th>Before</th><th>After</th></tr></thead>
+<tbody>
+<tr><td><code>per_repo[TechieFlow].sessions</code></td><td>21</td><td>20</td></tr>
+<tr><td><code>pooled.sessions</code></td><td>36</td><td>35</td></tr>
+<tr><td><code>pooled.tokens_total</code></td><td>7,810,195</td><td>7,762,638</td></tr>
+<tr><td><code>pooled.tokens_per_verified_req</code></td><td>156,203.9</td><td>155,252.8</td></tr>
+</tbody>
+</table>
+<p>Worth adding as a regression guard: a fixture with one session repeated at two different
+<code>output_tokens</code> values, asserting the larger survives and the count is 1. The same fixture pins the
+tie-break, which is the part most likely to drift.</p>
+<h3 id="why-it-matters">Why it matters<a class="anchor-link" href="#why-it-matters">#</a></h3>
+<p>The figures are <strong>overstated, not merely different</strong>. A duplicated session inflates session counts and
+every token total derived from them, and those feed <code>tokens_per_verified_req</code> — a headline efficiency
+figure. The error scales with how much OpenCode work a repo has recorded, so it grows quietly rather
+than announcing itself. It also blocks consumers: TfLens's acceptance gate requires an empty diff
+against this script before any figure it renders may be quoted.</p>
+<hr>
+<h2 id="tf-003-generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec">TF-003 — <code>*generate-html</code> has no renderer: HTML is hand-authored by the model from a 494-line spec<a class="anchor-link" href="#tf-003-generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec">#</a></h2>
+<blockquote>
+<h2 id="fixed-upstream-2026-08-27-same-day-2">✅ FIXED UPSTREAM — 2026-08-27, same day<a class="anchor-link" href="#fixed-upstream-2026-08-27-same-day-2">#</a></h2>
+<p><code>.tfcore/utils/tf-render-html.sh</code> (+ <code>tf-render-html.py</code>) now ships, and <code>generate-html.md</code> §2 calls it
+instead of describing how to hand-build the output. Verified in this project immediately after the
+framework update: rendering five documents — PROJECT-STATUS, BRD, UsageGuide and both DevGuides,
+<strong>392 KB of HTML including 11 Mermaid diagrams</strong> — took one command and produced one summary line per
+file (size, H2 count, sidebar yes/no, diagram count). The spec stayed put: the script reads the CSS and
+JS out of <code>html-render-shell.md</code> at render time, so the output cannot drift from it, and it refuses a
+<code>*-Checklist.md</code> with exit 2, making that ban mechanical rather than prose. Nothing below needs action;
+the entry is kept as the record of what was wrong and why.</p>
+</blockquote>
+<p><strong>Severity:</strong> High — the largest avoidable token cost in the workflow, and it is mandatory on every phase.</p>
+<p><strong>Component:</strong> <code>.tfcore/tasks/generate-html.md</code> · <code>.tfcore/tasks/render-workflow-docs.md</code> ·
+<code>.tfcore/templates/v4custom/html-render-shell.md</code> · enforced by <code>.tfcore/hooks/guard-status-html.sh</code>
+<strong>Found:</strong> 2026-08-27, during a <code>*build-phase</code> + <code>*verify all</code> pass that re-rendered four documents.</p>
+<h3 id="encountered-in-2">Encountered in<a class="anchor-link" href="#encountered-in-2">#</a></h3>
+<p>Every phase of TfLens, unavoidably. <code>_status-update-gate.md</code> item 8 requires <code>PROJECT-STATUS.html</code> to
+be re-rendered in the same turn as the <code>.md</code>, and the <code>Stop</code> hook <code>guard-status-html.sh</code> refuses to end
+the turn while the HTML is older than the markdown — so the cost recurs on every phase for the life of
+the project, not once. Concretely met re-rendering <code>PROJECT-STATUS.html</code>, <code>docs/TfLens-UsageGuide.html</code>,
+<code>docs/TfLens-BRD.html</code> and <code>docs/TfLens-DevGuide-Screens.html</code> (≈300 KB) in a single pass.</p>
+<blockquote>
+<p><strong>Possible regression — please confirm at your end.</strong> The project owner reports that HTML generation
+<strong>used to work as a component</strong> and believes it was removed or dropped during a recent framework
+change. That cannot be confirmed or denied from inside a consuming project: <code>.tfcore/</code> is gitignored
+and carries no local history, so there is nothing here to diff against. What <em>is</em> verifiable is the
+state of the deployed copy today, below. If a renderer did exist and was dropped, this entry is a
+regression report; if it never existed, it is a gap report. Either way the ask is the same.</p>
+</blockquote>
+<h3 id="repro-2">Repro<a class="anchor-link" href="#repro-2">#</a></h3>
+<p>Every phase. <code>_status-update-gate.md</code> item 8 requires <code>PROJECT-STATUS.html</code> to be re-rendered in the
+same turn as the <code>.md</code>, and the <code>Stop</code> hook <code>guard-status-html.sh</code> refuses to end the turn while the
+HTML is older than the markdown. So this path is unavoidable, not occasional.</p>
+<h3 id="expected-2">Expected<a class="anchor-link" href="#expected-2">#</a></h3>
+<p>A command the agent can invoke, like every other piece of framework tooling — <code>tf-emit.sh</code>,
+<code>tf-perf.sh</code>, <code>tf-yolo.sh</code>, <code>tf-metrics.sh</code> are all executables.</p>
+<h3 id="actual-2">Actual<a class="anchor-link" href="#actual-2">#</a></h3>
+<p><strong>No renderer exists anywhere in the deployed framework.</strong> <code>.tfcore/utils/</code> contains ten scripts and
+none of them produce HTML:</p>
+<pre><code>techieflow-doc-template.md   tf-codex-bind.py   tf-codex-telemetry.py   tf-emit.sh
+tf-goal.sh   tf-harness.sh   tf-perf.sh   tf-routing-bind.sh   tf-routing.sh   tf-yolo.sh</code></pre>
+<p>The only HTML-related assets are two task descriptions, the <code>guard-status-html.sh</code> hook, and
+<code>html-render-shell.md</code> — a <strong>494-line prose specification</strong> (§1 slug rule, §2 CSS, §3 skeleton,
+§4 anchors, §5 mermaid wrapper, §6 code blocks, §6b agent-note strip, §7 JS, §8 inline TOC, §9 checklist).</p>
+<p>Both rendering tasks then instruct the agent to implement that spec by hand, and explicitly forbid the
+cheap path:</p>
+<blockquote>
+<p><code>generate-html.md</code> §2 — "Read <code>.tfcore/templates/v4custom/html-render-shell.md</code> for the full rendering
+specification. Apply every section… <strong>Use the Write tool to create the sibling HTML — never bash
+heredocs.</strong>"</p>
+</blockquote>
+<blockquote>
+<p><code>render-workflow-docs.md</code> §3 — "<strong>Use the Write tool — NOT bash heredocs / <code>cat &lt;&lt;EOF</code> / <code>echo &gt;</code>.</strong>"</p>
+</blockquote>
+<p>So rendering one document means: read the source MD, read a 494-line spec, compute a slug for every
+heading, dedupe collisions, decide TOC mode, and emit the entire HTML file token by token through the
+model.</p>
+<p><strong>A note for whoever investigates the regression question:</strong> no task references a missing script. Every
+one of them — <code>generate-html</code>, <code>render-workflow-docs</code>, <code>metrics-report</code>, <code>day1-brownfield</code> §360 —
+consistently describes hand-authoring, and <code>html-render-shell.md</code> is cited across a dozen files purely
+as an authoring spec (slug rule, Mermaid rules). There is no dangling call site pointing at an absent
+binary. So if a renderer was removed, the task files appear to have been rewritten around its absence
+rather than left broken — which would explain why nothing errors, and why the cost is invisible.</p>
+<p><strong>The cost is not marginal.</strong> This single session re-rendered four project documents:</p>
+<table>
+<thead><tr><th>Document</th><th>Rendered size</th></tr></thead>
+<tbody>
+<tr><td><code>PROJECT-STATUS.html</code></td><td>16,687 bytes</td></tr>
+<tr><td><code>docs/TfLens-UsageGuide.html</code></td><td>32,459 bytes</td></tr>
+<tr><td><code>docs/TfLens-BRD.html</code></td><td>119,078 bytes</td></tr>
+<tr><td><code>docs/TfLens-DevGuide-Screens.html</code></td><td>132,467 bytes</td></tr>
+</tbody>
+</table>
+<p>≈ <strong>300 KB of HTML</strong>, or roughly 75–80k output tokens if hand-authored — for documents whose <em>content</em>
+barely changed. <code>PROJECT-STATUS.html</code> alone must be regenerated at the end of every phase, forever.</p>
+<p>Three further consequences beyond cost:</p>
+<ul>
+<li><strong>Drift.</strong> Hand-authored output is not reproducible: two renders of the same source differ in incidental ways, and nothing checks the result against the spec. <code>render-workflow-docs.md</code> §6 asks the agent to "verify each HTML mentally" — self-review by the same model that just wrote it.
+</li>
+<li><strong>Truncation risk.</strong> A 132 KB file emitted in one generation can silently truncate, producing broken HTML that no gate catches, because no gate reads rendered output.
+</li>
+<li><strong>The rule is quietly unenforceable, so projects route around it.</strong> TfLens had already done so before this session — a local renderer had been written in an earlier phase precisely because hand-authoring a document of that size, repeatedly, is not practical. That script has now been <strong>deleted</strong> at the owner's instruction, so this project is back on the sanctioned path and carrying its full cost.
+</li>
+</ul>
+<h3 id="workaround-2">Workaround<a class="anchor-link" href="#workaround-2">#</a></h3>
+<p><strong>None.</strong> With no framework renderer and the local script removed, the only available path is
+hand-authoring every HTML file through the model, on every phase, enforced by a <code>Stop</code> hook.</p>
+<h3 id="suggested-fix-2">Suggested fix<a class="anchor-link" href="#suggested-fix-2">#</a></h3>
+<p><strong>Ship the renderer as an executable and make the spec its documentation rather than its
+implementation.</strong> Concretely:</p>
+<ul>
+<li>Restore (or add) <code>.tfcore/utils/tf-render-html.sh</code>, invoked as <code>bash .tfcore/utils/tf-render-html.sh &lt;file.md&gt; [more.md ...]</code>, exactly like <code>tf-emit.sh</code>.
+</li>
+<li>Point <code>generate-html.md</code> §2 and <code>render-workflow-docs.md</code> §3 at it instead of describing how to hand-build the output. Both tasks keep their argument handling, the checklist ban and the directory rules — only the rendering step changes.
+</li>
+<li>Keep <code>html-render-shell.md</code> as the spec the script implements, so the shell stays reviewable and the Mermaid/slug authoring rules other tasks cite stay exactly where they are.
+</li>
+<li><strong>Constraint worth carrying over:</strong> the reference machine has no markdown converter installed — no pandoc, no python-markdown, no node library — so the renderer needs to be dependency-free (Python 3 standard library, or equivalent) rather than assuming a package is available.
+</li>
+</ul>
+<p>Until this lands, every project either burns tens of thousands of tokens per phase or writes its own
+renderer and silently diverges from the shell.</p>
+<hr>
+<h2 id="tf-005-analysemisses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework">TF-005 — <code>analyse_misses</code> averages an unrecorded token count as zero, understating the cost of rework<a class="anchor-link" href="#tf-005-analysemisses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework">#</a></h2>
+<p><strong>Severity:</strong> Medium — the figure is wrong only on datasets where some <code>sole</code> fix records carry no
+<code>tokens_out</code>, but it is wrong in the direction that flatters the framework, and it forces every
+consumer to choose between agreeing with the reference and being correct.</p>
+<p><strong>Component:</strong> <code>.tfcore/telemetry/tf-metrics.sh</code> (<code>analyse_misses</code>, <code>--rollup --json</code>) · sha256 <code>f4b2667a…d09a7</code>
+<strong>Found:</strong> 2026-08-28, implementing BRD-122 / REQ-FN-079 against the <code>misses</code> block.</p>
+<h3 id="encountered-in-3">Encountered in<a class="anchor-link" href="#encountered-in-3">#</a></h3>
+<p>BRD-122 / REQ-FN-079 — the rework-economics figures on TfLens's <code>/misses</code> page, built against the
+oracle's <code>misses</code> block on 2026-08-28. Surfaced while writing <code>MissFigures</code>/<code>MissHarnessCost</code> to agree
+with the reference key for key under the BRD §13 parity gate, which is where the disagreement had to be
+either adopted or declared.</p>
+<h3 id="repro-3">Repro<a class="anchor-link" href="#repro-3">#</a></h3>
+<p>Any repository whose <code>misses.jsonl</code> holds <code>sole</code>-attributed <code>miss-fix</code> records where at least one
+omits <code>tokens_out</code>. Four such records — three carrying 100, 200 and 300 output tokens and one carrying
+none:</p>
+<pre><code>tokens_per_miss_measured = sum(tokens_out or 0) / len(sole)
+                         = (100 + 200 + 300 + 0) / 4
+                         = 150.0</code></pre>
+<h3 id="expected-3">Expected<a class="anchor-link" href="#expected-3">#</a></h3>
+<p><code>200.0</code> — the mean output tokens of the repairs whose cost was actually recorded, with the fourth
+record reported as unmeasured. <code>cost_sole_n</code> already carries the record count separately, so no
+information is lost by excluding it from the divisor.</p>
+<h3 id="actual-3">Actual<a class="anchor-link" href="#actual-3">#</a></h3>
+<p><code>150.0</code>. The unrecorded repair is averaged in as a <strong>free</strong> repair. The error scales with how many
+records lack the field: a stream where half the <code>sole</code> fixes predate token capture reports rework as
+costing half what it did.</p>
+<h3 id="root-cause-2">Root cause<a class="anchor-link" href="#root-cause-2">#</a></h3>
+<p><code>tok()</code> coerces the absent value on the way in, and the divisor then counts the record anyway:</p>
+<pre><code class="language-python">def tok(fs):
+    return sum((f.get("tokens_out") or 0) for f in fs)
+
+"tokens_per_miss_measured": round(float(tok(sole)) / len(sole), 1) if len(sole) &gt;= MIN_N else None,</code></pre>
+<p><code>or 0</code> cannot distinguish an absent field from a recorded zero, so <code>null</code> becomes a measurement.</p>
+<h3 id="why-it-matters-2">Why it matters<a class="anchor-link" href="#why-it-matters-2">#</a></h3>
+<p>This is the same defect class the miss stream exists to expose, appearing in the tool that measures
+it. SCHEMA.md §2.5 states that an absent optional stays <code>null</code> and is never coerced to zero, and the
+rest of <code>tf-metrics.sh</code> honours that — <code>cost_usd</code> is explicitly <em>not</em> pooled across harnesses for
+precisely this reason, with the comment <em>"a pooled sum over mixed harnesses would silently
+under-report"</em>. The token mean has the identical hazard and does not guard against it.</p>
+<p>It also puts a consumer in an unwinnable position. BRD §13 parity is zero-tolerance, so TfLens must
+either reproduce a figure it believes is wrong, or fail its own acceptance gate.</p>
+<h3 id="workaround-tflens-in-place">Workaround (TfLens, in place)<a class="anchor-link" href="#workaround-tflens-in-place">#</a></h3>
+<p>TfLens divides by the records that carry a count and reports the rest as unmeasured
+(<code>MissHarnessCost.TokenRecords</code>). The divergence is <strong>latent, not live</strong>: every dataset seen so far
+has <code>tokens_out</code> on every <code>sole</code> record, so the two implementations currently agree and the parity
+gate passes (exit 0, recorded as <code>DECISIONS.md</code> P-003). The workaround is pinned by
+<code>MissCostTests.AFixCarryingNoTokenCountIsNotCountedAsZero</code> and by a comment at the call site in
+<code>src/TfLens.Core/Metrics/MissFigures.cs</code> warning against "fixing" the divergence by adopting the
+reference's number.</p>
+<h3 id="suggested-fix-3">Suggested fix<a class="anchor-link" href="#suggested-fix-3">#</a></h3>
+<p>Exclude unrecorded records from the divisor, and report them:</p>
+<pre><code class="language-python">def tok(fs):
+    priced = [f for f in fs if f.get("tokens_out") is not None]
+    return sum(f["tokens_out"] for f in priced), len(priced)
+
+tokens, n = tok(sole)
+"tokens_per_miss_measured": round(float(tokens) / n, 1) if n &gt;= MIN_N else None,
+"tokens_per_miss_measured_n": n,</code></pre>
+<p>The same applies to <code>tokens_per_miss_apportioned</code>. Adding the <code>_n</code> key makes the denominator visible
+on both sides, which is what lets a consumer agree with the reference <em>and</em> be correct.</p>
+<p><strong>If the current behaviour is intended</strong>, say so in SCHEMA.md §5.5 — state that <code>tokens_out</code> is
+mandatory on a <code>sole</code> record, and have <code>tf-emit.sh</code> refuse to write one without it. Then the absent
+case cannot arise and the coercion is unreachable. Either resolution is fine; the present state,
+where the field is optional and its absence silently means zero, is not.</p>
+<hr>
+<h2 id="tf-002-tf-perf-sh-cannot-measure-an-authenticated-app-and-does-not-say-so">TF-002 — <code>tf-perf.sh</code> cannot measure an authenticated app, and does not say so<a class="anchor-link" href="#tf-002-tf-perf-sh-cannot-measure-an-authenticated-app-and-does-not-say-so">#</a></h2>
+<blockquote>
+<h2 id="fixed-upstream-2026-08-27-same-day-3">✅ FIXED UPSTREAM — 2026-08-27, same day<a class="anchor-link" href="#fixed-upstream-2026-08-27-same-day-3">#</a></h2>
+<p><code>--header 'K: V'</code> (repeatable) and <code>--cookie 'k=v'</code> pass-through were added, along with
+<code>redirects</code> / <code>redirect_rate</code> per level. Both halves of the suggested fix were taken: an <strong>all-3xx run
+is now a refusal</strong> — <code>status:"redirected"</code>, <strong>exit 4</strong>, and no latency figure emitted at all — while a
+mixed run still measures and is flagged. <code>verify-phase</code> §4c documents the flags and the
+<code>PERF-UNMEASURED (auth wall)</code> grade.</p>
+<h3 id="closed-and-the-fix-was-exercised-for-the-first-time-on-2026-08-28">✅ CLOSED — and the fix was exercised for the first time on 2026-08-28<a class="anchor-link" href="#closed-and-the-fix-was-exercised-for-the-first-time-on-2026-08-28">#</a></h3>
+<p><strong>This is the field confirmation the framework team asked for, so it is worth stating plainly: the fix
+works.</strong> Until 2026-08-28 the fix had shipped but had never actually been run against a login-gated
+app — TfLens's REQ-NFR-001 was still resting on the Playwright workaround below. On 2026-08-28 the
+perf gate ran through <code>tf-perf.sh</code> itself, presenting the session with <code>--cookie</code>, and <strong>measured the
+authenticated pages</strong>: <strong>p95 ≤ 42 ms against a 1500 ms budget</strong>. That is the <strong>first perf run in this
+project's history to measure authenticated pages</strong> rather than the redirect to <code>/login</code>.</p>
+<p>Two things follow, both useful upstream:</p>
+<ul>
+<li><strong>The refusal path is no longer reached, because the measurement path now works.</strong> The 4.1 ms figure in <em>Actual</em> below — the speed of being turned away at the door — is what the same harness produced on the same app the day before.
+</li>
+<li><strong>The workaround is retired.</strong> REQ-NFR-001 no longer depends on the project's own Playwright spec to get a number the framework harness could not produce; the framework harness produces it. The Playwright spec is kept as a second opinion, not as the measurement of record.
+</li>
+</ul>
+</blockquote>
+<p><strong>Severity:</strong> Medium — reports a meaningless number without flagging it.</p>
+<p><strong>Component:</strong> <code>.tfcore/utils/tf-perf.sh</code>
+<strong>Found:</strong> 2026-08-27, grading REQ-NFR-001's <code>perf-budget</code> during <code>*verify all</code>.</p>
+<h3 id="encountered-in-4">Encountered in<a class="anchor-link" href="#encountered-in-4">#</a></h3>
+<p>REQ-NFR-001 (<code>perf-budget</code>, p95 page load under 1500 ms), graded during <code>*verify all</code>. Every route in
+TfLens is behind a login, so the whole path set was affected — there was no unauthenticated page for
+the harness to measure honestly.</p>
+<h3 id="repro-4">Repro<a class="anchor-link" href="#repro-4">#</a></h3>
+<pre><code class="language-bash">bash .tfcore/utils/tf-perf.sh --base http://localhost:5099 \
+     --paths "/,/three-questions,/harness,/routing,/export" \
+     --levels 1 --requests 12 --build-config Release</code></pre>
+<p>against any app whose routes require a login.</p>
+<h3 id="expected-4">Expected<a class="anchor-link" href="#expected-4">#</a></h3>
+<p>Either a real measurement of the pages, or a clear refusal saying the paths could not be reached
+as an anonymous caller.</p>
+<h3 id="actual-4">Actual<a class="anchor-link" href="#actual-4">#</a></h3>
+<p>The harness sends a fixed header set with <strong>no cookie and no auth option</strong> (<code>--base</code>, <code>--paths</code>,
+<code>--levels</code>, <code>--requests</code>, <code>--warmup</code>, <code>--timeout</code>, <code>--build-config</code>, <code>--label</code>, <code>--json-out</code> are the
+whole flag set). Every route answered <code>302</code> to <code>/login</code>, and it reported <code>p95 = 4.1 ms</code> — the speed of
+being turned away at the door, not of any page. The <code>non_200</code> array does carry the redirects, so a
+careful reader can catch it, but nothing in the summary marks the latency figure as meaningless.</p>
+<h3 id="workaround-3">Workaround<a class="anchor-link" href="#workaround-3">#</a></h3>
+<p>Graded the REQ as <code>PERF-UNMEASURED (non-200 responses)</code> per <code>verify-phase.md</code> §4c rather than recording
+the 4.1 ms, and measured the budget instead with the project's own authenticated Playwright spec
+(<code>tests/verify/perf-report-pages.spec.ts</code>): p95 <strong>439 ms</strong> against a 1500 ms budget, n=60, Release build.</p>
+<h3 id="suggested-fix-4">Suggested fix<a class="anchor-link" href="#suggested-fix-4">#</a></h3>
+<ul>
+<li>A <code>--header</code> / <code>--cookie</code> pass-through so the harness can present a session.
+</li>
+<li>Treat an all-<code>3xx</code> path set as an error (non-zero exit, as <code>--base</code> unreachable already does) rather than returning a latency figure computed from redirects.
+</li>
+</ul>
+<hr>
+<h2 id="tf-006-a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them">TF-006 — a schema field added mid-session leaves already-emitted records incomplete, with no append-only way to complete them<a class="anchor-link" href="#tf-006-a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them">#</a></h2>
+<blockquote>
+<h3 id="renumbered-2026-08-28-this-entry-was-originally-allocated-tf-005">⚠ RENUMBERED 2026-08-28 — this entry was originally allocated <code>TF-005</code><a class="anchor-link" href="#renumbered-2026-08-28-this-entry-was-originally-allocated-tf-005">#</a></h3>
+<p><strong><code>TF-005</code> was doubly allocated</strong>, the same way <code>TR-010</code>…<code>TR-014</code> were in the TrBlazeUI file: this
+entry and <em>"<code>analyse_misses</code> averages an unrecorded token count as zero"</em> were written on the same day
+by different clusters and both took the number. The two are unrelated defects, so this is a numbering
+collision, not a duplicate to merge.</p>
+<p><strong><code>TF-005</code> now means the <code>analyse_misses</code> entry</strong>, because that is what every citation outside this
+file means by it: <code>DECISIONS.md</code> <strong>D-012</strong> (×4), <code>PROJECT-STATUS.md</code> (×3, "TF-005 open"),
+<code>docs/TfLens-BRD.md</code> F-MISS, and <code>docs/TfLens-DevGuide-Screens.md</code>. This entry — which is <strong>closed</strong> —
+takes the next free number, <code>TF-006</code>, so the live citations keep resolving and the closed one moves.</p>
+<p><strong>One stale citation is left, and it is not fixable from here:</strong> <code>docs/Miss-Telemetry-TfLens.md</code>
+(lines 6, 12 and §0.65) cites <code>TF-005</code> meaning <strong>this</strong> entry — the <code>miss-amend</code> report. That file is
+a design record for the TechieFlow repo, so it is reported rather than edited: <strong>those three should
+read <code>TF-006</code>.</strong> Every <code>TF-005</code> reference in the resolution blocks at the top of <em>this</em> file has
+already been corrected to <code>TF-006</code>.</p>
+</blockquote>
+<blockquote>
+<h2 id="fixed-upstream-2026-08-28-same-day">✅ FIXED UPSTREAM — 2026-08-28, same day<a class="anchor-link" href="#fixed-upstream-2026-08-28-same-day">#</a></h2>
+<p><strong>Both</strong> of the fixes this entry proposed were taken, because each covers a case the other does not.
+The third record kind — <strong><code>miss-amend</code></strong> (SCHEMA.md §5.5.7) — is written exactly as suggested: it may
+set a field that is <code>null</code> and may never overwrite one that is not, so it completes a record instead of
+altering a fact; the allowlist is closed-vocabulary only, and orphans are counted rather than dropped.
+One boundary was added to the design while implementing it: <strong>a judgement may be completed, an
+observation may not</strong> — <code>why_missed</code> is a classification a reader can still make honestly next week,
+while a gate verdict is a fact about a finished run (§3.5's rule, seen from the other side). Everything
+the emitter derives is excluded outright. The cheaper alternative was taken as well: <code>tf-metrics.sh</code>
+gained a <strong><code>FIELD_SINCE</code></strong> table so records predating a field leave that field's denominator, with the
+excluded count printed. And constraint 5 now names which record kind carries which correction, plus
+the instruction to <strong>report a missing path rather than edit the file</strong> — which is what this entry did.</p>
+<p><strong>✅ CLOSED — verified in this repo 2026-08-28.</strong></p>
+<p><em>Refusal paths, against the real <code>docs/metrics/misses.jsonl</code>.</em> All three refuse with a readable reason
+and <strong>exit 0</strong>, and the stream came out byte-identical (md5 unchanged, 3 lines → 3 lines):
+a field already set (<code>why_missed is already 'missing-checklist-item' … an amend completes a record,
+never overwrites a value</code>); an unknown <code>miss_id</code> (<code>no miss record … on this stream</code> — the orphan
+guard); and a non-allowlisted field (<code>severity is not an amendable field (SCHEMA.md §5.5.7)</code>).</p>
+<p><em>Positive path, in a sandbox</em> — the real stream no longer holds a record with <code>why_missed</code> empty, so a
+throwaway repo was used rather than manufacturing a fake miss on the live log. <code>--amend</code> printed
+<code>amended … why_missed = insufficient-verify-method</code>, <strong>appended</strong> a <code>miss-amend</code> row and left the
+parent <code>miss</code> line byte-identical; a second amend of the same field was refused; and free text
+(<code>"we just forgot lol"</code>) was refused as outside the closed vocabulary. That last one settles the
+constraint-7 worry this entry raised: the amend path <strong>cannot</strong> become a free-text back door.</p>
+<p><em>Not executed:</em> the <code>--report</code> checks (<code>amendments folded</code>, <code>n miss(es) predate the field</code>). Verified
+statically instead — <code>FIELD_SINCE = {"why_missed": "2026-08-28"}</code> at <code>tf-metrics.sh:54</code>, the
+predates-field line at <code>:898</code>. See the constraint-1 note below for why it was not run.</p>
+<p><em>The <code>why_missed</code> values on TfLens's two records stand:</em> <code>MISS-…-01</code> <code>missing-checklist-item</code>,
+<code>MISS-…-02</code> <code>dependency-not-declared</code>. <code>--amend</code> refuses them, correctly, and they were not redone.</p>
+</blockquote>
+<p><strong>Severity:</strong> Medium — silently degrades the stream's most decision-changing field, and the documented
+correction path does not exist for this stream. Recurs on every future schema addition.</p>
+<p><strong>Component:</strong> <code>.tfcore/telemetry/SCHEMA.md</code> §5.5 (record kinds) · <code>_metrics-emit-gate.md</code> constraint 5
+<strong>Found:</strong> 2026-08-28, when <code>why_missed</code> (§5.5.6) landed four minutes after a <code>*log-miss</code> run.</p>
+<h3 id="encountered-in-5">Encountered in<a class="anchor-link" href="#encountered-in-5">#</a></h3>
+<p>The <code>*log-miss TfLens</code> run of 2026-08-28 07:10:35–07:13:02, which emitted <code>MISS-TfLens-20260828-01</code>,
+its <code>miss-fix</code>, and <code>MISS-TfLens-20260828-02</code> — four minutes before <code>update-framework.sh</code> added the
+<code>why_missed</code> field at 07:17:47. Both <code>miss</code> records carry <code>found_by:"owner"</code>, which is the category
+§5.5.6 calls the most valuable in the stream, so leaving the field <code>null</code> was the costliest available
+outcome.</p>
+<blockquote>
+<p><strong>This is not a complaint about the update.</strong> The feature is good and the timing was luck. The defect
+is that the framework has no legal move for the situation the update created, and it will create it
+again.</p>
+</blockquote>
+<h3 id="repro-5">Repro<a class="anchor-link" href="#repro-5">#</a></h3>
+<p>Any record emitted before a schema addition reproduces it. The concrete instance:</p>
+<table>
+<thead><tr><th>Time (UTC)</th><th>Event</th></tr></thead>
+<tbody>
+<tr><td><code>07:10:35</code>–<code>07:13:02</code></td><td><code>*log-miss TfLens</code> emitted <code>MISS-TfLens-20260828-01</code>, its <code>miss-fix</code>, and <code>MISS-TfLens-20260828-02</code>. <code>why_missed</code> existed in neither <code>SCHEMA.md</code> nor any task file.</td></tr>
+<tr><td><code>07:17:47</code></td><td><code>update-framework.sh</code> rewrote <strong>ten files at one mtime</strong> — <code>SCHEMA.md</code>, <code>tf-metrics.sh</code>, <code>metrics-report-template.md</code>, and every emitting task (<code>log-miss</code>, <code>verify-phase</code>, <code>build-phase</code>, <code>triage-issues</code>, <code>amend-docs</code>, <code>metrics-report</code>, <code>_metrics-emit-gate</code>) — adding <code>why_missed</code>. §5.5.6 is labelled <em>"ported from the Playbook 2026-08-28"</em>.</td></tr>
+<tr><td>after</td><td>Both <code>miss</code> records carry <code>found_by:"owner"</code>. §5.5.6: an escape without <code>why_missed</code> <em>"wastes the most valuable record in the stream."</em> <code>tf-metrics.sh</code> counts them in a named waste bucket (line ~258).</td></tr>
+</tbody>
+</table>
+<h3 id="expected-5">Expected<a class="anchor-link" href="#expected-5">#</a></h3>
+<p>A supported way to set a field that was <code>null</code> on an existing record — or an explicit statement that
+records predating a field stay <code>null</code> and are excluded from that field's denominator.</p>
+<h3 id="actual-5">Actual<a class="anchor-link" href="#actual-5">#</a></h3>
+<p>Neither exists, and all three available moves are forbidden:</p>
+<ul>
+<li><strong>Edit the record.</strong> <code>_metrics-emit-gate.md</code> constraint 5 and <code>docs/metrics/README.md</code>: <em>"Never rewrite, compact, sort, or de-duplicate a history file… If a record is wrong, the correction is a <strong>new record</strong>, never an edit."</em>
+</li>
+<li><strong>Append a correction.</strong> <code>misses.jsonl</code> has exactly two kinds, <code>miss</code> and <code>miss-fix</code> (§5.5.1, §5.5.2). Neither can carry one. The rule names a remedy the stream does not implement.
+</li>
+<li><strong>Re-emit the miss.</strong> Barred by §5.5.4 collapse — and both misses count as <em>still open</em> (<code>MISS-…-01</code>'s <code>miss-fix</code> carries <code>verdict_after:"Needs re-verify"</code>, not <code>Verified</code>), so a re-emit would double the miss count and make it a measure of retry patience, which is the exact failure §5.5.4 exists to prevent.
+</li>
+</ul>
+<p>The field is therefore unreachable: leave it <code>null</code> forever, or break constraint 5.</p>
+<h3 id="workaround-4">Workaround<a class="anchor-link" href="#workaround-4">#</a></h3>
+<p>Edited the two lines in place — <strong>on the owner's explicit instruction, after presenting the conflict</strong> —
+inserting one key each and touching no other bytes:</p>
+<pre><code class="language-diff">  "miss_class":"wrong-behaviour",
++ "why_missed":"missing-checklist-item",
+  "artifact":"devguide",
+
+  "miss_class":"unspecified-gap",
++ "why_missed":"dependency-not-declared",
+  "artifact":"tests",</code></pre>
+<p>Re-validated after: 3/3 records parse, both values in the §5.5.6 vocabulary, the <code>miss-fix</code> line
+untouched (<code>cost_attribution:"sole"</code> and its token window intact), and the escapes-without-<code>why_missed</code>
+bucket back to 0. An agent should not be making that call, which is why it was put to the owner.</p>
+<h3 id="suggested-fix-5">Suggested fix<a class="anchor-link" href="#suggested-fix-5">#</a></h3>
+<p>A third record kind, so the correction rule has something to name:</p>
+<pre><code class="language-json">{"kind":"miss-amend","miss_id":"MISS-App-20260828-01","field":"why_missed","value":"missing-checklist-item"}</code></pre>
+<ul>
+<li>May only set a field that is <code>null</code> on the parent; <strong>never</strong> overwrites a non-<code>null</code> value, so it cannot rewrite history — it completes a record rather than altering a fact.
+</li>
+<li><code>tf-metrics.sh</code> folds amendments into the parent before counting; an amendment with no parent is an <strong>orphan</strong>, reported and counted, exactly as §5.5.2 already treats an orphan <code>miss-fix</code>.
+</li>
+<li>Restrict it to fields whose vocabulary is closed, so it can never become a free-text back door (constraint 7).
+</li>
+</ul>
+<p><strong>Cheaper alternative, if a third kind is unwanted:</strong> say so in §5.5.6. The reporting side already
+behaves correctly — line ~248's comment reads <em>"Denominator is records that CARRY the field"</em>, so a
+<code>null</code> does not distort the distribution. Only two things are missing: a sentence stating that records
+predating a field stay <code>null</code> legitimately, and suppression of the escape-waste warning for records
+whose <code>ts</code> precedes the field's introduction date (§3.5 already establishes that pattern for <code>perf</code>,
+and names it as <em>"the rule for any future gate"</em> — this is the same hazard arriving on a different
+stream).</p>
+<p>Either way the general point stands: <strong><code>why_missed</code> will not be the last field added to this schema</strong>,
+and every addition repeats this unless the completion path is defined once.</p>
+<hr>
+<h2 id="tf-004-tf-render-html-s-checklist-guard-matches-any-checklist-md-not-just-the-requirements-checklist">TF-004 — <code>tf-render-html</code>'s checklist guard matches any <code>*-Checklist.md</code>, not just the requirements checklist<a class="anchor-link" href="#tf-004-tf-render-html-s-checklist-guard-matches-any-checklist-md-not-just-the-requirements-checklist">#</a></h2>
+<blockquote>
+<h2 id="fixed-upstream-2026-08-28">✅ FIXED UPSTREAM — 2026-08-28<a class="anchor-link" href="#fixed-upstream-2026-08-28">#</a></h2>
+<p>The guard now identifies the document by <strong>content</strong>, which is the more robust of the two options
+this entry offered: a <code>*-Checklist.md</code> is refused only when it also carries <code>## Requirements Status</code>
+or the template's <code>SINGLE SOURCE OF TRUTH</code> marker. Verified against the real <code>TfLens-Checklist.md</code>
+(still refused, exit 2) and a deployment-runbook fixture (renders). The rename round-trip below is no
+longer needed. Nothing else in the entry needs action; it is kept as the record of what was wrong.</p>
+<p><strong>✅ CLOSED — verified in this repo 2026-08-28.</strong> <code>bash .tfcore/utils/tf-render-html.sh
+docs/TfLens-Deployment-Checklist.md</code> → <code>rendered … (37.7 KB, 13 H2, sidebar)</code>, exit 0, matching the
+team's own figure exactly. <code>bash .tfcore/utils/tf-render-html.sh docs/TfLens-Checklist.md</code> → still
+<code>REFUSED</code>, exit 2 — and the message now reads <em>"TfLens-Checklist.md <strong>is the requirements
+checklist</strong>"</em> rather than the old suffix guess, so the refusal states the actual reason.
+<strong>The rename round-trip in the Workaround section below is superseded — do not use it.</strong></p>
+</blockquote>
+<p><strong>Severity:</strong> Low — a false positive with an easy workaround, but it blocks a legitimate document.</p>
+<p><strong>Component:</strong> <code>.tfcore/utils/tf-render-html.py</code> line ~464
+<strong>Found:</strong> 2026-08-27, rendering a deployment runbook the owner asked to be named <code>Deployment-Checklist.md</code>.</p>
+<h3 id="encountered-in-6">Encountered in<a class="anchor-link" href="#encountered-in-6">#</a></h3>
+<p><code>docs/TfLens-Deployment-Checklist.md</code> — the human-facing deployment runbook (prerequisites, secrets,
+the GitHub-token setup, compose steps, first-run verification), whose name the owner chose. It is the
+only document in the project that trips the guard, and it must be rendered like every other
+owner-facing document.</p>
+<h3 id="repro-6">Repro<a class="anchor-link" href="#repro-6">#</a></h3>
+<pre><code class="language-bash">bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md</code></pre>
+<h3 id="expected-6">Expected<a class="anchor-link" href="#expected-6">#</a></h3>
+<p>The document renders. It is a human-facing deployment runbook — prerequisites, secrets, the GitHub-token
+setup, compose steps, first-run verification — with an <code>Audience:</code> line and no Requirements Status table.</p>
+<h3 id="actual-6">Actual<a class="anchor-link" href="#actual-6">#</a></h3>
+<pre><code>tf-render-html: REFUSED — TfLens-Deployment-Checklist.md is a checklist — checklists are
+AI-agent working documents and are NEVER rendered to HTML (html-render-shell §0).</code></pre>
+<p>The guard is <code>re.search(r"-Checklist\.md$", base, re.I)</code>, which matches <strong>any</strong> filename ending
+<code>-Checklist.md</code>. The rule it enforces (<code>generate-html.md</code>, <code>html-render-shell §0</code>) is specifically about
+<code>docs/{AppName}-Checklist.md</code> — the per-REQ Requirements Status document agents read in markdown. A
+deployment checklist, a release checklist, a QA checklist and so on are ordinary human documents that
+happen to share the word.</p>
+<h3 id="workaround-5">Workaround<a class="anchor-link" href="#workaround-5">#</a></h3>
+<p>Render from a temporarily-renamed copy and move the output back:</p>
+<pre><code class="language-bash">cp docs/TfLens-Deployment-Checklist.md docs/TfLens-Deployment-Runbook.md
+bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Runbook.md
+mv docs/TfLens-Deployment-Runbook.html docs/TfLens-Deployment-Checklist.html
+rm docs/TfLens-Deployment-Runbook.md</code></pre>
+<p>Ugly, and it would be easy for a future agent to instead "solve" this by hand-authoring the HTML — the
+exact path TF-003 removed.</p>
+<h3 id="suggested-fix-6">Suggested fix<a class="anchor-link" href="#suggested-fix-6">#</a></h3>
+<p>Tighten the guard so it identifies the document rather than guessing from a suffix. Either:</p>
+<ul>
+<li>match the canonical name only — <code>^{AppName}-Checklist\.md$</code>, resolved the way the tasks already resolve <code>{AppName}</code>; or
+</li>
+<li>match on content — a file carrying the <code>## Requirements Status</code> heading (or the <code>SINGLE SOURCE OF TRUTH</code> marker comment the checklist template ships) is the agent document; anything else is not.
+</li>
+</ul>
+<p>The content check is the more robust of the two and does not depend on naming discipline.</p>
+<hr>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1775 @@
+@*
+    REQ-UI-035 / REQ-UI-036 / REQ-UI-037 / REQ-UI-038 — Misses & rework, the sixth report page.
+
+    Everything on this page comes out of the engine's MissAnalysis. The page renders it; it never
+    recomputes a guarded figure by hand. The period filter narrows the *record set* and then re-runs
+    MissFigures.Compute over it, so every guard — the `why_missed` denominator, the `linked`-only
+    attribution, the MinN floor, the MissCost split — is applied by the same code that computes the
+    unfiltered view, rather than by a second copy of the rules living in a Razor file (REQ-NFR-013).
+
+    Five things on this page are deliberate and are not stylistic:
+
+      1. Measured and apportioned rework cost are two columns and a count. `MissCost` exposes Sole,
+         Apportioned and NoneCount and nothing else, so no control here can bind a blend (ADR-019).
+      2. Every per-phase / per-model / per-agent figure is computed from MissAttributionTaint.Partition,
+         and the count it held out is printed on the page (`miss-taint-count`). An exclusion the reader
+         cannot see is indistinguishable from a bug (BRD-121).
+      3. The failed-practice distribution prints `n of N assessed` on its face, over records that CARRY
+         the field, never over the miss count (BRD-119).
+      4. `wont-fix` is its own tile and never enters the open count; `deferred` always does (BRD-120).
+      5. Rate-card dollars are on their own dashed card, on their own row, carrying
+         RateCard.EstimateLabel and the `_usd_estimate` export key. Nobody was billed that amount
+         (BRD-123).
+*@
+@page "/misses"
+@using System.Globalization
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using Microsoft.Extensions.Options
+@using TfLens.Core.Metrics
+@* These namespaces are NOT in Components/_Imports.razor and Razor does not fail the build when a
+   component cannot be resolved — it emits RZ10012 and renders the tag as an unknown element with no
+   styling. Same fix as Routing.razor. *@
+@using TrBlazeUI.Components.Empty
+@using TrBlazeUI.Components.Typography
+@using TfLens.Components.Shared.Playbook
+@using TfLens.Components.Pages.ExportParts
+@implements IDisposable
+@inject ITelemetryStore objStore
+@inject IOptions<TfLensOptions> objOptions
+@inject ShellPreferences objPreferences
+
+<PageTitle>Misses &amp; rework · TfLens</PageTitle>
+
+<div class="tflens-stack" data-testid="misses-page">
+
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <TypographyH2>Misses &amp; rework</TypographyH2>
+            <TypographyMuted>@Subtitle</TypographyMuted>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <Badge Variant="BadgeVariant.Outline" data-testid="misses-period-label">@PeriodLabel</Badge>
+            <div class="tflens-period">
+                @* TR-020: SelectValue renders the raw bound value until SelectContent has rendered once,
+                   so the closed trigger read "all" rather than "All history (default)". DisplayTextSelector
+                   is the library's own hook and resolves it without waiting for the popover. *@
+                <Select TValue="string"
+                        Value="@objPeriod"
+                        ValueChanged="OnPeriodChangedAsync"
+                        DisplayTextSelector="@PeriodTextOf"
+                        Class="w-full">
+                    <SelectTrigger data-testid="misses-period">
+                        <SelectValue Placeholder="All history (default)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        @foreach (var vOption in PeriodOptions)
+                        {
+                            <SelectItem TValue="string" Value="@vOption.Key" Text="@vOption.Label">@vOption.Label</SelectItem>
+                        }
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+    </div>
+
+    @if (IsPlaybook)
+    {
+        <PlaybookAxisNote />
+    }
+    else
+    {
+        @* BRD-118 / REQ-NFR-013 clause 6 — two escape figures on this site, and they are not the same
+           number. The note is standing page copy, never a tooltip. *@
+        <Alert Variant="AlertVariant.Info" AccentBorder="true" data-testid="miss-escape-note">
+            <LucideIcon Name="info" Size="16" />
+            <AlertTitle>Two escape figures on this site, and they are not the same number</AlertTitle>
+            <AlertDescription>
+                This page's <b>escape share</b> is <span class="font-mono">found_by &#8712; {owner, production}</span>
+                &#247; all misses, from <span class="font-mono">misses.jsonl</span>. The <b>escape rate</b> on
+                Three questions keeps its own definition and its own source (<span class="font-mono">gates.jsonl</span>).
+                They are adjacent, never merged.
+            </AlertDescription>
+        </Alert>
+    }
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" AccentBorder="true" data-testid="misses-error">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Couldn't compute the miss view</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objResult.MissesTotal == 0)
+    {
+        @if (IsPlaybook)
+        {
+            @* BRD-126 — the Framework switch is rendered, never hidden, for a surface one framework has
+               and the other does not. The miss stream is a TechieFlow surface today; the Playbook emits
+               events.ndjson, which carries no miss records. *@
+            <PlaybookEmpty />
+
+            <Card data-testid="misses-playbook-plan">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>What this page will show</CardTitle>
+                            <CardDescription>
+                                The same four bands, unchanged — the switch changes the data, never the
+                                layout or the rules.
+                            </CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline">Phase 3</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-scroll-x">
+                        <table class="tflens-table">
+                            <tbody>
+                                @foreach (var vBand in PlannedBands)
+                                {
+                                    <tr>
+                                        <td class="text-muted-foreground">@vBand.Band</td>
+                                        <td>@vBand.Detail</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <p class="text-xs text-muted-foreground" data-testid="misses-playbook-zero-note">
+                        A zero here is <b>absence, not a good score</b>. Nothing is rendered as a figure until
+                        there are records behind it, and no figure below the minimum n is ever printed as a number.
+                        TfLens holds @objResult.MissesTotal Playbook miss records.
+                    </p>
+                </CardFooter>
+            </Card>
+        }
+        else
+        {
+            <Empty Title="No misses recorded yet"
+                   Description="TfLens reads docs/metrics/misses.jsonl; it never writes one. Connect a repo that emits the misses stream, or log a miss from the framework."
+                   Size="EmptySize.Default"
+                   data-testid="misses-empty">
+                <Icon>
+                    <LucideIcon Name="bug" Size="40" />
+                </Icon>
+                <ChildContent>
+                    <Button Variant="ButtonVariant.Outline" Href="/repos" data-testid="misses-empty-connect">
+                        <LucideIcon Name="git-branch" Size="16" />
+                        Manage repos
+                    </Button>
+                </ChildContent>
+            </Empty>
+        }
+    }
+    else
+    {
+        @* project_type is the only shape a miss figure is ever computed in (REQ-FN-077). There is
+           deliberately no "all types" entry on MissAnalysis.Live, so the segment is chosen here and the
+           bands below render exactly one of them. *@
+        <Tabs Value="@objSelectedType" ValueChanged="OnTypeSelectedAsync" data-testid="miss-type">
+            <TabsList>
+                @foreach (var vType in objResult.ProjectTypes)
+                {
+                    @* TR-010: TabsTrigger captures no unmatched attributes, so the test id sits on its
+                       own label span; a click on that still activates the trigger. *@
+                    <TabsTrigger Value="@vType">
+                        <span class="flex items-center gap-1.5" data-testid="@($"miss-type-{vType}")">
+                            <span>@vType</span>
+                            <Badge Variant="BadgeVariant.Secondary">@SegmentOf(vType).Misses</Badge>
+                        </span>
+                    </TabsTrigger>
+                }
+            </TabsList>
+        </Tabs>
+
+        var vSeg = SegmentOf(objSelectedType);
+        var vTaint = SegmentTaint;
+
+        @* ── BAND 1 — KPI row ─────────────────────────────────────────────────────────── *@
+        <div class="tflens-stack" data-testid="miss-kpis">
+            <div class="tflens-kpi-row tflens-kpi-4">
+                <StatGroup Columns="4">
+                    <StatTile Title="Open misses"
+                              Value="@vSeg.OpenMisses.ToString("N0", CultureInfo.InvariantCulture)"
+                              Description="@OpenDetail"
+                              IconName="bug"
+                              Accent="StatAccent.Destructive"
+                              data-testid="kpi-open" />
+                    <StatTile Title="Declined (wont-fix)"
+                              Value="@vSeg.WontFix.ToString("N0", CultureInfo.InvariantCulture)"
+                              Description="a decision, not a backlog item — never folded into open"
+                              IconName="x"
+                              Accent="StatAccent.Chart4"
+                              data-testid="kpi-wontfix" />
+                    <StatTile Title="@($"Misses {PeriodTileSuffix}")"
+                              Value="@vSeg.Misses.ToString("N0", CultureInfo.InvariantCulture)"
+                              Description="@MixDetail(vSeg)"
+                              IconName="activity"
+                              Accent="StatAccent.Chart1"
+                              data-testid="kpi-period" />
+                    <StatTile Title="Median time to close"
+                              Description="miss-fix.ts − miss.ts over misses whose latest verdict is Verified"
+                              IconName="clock"
+                              Accent="StatAccent.Chart5"
+                              data-testid="kpi-median-close">
+                        <ValueContent>
+                            <FigureText Value="@vSeg.MedianTimeToCloseHours"
+                                        Class="@SmallWhenNoNumber(vSeg.MedianTimeToCloseHours)"
+                                        TestId="kpi-median-close-value" />
+                            @if (vSeg.MedianTimeToCloseHours.HasValue)
+                            {
+                                <span class="ml-1 text-base font-normal text-muted-foreground">h</span>
+                            }
+                        </ValueContent>
+                    </StatTile>
+                </StatGroup>
+            </div>
+
+            <div class="tflens-kpi-row tflens-kpi-4">
+                <StatGroup Columns="4">
+                    <StatTile Title="Design-miss share"
+                              Description="@DesignShareDetail(vSeg)"
+                              IconName="book-open"
+                              Accent="StatAccent.Chart3"
+                              data-testid="kpi-design-share">
+                        <ValueContent>
+                            <FigureText Value="@vSeg.DesignMissShare"
+                                        Class="@SmallWhenNoNumber(vSeg.DesignMissShare)"
+                                        TestId="kpi-design-share-value" />
+                        </ValueContent>
+                    </StatTile>
+                    <StatTile Title="Escape share (misses)"
+                              Description="@EscapeShareDetail(vSeg)"
+                              IconName="triangle-alert"
+                              Accent="StatAccent.Chart2"
+                              data-testid="kpi-escape-share">
+                        <ValueContent>
+                            <FigureText Value="@vSeg.EscapeShare"
+                                        Class="@SmallWhenNoNumber(vSeg.EscapeShare)"
+                                        TestId="kpi-escape-share-value" />
+                        </ValueContent>
+                    </StatTile>
+                    <StatTile Title="Tokens spent on rework"
+                              Description="@SoleTokensDetail(vSeg)"
+                              IconName="database"
+                              Accent="StatAccent.Chart1"
+                              data-testid="kpi-rework-tokens">
+                        <ValueContent>
+                            <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Sole"
+                                        Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Sole)"
+                                        TestId="kpi-rework-tokens-value" />
+                        </ValueContent>
+                    </StatTile>
+                    <StatTile Title="Measured USD on rework"
+                              Description="@MeasuredUsdDetail(vSeg)"
+                              IconName="circle-check"
+                              Accent="StatAccent.Chart2"
+                              data-testid="kpi-rework-usd">
+                        <ValueContent>
+                            <span data-testid="kpi-rework-usd-value">@MeasuredUsdDisplay(vSeg)</span>
+                        </ValueContent>
+                    </StatTile>
+                </StatGroup>
+            </div>
+        </div>
+
+        @* BRD-123 / REQ-NFR-013 clause 5 — rate-card dollars are never presented as spend. Its own card,
+           its own row, a dashed border and the estimate label on its face. Nobody was billed this. *@
+        <Card Class="tflens-estimate" data-testid="kpi-rework-usd-estimate">
+            <CardContent Class="p-6">
+                <div class="flex flex-wrap items-start gap-4">
+                    <span class="tflens-stat-chip tflens-accent-4 shrink-0">
+                        <LucideIcon Name="triangle-alert" Size="16" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-base font-semibold">@EstimateHarnessTitle rework —</span>
+                            <span class="tflens-money-inline tabular-nums" data-testid="kpi-rework-usd-estimate-value">
+                                @EstimateUsdDisplay
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline" data-testid="kpi-rework-usd-estimate-label">
+                                @RateCard.EstimateLabel
+                            </Badge>
+                        </div>
+                        <p class="mt-2 text-xs text-muted-foreground">
+                            A separate card on a separate row with a different treatment, deliberately: a reader
+                            who cannot tell this apart from the measured tile at a glance has been given a
+                            plausible wrong number. Exported under a key ending
+                            <span class="font-mono">_usd_estimate</span>; the measured tile's key does not.
+                            Priced from <span class="font-mono">@objRateCardPath</span>.
+                            @EstimateBasis
+                        </p>
+                        @if (UnpricedModels.Count > 0)
+                        {
+                            <p class="mt-2 text-xs text-muted-foreground" data-testid="kpi-rework-usd-unpriced">
+                                Not priced by the rate card, so left out of the estimate rather than costed at zero:
+                                <span class="font-mono">@string.Join(" · ", UnpricedModels)</span>.
+                            </p>
+                        }
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* ── BAND 2 — where misses come from ──────────────────────────────────────────── *@
+        <TypographyH2 Class="text-lg">Where misses come from</TypographyH2>
+        <div class="tflens-grid tflens-grid-origin">
+
+            <Card data-testid="miss-origin">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Origin phase × miss class</CardTitle>
+                            <CardDescription>Did we specify badly, or build badly?</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline">linked only</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (OriginRows.Count == 0)
+                    {
+                        <p class="text-sm text-muted-foreground" data-testid="miss-origin-none">
+                            No miss in this segment carries <span class="font-mono">origin_confidence: "linked"</span>,
+                            so there is no per-origin figure to state. That is an absence of attribution, not a zero.
+                        </p>
+                    }
+                    else
+                    {
+                        @* A cross-tab: the columns are whichever miss_class values the linked records
+                           actually carry, so this is a plain table rather than a DataTable — DataTableColumn
+                           needs a compile-time property per column and miss_class has no closed vocabulary. *@
+                        <div class="tflens-scroll-x">
+                            <table class="tflens-table" aria-label="Misses by origin phase and miss class">
+                                <thead>
+                                    <tr>
+                                        <th>Origin phase</th>
+                                        @foreach (var vClass in OriginClasses)
+                                        {
+                                            <th class="tflens-num">@vClass</th>
+                                        }
+                                        <th class="tflens-num">Total</th>
+                                        <th class="tflens-num">Runs</th>
+                                        <th class="tflens-num">Misses per run</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var vRow in OriginRows)
+                                    {
+                                        <tr data-testid="@($"miss-origin-{vRow.Phase}")">
+                                            <td><span class="font-mono">@vRow.Phase</span></td>
+                                            @foreach (var vClass in OriginClasses)
+                                            {
+                                                <td class="tflens-num">@vRow.CountOf(vClass)</td>
+                                            }
+                                            <td class="tflens-num font-semibold">@vRow.Total</td>
+                                            <td class="tflens-num">@(vRow.Runs is { } vRuns ? vRuns.ToString("N0", CultureInfo.InvariantCulture) : Missing)</td>
+                                            <td class="tflens-num">
+                                                @if (vRow.Rate is { } vRate)
+                                                {
+                                                    <FigureText Value="@vRate" Class="text-xs" />
+                                                }
+                                                else
+                                                {
+                                                    @Missing
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (vTaint.AttributionExcluded > 0)
+                                    {
+                                        <tr data-testid="miss-origin-unattributed">
+                                            <td class="text-muted-foreground">unattributed</td>
+                                            @foreach (var vClass in OriginClasses)
+                                            {
+                                                <td class="tflens-num text-muted-foreground">@Missing</td>
+                                            }
+                                            <td class="tflens-num font-semibold">@vTaint.AttributionExcluded</td>
+                                            <td class="tflens-num text-muted-foreground">@Missing</td>
+                                            <td class="tflens-num text-muted-foreground">@Missing</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </CardContent>
+                <CardFooter>
+                    @* BRD-121 — the exclusion is on the page, always, even at zero. An exclusion the reader
+                       cannot see is indistinguishable from a bug. *@
+                    <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-taint-count">
+                        <LucideIcon Name="info" Size="14" />
+                        <span>
+                            <b>@vTaint.AttributionExcluded of @vSeg.Misses misses excluded</b> from every per-origin
+                            figure@(ExcludedBreakdown(vTaint)) — @vTaint.Reason.
+                        </span>
+                    </p>
+                </CardFooter>
+            </Card>
+
+            <Card data-testid="miss-whymissed">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Which practice failed</CardTitle>
+                            <CardDescription>
+                                Is our <b>specification</b> weak, or our <b>verification</b>?
+                            </CardDescription>
+                        </div>
+                        @* BRD-119 — the denominator is on the card's face, never a tooltip. *@
+                        <Badge Variant="BadgeVariant.Outline" data-testid="miss-whymissed-denominator">
+                            @AssessedLine(vSeg)
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-scroll-x">
+                        <DataTable TData="PracticeRow"
+                                   Data="@PracticeRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="32"
+                                   AriaLabel="Failed-practice distribution over misses that carry why_missed"
+                                   data-testid="miss-whymissed-table">
+                            <Columns>
+                                <DataTableColumn TData="PracticeRow" TValue="string"
+                                                 Property="@(aRow => aRow.Practice)" Header="why_missed">
+                                    <CellTemplate Context="vRow">
+                                        <span class="font-mono text-xs">@vRow.Practice</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="PracticeRow" TValue="string"
+                                                 Property="@(aRow => aRow.Share)" Header="Share">
+                                    <CellTemplate Context="vRow">
+                                        <div class="flex items-center gap-2">
+                                            <Progress Value="@vRow.SharePercent" Class="w-16" />
+                                            <span class="text-xs tabular-nums">@vRow.Count · @vRow.Share</span>
+                                        </div>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+                    @if (vSeg.FailedPracticeNote is { } vNote)
+                    {
+                        <p class="mt-4 text-xs italic text-muted-foreground" data-testid="miss-whymissed-note">@vNote</p>
+                    }
+                </CardContent>
+                <CardFooter>
+                    <p class="text-xs text-muted-foreground" data-testid="miss-whymissed-eligibility">
+                        @WhyMissedFooter(vSeg)
+                    </p>
+                </CardFooter>
+            </Card>
+        </div>
+
+        @* ── BAND 3 — who was running ─────────────────────────────────────────────────── *@
+        <TypographyH2 Class="text-lg">Who was running</TypographyH2>
+
+        @* BRD-124 — standing page copy, not a tooltip. *@
+        <Alert Variant="AlertVariant.Warning" AccentBorder="true" data-testid="miss-observational">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Observational only — this band does not show causation</AlertTitle>
+            <AlertDescription>
+                Miss counts per model and per agent are confounded by <i>which model gets the hard work</i>.
+                Read these as a description of what ran, not as a ranking. Computed from
+                <span class="font-mono">origin_confidence: "linked"</span> records only
+                (@vTaint.AttributedN of @vSeg.Misses).
+            </AlertDescription>
+        </Alert>
+
+        <div class="tflens-grid tflens-grid-2">
+            <Card data-testid="miss-origin-model">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>By origin model</CardTitle>
+                            <CardDescription>Which model to route to — a different question from the one beside it</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline">@vTaint.AttributedN linked</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (ModelRows.Count == 0)
+                    {
+                        <p class="text-sm text-muted-foreground" data-testid="miss-origin-model-none">
+                            No <span class="font-mono">linked</span> miss names an origin model. The emitter forces
+                            the model to <span class="font-mono">null</span> whenever its lookup fails, so this is
+                            absence rather than a zero.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="tflens-scroll-x">
+                            <DataTable TData="OriginCountRow"
+                                       Data="@ModelRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="32"
+                                       AriaLabel="Misses by origin model, linked records only"
+                                       data-testid="miss-origin-model-table">
+                                <Columns>
+                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                                     Property="@(aRow => aRow.Key)" Header="Model">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono text-xs">@vRow.Key</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="OriginCountRow" TValue="int"
+                                                     Property="@(aRow => aRow.Count)" Header="Misses"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums">@vRow.Count</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                                     Property="@(aRow => aRow.Share)" Header="Share"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums text-xs">@vRow.Share</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                    }
+                </CardContent>
+            </Card>
+
+            <Card data-testid="miss-origin-agent">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>By origin agent</CardTitle>
+                            <CardDescription>Which persona's instructions to tighten</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline">@vTaint.AttributedN linked</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (AgentRows.Count == 0)
+                    {
+                        <p class="text-sm text-muted-foreground" data-testid="miss-origin-agent-none">
+                            No <span class="font-mono">linked</span> miss names an origin agent.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="tflens-scroll-x">
+                            <DataTable TData="OriginCountRow"
+                                       Data="@AgentRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="32"
+                                       AriaLabel="Misses by origin agent, linked records only"
+                                       data-testid="miss-origin-agent-table">
+                                <Columns>
+                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                                     Property="@(aRow => aRow.Key)" Header="Agent">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono text-xs">@vRow.Key</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="OriginCountRow" TValue="int"
+                                                     Property="@(aRow => aRow.Count)" Header="Misses"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums">@vRow.Count</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                                     Property="@(aRow => aRow.Share)" Header="Share"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums text-xs">@vRow.Share</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                                     Property="@(aRow => aRow.Dominant)" Header="Dominant class">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono text-xs">@vRow.Dominant</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                    }
+                </CardContent>
+            </Card>
+        </div>
+
+        @* ── BAND 4 — cost of rework ──────────────────────────────────────────────────── *@
+        <TypographyH2 Class="text-lg">Cost of rework</TypographyH2>
+        <div class="tflens-grid tflens-grid-3" data-testid="miss-cost">
+
+            <Card Class="h-full" data-testid="miss-cost-measured">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Measured</CardTitle>
+                            <CardDescription><span class="font-mono">cost_attribution: sole</span></CardDescription>
+                        </div>
+                        <span class="tflens-stat-chip tflens-accent-2 shrink-0">
+                            <LucideIcon Name="circle-check" Size="16" />
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-money tabular-nums">
+                        <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Sole"
+                                    Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Sole)"
+                                    TestId="miss-cost-sole" />
+                    </div>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        output tokens per miss fixed, over @vSeg.Cost.SoleRecords
+                        @(vSeg.Cost.SoleRecords == 1 ? "fix" : "fixes") whose run touched exactly this REQ.
+                        The whole window is this miss's cost — <b>this is a measurement</b>.
+                    </p>
+                    <Separator Class="mt-4 mb-4" />
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs text-muted-foreground">Measured USD (OpenCode)</span>
+                        <span class="font-semibold tabular-nums" data-testid="miss-cost-measured-usd">@MeasuredUsdDisplay(vSeg)</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card Class="h-full" data-testid="miss-cost-apportioned">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Apportioned</CardTitle>
+                            <CardDescription><span class="font-mono">cost_attribution: shared:n</span></CardDescription>
+                        </div>
+                        <span class="tflens-stat-chip tflens-accent-4 shrink-0">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-money tabular-nums">
+                        <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Apportioned"
+                                    Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Apportioned)"
+                                    TestId="miss-cost-apportioned-value" />
+                    </div>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        output tokens per miss, divided equally across @vSeg.Cost.SharedRecords
+                        @(vSeg.Cost.SharedRecords == 1 ? "fix" : "fixes") that each repaired several misses.
+                        One token window over several misses — <b>arithmetic, not measurement</b>, and never
+                        summed into the column beside it.
+                    </p>
+                    <Separator Class="mt-4 mb-4" />
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs text-muted-foreground">Divided equally, and we say so</span>
+                        <Badge Variant="BadgeVariant.Outline">apportioned</Badge>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card Class="h-full" data-testid="miss-cost-unattributable">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Unattributable</CardTitle>
+                            <CardDescription><span class="font-mono">cost_attribution: none</span></CardDescription>
+                        </div>
+                        <span class="tflens-stat-chip tflens-accent-danger shrink-0">
+                            <LucideIcon Name="x" Size="16" />
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-money tabular-nums" data-testid="miss-cost-none">
+                        @vSeg.Cost.TokensPerMissFixed.NoneCount
+                    </div>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        fixes with <b>no numbers at all</b> — the run's <span class="font-mono">tokens_scope</span>
+                        was <span class="font-mono">none</span>, or the repair happened inline with no distinct fix
+                        run (the <span class="font-mono">*log-miss --fixed</span> front door omits
+                        <span class="font-mono">fix_run_id</span> deliberately). A count, never a divisor.
+                    </p>
+                    <Separator Class="mt-4 mb-4" />
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs text-muted-foreground">No <span class="font-mono">cost_attribution</span> at all</span>
+                        <span class="font-semibold tabular-nums" data-testid="miss-cost-attribution-missing">@vSeg.Cost.AttributionMissing</span>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+        <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-cost-no-blend">
+            <LucideIcon Name="info" Size="14" />
+            <span>
+                There is no blended figure on this page, in the export or in parity —
+                <span class="font-mono">MissCost</span> exposes <span class="font-mono">Sole</span>,
+                <span class="font-mono">Apportioned</span> and <span class="font-mono">NoneCount</span> and nothing
+                else, so a single combined number has no property to bind to (ADR-019).
+            </span>
+        </p>
+
+        @* ── Per-miss detail ──────────────────────────────────────────────────────────── *@
+        <Card data-testid="miss-detail">
+            <CardHeader>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <CardTitle>Every miss</CardTitle>
+                        <CardDescription>
+                            @DetailRows.Count @(DetailRows.Count == 1 ? "record" : "records") · amendments folded at
+                            read time, so a <span class="font-mono">why_missed</span> supplied later shows here
+                        </CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <div class="tflens-scroll-x">
+                    @* TR-009: InitialPageSize is set explicitly — the grid truncates to it even when
+                       pagination is off, so it is never left at the default 5. *@
+                    <DataTable TData="MissRow"
+                               Data="@DetailRows"
+                               ShowToolbar="true"
+                               ShowPagination="true"
+                               InitialPageSize="25"
+                               AriaLabel="Every miss in this segment"
+                               data-testid="miss-detail-table">
+                        <Columns>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.MissId)" Header="Miss">
+                                <CellTemplate Context="vRow">
+                                    <Button Variant="ButtonVariant.Link"
+                                            Size="ButtonSize.Small"
+                                            OnClick="@(() => ShowRaw(vRow.MissId))"
+                                            data-testid="@($"miss-raw-{vRow.MissId}")">
+                                        <span class="font-mono text-xs">@vRow.MissId</span>
+                                    </Button>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.ReqId)" Header="REQ">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono text-xs">@vRow.ReqId</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.MissClass)" Header="Class">
+                                <CellTemplate Context="vRow">
+                                    <Badge Variant="BadgeVariant.Outline"><span class="font-mono text-xs">@vRow.MissClass</span></Badge>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.Severity)" Header="Severity">
+                                <CellTemplate Context="vRow">
+                                    <Badge Variant="@vRow.SeverityVariant">@vRow.Severity</Badge>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.Origin)" Header="Origin">
+                                <CellTemplate Context="vRow">
+                                    <span class="flex flex-wrap items-center gap-1">
+                                        <span class="font-mono text-xs">@vRow.Origin</span>
+                                        <Badge Variant="BadgeVariant.Secondary">@vRow.Confidence</Badge>
+                                    </span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.FoundBy)" Header="Found by">
+                                <CellTemplate Context="vRow">
+                                    <span class="text-xs">@vRow.FoundBy</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.Status)" Header="Status">
+                                <CellTemplate Context="vRow">
+                                    <Badge Variant="@vRow.StatusVariant">@vRow.Status</Badge>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.Tokens)" Header="Tokens"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="flex flex-wrap items-center justify-end gap-1">
+                                        <span class="tabular-nums text-xs">@vRow.Tokens</span>
+                                        @if (vRow.Attribution is { Length: > 0 })
+                                        {
+                                            <Badge Variant="BadgeVariant.Secondary">@vRow.Attribution</Badge>
+                                        }
+                                    </span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                </div>
+
+                <div class="mt-4">
+                    <Collapsible @bind-Open="objIsRawOpen">
+                        <Card>
+                            <CardContent Class="p-4">
+                                <CollapsibleTrigger>
+                                    <span class="flex items-center gap-2 text-sm font-medium" data-testid="miss-raw-trigger">
+                                        <LucideIcon Name="@(objIsRawOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                                        Raw record — <span class="font-mono">@RawMissId</span>
+                                    </span>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    @* TR-018: a closed CollapsibleContent still lays its children out and overlaps
+                                       what follows, so the subtree is guarded here rather than merely hidden. *@
+                                    @if (objIsRawOpen)
+                                    {
+                                        <div class="mt-4 flex flex-col gap-2">
+                                            <CodeBlock Title="@($"miss · {RawMissId}")" Code="@RawJson" data-testid="miss-raw" />
+                                            <p class="text-xs text-muted-foreground" data-testid="miss-raw-note">
+                                                Field <i>names</i> only for <span class="font-mono">overflow</span> — SCHEMA.md §9
+                                                keeps undocumented payloads off every screen. A
+                                                <span class="font-mono">why_missed</span> shown here may have arrived on a later
+                                                <span class="font-mono">miss-amend</span> and been folded in at read time; the
+                                                stored <span class="font-mono">miss</span> row still carries
+                                                <span class="font-mono">null</span>, because an amend completes a record and
+                                                never edits it.
+                                            </p>
+                                        </div>
+                                    }
+                                </CollapsibleContent>
+                            </CardContent>
+                        </Card>
+                    </Collapsible>
+                </div>
+            </CardContent>
+        </Card>
+    }
+</div>
+
+@code {
+    /// <summary>What an absent string or an absent cost renders as — never a blank, never <c>$0.00</c>.</summary>
+    private const string Missing = "—";
+
+    /// <summary>The period key that means the whole history, and the page's default (BRD-125).</summary>
+    private const string AllHistory = "all";
+
+    /// <summary>The one harness whose dollars are measured rather than estimated (SCHEMA.md §4).</summary>
+    private const string OpenCodeHarness = "opencode";
+
+    /// <summary>The <c>tokens_scope</c> that excludes a fix record from every cost figure.</summary>
+    private const string NoTokenScope = "none";
+
+    /// <summary>The period choices, all history first because it is the default.</summary>
+    private static readonly IReadOnlyList<PeriodOption> PeriodOptions =
+    [
+        new PeriodOption(AllHistory, "All history (default)", null, "all history"),
+        new PeriodOption("7", "Last 7 days", 7, "last 7 days"),
+        new PeriodOption("30", "Last 30 days", 30, "last 30 days"),
+        new PeriodOption("90", "Last 90 days", 90, "last 90 days")
+    ];
+
+    /// <summary>The four bands, described for the Playbook axis where there is no data to draw them from.</summary>
+    private static readonly IReadOnlyList<PlannedBand> PlannedBands =
+    [
+        new PlannedBand("Band 1 — KPI row",
+            "open · declined · this period · median time to close · design-miss share · escape share · tokens on rework · measured USD"),
+        new PlannedBand("Band 2 — Where misses come from",
+            "origin phase × miss class, with the excluded-attribution count beneath, beside the failed-practice distribution and its n of N assessed denominator"),
+        new PlannedBand("Band 3 — Who was running",
+            "origin model and origin agent, linked records only, taint count visible, labelled observational"),
+        new PlannedBand("Band 4 — Cost of rework",
+            "measured · apportioned · unattributable, rendered as three columns and never as one"),
+        new PlannedBand("Detail table",
+            "every miss, with the raw record behind a disclosure")
+    ];
+
+    private IReadOnlyList<MissRecord> objAllMisses = [];
+    private IReadOnlyList<MissFixRecord> objAllFixes = [];
+    private IReadOnlyList<MissAmendRecord> objAllAmends = [];
+    private IReadOnlyList<RunRecord> objAllRuns = [];
+
+    private IReadOnlyList<MissFixRecord> objPeriodFixes = [];
+    private MissFoldResult objFold = MissFoldResult.Empty;
+    private MissAnalysis objResult = MissAnalysis.Empty;
+
+    private RateCard? objRateCard;
+    private string objRateCardPath = "prices.json";
+
+    private bool objIsLoaded;
+    private string? objLoadError;
+    private int? objUserId;
+    private string objFramework = FrameworkNames.TechieFlow;
+    private string? objLoadedFramework;
+    private string objPeriod = AllHistory;
+    private string objSelectedType = string.Empty;
+    private string? objRawMissId;
+    private bool objIsRawOpen;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-010, BRD-126).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook axis — the layout is identical to the TechieFlow state; only the data and a few labels change"
+            : "What was missed, which practice let it through, and what the repair cost";
+
+    /// <summary>The selected period, resolved back to its option.</summary>
+    private PeriodOption Period =>
+        PeriodOptions.FirstOrDefault(aOption => aOption.Key == objPeriod) ?? PeriodOptions[0];
+
+    /// <summary>The badge beside the period select, so the window is stated even when the select is closed.</summary>
+    private string PeriodLabel => Period.Badge;
+
+    /// <summary>The label the closed select trigger shows for a period key (TR-020).</summary>
+    /// <param name="aKey">The period key currently bound.</param>
+    /// <returns>The option's label, or the key itself when it names no option.</returns>
+    private static string PeriodTextOf(string aKey) =>
+        PeriodOptions.FirstOrDefault(aOption => aOption.Key == aKey)?.Label ?? aKey;
+
+    /// <summary>How the "misses this period" tile names its window.</summary>
+    private string PeriodTileSuffix => Period.Days is null ? "in all history" : $"in the {Period.Badge}";
+
+    /// <summary>The figures for one project type, or an all-zero segment when it holds none.</summary>
+    /// <param name="aType">The project-type key.</param>
+    /// <returns>The segment's figures.</returns>
+    private MissSegmentFigures SegmentOf(string aType) =>
+        objResult.Live.TryGetValue(aType, out var vFigures) ? vFigures : EmptySegment;
+
+    /// <summary>An all-zero segment, so a missing key never nulls out a band.</summary>
+    private static MissSegmentFigures EmptySegment { get; } = new()
+    {
+        Misses = 0,
+        MissFixes = 0,
+        OrphanFixes = 0,
+        OpenMisses = 0,
+        WontFix = 0,
+        ResolvedMisses = 0,
+        ClassDistribution = [],
+        ClassDistributionN = 0,
+        ClassDistributionNote = null,
+        ClassNotRecorded = 0,
+        FailedPracticeDistribution = [],
+        WhyMissedN = 0,
+        WhyMissedEligibility = new FieldEligibility("why_missed", null, 0, 0, 0),
+        FailedPracticeNote = null,
+        FoundBy = [],
+        FoundByNotRecorded = 0,
+        DesignMissShare = Figure.NotApplicable(),
+        EscapeShare = Figure.NotApplicable(),
+        MedianTimeToCloseHours = Figure.NotApplicable(),
+        Attribution = MissAttributionFigures.Empty,
+        Cost = MissMoney.Empty
+    };
+
+    /// <summary>The selected segment's live, folded misses — what every per-record view below reads.</summary>
+    private IReadOnlyList<MissRecord> SegmentMisses =>
+        objFold.Misses
+            .Where(aMiss => aMiss.Backfilled != true
+                            && Segment.KeyFor(aMiss.ProjectType, aMiss.ProjectTypeInferred) == objSelectedType)
+            .ToList();
+
+    /// <summary>The selected segment's live fix records.</summary>
+    private IReadOnlyList<MissFixRecord> SegmentFixes =>
+        objPeriodFixes
+            .Where(aFix => aFix.Backfilled != true
+                           && Segment.KeyFor(aFix.ProjectType, aFix.ProjectTypeInferred) == objSelectedType)
+            .ToList();
+
+    /// <summary>
+    /// The <c>linked</c> / not-<c>linked</c> split for the selected segment.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately the engine's own <see cref="MissAttributionTaint.Partition"/> rather than a
+    /// <c>Where</c> clause written here: BRD-121 is one rule in one place, and the exclusion it produces
+    /// is rendered on the page rather than dropped (REQ-NFR-013 clause 2).
+    /// </remarks>
+    private MissAttributionSet SegmentTaint => MissAttributionTaint.Partition(SegmentMisses);
+
+    /// <summary>Every <c>miss_class</c> the segment's linked records carry, ordinally sorted.</summary>
+    private IReadOnlyList<string> OriginClasses =>
+        SegmentTaint.Linked
+            .Select(aMiss => aMiss.MissClass ?? "not recorded")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aKey => aKey, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>The origin-phase × miss-class cross-tab, over <c>linked</c> records only.</summary>
+    private IReadOnlyList<OriginRow> OriginRows
+    {
+        get
+        {
+            var vRates = SegmentOf(objSelectedType).Attribution.MissRatePerOriginPhase;
+            var vRows = new List<OriginRow>();
+
+            foreach (var vGroup in SegmentTaint.Linked
+                         .GroupBy(aMiss => aMiss.OriginPhase ?? "not named", StringComparer.Ordinal)
+                         .OrderBy(aGroup => aGroup.Key, StringComparer.Ordinal))
+            {
+                var vCounts = vGroup
+                    .GroupBy(aMiss => aMiss.MissClass ?? "not recorded", StringComparer.Ordinal)
+                    .ToDictionary(aInner => aInner.Key, aInner => aInner.Count(), StringComparer.Ordinal);
+
+                var vRate = vRates.FirstOrDefault(aRate => aRate.Phase == vGroup.Key);
+
+                vRows.Add(new OriginRow(
+                    vGroup.Key,
+                    vCounts,
+                    vGroup.Count(),
+                    vRate?.Runs,
+                    vRate?.Rate));
+            }
+
+            return vRows;
+        }
+    }
+
+    /// <summary>
+    /// The failed-practice rows, one per value in the closed vocabulary.
+    /// </summary>
+    /// <remarks>
+    /// The vocabulary comes from <see cref="MissAmendFolder.AmendableFields"/> so the seven buckets on
+    /// screen are the seven the producer writes. A value the engine did not report is rendered as a real
+    /// zero over the assessed denominator; a <c>null</c> <c>why_missed</c> reaches no bucket at all,
+    /// including <c>other</c> (BRD-119).
+    /// </remarks>
+    private IReadOnlyList<PracticeRow> PracticeRows
+    {
+        get
+        {
+            var vSeg = SegmentOf(objSelectedType);
+            var vObserved = vSeg.FailedPracticeDistribution
+                .ToDictionary(aRow => aRow.Key, aRow => aRow, StringComparer.Ordinal);
+
+            IReadOnlyList<string> vVocabulary = MissAmendFolder.AmendableFields.TryGetValue(
+                MissAmendFolder.WhyMissedField, out var vValues)
+                ? vValues
+                : [];
+
+            var vKeys = vVocabulary
+                .Concat(vObserved.Keys.Where(aKey => !vVocabulary.Contains(aKey, StringComparer.Ordinal)))
+                .ToList();
+
+            return vKeys
+                .Select(aKey =>
+                {
+                    if (vObserved.TryGetValue(aKey, out var vRow))
+                    {
+                        return new PracticeRow(aKey, vRow.Count, vRow.Share, SharePercent(vRow.Count, vSeg.WhyMissedN));
+                    }
+
+                    return new PracticeRow(aKey, 0, Missing, 0d);
+                })
+                .OrderByDescending(aRow => aRow.Count)
+                .ThenBy(aRow => aRow.Practice, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
+
+    /// <summary>Misses by origin model — <c>linked</c> records only, straight off the engine.</summary>
+    private IReadOnlyList<OriginCountRow> ModelRows =>
+        SegmentOf(objSelectedType).Attribution.ByOriginModel
+            .Select(aRow => new OriginCountRow(aRow.Key, aRow.Count, aRow.Share, Missing))
+            .ToList();
+
+    /// <summary>Misses by origin agent, with the dominant class read off the same linked records.</summary>
+    private IReadOnlyList<OriginCountRow> AgentRows
+    {
+        get
+        {
+            var vLinked = SegmentTaint.Linked;
+
+            return SegmentOf(objSelectedType).Attribution.ByOriginAgent
+                .Select(aRow =>
+                {
+                    var vDominant = vLinked
+                        .Where(aMiss => (aMiss.OriginAgent ?? "not named") == aRow.Key && aMiss.MissClass is not null)
+                        .GroupBy(aMiss => aMiss.MissClass!, StringComparer.Ordinal)
+                        .OrderByDescending(aGroup => aGroup.Count())
+                        .ThenBy(aGroup => aGroup.Key, StringComparer.Ordinal)
+                        .Select(aGroup => aGroup.Key)
+                        .FirstOrDefault() ?? Missing;
+
+                    return new OriginCountRow(aRow.Key, aRow.Count, aRow.Share, vDominant);
+                })
+                .ToList();
+        }
+    }
+
+    /// <summary>Every miss in the selected segment, folded, one row each.</summary>
+    private IReadOnlyList<MissRow> DetailRows
+    {
+        get
+        {
+            var vLatestFix = LatestFixByMiss();
+
+            return SegmentMisses
+                .OrderByDescending(aMiss => aMiss.Ts, StringComparer.Ordinal)
+                .Select(aMiss =>
+                {
+                    vLatestFix.TryGetValue(LinkKey(aMiss.Repo, aMiss.MissId), out var vFix);
+
+                    return new MissRow(
+                        aMiss.MissId,
+                        aMiss.ReqId ?? Missing,
+                        aMiss.MissClass ?? "not recorded",
+                        aMiss.Severity ?? Missing,
+                        OriginOf(aMiss),
+                        aMiss.OriginConfidence ?? MissAttributionTaint.NotRecorded,
+                        FoundByOf(aMiss),
+                        StatusOf(vFix),
+                        TokensOf(vFix),
+                        vFix?.CostAttribution ?? string.Empty);
+                })
+                .ToList();
+        }
+    }
+
+    /// <summary>The miss whose stored record is behind the disclosure.</summary>
+    private string RawMissId => objRawMissId ?? DetailRows.FirstOrDefault()?.MissId ?? Missing;
+
+    /// <summary>
+    /// The stored record behind the disclosure, as JSON.
+    /// </summary>
+    /// <remarks>
+    /// <c>overflow</c> is reduced to its field <b>names</b>: SCHEMA.md §9 and the privacy rule keep
+    /// undocumented payloads off every screen, and the names are the whole point of showing it at all.
+    /// </remarks>
+    private string RawJson
+    {
+        get
+        {
+            var vMiss = SegmentMisses.FirstOrDefault(aMiss => aMiss.MissId == RawMissId);
+
+            if (vMiss is null)
+            {
+                return "{}";
+            }
+
+            var vNode = new JsonObject
+            {
+                ["v"] = vMiss.V,
+                ["ts"] = vMiss.Ts,
+                ["kind"] = "miss",
+                ["repo"] = vMiss.Repo,
+                ["app"] = vMiss.App,
+                ["project_type"] = vMiss.ProjectType,
+                ["harness"] = vMiss.Harness,
+                ["miss_id"] = vMiss.MissId,
+                ["req_id"] = vMiss.ReqId,
+                ["req_class"] = vMiss.ReqClass,
+                ["miss_class"] = vMiss.MissClass,
+                ["artifact"] = vMiss.Artifact,
+                ["severity"] = vMiss.Severity,
+                ["why_missed"] = vMiss.WhyMissed,
+                ["origin_phase"] = vMiss.OriginPhase,
+                ["origin_agent"] = vMiss.OriginAgent,
+                ["origin_run_id"] = vMiss.OriginRunId,
+                ["origin_confidence"] = vMiss.OriginConfidence,
+                ["origin_model"] = vMiss.OriginModel,
+                ["origin_harness"] = vMiss.OriginHarness,
+                ["found_by"] = vMiss.FoundBy,
+                ["found_phase"] = vMiss.FoundPhase,
+                ["found_gate"] = vMiss.FoundGate,
+                ["found_run_id"] = vMiss.FoundRunId,
+                ["failure_class"] = vMiss.FailureClass
+            };
+
+            var vOverflowNames = new JsonArray();
+
+            foreach (var vName in OverflowNames(vMiss.Overflow))
+            {
+                vOverflowNames.Add(vName);
+            }
+
+            vNode["overflow_field_names"] = vOverflowNames;
+
+            return vNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        }
+    }
+
+    /// <summary>Non-OpenCode rework dollars at rate-card prices — an estimate, and labelled as one.</summary>
+    private decimal? EstimateUsd
+    {
+        get
+        {
+            if (objRateCard is null)
+            {
+                return null;
+            }
+
+            decimal? vTotal = null;
+
+            foreach (var vFix in EstimableFixes())
+            {
+                var vRate = objRateCard.Find(vFix.Model);
+
+                if (vRate is null)
+                {
+                    continue;
+                }
+
+                vTotal = (vTotal ?? 0m) + vRate.EstimateUsd(
+                    vFix.TokensIn ?? 0,
+                    vFix.TokensOut ?? 0,
+                    vFix.TokensCacheRead ?? 0,
+                    vFix.TokensCacheWrite ?? 0);
+            }
+
+            return vTotal;
+        }
+    }
+
+    /// <summary>The estimate figure, or an em dash — never <c>$0.00</c> for an absent measurement.</summary>
+    private string EstimateUsdDisplay =>
+        EstimateUsd is { } vUsd ? vUsd.ToString("C2", CultureInfo.GetCultureInfo("en-US")) : Missing;
+
+    /// <summary>Which harnesses the estimate covers, named on the card.</summary>
+    private string EstimateHarnessTitle
+    {
+        get
+        {
+            var vHarnesses = EstimableFixes()
+                .Select(aFix => aFix.Harness ?? "not detected")
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(aName => aName, StringComparer.Ordinal)
+                .ToList();
+
+            return vHarnesses.Count == 0 ? "Non-OpenCode" : string.Join(" + ", vHarnesses);
+        }
+    }
+
+    /// <summary>The sentence that says how many records the estimate stands on.</summary>
+    private string EstimateBasis
+    {
+        get
+        {
+            var vPriced = EstimableFixes().Count(aFix => objRateCard?.Find(aFix.Model) is not null);
+
+            return vPriced == 0
+                ? "No non-OpenCode fix record in this segment carries both a token count and a priced model, so there is nothing to estimate — an em dash, never a zero."
+                : $"Priced over {vPriced} fix {(vPriced == 1 ? "record" : "records")} carrying a token count and a model the card prices.";
+        }
+    }
+
+    /// <summary>Observed models the rate card does not price — named, never silently costed at zero.</summary>
+    private IReadOnlyList<string> UnpricedModels =>
+        EstimableFixes()
+            .Where(aFix => objRateCard?.Find(aFix.Model) is null)
+            .Select(aFix => aFix.Model ?? "model not recorded")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aName => aName, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>Resolves the user, then loads the streams once per user and framework.</summary>
+    protected override void OnInitialized()
+    {
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Loads the miss streams for the signed-in user on the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the page has its figures or its error.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        if (objIsLoaded && objLoadedFramework == objPreferences.Framework)
+        {
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    /// <summary>Reads the four streams and computes the first, unfiltered view (BRD-125).</summary>
+    /// <returns>A task that completes when the page has its figures or its error.</returns>
+    private async Task LoadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        objIsLoaded = false;
+        objLoadError = null;
+
+        try
+        {
+            objFramework = objPreferences.Framework;
+
+            objAllMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
+            objAllFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
+            objAllAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
+            objAllRuns = await objStore.ReadRunsAsync(objUserId.Value, objFramework);
+
+            objRateCardPath = objOptions.Value.PricesPath;
+            objRateCard = await RateCard.LoadAsync(objRateCardPath);
+
+            objLoadedFramework = objFramework;
+            Recompute();
+        }
+        catch (Exception vEx)
+        {
+            objResult = MissAnalysis.Empty;
+            objFold = MissFoldResult.Empty;
+            objLoadError = vEx.Message;
+        }
+        finally
+        {
+            objIsLoaded = true;
+        }
+    }
+
+    /// <summary>
+    /// Re-runs the engine over the records inside the selected period.
+    /// </summary>
+    /// <remarks>
+    /// The period narrows the <b>record set</b> and then hands it to <see cref="MissFigures.Compute"/>.
+    /// Every guard — the <c>why_missed</c> eligibility floor, the <c>linked</c>-only attribution, the
+    /// MinN refusal, the <see cref="MissCost"/> split — is therefore applied by the same code that
+    /// computes the unfiltered view, and a narrow window degrades to <c>insufficient data (n=…)</c>
+    /// rather than to a wrong number (REQ-UI-035, REQ-NFR-013).
+    /// </remarks>
+    private void Recompute()
+    {
+        var vCutoff = Period.Days is { } vDays
+            ? DateTimeOffset.UtcNow.AddDays(-vDays)
+            : (DateTimeOffset?)null;
+
+        var vMisses = objAllMisses.Where(aMiss => IsInPeriod(aMiss.Ts, vCutoff)).ToList();
+        var vFixes = objAllFixes.Where(aFix => IsInPeriod(aFix.Ts, vCutoff)).ToList();
+        var vAmends = objAllAmends.Where(aAmend => IsInPeriod(aAmend.Ts, vCutoff)).ToList();
+        var vRuns = objAllRuns.Where(aRun => IsInPeriod(aRun.Ts, vCutoff)).ToList();
+
+        objPeriodFixes = vFixes;
+        objFold = MissAmendFolder.Fold(vMisses, vAmends);
+        objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
+
+        if (!objResult.Live.ContainsKey(objSelectedType))
+        {
+            objSelectedType = objResult.ProjectTypes.FirstOrDefault() ?? string.Empty;
+        }
+
+        objRawMissId = null;
+        objIsRawOpen = false;
+    }
+
+    /// <summary>
+    /// Decides whether a record's timestamp falls inside the selected window.
+    /// </summary>
+    /// <param name="aTs">The record's ISO-8601 timestamp.</param>
+    /// <param name="aCutoff">The oldest instant the window admits, or <c>null</c> for all history.</param>
+    /// <returns><c>true</c> when the record is in the window; an unparseable timestamp is kept.</returns>
+    private static bool IsInPeriod(string? aTs, DateTimeOffset? aCutoff)
+    {
+        if (aCutoff is null)
+        {
+            return true;
+        }
+
+        // A timestamp TfLens cannot parse is kept rather than dropped: silently removing a record from a
+        // count because its own clock string is odd would understate every figure with no visible reason.
+        return !DateTimeOffset.TryParse(
+                   aTs,
+                   CultureInfo.InvariantCulture,
+                   DateTimeStyles.RoundtripKind,
+                   out var vWhen)
+               || vWhen >= aCutoff.Value;
+    }
+
+    /// <summary>Re-queries the page for the new window (REQ-UI-035).</summary>
+    /// <param name="aPeriod">The period key the user chose.</param>
+    /// <returns>A completed task; the recompute is synchronous over already-loaded records.</returns>
+    private Task OnPeriodChangedAsync(string? aPeriod)
+    {
+        if (string.IsNullOrWhiteSpace(aPeriod) || aPeriod == objPeriod)
+        {
+            return Task.CompletedTask;
+        }
+
+        objPeriod = aPeriod;
+        Recompute();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Switches the project-type segment the bands render.</summary>
+    /// <param name="aType">The project type the user chose.</param>
+    /// <returns>A completed task.</returns>
+    private Task OnTypeSelectedAsync(string? aType)
+    {
+        if (!string.IsNullOrWhiteSpace(aType))
+        {
+            objSelectedType = aType;
+            objRawMissId = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the raw-record disclosure on one miss.</summary>
+    /// <param name="aMissId">The miss whose stored record to show.</param>
+    private void ShowRaw(string aMissId)
+    {
+        objRawMissId = aMissId;
+        objIsRawOpen = true;
+    }
+
+    /// <summary>The sub-line under the open-misses tile, which names what is inside the count (BRD-120).</summary>
+    private string OpenDetail =>
+        $"latest verdict ∉ {{Verified, wont-fix}} · {DeferredCount()} deferred counted here · wont-fix never is";
+
+    /// <summary>The sub-line under the misses-this-period tile.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sub-line.</returns>
+    private static string MixDetail(MissSegmentFigures aSegment) =>
+        $"{aSegment.ResolvedMisses} closed · {aSegment.OpenMisses} open · {aSegment.WontFix} declined";
+
+    /// <summary>The sub-line under the design-miss-share tile.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sub-line.</returns>
+    private static string DesignShareDetail(MissSegmentFigures aSegment) =>
+        $"unspecified-gap over all {aSegment.Misses} misses — the spec itself omitted it";
+
+    /// <summary>The sub-line under the escape-share tile, which says which escape figure this is.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sub-line.</returns>
+    private static string EscapeShareDetail(MissSegmentFigures aSegment) =>
+        $"found_by owner or production, over {aSegment.Misses} misses — NOT the gates-derived escape rate on Three questions";
+
+    /// <summary>The sub-line under the rework-tokens tile, which names the records behind it.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sub-line.</returns>
+    private static string SoleTokensDetail(MissSegmentFigures aSegment) =>
+        $"output tokens per miss, over cost_attribution: sole fixes only ({aSegment.Cost.SoleRecords} of {aSegment.MissFixes})";
+
+    /// <summary>The OpenCode row of the segment's money, or <c>null</c> when the harness emitted none.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The OpenCode row.</returns>
+    private static MissHarnessCost? OpenCodeRow(MissSegmentFigures aSegment) =>
+        aSegment.Cost.ByHarness.FirstOrDefault(aRow =>
+            string.Equals(aRow.Harness, OpenCodeHarness, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Measured OpenCode dollars, or an em dash — absent cost is never <c>$0.00</c>.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The display string.</returns>
+    private static string MeasuredUsdDisplay(MissSegmentFigures aSegment) =>
+        OpenCodeRow(aSegment)?.MeasuredUsdTotal is { } vUsd
+            ? vUsd.ToString("C2", CultureInfo.GetCultureInfo("en-US"))
+            : Missing;
+
+    /// <summary>The sub-line under the measured-USD tile, which names its harness.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sub-line.</returns>
+    private static string MeasuredUsdDetail(MissSegmentFigures aSegment)
+    {
+        var vRow = OpenCodeRow(aSegment);
+
+        return vRow is null || vRow.MeasuredUsdRecords == 0
+            ? "opencode · measured — no OpenCode fix record carries cost_usd yet; the only measured dollars in the product"
+            : $"opencode · measured — Σ cost_usd over {vRow.MeasuredUsdRecords} records; the only measured dollars in the product";
+    }
+
+    /// <summary>The <c>n of N misses assessed</c> line the failed-practice card carries on its face.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The denominator sentence.</returns>
+    private static string AssessedLine(MissSegmentFigures aSegment) =>
+        $"{aSegment.WhyMissedEligibility.Assessed} of {aSegment.WhyMissedEligibility.Eligible} misses assessed";
+
+    /// <summary>The footer that separates "not assessed" from "predates the field" (BRD-117).</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The footer sentence.</returns>
+    private static string WhyMissedFooter(MissSegmentFigures aSegment)
+    {
+        var vEligibility = aSegment.WhyMissedEligibility;
+        var vUnassessed = Math.Max(0, vEligibility.Eligible - vEligibility.Assessed);
+        var vSince = vEligibility.Since is { Length: > 0 } vDate ? $" (added {vDate})" : string.Empty;
+
+        // Eligible and Assessed are DIFFERENT numbers and must never be described as each other:
+        // Eligible = misses written on or after the field's floor, so they COULD carry it;
+        // Assessed  = misses that actually DO carry it, which is the distribution's real denominator.
+        // Calling Eligible "the misses that carry the field" (as this line did until 2026-08-28)
+        // overstates the denominator whenever some eligible miss left the field null — which is the
+        // normal case — and contradicts the badge directly above it. REQ-NFR-013 clause 3 requires the
+        // denominator to be printed on its face; printing the wrong one is the same defect wearing a
+        // number.
+        var vHead = vEligibility.Assessed == aSegment.Misses
+            ? $"Denominator is {vEligibility.Assessed} — every miss here carries the field."
+            : $"Denominator is {vEligibility.Assessed} — the misses that carry the field, not the "
+              + $"{aSegment.Misses} in this segment.";
+
+        var vFloor = vEligibility.PredatesField == 0
+            ? $"No miss here predates the field{vSince}."
+            : $"A further {vEligibility.PredatesField} predate the field{vSince} and leave this denominator entirely "
+              + "rather than being backfilled with a value nobody assessed at the time.";
+
+        return $"{vHead} why_missed is optional and null means not assessed — never a zero in some category. "
+               + $"Of the {vEligibility.Eligible} eligible to carry it, {vUnassessed} carry no assessment. {vFloor}";
+    }
+
+    /// <summary>The breakdown of the excluded records by confidence value, or empty when there are none.</summary>
+    /// <param name="aTaint">The segment's attribution split.</param>
+    /// <returns>A parenthesised breakdown, or an empty string.</returns>
+    private static string ExcludedBreakdown(MissAttributionSet aTaint) =>
+        aTaint.ExcludedByConfidence.Count == 0
+            ? string.Empty
+            : " (" + string.Join(", ", aTaint.ExcludedByConfidence.Select(aRow => $"{aRow.Confidence}: {aRow.Records}")) + ")";
+
+    /// <summary>How many open misses carry a <c>deferred</c> verdict, which stays open by design.</summary>
+    /// <returns>The count.</returns>
+    private int DeferredCount()
+    {
+        var vLatest = LatestFixByMiss();
+
+        return SegmentMisses.Count(aMiss =>
+            vLatest.TryGetValue(LinkKey(aMiss.Repo, aMiss.MissId), out var vFix)
+            && string.Equals(vFix.VerdictAfter, "deferred", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The fix records the rate card may price — never OpenCode's, whose dollars are measured.</summary>
+    /// <returns>The estimable fixes.</returns>
+    private IReadOnlyList<MissFixRecord> EstimableFixes() =>
+        SegmentFixes
+            .Where(aFix => !string.Equals(aFix.Harness, OpenCodeHarness, StringComparison.OrdinalIgnoreCase)
+                           && !string.Equals(aFix.TokensScope, NoTokenScope, StringComparison.OrdinalIgnoreCase)
+                           && (aFix.TokensIn is not null || aFix.TokensOut is not null
+                               || aFix.TokensCacheRead is not null || aFix.TokensCacheWrite is not null))
+            .ToList();
+
+    /// <summary>The latest fix per miss, keyed the way the engine keys a miss.</summary>
+    /// <returns>One fix record per miss that has any.</returns>
+    private Dictionary<string, MissFixRecord> LatestFixByMiss()
+    {
+        var vLatest = new Dictionary<string, MissFixRecord>(StringComparer.Ordinal);
+
+        foreach (var vFix in objPeriodFixes.Where(aFix => aFix.Backfilled != true))
+        {
+            var vKey = LinkKey(vFix.Repo, vFix.MissId);
+
+            if (!vLatest.TryGetValue(vKey, out var vCurrent)
+                || string.CompareOrdinal(vFix.Ts, vCurrent.Ts) > 0)
+            {
+                vLatest[vKey] = vFix;
+            }
+        }
+
+        return vLatest;
+    }
+
+    /// <summary>The key a miss and its fixes are joined on — repository plus miss id.</summary>
+    /// <param name="aRepo">The source repository.</param>
+    /// <param name="aMissId">The miss id.</param>
+    /// <returns>The join key.</returns>
+    private static string LinkKey(string aRepo, string aMissId) => $"{aRepo}{aMissId}";
+
+    /// <summary>The origin cell of a detail row — phase and agent, or a plain statement that neither is named.</summary>
+    /// <param name="aMiss">The folded miss.</param>
+    /// <returns>The cell text.</returns>
+    private static string OriginOf(MissRecord aMiss)
+    {
+        var vPhase = aMiss.OriginPhase;
+        var vAgent = aMiss.OriginAgent;
+
+        if (vPhase is null && vAgent is null)
+        {
+            return "not named";
+        }
+
+        return vAgent is null ? vPhase! : $"{vPhase ?? "not named"} · {vAgent}";
+    }
+
+    /// <summary>The found-by cell, which names the gate when a gate caught it.</summary>
+    /// <param name="aMiss">The folded miss.</param>
+    /// <returns>The cell text.</returns>
+    private static string FoundByOf(MissRecord aMiss) =>
+        aMiss.FoundBy is null
+            ? Missing
+            : aMiss.FoundGate is { Length: > 0 } vGate ? $"{aMiss.FoundBy} · {vGate}" : aMiss.FoundBy;
+
+    /// <summary>
+    /// The status of one miss.
+    /// </summary>
+    /// <remarks>
+    /// Reads the latest fix's verdict, exactly as <see cref="MissFigures"/> does: <c>wont-fix</c> is its
+    /// own state and <c>deferred</c> is open (BRD-120). A miss with no fix at all is open.
+    /// </remarks>
+    /// <param name="aFix">The latest fix for the miss, or <c>null</c>.</param>
+    /// <returns>The status word shown in the row.</returns>
+    private static string StatusOf(MissFixRecord? aFix) => aFix?.VerdictAfter ?? "open";
+
+    /// <summary>The token cell of a detail row; an unattributable fix shows an em dash, never a zero.</summary>
+    /// <param name="aFix">The latest fix for the miss, or <c>null</c>.</param>
+    /// <returns>The cell text.</returns>
+    private static string TokensOf(MissFixRecord? aFix)
+    {
+        if (aFix is null
+            || string.Equals(aFix.TokensScope, NoTokenScope, StringComparison.OrdinalIgnoreCase)
+            || aFix.TokensOut is null)
+        {
+            return Missing;
+        }
+
+        return aFix.TokensOut.Value.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>The field names inside an overflow payload — names only, never values (SCHEMA.md §9).</summary>
+    /// <param name="aOverflow">The stored overflow JSON, or <c>null</c>.</param>
+    /// <returns>The property names, sorted.</returns>
+    private static IReadOnlyList<string> OverflowNames(string? aOverflow)
+    {
+        if (string.IsNullOrWhiteSpace(aOverflow))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonNode.Parse(aOverflow) is JsonObject vObject
+                ? vObject.Select(aPair => aPair.Key).OrderBy(aKey => aKey, StringComparer.Ordinal).ToList()
+                : [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>The percentage a share bar fills, clamped so a rounding artefact cannot overflow the track.</summary>
+    /// <param name="aCount">The bucket's count.</param>
+    /// <param name="aDenominator">The distribution's own denominator.</param>
+    /// <returns>A value between 0 and 100.</returns>
+    private static double SharePercent(int aCount, int aDenominator) =>
+        aDenominator <= 0 ? 0d : Math.Clamp(aCount * 100d / aDenominator, 0d, 100d);
+
+    /// <summary>Shrinks a headline that is a sentence rather than a number, so it fits its tile.</summary>
+    /// <param name="aFigure">The figure being rendered.</param>
+    /// <returns>The extra classes, or an empty string.</returns>
+    private static string SmallWhenNoNumber(Figure aFigure) =>
+        aFigure.HasValue ? string.Empty : "text-base font-normal";
+
+    /// <summary>Re-loads when the header Framework switch changes the axis (ADR-016).</summary>
+    private void OnPreferencesChanged() =>
+        InvokeAsync(async () =>
+        {
+            if (objLoadedFramework != objPreferences.Framework)
+            {
+                await LoadAsync();
+            }
+
+            StateHasChanged();
+        });
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+
+    /// <summary>One choice in the period filter.</summary>
+    /// <param name="Key">The stored value.</param>
+    /// <param name="Label">What the select shows.</param>
+    /// <param name="Days">How many days back the window reaches, or <c>null</c> for all history.</param>
+    /// <param name="Badge">The short form shown in the badge beside the select.</param>
+    private sealed record PeriodOption(string Key, string Label, int? Days, string Badge);
+
+    /// <summary>One band, described for the Playbook axis.</summary>
+    /// <param name="Band">The band's name.</param>
+    /// <param name="Detail">What it will show once the Playbook emits miss data.</param>
+    private sealed record PlannedBand(string Band, string Detail);
+
+    /// <summary>One row of the origin-phase × miss-class cross-tab.</summary>
+    /// <param name="Phase">The originating phase.</param>
+    /// <param name="Counts">Misses per miss class.</param>
+    /// <param name="Total">Misses attributed to the phase.</param>
+    /// <param name="Runs">Runs of that phase in the window, or <c>null</c> when none were observed.</param>
+    /// <param name="Rate">Misses per run, or <c>null</c> when the engine reported no rate for the phase.</param>
+    private sealed record OriginRow(
+        string Phase,
+        IReadOnlyDictionary<string, int> Counts,
+        int Total,
+        int? Runs,
+        Figure? Rate)
+    {
+        /// <summary>The count in one class column.</summary>
+        /// <param name="aClass">The miss class.</param>
+        /// <returns>The count, or zero.</returns>
+        public int CountOf(string aClass) => Counts.GetValueOrDefault(aClass);
+    }
+
+    /// <summary>One row of the failed-practice distribution.</summary>
+    /// <param name="Practice">The <c>why_missed</c> value.</param>
+    /// <param name="Count">Records carrying it.</param>
+    /// <param name="Share">Its share of the assessed denominator, as the reference prints it.</param>
+    /// <param name="SharePercent">The same share as a bar width.</param>
+    private sealed record PracticeRow(string Practice, int Count, string Share, double SharePercent);
+
+    /// <summary>One row of a per-origin distribution.</summary>
+    /// <param name="Key">The model or agent name.</param>
+    /// <param name="Count">Linked misses naming it.</param>
+    /// <param name="Share">Its share, as the reference prints it.</param>
+    /// <param name="Dominant">The commonest miss class for it, or an em dash.</param>
+    private sealed record OriginCountRow(string Key, int Count, string Share, string Dominant);
+
+    /// <summary>One row of the per-miss detail table.</summary>
+    /// <param name="MissId">The miss id.</param>
+    /// <param name="ReqId">The REQ it was found against.</param>
+    /// <param name="MissClass">What kind of miss it was.</param>
+    /// <param name="Severity">Owner-visible impact.</param>
+    /// <param name="Origin">Origin phase and agent.</param>
+    /// <param name="Confidence">The <c>origin_confidence</c> the emitter derived.</param>
+    /// <param name="FoundBy">Who or what found it.</param>
+    /// <param name="Status">The latest verdict, or <c>open</c>.</param>
+    /// <param name="Tokens">Output tokens of the fix window, or an em dash.</param>
+    /// <param name="Attribution">The fix's <c>cost_attribution</c>, or empty.</param>
+    private sealed record MissRow(
+        string MissId,
+        string ReqId,
+        string MissClass,
+        string Severity,
+        string Origin,
+        string Confidence,
+        string FoundBy,
+        string Status,
+        string Tokens,
+        string Attribution)
+    {
+        /// <summary>The badge style for the severity — always beside its own word, never colour alone.</summary>
+        public BadgeVariant SeverityVariant => Severity switch
+        {
+            "blocker" => BadgeVariant.Destructive,
+            "major" => BadgeVariant.Default,
+            _ => BadgeVariant.Secondary
+        };
+
+        /// <summary>The badge style for the status — always beside its own word, never colour alone.</summary>
+        public BadgeVariant StatusVariant => Status switch
+        {
+            "Verified" => BadgeVariant.Default,
+            MissFigures.WontFixVerdict => BadgeVariant.Secondary,
+            _ => BadgeVariant.Outline
+        };
+    }
+}

@@ -331,6 +331,14 @@ public static class ParserVersion
     /// <summary>The current parser version.</summary>
     /// <remarks>
     /// <para>
+    /// <b>1.2.0 (2026-08-28)</b> — minor bump: the export gained the whole <c>misses</c> block plus
+    /// <c>per_repo[].misses</c> and <c>per_repo[].stale_types</c>. The reference gained them when
+    /// <c>tf-metrics.sh</c> learned to read the <c>misses</c> stream (<c>analyse_misses()</c>), and
+    /// TfLens must emit every key the reference emits or the parity compare fails on a MISSING key.
+    /// Metrics were added and nothing stored changed meaning, so this is minor, not major (D-005) —
+    /// see <c>DECISIONS.md</c> §6 P-003.
+    /// </para>
+    /// <para>
     /// <b>1.1.0 (2026-08-27)</b> — minor bump: the export gained a metric,
     /// <c>pooled.session_duplicates_collapsed</c>. Per <c>DECISIONS.md</c> D-005 a metric being added is
     /// a minor bump — old exports stay comparable for the metrics they do carry, and nothing stored
@@ -345,5 +353,5 @@ public static class ParserVersion
     /// </para>
     /// <para><b>1.0.0 (2026-08-26)</b> — the first shipping parser.</para>
     /// </remarks>
-    public const string Current = "1.1.0";
+    public const string Current = "1.2.0";
 }

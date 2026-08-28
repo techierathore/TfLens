@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="sub">Last rendered: 2026-08-27</div>
+    <div class="sub">Last rendered: 2026-08-28</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical — use THESE for all smoke / verify / UAT)</a></li>
@@ -117,10 +117,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#profile-profile">Profile (/profile)</a></li>
         <li class="h3"><a href="#shell-sidebar-header">Shell (sidebar + header)</a></li>
         <li class="h3"><a href="#repos-repos">Repos (/repos)</a></li>
+        <li class="h3"><a href="#add-source-import-metric-files-repos">Add source → Import metric files (/repos)</a></li>
         <li class="h3"><a href="#coverage-health">Coverage / health (/)</a></li>
         <li class="h3"><a href="#three-questions-three-questions">Three questions (/three-questions)</a></li>
         <li class="h3"><a href="#harness-comparison-harness">Harness comparison (/harness)</a></li>
         <li class="h3"><a href="#routing-economics-routing">Routing &amp;amp; economics (/routing)</a></li>
+        <li class="h3"><a href="#misses-rework-misses">Misses &amp;amp; rework (/misses)</a></li>
         <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
         <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
         <li class="h3"><a href="#playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)</a></li>
@@ -128,14 +130,21 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#logs-logs">Logs (logs/)</a></li>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps (runbook — one command per line, in order)</a></li>
+        <li class="h3"><a href="#local-development-f5-dotnet-run">Local (development, F5 / dotnet run)</a></li>
+        <li class="h3"><a href="#deployment-docker-compose">Deployment (docker compose)</a></li>
+        <li class="h3"><a href="#operations">Operations</a></li>
         <li><a href="#test-automated">Test (automated)</a></li>
         <li><a href="#smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)</a></li>
         <li><a href="#known-limitations">Known limitations</a></li>
+        <li class="h3"><a href="#this-release">This release</a></li>
+        <li class="h3"><a href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">Upstream — TechieFlow (docs/TfLens-TechieFlow-Feedback.md)</a></li>
+        <li class="h3"><a href="#upstream-appmanager-docs-tflens-appmanager-feedback-md-both-resolved-neither-is-a-limitation">Upstream — AppManager (docs/TfLens-AppManager-Feedback.md) — both resolved, neither is a limitation</a></li>
+        <li class="h3"><a href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">Upstream — TrBlazeUI (docs/TfLens-TrBlazeUI-Feedback.md)</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="subtitle">Rendered 2026-08-27 &middot; source <code>TfLens-UsageGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-UsageGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -148,10 +157,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#profile-profile">Profile (/profile)</a></li>
         <li class="h3"><a href="#shell-sidebar-header">Shell (sidebar + header)</a></li>
         <li class="h3"><a href="#repos-repos">Repos (/repos)</a></li>
+        <li class="h3"><a href="#add-source-import-metric-files-repos">Add source → Import metric files (/repos)</a></li>
         <li class="h3"><a href="#coverage-health">Coverage / health (/)</a></li>
         <li class="h3"><a href="#three-questions-three-questions">Three questions (/three-questions)</a></li>
         <li class="h3"><a href="#harness-comparison-harness">Harness comparison (/harness)</a></li>
         <li class="h3"><a href="#routing-economics-routing">Routing &amp;amp; economics (/routing)</a></li>
+        <li class="h3"><a href="#misses-rework-misses">Misses &amp;amp; rework (/misses)</a></li>
         <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
         <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
         <li class="h3"><a href="#playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)</a></li>
@@ -159,9 +170,16 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#logs-logs">Logs (logs/)</a></li>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps (runbook — one command per line, in order)</a></li>
+        <li class="h3"><a href="#local-development-f5-dotnet-run">Local (development, F5 / dotnet run)</a></li>
+        <li class="h3"><a href="#deployment-docker-compose">Deployment (docker compose)</a></li>
+        <li class="h3"><a href="#operations">Operations</a></li>
         <li><a href="#test-automated">Test (automated)</a></li>
         <li><a href="#smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)</a></li>
         <li><a href="#known-limitations">Known limitations</a></li>
+        <li class="h3"><a href="#this-release">This release</a></li>
+        <li class="h3"><a href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">Upstream — TechieFlow (docs/TfLens-TechieFlow-Feedback.md)</a></li>
+        <li class="h3"><a href="#upstream-appmanager-docs-tflens-appmanager-feedback-md-both-resolved-neither-is-a-limitation">Upstream — AppManager (docs/TfLens-AppManager-Feedback.md) — both resolved, neither is a limitation</a></li>
+        <li class="h3"><a href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">Upstream — TrBlazeUI (docs/TfLens-TrBlazeUI-Feedback.md)</a></li>
       </ol>
     </div>
 <blockquote>
@@ -172,20 +190,39 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <table>
 <thead><tr><th>#</th><th>Username / Email</th><th>Password</th><th>Role / Permission</th><th>Created?</th><th>Notes</th></tr></thead>
 <tbody>
-<tr><td>1</td><td><code>TfLensDemo</code> — <code>tflensdemo@techierathore.com</code></td><td><code>TfLensDemo!23</code></td><td>Manager (every TfLens user) — the demo/test account (BRD-96)</td><td>✅</td><td><strong>AppManager <code>userId</code> 2.</strong> Registered 2026-08-26 during the Phase 1 build. Password may be rotated by the owner — update here. AppManager returned <code>applicationRole: "User"</code>, not <code>"Manager"</code> — Application Id 1 appears to have no <code>Manager</code> role code; TfLens treats every account as Manager regardless (BRD-95), so this does not affect behaviour.</td></tr>
-<tr><td>2</td><td><code>tflenstest2@techierathore.com</code></td><td><code>TfLensTest2!23</code></td><td>Manager — second user for tenant-isolation tests (BRD-102)</td><td>✅</td><td><strong>AppManager <code>userId</code> 3.</strong> Registered 2026-08-26 during the Phase 1 build. Connects a different public repo; must never see user 1's repos. Same <code>applicationRole</code> note as above.</td></tr>
+<tr><td>1</td><td><code>TfLensDemo</code> — <code>tflensdemo@techierathore.com</code></td><td><code>TfLensDemo!23</code></td><td>Manager (every TfLens user) — the demo/test account (BRD-96)</td><td>✅</td><td><strong>AppManager <code>userId</code> 2.</strong> Re-registered 2026-08-28 on the same email after the owner's AppManager update, so every doc and test that names it stays valid. Login and <code>GET /UserSvc/profile</code> both return <strong><code>applicationRole: "Manager"</code></strong> — the <code>"User"</code> substitution recorded here previously was AppManager defect AM-001 and is fixed. Password may be rotated by the owner — update here, then run the restore verb below.</td></tr>
+<tr><td>2</td><td><code>tflenstest2@techierathore.com</code></td><td><code>TfLensTest2!23</code></td><td>Manager — second user for tenant-isolation tests (BRD-102)</td><td>✅</td><td><strong>AppManager <code>userId</code> 3.</strong> Re-registered 2026-08-28 alongside user 1. Also returns <strong><code>applicationRole: "Manager"</code></strong>. Connects a different public repo; must never see user 1's repos.</td></tr>
 <tr><td>3</td><td><em>(anonymous)</em></td><td>—</td><td>Unauthenticated visitor — may reach <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/healthz</code> only</td><td>n/a</td><td>Proves the redirect and the anonymous routes.</td></tr>
-<tr><td>4</td><td><code>tflensrole@techierathore.com</code></td><td><code>TfLensRole!23</code></td><td>Manager <em>(requested)</em> — created 2026-08-27 to test the role mapping</td><td>✅</td><td><strong>AppManager <code>userId</code> 4.</strong> Registered through <code>POST /AuthSvc/register</code> with <code>applicationRoleCode: "Manager"</code> + <code>applicationId: 1</code> + the API-key pair — exactly what TfLens sends. <strong>AppManager returned <code>applicationRole: "User"</code>, not <code>Manager</code></strong>, and <code>GET /UserSvc/profile</code> still answers <code>403 NO_APP_ACCESS</code> for it. Kept as the reproduction case for that AppManager-side gap; delete it once Application 1 defines a <code>Manager</code> role.</td></tr>
 </tbody>
 </table>
 <ul>
 <li><strong>Created?</strong> — ✅ = the account exists in AppManager now (verified). ⬜ = planned; create it on first build, but <strong>only after confirming with the owner</strong> (see <code>_smoke-test-policy.md</code>). Never auto-create silently.
 </li>
-<li><strong>To add or confirm an account:</strong> edit this table — it is the registry the whole pipeline reads from.
+<li><strong>To add or confirm an account:</strong> edit this table — it is the registry the whole pipeline reads from. It is read <em>mechanically</em>, not just by people: <code>TestAccountRegistry</code> parses it, the restore verb below provisions from it, and <code>TestAccountRegistryTests</code> fails the build if a test signs in with an account this table does not list (REQ-NFR-012).
 </li>
-<li><strong>Seeding:</strong> no database seed; accounts live in AppManager. User 1's demo repos are connected by hand through the Repos screen during the Phase 1 build (no configuration seed — amended 2026-08-26).
+<li><strong>If the accounts stop working, run the restore procedure (REQ-NFR-012):</strong>
 </li>
-<li><strong>Secrets for tests:</strong> <code>TfLensDbConnection</code> must be set (dev: <code>dotnet user-secrets</code>). The <code>TfLensAppManagerApiKey</code> / <code>TfLensAppManagerApiSecret</code> pair is <strong>required</strong> — <em>(corrected 2026-08-27; it was previously recorded as optional)</em>. Most endpoints do resolve the application from the <code>applicationId: 1</code> in the request body, but <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code> accept the app scope <strong>only</strong> from the header pair and answer <code>400 APPLICATION_ID_REQUIRED</code> without it, so password reset cannot work at all unconfigured. The pair is sent on <code>/AuthSvc/*</code> only — on <code>/UserSvc/profile</code> it causes <code>403 NO_APP_ACCESS</code> (see DECISIONS.md D-006). A <strong>half-configured or wrong</strong> pair still returns <code>401 INVALID_API_KEY</code> on every call, which is why startup refuses a half pair. The app therefore requires the pair whole-or-not-at-all and refuses to start on a half-pair (see <code>DECISIONS.md</code>). <code>TfLensGitHubToken</code> is optional (public repos only). Fixture mode <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code> lets the UI be verified without GitHub. Never paste a secret into a doc.
+</ul>
+<pre><code>  dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
+<p>For every account in the table above it signs in with the recorded password and, only if that fails, registers the account with <code>applicationRoleCode: "Manager"</code>; it then reports each account's <code>userId</code> and <code>applicationRole</code>. It is <strong>idempotent</strong> — an account that already works is left exactly as it is — and it prints no password. Exit code 0 means every documented account can sign in.</p>
+<p>Last run 2026-08-28: <code>2 of 2 documented accounts usable</code> — <code>tflensdemo@techierathore.com</code> userId 2 <code>Manager</code>, <code>tflenstest2@techierathore.com</code> userId 3 <code>Manager</code>, exit 0.</p>
+<p>One case it cannot repair by itself: if AppManager holds the address but rejects the recorded password (it answers <code>DUPLICATE_EMAIL</code> on the re-registration attempt), the verb says so and stops. Reset the password through <code>/forgot-password</code>, or delete and re-create the account in the AppManager admin UI, then correct this table.</p>
+<ul>
+<li><strong>A row removed 2026-08-28:</strong> <code>tflensrole@techierathore.com</code> (<code>userId</code> 4) existed only as the reproduction case for AppManager defect AM-001. That defect is fixed and the account no longer exists in AppManager, so the row is gone rather than left to fail the restore verb. <em>(historical note; see <code>docs/TfLens-AppManager-Feedback.md</code>)</em>
+</li>
+<li><strong>Seeding:</strong> no database seed; accounts live in AppManager. User 1's four demo repos (<code>techierathore/TechieBlog</code>, <code>TechieFlow</code>, <code>TechieRag</code>, <code>TrBlazeUI</code>, all fetched via API) were connected by hand through the Repos screen — there is no configuration seed and no repo list in configuration.
+</li>
+<li><strong>Secrets for tests:</strong> local development reads <strong>user secrets</strong> (REQ-NFR-011) — never <code>.env</code>, which belongs to <code>docker compose</code> and is not opened by <code>dotnet run</code> or F5, and never <code>appsettings.json</code>, where <code>ConfigurationHygieneTests</code> fails the build on a secret. The committed template is <code>src/TfLens/secrets.example.json</code>; the keys are <code>TfLens:AppManagerApiKey</code>, <code>TfLens:AppManagerApiSecret</code>, <code>TfLens:GitHubToken</code>. <code>TfLens:DbConnection</code> need not be set in Development: <code>TfLensOptions.LocalDevelopmentConnection</code> (<code>Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev</code>) is seeded as the <strong>lowest-priority</strong> source, so user secrets and environment variables both override it, and nothing is seeded outside Development.
+<ul>
+<li>The <code>TfLens:AppManagerApiKey</code> / <code>TfLens:AppManagerApiSecret</code> pair (env: <code>TfLensAppManagerApiKey</code> / <code>TfLensAppManagerApiSecret</code>) is <strong>required</strong> — <em>(corrected 2026-08-27; it was previously recorded as optional)</em>. Most endpoints do resolve the application from the <code>applicationId: 1</code> in the request body, but <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code> accept the app scope <strong>only</strong> from the header pair and answer <code>400 APPLICATION_ID_REQUIRED</code> without it, so password reset cannot work at all unconfigured. A <strong>half-configured or wrong</strong> pair returns <code>401 INVALID_API_KEY</code> on every call, which is why startup refuses a half pair — whole-or-not-at-all (see <code>DECISIONS.md</code> D-006).
+</li>
+<li><em>(corrected 2026-08-28)</em> The pair is now sent on <strong><code>/UserSvc/*</code> as well as <code>/AuthSvc/*</code></strong> — i.e. on every path the client calls. It used to be withheld from <code>/UserSvc/*</code> because <code>GET /UserSvc/profile</code> answered <code>403 NO_APP_ACCESS</code> whenever an application was resolved; that was AppManager defect <strong>AM-002</strong>, fixed by the owner on 2026-08-28. Measured live the same day: with the pair, <code>/UserSvc/profile</code> returns <code>200</code> with <code>applicationRole: "Manager"</code>; without it, <code>200</code> but with <code>applicationRole</code> as an <strong>empty string</strong>. Withholding it now costs the application scope for nothing.
+</li>
+<li><em>(documentation correction 2026-08-28)</em> <code>TfLens:GitHubToken</code> (env: <code>TfLensGitHubToken</code>) — <strong>the BRD calls this optional, which is misleading.</strong> It is genuinely optional only for reading a single small public repo. Unauthenticated GitHub is capped at <strong>60 requests/hour</strong>, and a multi-repo sync cannot finish inside that: a four-repo sync exhausts the budget and the run ends in <code>403</code> rate-limit errors. Treat the token as <strong>effectively required</strong> for any sync worth running; an authenticated token raises the core limit to 5,000/hour. It remains optional in the sense that TfLens starts and serves without it.
+</li>
+<li>Fixture mode <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code> lets the UI be verified without GitHub. Never paste a secret into a doc.
+</li>
+</ul>
 </li>
 </ul>
 <h2 id="how-to-test-screen-by-screen-menu-by-menu">How to test — screen by screen / menu by menu<a class="anchor-link" href="#how-to-test-screen-by-screen-menu-by-menu">#</a></h2>
@@ -206,7 +243,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   B --&gt; C{"Coverage GREEN?"}
   C --&gt;|"no"| D["Read the warning text; fix clone / hooks"]
   C --&gt;|"yes"| E["Three questions per project_type"]
-  E --&gt; F["Harness + Routing pages"]
+  E --&gt; F["Harness + Routing + Misses pages"]
   F --&gt; G["Export snapshot"]
   G --&gt; H["Terminal: tf-metrics.sh rollup + parity-compare.py"]
   H --&gt; I{"empty diff?"}
@@ -261,42 +298,53 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Steps:</strong> 1) Read the sidebar order and icons → 2) click the sidebar trigger to collapse, hover an item, expand again → 3) click each item → 4) flip the header <strong>Framework switch</strong> to Playbook and back → 5) press <strong>Sync now</strong> → 6) open the user menu (name on the right) → 7) toggle the theme → 8) Sign out from the menu
+<li><strong>Steps:</strong> 1) Read the sidebar order and icons → 2) click the sidebar trigger to collapse, hover an item, expand again → 3) click each item → 4) flip the header <strong>Framework switch</strong> to Playbook and back, then open <code>/repos</code> and <code>/profile</code> → 5) press <strong>Sync now</strong> → 6) open the user menu (name on the right) → 7) toggle the theme → 8) Sign out from the menu
 </li>
-<li><strong>Expected:</strong> order is Repos, Coverage / health, Three questions, Harness comparison, Routing &amp; economics, Snapshot export, each with a Lucide icon (no Playbook item — it is the Framework switch); switching to Playbook shows the Playbook state of the current page ("No Playbook data yet" until Phase 3) and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
+<li><strong>Expected:</strong> the sidebar holds <strong>seven</strong> items in the fixed order Repos, Coverage / health, Three questions, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, Snapshot export, each with a Lucide icon and no <code>/playbook</code> item — the framework is chosen in the header; the Framework switch renders on the <strong>six</strong> report routes (<code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) and on neither <code>/repos</code> nor <code>/profile</code>; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
 </li>
-<li><strong>Covers:</strong> BRD-4, BRD-5, BRD-6, BRD-85, BRD-105, BRD-106
+<li><strong>Covers:</strong> BRD-4, BRD-5, BRD-6, BRD-85, BRD-105, BRD-106, BRD-124, BRD-126 (REQ-UI-006, REQ-UI-010)
 </li>
 </ul>
 <h3 id="repos-repos">Repos (<code>/repos</code>)<a class="anchor-link" href="#repos-repos">#</a></h3>
 <ul>
 <li><strong>Log in as:</strong> user 1, then user 2
 </li>
-<li><strong>Steps:</strong> 1) Read the repos table → 2) Connect repo with <code>https://github.com/techierathore/TrBlazeUI</code> → Validate → Connect → 3) try a private repo URL → 4) try a public repo without telemetry (e.g. <code>octocat/Hello-World</code>) → 5) try connecting a repo already in the list → 6) Remove a repo and confirm → 7) sign in as user 2 and open <code>/repos</code>
+<li><strong>Steps:</strong> 1) Read the repos table → 2) <strong>Add source</strong> → <strong>Fetch via API</strong> with <code>https://github.com/techierathore/TrBlazeUI</code> → Validate → Connect → 3) try a private repo URL → 4) try a public repo without telemetry (e.g. <code>octocat/Hello-World</code>) → 5) try connecting a repo already in the list → 6) Remove a repo and confirm → 7) sign in as user 2 and open <code>/repos</code>
 </li>
-<li><strong>Expected:</strong> step 1 shows the seeded demo repos with kind/public/status/last sync/records; step 2 shows the three green validation lines, connects, runs the first sync and toasts; step 3 refuses with "Private repos aren't supported in this release"; step 4 refuses with "no TechieFlow or Playbook telemetry"; step 5 refuses as duplicate; step 6 removes the row and the Coverage page no longer shows that repo; step 7 shows the empty state — none of user 1's repos are visible (isolation)
+<li><strong>Expected:</strong> step 1 shows the connected repos with columns Repo · Branch · Kind · <strong>Source</strong> · Visibility · Status · Last sync / import · Records · Actions, and the KPI sub-line counts synced vs imported; step 2 shows the three green validation lines (Repository exists · Public · Telemetry path found), connects, runs the first sync and toasts; step 3 refuses with "Private repos can't be fetched — use Import metric files to add this repo's telemetry without a credential." and offers a <strong>Switch to import →</strong> link inline rather than dead-ending; step 4 refuses under "Can't connect this repo"; step 5 refuses under "Already connected"; step 6 removes the row and the Coverage page no longer shows that repo; step 7 shows the empty state "No sources yet" with both <strong>Fetch via API</strong> and <strong>Import metric files</strong> actions — none of user 1's repos are visible (isolation)
 </li>
 <li><strong>Covers:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-104
+</li>
+</ul>
+<h3 id="add-source-import-metric-files-repos">Add source → Import metric files (<code>/repos</code>)<a class="anchor-link" href="#add-source-import-metric-files-repos">#</a></h3>
+<ul>
+<li><strong>Log in as:</strong> user 1
+</li>
+<li><strong>Steps:</strong> 1) <strong>Add source</strong> → <strong>Import metric files</strong> → 2) type a source name and pick a framework → 3) drop a <code>.zip</code> of a <code>docs/metrics/</code> directory → 4) read the preview, then Cancel → 5) reopen and drop <code>data/reports/&lt;date&gt;/tflens.json</code> → 6) redo step 3 and press <strong>Import</strong> → 7) read the new row → 8) press header <strong>Sync now</strong> → 9) press the row's <strong>Re-import</strong> → 10) back on <strong>Fetch via API</strong>, Validate a private repo URL
+</li>
+<li><strong>Expected:</strong> the drop zone accepts <code>.zip</code> / <code>.jsonl</code> / <code>.ndjson</code> up to 25 MB and names the directory to zip — <code>docs/metrics/</code> for TechieFlow, <code>verification/telemetry/</code> for the Playbook; the preview card reads "Preview — nothing is written yet" with a <code>sha256 &lt;8 chars&gt;</code> badge and records / date range / invalid lines per stream, and <strong>Import stays disabled until it renders</strong>; cancelling at step 4 leaves zero rows and zero archive files; step 5 is refused with "That's a computed report, not telemetry", naming the telemetry directory to upload instead, and shows no preview; step 6 labels the button <code>Import N records</code>, then toasts <code>Imported</code> with records added and duplicates collapsed; the new row's Source badge reads <strong>Imported</strong>, its Repo cell is not a GitHub link, its date column reads the import time, and its only action is <strong>Re-import</strong> — there is no Sync control on it at all; step 8 leaves every imported row's counts and timestamps untouched, and pressing a Sync elsewhere on an imported source toasts "This source can't refresh itself — re-import to update."; step 9 opens the same dialog with no mode tabs and the name and framework locked; step 10 refuses with the private-repo message and a <strong>Switch to import →</strong> link that carries the typed <code>owner/name</code> into the import panel
+</li>
+<li><strong>Covers:</strong> BRD-100, BRD-131, BRD-132, BRD-133, BRD-135, BRD-138, BRD-139, BRD-140 (REQ-UI-040, REQ-UI-041, REQ-FN-082..REQ-FN-087, REQ-NFR-014)
 </li>
 </ul>
 <h3 id="coverage-health">Coverage / health (<code>/</code>)<a class="anchor-link" href="#coverage-health">#</a></h3>
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Steps:</strong> 1) Land on <code>/</code> after login → 2) read the status strip → 3) open each repo card → 4) find the stale repo (fixture: TrBlazeUI, sessions 11 days) → 5) expand "Fields observed that SCHEMA.md doesn't document" → 6) press <strong>Rebuild…</strong>, confirm
+<li><strong>Steps:</strong> 1) Land on <code>/</code> after login → 2) read the status strip → 3) open each repo card and read its source badge and dataset identity → 4) read the per-stream table → 5) find a stale repo → 6) read the "Miss stream — data quality" card → 7) expand "Fields observed that SCHEMA.md doesn't document" → 8) press <strong>Rebuild…</strong>, confirm
 </li>
-<li><strong>Expected:</strong> landing page is Coverage (BRD-44); strip says GREEN or CHECK with the warning count; each card shows last sync, outcome, short SHA linked to GitHub, and a 4-row stream table with records / backfilled / newest / days-since; the stale repo shows the warning text "sessions/commits stale ≥ 7 days — this clone isn't pushing or lacks hooks; run update-framework.sh on it"; unknown fields list names only (fixture: <code>routed_reason</code>); rebuild reports files replayed / records / duplicates and the counts equal the pre-rebuild counts
+<li><strong>Expected:</strong> landing page is Coverage (BRD-44) for a user with at least one connected repo, and a user with none is redirected to <code>/repos</code>; strip says <code>GREEN — n repos synced, nothing stale</code> or <code>CHECK — n warnings</code>; each card shows last sync, outcome and a source badge <strong>Synced</strong> or <strong>Imported</strong>, with the dataset identity rendered accordingly — a fetched source shows the short commit SHA linked to GitHub, an imported one shows <code>sha256 &lt;8 chars&gt;</code> and is not a link; the stream table has <strong>five</strong> rows for a techieflow repo (runs, gates, sessions, commits, <strong>misses</strong>) and one row (<code>events</code>) for a playbook repo, each with records / backfilled / newest / days-since, and <code>sessions</code> / <code>commits</code> show <code>—</code> under backfilled rather than a zero; a stale <strong>fetched</strong> repo shows "sessions/commits stale ≥ 7 days — this clone isn't pushing or lacks hooks; run update-framework.sh on it" and badges the row <code>stale</code>, while an <strong>imported</strong> source never carries that advice and instead reads "Imported N days ago. This source can't refresh itself — re-import to update."; the miss data-quality card states counts only — escapes with no <code>why_missed</code>, records that link to nothing, backfilled records held out of every miss figure — and carries no rate anywhere; unknown fields list names only; rebuild reports files replayed / records / duplicates and the counts equal the pre-rebuild counts
 </li>
-<li><strong>Covers:</strong> BRD-21, BRD-22, BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44
+<li><strong>Covers:</strong> BRD-21, BRD-22, BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44, BRD-127, BRD-136, BRD-137 (REQ-UI-039, REQ-UI-042)
 </li>
 </ul>
 <h3 id="three-questions-three-questions">Three questions (<code>/three-questions</code>)<a class="anchor-link" href="#three-questions-three-questions">#</a></h3>
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Steps:</strong> 1) Read the SCHEMA §6 note → 2) switch tabs <code>app</code> → <code>library</code> → <code>unclassified</code> → 3) on <code>app</code> read the three cards → 4) read the gate distribution table → 5) read the late-gate line → 6) expand the taint list
+<li><strong>Steps:</strong> 1) Read the SCHEMA §6 note → 2) switch through the <code>project_type</code> tabs (one per type observed in the data — <code>app</code>, <code>framework</code>, <code>library</code>, …) → 3) on one tab read the three cards → 4) read the gate distribution table → 5) read the late-gate line → 6) expand the taint list
 </li>
-<li><strong>Expected:</strong> there is <strong>no "all" tab and no total row</strong>; each card shows the live value with a "backfilled" secondary line, never a sum; a segment with fewer than 3 records shows the literal <code>insufficient data (n=…)</code>; the table lists gates in order build, acceptance, render, visual, perf, standards, escaped, unattributed, with <code>escaped</code> badged "no gate caught it" and <code>perf</code> badged "see coverage"; the perf line reads "ran on N records, caught K → …" or "not yet run on this data (gate added 2026-08-10)"; the taint list shows exactly the REQ IDs that have a backfilled record (fixture: REQ-UI-004, REQ-FN-011, REQ-UI-009)
+<li><strong>Expected:</strong> there is <strong>no "all" tab and no total row</strong>; each card shows the live value with a "backfilled" secondary line, never a sum; a segment with fewer than 3 records shows the literal <code>insufficient data (n=…)</code>; the table lists gates in order build, acceptance, render, visual, perf, standards, escaped, unattributed, with <code>escaped</code> badged "no gate caught it" and <code>perf</code> badged "see coverage"; the perf line reads "ran on N records, caught K → …" or "not yet run on this data (gate added 2026-08-10)"; the taint list shows exactly the REQ IDs that have a backfilled record
 </li>
 <li><strong>Covers:</strong> BRD-45, BRD-46, BRD-47, BRD-48, BRD-49, BRD-50 (and BRD-31..BRD-36 by observation)
 </li>
@@ -323,13 +371,24 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>Covers:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62
 </li>
 </ul>
+<h3 id="misses-rework-misses">Misses &amp; rework (<code>/misses</code>)<a class="anchor-link" href="#misses-rework-misses">#</a></h3>
+<ul>
+<li><strong>Log in as:</strong> user 1
+</li>
+<li><strong>Steps:</strong> 1) Open <strong>Misses &amp; rework</strong> from the sidebar → 2) read the period Select and the escape note → 3) switch <code>project_type</code> tabs → 4) read the KPI row → 5) read "Where misses come from" and the failed-practice card → 6) read "Who was running" → 7) read "Cost of rework" → 8) open a row's raw record under <strong>Every miss</strong> → 9) narrow the period to Last 7 days → 10) flip the Framework switch to Playbook
+</li>
+<li><strong>Expected:</strong> the period trigger reads <code>All history (default)</code> on first paint and the badge beside it restates the window; the standing note "Two escape figures on this site, and they are not the same number" is page copy, not a tooltip, and separates this page's miss-stream escape share from the <code>gates</code>-derived escape rate on <code>/three-questions</code>; there is <strong>no "all types" tab and no total row</strong>; the KPI tiles are Open misses · Declined (wont-fix) · Misses {period} · Median time to close · Design-miss share · Escape share (misses) · Tokens spent on rework · Measured USD on rework, with <code>wont-fix</code> in its own tile and never inside the open count while <code>deferred</code> is, and any rate-card estimate on a visually distinct tile carrying its estimate label; the origin table shows an always-visible excluded count ("N of M misses excluded…"), rendered even at zero; the failed-practice card's denominator reads <code>n of N misses assessed</code> — the records that carry the field, never the miss count — and states separately how many predate <code>why_missed</code>; "Who was running" carries the standing warning "Observational only — this band does not show causation" and is computed from <code>origin_confidence: "linked"</code> records only with the excluded count on screen; "Cost of rework" renders <strong>three</strong> cards — Measured (<code>cost_attribution: sole</code>) · Apportioned (<code>shared:n</code>) · Unattributable (<code>none</code>) — and there is no blended measured-plus-apportioned number anywhere on the page, in the export or in parity; a figure below n=3 reads <code>insufficient data (n=…)</code> and an absent value reads <code>—</code>, never <code>$0.00</code>; the raw record shows <code>overflow</code> field names only; narrowing the period recomputes every figure and closes any open raw record; on Playbook the whole page shows its empty state with the Framework switch still rendered
+</li>
+<li><strong>Covers:</strong> BRD-118, BRD-119, BRD-120, BRD-121, BRD-122, BRD-123, BRD-124, BRD-125, BRD-126 (REQ-UI-035..REQ-UI-038, REQ-NFR-013)
+</li>
+</ul>
 <h3 id="snapshot-export-export">Snapshot export (<code>/export</code>)<a class="anchor-link" href="#snapshot-export-export">#</a></h3>
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the banner → 2) press <strong>Export snapshot</strong> → 3) open both files from the new row → 4) copy a SHA from the dataset table
 </li>
-<li><strong>Expected:</strong> banner is NOT QUOTABLE until a parity run is recorded for the current parser version, QUOTABLE afterwards; export creates <code>data/reports/&lt;today&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>extras</code>, <code>parity</code>; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
+<li><strong>Expected:</strong> banner is NOT QUOTABLE until a parity run is recorded for the current parser version, QUOTABLE afterwards — it reads QUOTABLE today, against parser <strong>1.2.0</strong>; export creates <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code>, <code>parity</code>, and each <code>per_repo</code> entry carries <code>source_kind</code>; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
 </li>
 <li><strong>Covers:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 </li>
@@ -338,9 +397,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Log in as:</strong> n/a (operator at a shell)
 </li>
-<li><strong>Steps:</strong> 1) <code>dotnet TfLens.dll export</code> → 2) clone the configured repos at the SHAs shown on <code>/export</code> → 3) <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repos…&gt; --json &gt; reference.json</code> → 4) <code>python3 tools/parity-compare.py reference.json data/reports/&lt;date&gt;/tflens.json</code>
+<li><strong>Steps:</strong> 1) <code>dotnet TfLens.dll export --user 2 --framework techieflow</code> → 2) clone the connected repos at the SHAs shown on <code>/export</code> → 3) <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repos…&gt; --json &gt; reference.json</code> → 4) <code>python3 tools/parity-compare.py reference.json data/reports/&lt;userId&gt;/&lt;date&gt;/techieflow/tflens.json --allow-environment-keys --record src/TfLens/data/parity-last.json --parser-version 1.2.0 --script .tfcore/telemetry/tf-metrics.sh --dataset-sha &lt;owner/name&gt;=&lt;sha&gt; …</code>
 </li>
-<li><strong>Expected:</strong> exit code 0 and "0 differences" on matching data; introduce a deliberate change (e.g. delete one backfilled record from a local copy) and the script exits non-zero naming the differing key; a passing run writes <code>data/parity-last.json</code> and the <code>/export</code> banner flips to QUOTABLE
+<li><strong>Expected:</strong> exit code 0 and <code>0 finding(s)</code> with every allowed difference itemised as <code>ENV-OK</code> / <code>ADDED-OK</code>, and the <code>misses</code> block reported <code>COVERED</code> over all 29 figures BRD-129 names; introduce a deliberate change (e.g. delete one backfilled record from a local copy) and the script exits non-zero naming the differing key; a passing run writes <code>data/parity-last.json</code> (<code>passed: true</code>, <code>parser_version: "1.2.0"</code>) and the <code>/export</code> banner reads QUOTABLE
 </li>
 <li><strong>Covers:</strong> BRD-64, BRD-68, BRD-69, BRD-71, BRD-72
 </li>
@@ -349,11 +408,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Steps:</strong> 1) On <code>/</code> flip the Framework switch to Playbook (before Phase 3) → 2) after Phase 3, connect a Playbook repo, sync, and walk <code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/export</code> with Playbook selected → 3) flip back to TechieFlow on each page
+<li><strong>Steps:</strong> 1) On <code>/</code> flip the Framework switch to Playbook → 2) walk <code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code> with Playbook selected → 3) reload one of them → 4) flip back to TechieFlow on each page
 </li>
-<li><strong>Expected:</strong> before Phase 3 every page shows the info note and the "No Playbook data yet" empty state; after Phase 3 the same layouts render Playbook data (Three questions keyed by <code>phase_gate</code>, phase totals, main-vs-subagent split, observed-fields list), the export writes a separate Playbook snapshot, and no figure from one framework appears under the other
+<li><strong>Expected:</strong> the switch renders on all six report pages and is never hidden; with no connected repository emitting <code>events.ndjson</code> each page shows its own Playbook axis note and empty state rather than a zero, and <code>/misses</code> additionally lists the four planned bands with the note that a zero there is absence, not a good score; the choice persists per user across navigation and reload; the same layouts render Playbook data once a Playbook source exists (Three questions keyed by <code>phase_gate</code>, phase totals, main-vs-subagent split, observed-fields list), the export writes a separate Playbook snapshot, and no figure from one framework appears under the other; the way to get Playbook data without a public repo is Add source → Import metric files with a <code>verification/telemetry/</code> bundle
 </li>
-<li><strong>Covers:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110
+<li><strong>Covers:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110 (REQ-FN-067, REQ-FN-070)
 </li>
 </ul>
 <h3 id="health-endpoint-healthz">Health endpoint (<code>/healthz</code>)<a class="anchor-link" href="#health-endpoint-healthz">#</a></h3>
@@ -392,83 +451,156 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 </ul>
 <h2 id="setup-deployment-steps-runbook-one-command-per-line-in-order">Setup / Deployment steps (runbook — one command per line, in order)<a class="anchor-link" href="#setup-deployment-steps-runbook-one-command-per-line-in-order">#</a></h2>
-<p>Numbered, terse, copy-pasteable. Commands marked <em>(after Phase 1)</em> depend on projects that do not exist yet.</p>
+<h3 id="local-development-f5-dotnet-run">Local (development, F5 / <code>dotnet run</code>)<a class="anchor-link" href="#local-development-f5-dotnet-run">#</a></h3>
 <ol>
-<li><code>git clone &lt;repo&gt; &amp;&amp; cd TfLens</code>
+<li><code>git clone https://github.com/techierathore/TfLens.git &amp;&amp; cd TfLens</code>
 </li>
-<li><code>dotnet user-secrets init --project src/TfLens</code> <em>(after Phase 1)</em>
+<li><code>printf 'TfLensDbPassword=tflensdev\n' &gt; .env</code>
 </li>
-<li><code>dotnet user-secrets set TfLensAppManagerApiKey &lt;key&gt; --project src/TfLens</code> <em>(after Phase 1)</em>
+<li><code>docker compose up -d postgres</code>
 </li>
-<li><code>dotnet user-secrets set TfLensAppManagerApiSecret &lt;secret&gt; --project src/TfLens</code> <em>(after Phase 1)</em>
+<li><code>dotnet user-secrets set "TfLens:AppManagerApiKey" "&lt;key&gt;" --project src/TfLens</code>
 </li>
-<li><code>docker compose up -d postgres</code> then <code>dotnet user-secrets set TfLensDbConnection "Host=localhost;Port=5432;Database=tflens;Username=tflens;Password=&lt;pw&gt;" --project src/TfLens</code> <em>(after Phase 1)</em>
+<li><code>dotnet user-secrets set "TfLens:AppManagerApiSecret" "&lt;secret&gt;" --project src/TfLens</code>
+</li>
+<li><code>dotnet user-secrets set "TfLens:GitHubToken" "&lt;PAT&gt;" --project src/TfLens</code>
+</li>
+<li><code>dotnet run --project src/TfLens -c Release --urls http://localhost:5099</code>
+</li>
+<li><code>curl -s http://localhost:5099/healthz</code>
+</li>
+<li>Open <code>http://localhost:5099</code> → sign in as user 1 → <strong>Repos</strong> → <strong>Add source</strong> → <strong>Sync now</strong>
 </li>
 </ol>
-<p>5a. <code>dotnet user-secrets set TfLensGitHubToken &lt;optional PAT for rate-limit headroom&gt; --project src/TfLens</code> <em>(optional, after Phase 1)</em></p>
+<p><code>.env</code> is read by <code>docker compose</code> only, for step 3's <code>TfLensDbPassword</code>. <code>tflensdev</code> is not a free choice — it is the password inside <code>TfLensOptions.LocalDevelopmentConnection</code>, the Development fallback the app uses when no connection string is configured; <code>.env.example</code> ships <code>change-me</code>, which does not match it. Step 6's PAT is not optional in practice — see Known limitations. The schema is applied from <code>database/001-schema.sql</code> at startup; there is no migration step and no repo list in configuration.</p>
+<h3 id="deployment-docker-compose">Deployment (<code>docker compose</code>)<a class="anchor-link" href="#deployment-docker-compose">#</a></h3>
 <ol>
-<li>Edit <code>src/TfLens/appsettings.json</code> → <code>PollIntervalMinutes</code>, <code>AppManager:BaseUrl</code>, <code>AppManager:AppId</code> (1) — there is no repo list in configuration
+<li><code>git clone https://github.com/techierathore/TfLens.git &amp;&amp; cd TfLens</code>
 </li>
-<li><code>dotnet restore</code>
+<li><code>cp .env.example .env</code>
 </li>
-<li><code>dotnet build</code>
+<li>Set <code>TfLensDbPassword</code>, <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensGitHubToken</code> in <code>.env</code>
 </li>
-<li><code>dotnet run --project src/TfLens --urls http://localhost:5099</code>
+<li><code>docker compose -f docker-compose.yml up -d --build</code>
 </li>
-<li>Open <code>http://localhost:5099</code> → <code>/login</code> → user 1 (or <code>/register</code> for a new account) → <strong>Repos</strong> → Connect a public repo → press <strong>Sync now</strong>
-</li>
-<li>Docker: <code>docker compose up -d</code> (services <code>postgres</code> + <code>tflens</code>; env <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code> [+ <code>TfLensGitHubToken</code>] from <code>.env</code>, never committed) <em>(after Phase 1)</em>
-</li>
-<li>Operations: <code>dotnet TfLens.dll rebuild</code> · <code>dotnet TfLens.dll sync</code> · <code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code> (or the same via <code>docker exec</code>)
+<li><code>curl -s http://localhost:8080/healthz</code>
 </li>
 </ol>
+<h3 id="operations">Operations<a class="anchor-link" href="#operations">#</a></h3>
+<ul>
+<li><code>docker exec tflens dotnet TfLens.dll sync [--user &lt;id&gt;]</code>
+</li>
+<li><code>docker exec tflens dotnet TfLens.dll rebuild [--user &lt;id&gt;]</code>
+</li>
+<li><code>docker exec tflens dotnet TfLens.dll export --user &lt;id&gt; [--framework techieflow|playbook]</code>
+</li>
+<li><code>dotnet run --project src/TfLens -- provision-test-accounts</code>
+</li>
+</ul>
+<p><code>export</code> requires <code>--user</code>; with no <code>--framework</code> it writes every framework's snapshot. It always writes today's UTC date — there is no <code>--date</code>.</p>
 <h2 id="test-automated">Test (automated)<a class="anchor-link" href="#test-automated">#</a></h2>
-<pre><code class="language-bash">dotnet test</code></pre>
-<p>Playwright specs are added by the verifier under <code>tests/</code> from Phase 2 onward; run with <code>npx playwright test</code> once present.</p>
+<pre><code class="language-bash">dotnet test TfLens.slnx -c Release -m:1</code></pre>
+<p>630 tests — Core 500, Guardrails 87, Integration 43. <code>-m:1</code> matters: the suite is not parallel-safe.</p>
+<pre><code class="language-bash">npx playwright test</code></pre>
+<p>77 acceptance specs under <code>tests/verify/</code>, run serially against a running app at <code>http://localhost:5099</code> (override with <code>TFLENS_BASE_URL</code>). Boot the app first — the config starts no web server for you. Three specs skip themselves against the owner's live dataset: two need the seeded misses fixture, one needs Playbook data.</p>
 <h2 id="smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)<a class="anchor-link" href="#smoke-checklist-quick-capability-pass">#</a></h2>
 <ul>
-<li>[ ] Signed-out visit to <code>/</code> redirects to <code>/login</code>; user 1 signs in via AppManager and lands on Coverage; app opens in dark mode
+<li>[ ] Sign in as user 1 and land on Coverage, in dark mode
 </li>
-<li>[ ] A new account registers at <code>/register</code> (role Manager) and lands on the empty <code>/repos</code>
+<li>[ ] Connect a public repo through <strong>Add source → Fetch via API</strong> and watch its first sync finish
 </li>
-<li>[ ] Connect a public repo validates (exists · public · telemetry path) and first-syncs; a private repo is refused
+<li>[ ] Import a <code>docs/metrics/</code> zip through <strong>Add source → Import metric files</strong>, reading the preview before committing it
 </li>
-<li>[ ] User 2 cannot see user 1's repos or figures
+<li>[ ] Press <strong>Sync now</strong> and confirm the imported source's counts and timestamps do not move
 </li>
-<li>[ ] Sidebar collapses to icons; user menu on the right holds Profile / Manage repos / Sign out
+<li>[ ] Open <strong>Misses &amp; rework</strong>, narrow the period, and read the three-way cost-of-rework split
 </li>
-<li>[ ] Sync now completes with one toast per repo and updates the last-sync badge
+<li>[ ] Open <strong>Three questions</strong> and switch <code>project_type</code> tabs
 </li>
-<li>[ ] Coverage shows per-stream days-since and flags the stale fixture repo in words
+<li>[ ] Flip the Framework switch to Playbook on a report page and back
 </li>
-<li>[ ] Three questions has no "all" tab; a thin segment prints <code>insufficient data (n=…)</code>
+<li>[ ] Export a snapshot and open both files from the new row
 </li>
-<li>[ ] Harness page shows OpenCode-only dollars and no cross-harness dollar total
+<li>[ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
 </li>
-<li>[ ] Routing repricing cards carry the estimate badge; editing prices recomputes
-</li>
-<li>[ ] Export writes <code>snapshot.md</code> + <code>tflens.json</code>; banner reflects parity state
-</li>
-<li>[ ] <code>parity-compare.py</code> exits 0 on the reference dataset
-</li>
-<li>[ ] <code>/healthz</code> answers anonymously; <code>logs/tflens-*.log</code> contains no token and no record bodies
+<li>[ ] Sign out from the user menu
 </li>
 </ul>
 <h2 id="known-limitations">Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
+<p>140 of the 143 REQ rows in <code>docs/TfLens-Checklist.md</code> are <code>Verified</code>; there are <strong>no <code>Blocked</code> rows</strong>. The three that are not — <code>REQ-FN-012</code>, <code>REQ-FN-067</code>, <code>REQ-FN-070</code> — open this list.</p>
+<h3 id="this-release">This release<a class="anchor-link" href="#this-release">#</a></h3>
 <ul>
-<li>Day-1: no code exists; every step marked <em>(after Phase 1)</em> is a roadmap item.
+<li><code>REQ-FN-067</code>, <code>REQ-FN-070</code> (<code>Needs re-verify</code>) — no connected repository emits <code>events.ndjson</code>, so the Playbook axis renders its (correct) empty state and the Playbook report data and snapshot cannot be verified end to end. The way in is <strong>Add source → Import metric files</strong> with a <code>verification/telemetry/</code> bundle.
 </li>
-<li>GitHub SSO (BRD-94) is deferred to Phase 2 — AppManager has no external-login endpoint yet; the login page shows no GitHub button.
+<li><code>REQ-FN-012</code> (<code>N/A</code>) — GitHub SSO (BRD-94) is deferred; AppManager has no external-login endpoint, so the login page shows no GitHub button.
 </li>
-<li>Public GitHub repos only in this release; private repos are refused at connect time.
+<li>Harness, routing and repricing figures have no reference implementation — spot-checked by hand once (BRD-72), never parity-diffed.
 </li>
-<li>Playbook report set (Framework switch → Playbook) is Phase 3; until then it shows the empty state.
+<li><code>TfLensGitHubToken</code> is optional in the BRD and effectively required in practice: unauthenticated GitHub allows 60 requests/hour, which a four-repo sync exhausts; a PAT raises it to 5,000/hour and grants no extra repository access.
 </li>
-<li>Phase 3 Playbook adapter is schema-discovery-first — its columns are provisional until the real <code>events.ndjson</code> is parsed.
+<li>The rebuild progress bar is an estimate, not a measurement, so a long rebuild reads as stuck at 20%.
 </li>
-<li>Harness, routing and repricing figures have no reference implementation; they are spot-checked by hand once (BRD-72), not parity-diffed.
+<li>The sidebar repo-count badge is not framework-filtered, so it can legitimately differ from the Framework switch counts and from Coverage's card count.
 </li>
-<li>TrBlazeUI gaps observed at design time (no KPI card, no plain table primitives, no theme toggle) — see <code>docs/TfLens-UIDesign.md</code> §Library gaps; logged to <code>docs/TfLens-TrBlazeUI-Feedback.md</code> at build if still true.
+<li>Optional, deliberately outside the runbook: <code>dotnet user-secrets set "TfLens:DbConnection" …</code> (or <code>TfLensDbConnection</code>) to point at your own PostgreSQL, and <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code> to verify the UI without GitHub.
+</li>
+</ul>
+<h3 id="upstream-techieflow-docs-tflens-techieflow-feedback-md">Upstream — TechieFlow (<code>docs/TfLens-TechieFlow-Feedback.md</code>)<a class="anchor-link" href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">#</a></h3>
+<ul>
+<li><strong>TF-005 (open)</strong> — <code>analyse_misses</code> in <code>tf-metrics.sh</code> averages an unrecorded <code>tokens_out</code> as zero, understating rework cost. TfLens divides only by the records that carry a count and reports the rest as unmeasured (<code>DECISIONS.md</code> <strong>D-012</strong>). Latent, not live: every dataset seen so far carries the field, so parity passes today.
+</li>
+<li>TF-001, TF-002, TF-003, TF-004 and the first entry filed under TF-005 are fixed upstream and closed.
+</li>
+</ul>
+<h3 id="upstream-appmanager-docs-tflens-appmanager-feedback-md-both-resolved-neither-is-a-limitation">Upstream — AppManager (<code>docs/TfLens-AppManager-Feedback.md</code>) — both resolved, neither is a limitation<a class="anchor-link" href="#upstream-appmanager-docs-tflens-appmanager-feedback-md-both-resolved-neither-is-a-limitation">#</a></h3>
+<ul>
+<li><strong>AM-001 — resolved 2026-08-28.</strong> <code>POST /AuthSvc/register</code> no longer downgrades <code>applicationRoleCode: "Manager"</code> to <code>"User"</code>.
+</li>
+<li><strong>AM-002 — resolved 2026-08-28.</strong> <code>GET /UserSvc/profile</code> returns 200 with the API-key pair instead of <code>403 NO_APP_ACCESS</code>; TfLens now sends the pair on <code>/UserSvc/*</code> too (<code>DECISIONS.md</code> D-006, amended).
+</li>
+</ul>
+<h3 id="upstream-trblazeui-docs-tflens-trblazeui-feedback-md">Upstream — TrBlazeUI (<code>docs/TfLens-TrBlazeUI-Feedback.md</code>)<a class="anchor-link" href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">#</a></h3>
+<p>20 entries, all still true against <code>TrBlazeUI.Components</code> 2.0.0 / <code>TrBlazeUI.Icons.Lucide</code> 2.0.0; each shipped with a workaround in TfLens. TR-006 and TR-007 were never allocated.</p>
+<ul>
+<li>TR-001 — the stylesheet references <code>--alert-*</code> / <code>--sidebar*</code> / <code>--font-*</code> tokens it never defines, so Alerts render colourless and <code>bg-sidebar</code> transparent.
+</li>
+<li>TR-002 — no responsive variants anywhere in <code>trblazeui.css</code>; <code>trblazeui-col-md-*</code> is byte-identical to the non-responsive class.
+</li>
+<li>TR-003 — <code>PasswordStrength</code>, <code>CenteredPanel</code>, <code>StatTile</code>/<code>StatGroup</code> and <code>CodeBlock</code> are absent from the 2.0.0 package though the design spec mandates them.
+</li>
+<li>TR-004 — <code>Alert</code> / <code>Button</code> have no named icon slot combinable with child content; RZ10012 forces a positional first-child convention.
+</li>
+<li>TR-005 — charts have no <code>XValue</code>/<code>YValue</code>; the documented API does not compile and categories are inferred by property order.
+</li>
+<li>TR-008 — Lucide 2.0.0 ships only post-rename names, so <code>check-circle</code> / <code>alert-triangle</code> / <code>x-circle</code> / <code>help-circle</code> render nothing silently, and no question glyph exists.
+</li>
+<li>TR-009 — <code>DataTable ShowPagination="false"</code> still truncates to <code>InitialPageSize</code>, dropping rows with no pager.
+</li>
+<li>TR-010 — <code>TabsList</code> / <code>TabsTrigger</code> / <code>TabsContent</code> (and <code>DialogHeader</code> / <code>DialogFooter</code>) capture no unmatched attributes, so a <code>data-testid</code> throws a runtime 500.
+</li>
+<li>TR-011 — <code>BarChart</code> renders an empty div because the ApexCharts runtime is never loaded; a portalled <code>DialogContent</code> is stuck at <code>max-w-lg</code>.
+</li>
+<li>TR-012 — <code>DataTable</code> has no <code>ShowHeader</code> and no plain <code>Table</code> primitive ships, so a key/value table cannot be rendered.
+</li>
+<li>TR-013 — <code>Typography*</code> components declare only <code>ChildContent</code>/<code>Class</code>, so they cannot carry a <code>data-testid</code>.
+</li>
+<li>TR-014 — <code>AlertDialog</code> has no Escape handling and no <code>Modal</code>/<code>CloseOnEscape</code> parameter.
+</li>
+<li>TR-015 — <code>CardHeader</code> is a CSS grid, so a <code>Class="flex …"</code> header row cannot be laid out and the package's own KPI-card recipe does not reproduce.
+</li>
+<li>TR-016 — <code>BadgeVariant</code> offers only <code>Default|Secondary|Destructive|Outline</code>, so status badges collapse to two colours.
+</li>
+<li>TR-017 — <code>Empty</code> lives in a namespace the reference <code>_Imports</code> omits, and emits a literal <code>&lt;empty&gt;</code> element with only a warning.
+</li>
+<li>TR-018 — a closed <code>CollapsibleContent</code> keeps children in normal flow, overlapping following content and defeating geometry gates.
+</li>
+<li>TR-019 — <code>DialogContent</code> never scrolls and has no <code>MaxHeight</code>/<code>ScrollBody</code>, so a tall dialog's footer is unreachable.
+</li>
+<li>TR-020 — <code>SelectValue</code> shows the raw bound key instead of the item label until <code>SelectContent</code> has rendered once.
+</li>
+<li>TR-021 — the spacing/sizing scale has holes (<code>w-20</code>, <code>mt-3</code>, <code>my-4</code>), so a control sized with one collapses to zero width silently.
+</li>
+<li>TR-022 — <code>LucideIcon</code> ignores <code>lucide.json</code>'s own <code>aliases</code> map, so documented names render an empty box.
 </li>
 </ul>
   </main>

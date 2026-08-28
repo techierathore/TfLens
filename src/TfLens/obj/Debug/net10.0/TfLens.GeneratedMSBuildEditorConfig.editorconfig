@@ -151,6 +151,10 @@ build_metadata.AdditionalFiles.CssScope = b-su41pft58u
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIYXJuZXNzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = b-z0yp5ho148
 
+[C:/1MyCode/TfLens/src/TfLens/Components/Pages/Misses.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNaXNzZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-8pi87rgtd7
+
 [C:/1MyCode/TfLens/src/TfLens/Components/Pages/Repos.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBvcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-viw4vvlnt2

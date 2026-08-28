@@ -32,3 +32,75 @@
         gap: 0.5rem;
     }
 }
+
+/* --- Add-source dialog (REQ-UI-040) ---------------------------------------------------------- */
+
+/* The two-mode dialog is taller than the connect-only one ever was, and the preview panel makes it
+   taller still. TrBlazeUI's DialogContent does not scroll its own body, and the mockup's dialog is
+   already at the edge of a 800px-high viewport, so the body owns the scroll and the header and
+   footer stay put. `vh` and `max-h-*` are not in the shipped stylesheet (TR-002), so it lives here. */
+.tflens-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    max-height: 68vh;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+@media (max-height: 700px) {
+    .tflens-dialog-body {
+        max-height: 56vh;
+    }
+}
+
+/* The drop zone. Dashed, so it reads as a target rather than a card, and it keeps its own text —
+   the state is never carried by colour alone (REQ-NFR-005). */
+.tflens-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.375rem;
+    padding: 1.25rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius, 0.625rem);
+    color: var(--foreground);
+}
+
+.tflens-drop[data-drop-active="true"] {
+    border-style: solid;
+    border-color: var(--ring);
+    background: var(--accent);
+}
+
+/* The preview's four columns have to live inside a dialog the consumer cannot widen (TR-011b), so
+   the type and the cell padding are tightened until they fit at 1280. The box still scrolls
+   horizontally, which is what carries it at 390. */
+.tflens-preview-table ::deep table {
+    font-size: 0.75rem;
+}
+
+.tflens-preview-table ::deep th,
+.tflens-preview-table ::deep td {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    white-space: nowrap;
+}
+
+/* Visually hidden but still focusable and clickable: the label sits on the zone, and the button
+   opens it, so the input itself must stay in the accessibility tree. */
+.tflens-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

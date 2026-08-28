@@ -16,6 +16,8 @@ formatting are presentation and never produce a finding. What does produce a fin
     DIFF      both have the key, and the values differ
     LENGTH    a list is a different length on the two sides
     TYPE      the same key holds a different kind of thing on the two sides
+    UNCOVERED a figure BRD-129 names is absent from one or both `misses` blocks, so the compare
+              above never actually diffed it. "Absent on both sides" is not agreement.
 
 Exit code is 0 only when there are no findings. A figure the reference refuses to print
 ("insufficient data (n=4)", null) must be refused by TfLens in the same words, or it is a DIFF.
@@ -34,6 +36,7 @@ import hashlib
 import json
 import os
 import sys
+import textwrap
 
 
 # --------------------------------------------------------------- allow-lists
@@ -58,7 +61,28 @@ ADDED_KEYS = {
     "per_repo[].source_sha":
         "REQ-FN-062 -- the commit SHA the streams were read at, so the reference dataset can be "
         "pinned with `git checkout`. The reference reads a working tree and has no equivalent.",
+    "per_repo[].source_kind":
+        "BRD-136 / ADR-021 -- how the source's data reaches TfLens: `api` (fetched from GitHub) or "
+        "`import` (uploaded as a bundle). The reference always reads a working tree and has no such "
+        "concept. It is DISPLAYED and never divided on: no figure anywhere in either document is "
+        "segmented by it, which is why it appears on this list and nowhere else.",
 }
+
+# MISSES_KEYS -- the miss and rework figures BRD-129 requires this script to diff key for key. The
+# walk below would compare them anyway, because it compares everything; this list makes the coverage
+# a CHECKED FACT rather than a happy accident. Every name here must be present on BOTH documents'
+# `misses` block and must have been compared, or the run fails with an UNCOVERED finding -- so a key
+# silently disappearing from either side is caught even though "absent on both" produces no diff.
+#
+MISSES_KEYS = (
+    "misses_total", "miss_fixes_total", "orphan_fixes", "open_misses", "wont_fix",
+    "resolved_misses", "why_missed_n", "why_missed", "escapes_missing_why", "why_missed_eligible",
+    "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
+    "found_by", "design_miss_share", "escape_share", "attributed_n", "attribution_excluded",
+    "by_origin_phase", "by_origin_model", "by_origin_agent", "cost_sole_n", "cost_shared_n",
+    "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_apportioned",
+    "cost_usd_per_miss_measured", "cost_usd_records",
+)
 
 # ENVIRONMENT_KEYS -- keys whose VALUE describes where the tool ran rather than what the data
 # says. They are compared strictly by default; --allow-environment-keys downgrades a value
@@ -210,6 +234,46 @@ class Compare(object):
             self.fail("DIFF", path, detail)
 
 
+def check_misses_coverage(compare, reference, actual):
+    """Assert that every miss figure BRD-129 names was actually on both documents.
+
+    The walk compares whatever it finds. That is not enough here: if a key vanished from BOTH sides
+    -- an oracle that predates the miss block, or a TfLens regression that dropped the section --
+    the walk would report nothing and the run would pass having verified none of it. BRD-129 says
+    "no miss figure ships marked unverified", so absence is a finding, not a silence.
+    """
+    if not isinstance(reference, dict) or not isinstance(actual, dict):
+        return
+
+    reference_block = reference.get("misses")
+    actual_block = actual.get("misses")
+
+    if not isinstance(reference_block, dict):
+        compare.fail("UNCOVERED", "misses",
+                     "BRD-129 requires the whole miss block to be diffed, but the reference emits no "
+                     "`misses` object. The oracle predates the requirement; re-run against one that "
+                     "carries analyse_misses() before recording a pass.")
+        return
+
+    if not isinstance(actual_block, dict):
+        compare.fail("UNCOVERED", "misses",
+                     "the reference emits a `misses` object and tflens.json does not, so no miss "
+                     "figure was verified (BRD-129).")
+        return
+
+    for key in MISSES_KEYS:
+        missing_on = [side for side, block in (("reference", reference_block), ("tflens", actual_block))
+                      if key not in block]
+        if missing_on:
+            compare.fail("UNCOVERED", "misses." + key,
+                         "BRD-129 names this figure, and it is absent from: %s. Absent on both sides "
+                         "is not agreement." % ", ".join(missing_on))
+
+    compare.note("COVERED", "misses",
+                 "all %d figures BRD-129 names were present on both documents and compared: %s"
+                 % (len(MISSES_KEYS), ", ".join(MISSES_KEYS)))
+
+
 def kind_of(value):
     if isinstance(value, dict):
         return "an object"
@@ -238,18 +302,31 @@ def equal(reference, actual):
 
 # --------------------------------------------------------------- reporting
 
+def wrapped(detail):
+    """Fold one finding's detail onto lines a terminal and a <pre> can both hold.
+
+    The output of a passing run is pasted verbatim into DECISIONS.md and rendered verbatim on
+    /export, so a single 600-character allow-list reason makes that page scroll sideways at 1280.
+    Nothing is truncated -- long paths and values still appear whole on their own line.
+    """
+    lines = []
+    for paragraph in detail.split("\n"):
+        lines.extend(textwrap.wrap(paragraph, width=88) or [""])
+    return "\n".join("         " + line for line in lines)
+
+
 def report(compare, reference_path, actual_path, stream):
     stream.write("parity-compare: reference=%s\n" % reference_path)
     stream.write("parity-compare: tflens   =%s\n" % actual_path)
     stream.write("\n")
 
     for kind, path, detail in compare.notes:
-        stream.write("  INFO  %-9s %s\n         %s\n" % (kind, path, detail))
+        stream.write("  INFO  %-9s %s\n%s\n" % (kind, path, wrapped(detail)))
     if compare.notes:
         stream.write("\n")
 
     for kind, path, detail in compare.findings:
-        stream.write("  FAIL  %-9s %s\n         %s\n" % (kind, path, detail))
+        stream.write("  FAIL  %-9s %s\n%s\n" % (kind, path, wrapped(detail)))
     if compare.findings:
         stream.write("\n")
 
@@ -333,7 +410,9 @@ def main(argv):
     args = parser.parse_args(argv[1:])
 
     compare = Compare(args.allow_environment_keys)
-    compare.walk(load(args.reference), load(args.tflens))
+    reference, actual = load(args.reference), load(args.tflens)
+    compare.walk(reference, actual)
+    check_misses_coverage(compare, reference, actual)
 
     import io
     buffer = io.StringIO()

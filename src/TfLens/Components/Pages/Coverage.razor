@@ -12,6 +12,8 @@
 @using Microsoft.Extensions.Options
 @* _Imports.razor does not carry the Empty namespace, so it is imported here rather than shared-file-edited. *@
 @using TrBlazeUI.Components.Empty
+@using TfLens.Core.Import
+@using TfLens.Core.Metrics
 @using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject ITelemetryStore objStore
@@ -142,7 +144,23 @@
                                 <span class="flex min-w-0 flex-wrap items-center gap-2">
                                     <CardTitle Class="text-base">@vCard.Repo.Repo</CardTitle>
                                     <Badge Variant="BadgeVariant.Secondary">@vCard.Repo.Kind</Badge>
-                                    @if (vCard.ShortSha is not null)
+                                    @* REQ-UI-042 / BRD-136 — origin is shown here and pools nowhere.
+                                       The word, not the colour, carries the meaning (REQ-NFR-005). *@
+                                    <Badge Variant="@(vCard.IsImported ? BadgeVariant.Secondary : BadgeVariant.Default)"
+                                           data-testid="@($"repo-source-badge-{vCard.Repo.Name}")">
+                                        @SourceKinds.DisplayName(vCard.Repo.SourceKind)
+                                    </Badge>
+                                    @if (vCard.ShortSha is not null && vCard.IsImported)
+                                    {
+                                        @* ADR-022 — the bundle's sha256 stands where a commit SHA stands.
+                                           There is no commit to open, so it is not a link. *@
+                                        <span class="font-mono"
+                                              title="sha256 of the imported bundle"
+                                              data-testid="@($"repo-sha-{vCard.Repo.Name}")">
+                                            <Badge Variant="BadgeVariant.Outline">sha256 @vCard.ShortSha</Badge>
+                                        </span>
+                                    }
+                                    else if (vCard.ShortSha is not null)
                                     {
                                         <a class="font-mono"
                                            href="@vCard.CommitUrl"
@@ -234,8 +252,66 @@
                                 </DataTable>
                             </div>
 
-                            @* REQ-UI-015 — staleness, stated in words, naming the streams and the configured threshold. *@
-                            @if (vCard.StaleStreams.Count > 0)
+                            @* REQ-UI-039 / BRD-127 — misses logged with no fixes, on the repository it
+                               is true of. A WARNING: the health badge above is not reddened and this is
+                               never an error, because an incomplete habit is not a broken system. *@
+                            @if (objReposWithoutFixes.Contains(vCard.Repo.Repo, StringComparer.OrdinalIgnoreCase))
+                            {
+                                <div class="mt-4">
+                                    <Alert Variant="AlertVariant.Warning"
+                                           AccentBorder="true"
+                                           data-testid="@($"repo-no-fixes-{vCard.Repo.Name}")">
+                                        <LucideIcon Name="triangle-alert" Size="16" />
+                                        <AlertTitle>Misses logged, no fixes logged</AlertTitle>
+                                        <AlertDescription>
+                                            This repository emitted <span class="font-mono">miss</span>
+                                            records and no <span class="font-mono">miss-fix</span> record,
+                                            so every miss reads as open and no time-to-close or rework-cost
+                                            figure can be computed for it. A telemetry gap, not a defect
+                                            backlog — run <span class="font-mono">log-miss --fixed</span>
+                                            when a miss is repaired.
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+                            }
+
+                            @* REQ-UI-039 / BRD-127 — the project_type reclassification split, stated in
+                               words on the repository it belongs to. Both segments are named and each
+                               is described as a PERIOD of the project, so one project never silently
+                               reads as two (SCHEMA.md §6). *@
+                            @if (DeclaredTypesFor(vCard.Repo.Repo) is { Count: > 1 } vTypes)
+                            {
+                                <div class="mt-4">
+                                    <Alert Variant="AlertVariant.Warning"
+                                           AccentBorder="true"
+                                           data-testid="@($"repo-reclassified-{vCard.Repo.Name}")">
+                                        <LucideIcon Name="split" Size="16" />
+                                        <AlertTitle>Reclassified — two periods, never one total</AlertTitle>
+                                        <AlertDescription>
+                                            @ReclassificationMessage(vCard.Repo.Repo, vTypes)
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+                            }
+
+                            @* REQ-UI-015 — staleness, stated in words, naming the streams and the configured
+                               threshold. REQ-UI-042 / BRD-137 — an imported source is read differently:
+                               days since import, and never the hook/pushing diagnosis, which would be
+                               advice about a clone TfLens cannot see. A snapshot is not unhealthy for
+                               being a snapshot, so this never reddens the summary badge. *@
+                            @if (vCard.IsImported)
+                            {
+                                <div class="mt-4">
+                                    <Alert Variant="AlertVariant.Info"
+                                           AccentBorder="true"
+                                           data-testid="@($"repo-import-age-{vCard.Repo.Name}")">
+                                        <LucideIcon Name="info" Size="16" />
+                                        <AlertTitle>Imported source</AlertTitle>
+                                        <AlertDescription>@ImportAgeMessage(vCard)</AlertDescription>
+                                    </Alert>
+                                </div>
+                            }
+                            else if (vCard.StaleStreams.Count > 0)
                             {
                                 <div class="mt-4">
                                     <Alert Variant="AlertVariant.Warning"
@@ -317,6 +393,113 @@
                 </Card>
             </div>
         </div>
+
+        @* REQ-UI-039 / BRD-127 — the miss stream's DATA-QUALITY facts. These say how complete the
+           stream is, not how good the work is, which is why they live here and not on the /misses KPI
+           row: an escape with no `why_missed` is a record that arrived incomplete, and reading it as a
+           quality score would be reading a measurement failure as a defect. Every figure is a count;
+           there is no rate anywhere in this card. *@
+        <Card data-testid="miss-quality">
+            <CardHeader>
+                <div class="flex w-full flex-wrap items-center justify-between gap-2">
+                    <span class="flex min-w-0 flex-col gap-1">
+                        <CardTitle Class="text-base">Miss stream — data quality</CardTitle>
+                        <CardDescription>
+                            How complete the <span class="font-mono">misses</span> stream is. These are
+                            facts about the records, not about the work — the quality figures live on
+                            Misses &amp; rework.
+                        </CardDescription>
+                    </span>
+                    <Badge Variant="BadgeVariant.Outline" data-testid="miss-quality-total">
+                        @objMisses.MissesTotal.ToString("N0") misses · @objMisses.MissFixesTotal.ToString("N0") fixes
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <div class="flex flex-col gap-3">
+
+                    @* An escape is the most valuable record in the stream: something got past every
+                       gate. One that arrives with no `why_missed` wastes it. *@
+                    <div class="flex flex-wrap items-baseline gap-2 text-sm"
+                         data-testid="escapes-missing-why">
+                        <span class="font-medium">Escapes with no <span class="font-mono">why_missed</span>:</span>
+                        <span class="tabular-nums font-semibold whitespace-nowrap">
+                            @objMisses.EscapesMissingWhy.ToString("N0") of @objMisses.MissesTotal.ToString("N0") misses
+                        </span>
+                        <span class="text-muted-foreground">
+                            Something got past every gate and nobody recorded why nothing caught it — the
+                            most valuable record in the stream, arriving incomplete.
+                        </span>
+                    </div>
+
+                    @* Link integrity. A dropped orphan is a fact nobody can see, so they are counted
+                       and shown rather than filtered out. *@
+                    <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="orphan-misses">
+                        <span class="font-medium">Records that link to nothing:</span>
+                        <span class="tabular-nums font-semibold whitespace-nowrap">@OrphanRecordTotal.ToString("N0") records</span>
+                        <span class="text-muted-foreground">
+                            @objMisses.OrphanFixes.ToString("N0") miss-fix naming no stored miss ·
+                            @objMisses.OrphanAmends.ToString("N0") amendment that could never be applied ·
+                            @objMisses.AmendmentsIgnored.ToString("N0") amendment arriving at a field that
+                            already had a value. Counted rather than dropped: a dropped orphan is a fact
+                            nobody can see.
+                        </span>
+                    </div>
+
+                    @* The third provenance separation, reported rather than silently applied. *@
+                    <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="miss-backfilled">
+                        <span class="font-medium">Backfilled, held out of every miss figure:</span>
+                        <span class="tabular-nums font-semibold whitespace-nowrap">
+                            @objMisses.BackfilledMissesExcluded.ToString("N0") misses ·
+                            @objMisses.BackfilledMissFixesExcluded.ToString("N0") fix records
+                        </span>
+                        <span class="text-muted-foreground">
+                            They reach no figure on Misses &amp; rework and are reported here instead of
+                            being dropped — the third provenance separation, applied and displayed.
+                        </span>
+                    </div>
+
+                    @* REQ-UI-039 — a warning, never an error and never a failed health badge. The word
+                       carries the meaning; the colour only repeats it (REQ-NFR-005). *@
+                    @if (HasMissesWithoutFixes)
+                    {
+                        <Alert Variant="AlertVariant.Warning"
+                               AccentBorder="true"
+                               data-testid="misses-without-fixes">
+                            <LucideIcon Name="triangle-alert" Size="16" />
+                            <AlertTitle>Misses recorded, no fixes recorded</AlertTitle>
+                            <AlertDescription>
+                                @string.Join(", ", objReposWithoutFixes) logged
+                                <span class="font-mono">miss</span> records and not one
+                                <span class="font-mono">miss-fix</span> record. That is a
+                                <b>telemetry gap, not a defect backlog</b>: without fixes there is nothing to
+                                close a miss, so every one of them reads as open and no time-to-close or
+                                rework-cost figure exists for that repository at all. Run
+                                <span class="font-mono">log-miss --fixed</span> when a miss is repaired.
+                            </AlertDescription>
+                        </Alert>
+                    }
+
+                    @* The reclassification split, summarised. The per-repository sentence — which names
+                       both segments — is on the affected repository's own card above. *@
+                    @if (ReclassifiedRepos.Count > 0)
+                    {
+                        <Alert Variant="AlertVariant.Warning"
+                               AccentBorder="true"
+                               data-testid="reclassified-summary">
+                            <LucideIcon Name="split" Size="16" />
+                            <AlertTitle>@ReclassifiedRepos.Count repositor@(ReclassifiedRepos.Count == 1 ? "y was" : "ies were") reclassified</AlertTitle>
+                            <AlertDescription>
+                                @string.Join(" · ", ReclassifiedRepos.Select(aPair => $"{aPair.Key}: {string.Join(" and ", aPair.Value)}")).
+                                Each appears under more than one <span class="font-mono">project_type</span>
+                                segment and the segments are never pooled — read each as a period of the
+                                project. The sentence on each card says which periods.
+                            </AlertDescription>
+                        </Alert>
+                    }
+                </div>
+            </CardContent>
+        </Card>
 
         @* REQ-UI-016 — names only. No field value and no Overflow payload is ever rendered. *@
         <div data-testid="unknown-fields">
@@ -417,6 +600,39 @@
 
     private CoverageFacts objFacts = CoverageFacts.Empty;
 
+    /// <summary>
+    /// The miss block, read for its <b>data-quality</b> facts only (REQ-UI-039, BRD-127).
+    /// </summary>
+    /// <remarks>
+    /// Coverage takes the counts that say how complete the stream is — escapes with no
+    /// <c>why_missed</c>, orphan fixes and amendments, the backfilled split — and none of the rates.
+    /// The rates belong on <c>/misses</c>; these belong here, because they describe the <i>data</i>
+    /// rather than the work, and putting them on a KPI row would read as a quality score.
+    /// </remarks>
+    private MissAnalysis objMisses = MissAnalysis.Empty;
+
+    /// <summary>
+    /// Per repository, the distinct <c>project_type</c> values its stored records declare.
+    /// </summary>
+    /// <remarks>
+    /// More than one means the project was reclassified while the streams were being written. The
+    /// streams are append-only, so the correction applies at read time and the old records keep the old
+    /// value: the project genuinely occupies two segments, and SCHEMA.md §6 forbids pooling them
+    /// (REQ-UI-039). The page says so rather than letting one project silently read as two.
+    /// </remarks>
+    private IReadOnlyDictionary<string, IReadOnlyList<string>> objDeclaredTypes =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Repositories that emitted <c>miss</c> records and not one <c>miss-fix</c> record (REQ-UI-039).
+    /// </summary>
+    /// <remarks>
+    /// Per repository, not per workspace: one repository logging misses without fixes is invisible in a
+    /// workspace total where another repository fixes everything it logs, and it is exactly the
+    /// repository whose figures cannot be read.
+    /// </remarks>
+    private IReadOnlyList<string> objReposWithoutFixes = [];
+
     /// <summary>Gate records per day, backing the Gate-records tile's sparkline.</summary>
     private DailySeries objGateSeries = DailySeries.Empty;
     private DateTimeOffset objNow = DateTimeOffset.UtcNow;
@@ -503,6 +719,54 @@
         }
     }
 
+    /// <summary>
+    /// True when a repository emitted <c>miss</c> records but no <c>miss-fix</c> record at all.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-039 fixes this as a <b>warning, never an error and never a failed health badge</b>. It
+    /// says the fix half of the stream is not being emitted — a telemetry gap, not a defect backlog —
+    /// and a page that reddened for it would be punishing the honest half of a habit that is still
+    /// being formed.
+    /// </remarks>
+    private bool HasMissesWithoutFixes => objReposWithoutFixes.Count > 0;
+
+    /// <summary>Orphan and ignored records across the miss stream — the link-integrity facts.</summary>
+    private int OrphanRecordTotal =>
+        objMisses.OrphanFixes + objMisses.OrphanAmends + objMisses.AmendmentsIgnored;
+
+    /// <summary>Repositories whose stored records declare more than one <c>project_type</c>.</summary>
+    private IReadOnlyList<KeyValuePair<string, IReadOnlyList<string>>> ReclassifiedRepos =>
+        objDeclaredTypes
+            .Where(aPair => aPair.Value.Count > 1
+                && objCards.Any(aCard => string.Equals(aCard.Repo.Repo, aPair.Key, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(aPair => aPair.Key, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>The project types one repository's stored records declare, in ordinal order.</summary>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <returns>The declared types; empty when no record carried one.</returns>
+    private IReadOnlyList<string> DeclaredTypesFor(string aRepo) =>
+        objDeclaredTypes.TryGetValue(aRepo, out var vTypes) ? vTypes : [];
+
+    /// <summary>
+    /// The reclassification sentence for one repository (REQ-UI-039).
+    /// </summary>
+    /// <remarks>
+    /// It names <b>both</b> segments and calls each one a period of the project. That wording is the
+    /// requirement: the alternative — showing two rows and letting the reader assume they are two
+    /// projects, or worse, adding them up — is the failure this whole page exists to prevent
+    /// (SCHEMA.md §6).
+    /// </remarks>
+    /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
+    /// <param name="aTypes">The project types its records declare, in ordinal order.</param>
+    /// <returns>The sentence.</returns>
+    private static string ReclassificationMessage(string aRepo, IReadOnlyList<string> aTypes) =>
+        $"{aRepo} has records declaring {string.Join(" and ", aTypes.Select(aType => $"'{aType}'"))}. "
+        + "The streams are append-only, so a reclassification applies when the records are read and "
+        + "never by rewriting them: this project appears under "
+        + $"{aTypes.Count} project-type segments, and SCHEMA.md §6 forbids pooling them. Read each as a "
+        + "period of the project, not as the whole of it — one project, two chapters, never two projects.";
+
     /// <summary>Re-renders when the shell reloads the workspace under this page.</summary>
     protected override void OnInitialized()
     {
@@ -568,6 +832,8 @@
 
             objHasAnyRepo = vRepos.Count > 0;
 
+            await LoadMissQualityAsync();
+
             objCards = vRepos
                 .Where(aRepo => string.Equals(aRepo.Framework, objFramework, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(aRepo => aRepo.Repo, StringComparer.OrdinalIgnoreCase)
@@ -585,10 +851,84 @@
             objUnknownFieldNames = [];
             objAboveSchemaV1 = [];
             objWarnings = [];
+            objMisses = MissAnalysis.Empty;
+            objDeclaredTypes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
             objLoadError = vEx.Message;
         }
 
         objIsLoaded = true;
+    }
+
+    /// <summary>
+    /// Reads the miss stream's data-quality facts and the project types the stored records declare.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// REQ-UI-039. The figures come from <see cref="MissFigures.Compute"/> — the same engine
+    /// <c>/misses</c> renders — so this page cannot report a different number from that one; only a
+    /// different <i>selection</i> of numbers. Nothing here is a rate.
+    /// </para>
+    /// <para>
+    /// The Playbook axis has no <c>misses.jsonl</c> and no <c>project_type</c> segmentation to be
+    /// reclassified within, so the whole read is skipped there rather than reported as zero: an empty
+    /// block on an axis that has no such stream would read as "we looked and found nothing wrong".
+    /// </para>
+    /// </remarks>
+    /// <returns>A task that completes when the miss block and the declared types are loaded.</returns>
+    private async Task LoadMissQualityAsync()
+    {
+        if (objUserId is null || IsPlaybook)
+        {
+            objMisses = MissAnalysis.Empty;
+            objDeclaredTypes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            objReposWithoutFixes = [];
+            return;
+        }
+
+        var vMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
+        var vFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
+        var vAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
+        var vRuns = await objStore.ReadRunsAsync(objUserId.Value, objFramework);
+        var vGates = await objStore.ReadGatesAsync(objUserId.Value, objFramework);
+
+        objMisses = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
+
+        // Counted per repository, because a workspace total hides the one repository whose figures
+        // cannot be read: with no fix records nothing closes a miss, so every one of them reads as open
+        // and no time-to-close or rework-cost figure exists for it at all.
+        var vFixRepos = vFixes.Select(aFix => aFix.Repo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        objReposWithoutFixes = vMisses
+            .Select(aMiss => aMiss.Repo)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(aRepo => !vFixRepos.Contains(aRepo))
+            .OrderBy(aRepo => aRepo, StringComparer.Ordinal)
+            .ToList();
+
+        // Gates and runs are the two streams that carry `project_type` on every record and are written
+        // by the phases that classify a project, so they are what a reclassification shows up in.
+        var vTypes = new Dictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var vPair in vGates.Select(aGate => (aGate.Repo, aGate.ProjectType))
+                     .Concat(vRuns.Select(aRun => (aRun.Repo, aRun.ProjectType))))
+        {
+            if (string.IsNullOrWhiteSpace(vPair.ProjectType))
+            {
+                continue;
+            }
+
+            if (!vTypes.TryGetValue(vPair.Repo, out var vSet))
+            {
+                vSet = new SortedSet<string>(StringComparer.Ordinal);
+                vTypes[vPair.Repo] = vSet;
+            }
+
+            vSet.Add(vPair.ProjectType!);
+        }
+
+        objDeclaredTypes = vTypes.ToDictionary(
+            aPair => aPair.Key,
+            aPair => (IReadOnlyList<string>)aPair.Value.ToList(),
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -602,11 +942,17 @@
         var vSync = aSyncStates.FirstOrDefault(aState =>
             string.Equals(aState.Repo, aRepo.Repo, StringComparison.OrdinalIgnoreCase));
 
+        var vIsImported = ImportedSourceRules.IsImported(aRepo.SourceKind);
+
         var vRows = FrameworkNames.Streams(aRepo.Framework)
-            .Select(aStream => BuildRow(aRepo.Repo, aStream))
+            .Select(aStream => BuildRow(aRepo.Repo, aStream, vIsImported))
             .ToList();
 
-        return new RepoCard(aRepo, vSync, vRows, RelativeTime.Describe(RelativeTime.Parse(vSync?.LastSyncTs), objNow));
+        var vLastPhrase = vIsImported
+            ? RelativeTime.Describe(aRepo.LastImportTs, objNow)
+            : RelativeTime.Describe(RelativeTime.Parse(vSync?.LastSyncTs), objNow);
+
+        return new RepoCard(aRepo, vSync, vRows, vLastPhrase);
     }
 
     /// <summary>
@@ -614,8 +960,15 @@
     /// </summary>
     /// <param name="aRepo"><c>owner/name</c> of the repository.</param>
     /// <param name="aStream">The stream's wire name.</param>
+    /// <param name="aIsImported">True when the source's data was uploaded rather than fetched.</param>
     /// <returns>The row, with an honest em dash wherever the fact was never captured.</returns>
-    private StreamRow BuildRow(string aRepo, string aStream)
+    /// <remarks>
+    /// BRD-137 — the cadence-staleness rule diagnoses a clone that is not pushing or lacks hooks. That
+    /// diagnosis is meaningless for an imported source, whose clone TfLens cannot see, so an imported
+    /// row is never flagged stale on it and never reddens the summary badge for being a snapshot. Its
+    /// age is read instead as days since import, on the card.
+    /// </remarks>
+    private StreamRow BuildRow(string aRepo, string aStream, bool aIsImported)
     {
         var vFact = objFacts.Streams.FirstOrDefault(aItem =>
             string.Equals(aItem.Repo, aRepo, StringComparison.OrdinalIgnoreCase)
@@ -623,7 +976,10 @@
 
         var vNewest = RelativeTime.Parse(vFact?.NewestTs);
         var vDays = vNewest is null ? (int?)null : (int)Math.Floor((objNow - vNewest.Value).TotalDays);
-        var vCarriesBackfilled = aStream is StreamNames.Runs or StreamNames.Gates;
+        // SCHEMA.md puts `backfilled` on runs, gates and every miss-stream record; sessions and commits
+        // never carry it, and printing 0 for them would read as "none were backfilled" rather than
+        // "the field does not exist here" (REQ-UI-039).
+        var vCarriesBackfilled = aStream is StreamNames.Runs or StreamNames.Gates or StreamNames.Misses;
 
         return new StreamRow
         {
@@ -633,7 +989,8 @@
             CarriesBackfilled = vCarriesBackfilled,
             NewestTs = vNewest,
             DaysSince = vDays,
-            IsStale = CadenceStreams.Contains(aStream, StringComparer.Ordinal)
+            IsStale = !aIsImported
+                && CadenceStreams.Contains(aStream, StringComparer.Ordinal)
                 && vDays is { } vAge
                 && vAge >= StalenessDays
         };
@@ -685,6 +1042,29 @@
         foreach (var vCard in objCards.Where(aCard => aCard.StaleStreams.Count > 0))
         {
             vWarnings.Add($"{vCard.Repo.Repo}: {string.Join(" and ", vCard.StaleStreams)} stale");
+        }
+
+        // REQ-UI-039 — the miss stream's data-quality gaps count as warnings here, because this page's
+        // one-line verdict is about whether the DATA can be trusted. None of them is an error: an
+        // incomplete stream is a habit still forming, not a broken system.
+        foreach (var vRepo in objReposWithoutFixes)
+        {
+            vWarnings.Add($"{vRepo}: misses logged, no miss-fix records");
+        }
+
+        if (objMisses.EscapesMissingWhy > 0)
+        {
+            vWarnings.Add($"{objMisses.EscapesMissingWhy} escapes carry no why_missed");
+        }
+
+        if (OrphanRecordTotal > 0)
+        {
+            vWarnings.Add($"{OrphanRecordTotal} miss-stream records link to nothing");
+        }
+
+        foreach (var vRepo in ReclassifiedRepos)
+        {
+            vWarnings.Add($"{vRepo.Key}: records declare {string.Join(" and ", vRepo.Value)}");
         }
 
         if (objUnknownFieldNames.Count > 0)
@@ -766,6 +1146,30 @@
     private string StalenessMessage(IReadOnlyList<string> aStreams) =>
         $"{string.Join("/", aStreams)} stale ≥ {StalenessDays} days — this clone isn't pushing or lacks "
         + "hooks; run update-framework.sh on it";
+
+    /// <summary>
+    /// How an imported source's age reads (REQ-UI-042, BRD-137).
+    /// </summary>
+    /// <remarks>
+    /// Days since <b>import</b>, not days since the newest record, and the refusal sentence is
+    /// <see cref="ImportedSourceRules.CannotSyncMessage"/> verbatim. The hook/pushing diagnosis
+    /// (BRD-41) is deliberately absent: it would be advice about a clone TfLens cannot see.
+    /// </remarks>
+    /// <param name="aCard">The imported repository's card.</param>
+    /// <returns>The message, in words.</returns>
+    private string ImportAgeMessage(RepoCard aCard)
+    {
+        var vWhen = aCard.Repo.LastImportTs;
+        var vDays = vWhen is null ? (int?)null : (int)Math.Floor((objNow - vWhen.Value).TotalDays);
+
+        var vAge = vDays is null
+            ? "This source has no recorded import time"
+            : vDays.Value == 0
+                ? "Imported today"
+                : $"Imported {vDays.Value:N0} day{(vDays.Value == 1 ? string.Empty : "s")} ago";
+
+        return $"{vAge}. {ImportedSourceRules.CannotSyncMessage}";
+    }
 
     /// <summary>Finds the newest stored record across the shown repositories.</summary>
     /// <returns>Its repository, stream and instant, or <c>null</c> when nothing is stored.</returns>
@@ -872,18 +1276,34 @@
     /// <param name="Repo">The connected repository.</param>
     /// <param name="Sync">Its sync bookkeeping, or <c>null</c> when it has never synced.</param>
     /// <param name="Streams">Its stream rows, in framework report order.</param>
-    /// <param name="LastSyncPhrase">How long ago the last sync attempt completed.</param>
+    /// <param name="LastSyncPhrase">How long ago the source last took data on — a sync, or an import.</param>
     private sealed record RepoCard(
         UserRepo Repo,
         SyncState? Sync,
         IReadOnlyList<StreamRow> Streams,
         string LastSyncPhrase)
     {
-        /// <summary>The first seven characters of the synced SHA, or <c>null</c> when nothing has synced.</summary>
-        public string? ShortSha =>
-            string.IsNullOrWhiteSpace(Sync?.LastSha)
-                ? null
-                : Sync!.LastSha![..Math.Min(7, Sync.LastSha!.Length)];
+        /// <summary>True when this source's data was uploaded rather than fetched (BRD-132).</summary>
+        public bool IsImported => ImportedSourceRules.IsImported(Repo.SourceKind);
+
+        /// <summary>
+        /// The first seven characters of the source's dataset identity, or <c>null</c> when it has none.
+        /// </summary>
+        /// <remarks>
+        /// ADR-022 — a fetched source's identity is its commit SHA and an imported one's is the bundle's
+        /// sha256; a row carries one or the other, never both, so this reads whichever it has.
+        /// </remarks>
+        public string? ShortSha
+        {
+            get
+            {
+                var vIdentity = ImportedSourceRules.DatasetIdentity(Sync?.LastSha, Repo.BundleSha);
+
+                return string.IsNullOrWhiteSpace(vIdentity)
+                    ? null
+                    : vIdentity[..Math.Min(7, vIdentity.Length)];
+            }
+        }
 
         /// <summary>The GitHub commit the short SHA opens.</summary>
         public string CommitUrl => $"https://github.com/{Repo.Repo}/commit/{Sync?.LastSha}";
@@ -909,7 +1329,9 @@
                 ? "sync error"
                 : StaleStreams.Count > 0
                     ? $"{StaleStreams.Count} streams stale"
-                    : Sync is null ? "not synced yet" : "synced";
+                    : IsImported
+                        ? "imported"
+                        : Sync is null ? "not synced yet" : "synced";
 
         /// <summary>Which badge variant that status uses.</summary>
         public BadgeVariant StatusVariant =>
@@ -917,10 +1339,12 @@
                 ? BadgeVariant.Destructive
                 : Sync is null ? BadgeVariant.Outline : BadgeVariant.Secondary;
 
-        /// <summary>The muted line under the card header.</summary>
+        /// <summary>The muted line under the card header — it reads "last import" for an imported source.</summary>
         public string SyncLine =>
-            $"Last sync {LastSyncPhrase} · outcome {(Sync?.LastError is null ? "ok" : "error")} "
-            + $"· {Records:N0} records";
+            IsImported
+                ? $"Last import {LastSyncPhrase} · {Records:N0} records"
+                : $"Last sync {LastSyncPhrase} · outcome {(Sync?.LastError is null ? "ok" : "error")} "
+                    + $"· {Records:N0} records";
     }
 
     /// <summary>One row of a repository's stream table.</summary>

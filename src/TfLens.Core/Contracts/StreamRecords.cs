@@ -1,11 +1,14 @@
 namespace TfLens.Core.Contracts;
 
 /// <summary>
-/// The four TechieFlow telemetry streams plus the Playbook stream, as recognised by TfLens.
+/// The five TechieFlow telemetry streams plus the Playbook stream, as recognised by TfLens.
 /// </summary>
 /// <remarks>
-/// The wire names (<c>runs</c>, <c>gates</c>, <c>sessions</c>, <c>commits</c>, <c>events</c>) are the
-/// JSONL file base names under a repository's telemetry path; <see cref="StreamNames"/> holds them.
+/// The wire names (<c>runs</c>, <c>gates</c>, <c>sessions</c>, <c>commits</c>, <c>misses</c>,
+/// <c>events</c>) are the JSONL file base names under a repository's telemetry path;
+/// <see cref="StreamNames"/> holds them. <see cref="Misses"/> is the one stream whose records do not
+/// all share a shape: it carries three record kinds on one file (ADR-018, SCHEMA.md §5.5), so
+/// <see cref="StreamKind"/> is no longer 1:1 with a table.
 /// </remarks>
 public enum StreamKind
 {
@@ -22,7 +25,38 @@ public enum StreamKind
     Commits = 3,
 
     /// <summary>verification/telemetry/events.ndjson — the AI-First-Playbook stream (Phase 3).</summary>
-    Events = 4
+    Events = 4,
+
+    /// <summary>
+    /// docs/metrics/misses.jsonl — what was missed, who missed it, what the fix cost (SCHEMA.md §5.5).
+    /// </summary>
+    /// <remarks>
+    /// The only stream carrying three record kinds on one file: <c>miss</c>, <c>miss-fix</c> and
+    /// <c>miss-amend</c>. They land in three tables, dispatched on each record's own <c>kind</c>
+    /// (ADR-018, REQ-FN-072).
+    /// </remarks>
+    Misses = 5
+}
+
+/// <summary>
+/// The <c>kind</c> values <c>misses.jsonl</c> declares (SCHEMA.md §5.5).
+/// </summary>
+/// <remarks>
+/// Every other stream file declares exactly one kind, so "matches the file" and "is declared by the
+/// file" are the same rule there. <c>misses.jsonl</c> declares three, which is why the parser
+/// dispatches on the record's own <c>kind</c> inside <see cref="StreamKind.Misses"/>; anything else is
+/// counted as an invalid line and skipped, never thrown (REQ-FN-072).
+/// </remarks>
+public static class MissKinds
+{
+    /// <summary>A miss was opened — maps to <see cref="MissRecord"/>.</summary>
+    public const string Miss = "miss";
+
+    /// <summary>A repair run closed (or moved) a miss — maps to <see cref="MissFixRecord"/>.</summary>
+    public const string MissFix = "miss-fix";
+
+    /// <summary>An append-only completion of a field the miss left <c>null</c> — maps to <see cref="MissAmendRecord"/>.</summary>
+    public const string MissAmend = "miss-amend";
 }
 
 /// <summary>
@@ -49,8 +83,19 @@ public static class StreamNames
     /// <summary>Wire name of <see cref="StreamKind.Events"/> (Playbook).</summary>
     public const string Events = "events";
 
-    /// <summary>The four TechieFlow streams in report order.</summary>
-    public static readonly IReadOnlyList<string> TechieFlow = [Runs, Gates, Sessions, Commits];
+    /// <summary>Wire name of <see cref="StreamKind.Misses"/> (added 2026-08-28, BRD-112).</summary>
+    public const string Misses = "misses";
+
+    /// <summary>
+    /// The five TechieFlow streams in report order; <c>misses</c> is appended, so it reports last.
+    /// </summary>
+    /// <remarks>
+    /// The sync loop, the raw-archive replay and the Coverage stream table all read this list, so
+    /// appending the name here is what makes the fifth stream fetched, archived and reported. A
+    /// repository that does not emit <c>misses.jsonl</c> simply answers 404 and stores zero rows —
+    /// no coordination window is needed in either deploy order (BRD-112, REQ-FN-071).
+    /// </remarks>
+    public static readonly IReadOnlyList<string> TechieFlow = [Runs, Gates, Sessions, Commits, Misses];
 
     /// <summary>The Playbook streams in report order.</summary>
     public static readonly IReadOnlyList<string> Playbook = [Events];
@@ -67,6 +112,7 @@ public static class StreamNames
         Gates => StreamKind.Gates,
         Sessions => StreamKind.Sessions,
         Commits => StreamKind.Commits,
+        Misses => StreamKind.Misses,
         Events => StreamKind.Events,
         _ => throw new ArgumentOutOfRangeException(nameof(aName), aName, "Unknown stream name.")
     };
@@ -82,6 +128,7 @@ public static class StreamNames
         StreamKind.Gates => Gates,
         StreamKind.Sessions => Sessions,
         StreamKind.Commits => Commits,
+        StreamKind.Misses => Misses,
         StreamKind.Events => Events,
         _ => throw new ArgumentOutOfRangeException(nameof(aKind), aKind, "Unknown stream kind.")
     };
@@ -381,6 +428,298 @@ public sealed record CommitRecord
 
     /// <summary>Branch the commit landed on.</summary>
     public string? Branch { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
+    public string? Overflow { get; init; }
+}
+
+/// <summary>
+/// One <c>misses.jsonl</c> record of kind <c>miss</c>, stored in the <c>"Miss"</c> table (SCHEMA.md §5.5.1).
+/// </summary>
+/// <remarks>
+/// <para>
+/// A miss is opened once and closed by one or more <see cref="MissFixRecord"/>s linked on
+/// <see cref="MissId"/>; a <see cref="MissAmendRecord"/> may later complete a field this record left
+/// <c>null</c>. Deduped on <c>(UserId, Repo, MissId)</c> keeping the <b>earliest</b> <see cref="Ts"/> —
+/// a duplicate is a re-parse of the same archived file, not new information (REQ-FN-073).
+/// </para>
+/// <para>
+/// <b>Every nullable here means "not captured", never zero and never a bucket.</b>
+/// <see cref="WhyMissed"/> in particular is <c>null</c> for <i>not assessed</i>, so the failed-practice
+/// distribution's denominator is the records that carry it — never the miss count (SCHEMA.md §5.5.6).
+/// <see cref="ReqId"/> is <c>null</c> when no REQ existed to miss, which is itself the finding.
+/// </para>
+/// <para>
+/// <see cref="OriginConfidence"/>, <see cref="OriginModel"/> and <see cref="OriginHarness"/> are
+/// derived by <c>tf-emit.sh</c> and never written by an agent; a record whose lookup failed carries
+/// <c>null</c> model and harness, so a non-<c>linked</c> record cannot carry a model name at all
+/// (SCHEMA.md §5.5.1, §6).
+/// </para>
+/// </remarks>
+public sealed record MissRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA the raw file was fetched at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp the miss was recorded.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the miss belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type; figures never pool across it (SCHEMA.md §6).</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>True when <c>project_type</c> was inferred rather than declared.</summary>
+    public bool? ProjectTypeInferred { get; init; }
+
+    /// <summary>True when the record was backfilled rather than emitted live.</summary>
+    public bool? Backfilled { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary><c>MISS-&lt;app&gt;-&lt;YYYYMMDD&gt;-&lt;NN&gt;</c> — the link key and the dedupe key.</summary>
+    public required string MissId { get; init; }
+
+    /// <summary>The owning REQ; <c>null</c> is meaningful — no REQ existed to miss.</summary>
+    public string? ReqId { get; init; }
+
+    /// <summary>Requirement class — <c>UI</c> | <c>FN</c> | <c>RAG</c> | <c>NFR</c>.</summary>
+    public string? ReqClass { get; init; }
+
+    /// <summary>What was missed — the closed vocabulary of SCHEMA.md §5.5.1.</summary>
+    public string? MissClass { get; init; }
+
+    /// <summary>Which artifact was deficient — <c>brd</c> · <c>src</c> · <c>tests</c> · … .</summary>
+    public string? Artifact { get; init; }
+
+    /// <summary>Owner-visible impact — <c>blocker</c> | <c>major</c> | <c>minor</c>; never an effort estimate.</summary>
+    public string? Severity { get; init; }
+
+    /// <summary>
+    /// Which <i>practice</i> failed (SCHEMA.md §5.5.6); <c>null</c> means <b>not assessed</b>.
+    /// </summary>
+    /// <remarks>
+    /// Never coerced to a bucket: a distribution rendered over all misses understates every category.
+    /// The field is also subject to an eligibility floor — a miss written before 2026-08-28 had no
+    /// field to fill and leaves the denominator entirely (REQ-FN-076). It is the one field a
+    /// <see cref="MissAmendRecord"/> may complete.
+    /// </remarks>
+    public string? WhyMissed { get; init; }
+
+    /// <summary>The <c>cmd</c> that should have produced the artifact correctly.</summary>
+    public string? OriginPhase { get; init; }
+
+    /// <summary>The agent persona that was running.</summary>
+    public string? OriginAgent { get; init; }
+
+    /// <summary>The <c>started</c> timestamp of the originating run, found in <c>runs.jsonl</c>; never guessed.</summary>
+    public string? OriginRunId { get; init; }
+
+    /// <summary>
+    /// <c>linked</c> | <c>inferred</c> | <c>unknown</c> — derived by the emitter, never written by an agent.
+    /// </summary>
+    /// <remarks>A provenance boundary: only <c>linked</c> records reach a per-phase, per-model or per-agent figure.</remarks>
+    public string? OriginConfidence { get; init; }
+
+    /// <summary>Model of the originating run; forced to <c>null</c> whenever the emitter's lookup failed.</summary>
+    public string? OriginModel { get; init; }
+
+    /// <summary>Harness of the originating run; forced to <c>null</c> whenever the emitter's lookup failed.</summary>
+    public string? OriginHarness { get; init; }
+
+    /// <summary>Who found it — <c>gate</c> · <c>self-smoke</c> · <c>owner</c> · <c>production</c> · … .</summary>
+    public string? FoundBy { get; init; }
+
+    /// <summary>The <c>cmd</c> that was running when it surfaced.</summary>
+    public string? FoundPhase { get; init; }
+
+    /// <summary>Which gate caught it when <see cref="FoundBy"/> is <c>gate</c>; <c>null</c> otherwise.</summary>
+    public string? FoundGate { get; init; }
+
+    /// <summary><c>started</c> of the finding run.</summary>
+    public string? FoundRunId { get; init; }
+
+    /// <summary>The §3.3 failure-class vocabulary, reused verbatim; <c>null</c> where none applies.</summary>
+    public string? FailureClass { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
+    public string? Overflow { get; init; }
+}
+
+/// <summary>
+/// One <c>misses.jsonl</c> record of kind <c>miss-fix</c>, stored in the <c>"MissFix"</c> table (SCHEMA.md §5.5.2).
+/// </summary>
+/// <remarks>
+/// <para>
+/// Deduped on <c>(UserId, Repo, MissId, FixRunId)</c> keeping the <b>latest</b> <see cref="Ts"/>
+/// (REQ-FN-073). A record whose <see cref="MissId"/> matches no <see cref="MissRecord"/> is an
+/// <b>orphan</b>: counted and surfaced on Coverage, never silently dropped.
+/// </para>
+/// <para>
+/// <b><see cref="CostAttribution"/> is what the money number stands on.</b> A fix run that repaired
+/// three misses has one token window, so <c>shared:&lt;n&gt;</c> is an apportionment and never enters a
+/// headline cost figure; <c>none</c> — which the deliberate <c>log-miss --fixed</c> path produces by
+/// omitting <see cref="FixRunId"/> — is a count, never a divisor, and is correct data rather than
+/// missing data (SCHEMA.md §5.5.3, §0.4).
+/// </para>
+/// </remarks>
+public sealed record MissFixRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA the raw file was fetched at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp the fix record was written.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the fix belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type.</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>True when <c>project_type</c> was inferred rather than declared.</summary>
+    public bool? ProjectTypeInferred { get; init; }
+
+    /// <summary>True when the record was backfilled rather than emitted live.</summary>
+    public bool? Backfilled { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary>The <see cref="MissRecord.MissId"/> this fix belongs to — the link.</summary>
+    public required string MissId { get; init; }
+
+    /// <summary>The REQ, copied from the miss for readability.</summary>
+    public string? ReqId { get; init; }
+
+    /// <summary>
+    /// <c>started</c> of the repair run — where the cost comes from; part of the dedupe key.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> is a deliberate emission, not a gap: <c>log-miss --fixed</c> omits it when the
+    /// repairing run cannot be identified, which is exactly what makes the record cost <c>none</c>.
+    /// </remarks>
+    public string? FixRunId { get; init; }
+
+    /// <summary>The command that ran the fix — <c>fix-issues</c> | <c>build-phase</c> | <c>triage-issues</c> | <c>amend-docs</c> | <c>log-miss</c>.</summary>
+    public string? FixCmd { get; init; }
+
+    /// <summary>One more than the count of prior fixes for this miss.</summary>
+    public int? FixAttempt { get; init; }
+
+    /// <summary><c>Verified</c> | <c>Needs re-verify</c> | <c>FAIL</c> | <c>deferred</c> | <c>wont-fix</c>.</summary>
+    public string? VerdictAfter { get; init; }
+
+    /// <summary>True when a closed miss was re-opened by a later escape.</summary>
+    public bool? Reopened { get; init; }
+
+    /// <summary><c>sole</c> | <c>shared:&lt;n&gt;</c> | <c>none</c> — derived by the emitter (SCHEMA.md §5.5.3).</summary>
+    public string? CostAttribution { get; init; }
+
+    /// <summary>Input tokens of the fix run's window.</summary>
+    public int? TokensIn { get; init; }
+
+    /// <summary>Output tokens of the fix run's window.</summary>
+    public int? TokensOut { get; init; }
+
+    /// <summary>Cache-read tokens of the fix run's window.</summary>
+    public int? TokensCacheRead { get; init; }
+
+    /// <summary>Cache-write tokens of the fix run's window.</summary>
+    public int? TokensCacheWrite { get; init; }
+
+    /// <summary>Measured spend in USD; only ever non-null for <c>opencode</c>, never summed across harnesses.</summary>
+    public decimal? CostUsd { get; init; }
+
+    /// <summary>Scope the token counts cover; <c>none</c> excludes the record from cost figures.</summary>
+    public string? TokensScope { get; init; }
+
+    /// <summary>Model that ran the fix.</summary>
+    public string? Model { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
+    public string? Overflow { get; init; }
+}
+
+/// <summary>
+/// One <c>misses.jsonl</c> record of kind <c>miss-amend</c>, stored in the <c>"MissAmend"</c> table
+/// (SCHEMA.md §5.5.7, ADR-020).
+/// </summary>
+/// <remarks>
+/// <para>
+/// An amend <b>completes</b> a record; it never alters a fact. It may set a field that is currently
+/// <c>null</c> and may never overwrite a non-<c>null</c> value — including one an earlier amend set.
+/// That is what keeps the correction inside the append-only rule rather than an edit wearing a
+/// record's clothes.
+/// </para>
+/// <para>
+/// <b>Stored, never collapsed at ingest.</b> Folding is a read-time operation over these rows
+/// (<c>MissAmendFolder</c>), so <c>RebuildAsync</c> re-derives identical values and the null-check is
+/// re-applied by TfLens rather than trusted to the producer — a stream merged from several machines can
+/// carry an amend and a later-written value in either order (ADR-020, REQ-FN-075). Deduped on
+/// <c>(UserId, Repo, MissId, Field, Ts)</c> keeping the earliest.
+/// </para>
+/// </remarks>
+public sealed record MissAmendRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA the raw file was fetched at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp the amendment was written; amendments fold oldest first.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the amendment belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type.</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>True when <c>project_type</c> was inferred rather than declared.</summary>
+    public bool? ProjectTypeInferred { get; init; }
+
+    /// <summary>True when the record was backfilled rather than emitted live.</summary>
+    public bool? Backfilled { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary>The miss this completes; an amend naming no known miss is an orphan, never applied.</summary>
+    public required string MissId { get; init; }
+
+    /// <summary>The wire field name being completed; must be on the allowlist or the amend is an orphan.</summary>
+    public required string Field { get; init; }
+
+    /// <summary>The value to set; must be inside that field's closed vocabulary or the amend is an orphan.</summary>
+    public string? Value { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
     public string? Overflow { get; init; }

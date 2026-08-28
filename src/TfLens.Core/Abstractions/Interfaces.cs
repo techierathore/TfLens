@@ -316,6 +316,65 @@ public interface ITelemetryStore
         CancellationToken aCancellationToken = default);
 
     /// <summary>
+    /// Reads every <c>miss</c> record for a user, optionally narrowed to one repository (REQ-FN-074).
+    /// </summary>
+    /// <remarks>
+    /// The rows come back exactly as stored — <b>amendments are not folded here</b>. Folding is a
+    /// read-time operation the engine performs over these rows and the ones
+    /// <see cref="ReadMissAmendsAsync"/> returns, so a rebuild re-derives identical values and a caller
+    /// that ignores amendments entirely still sees nothing false, only less (ADR-020).
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis to read.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching miss records, ordered by timestamp.</returns>
+    Task<IReadOnlyList<MissRecord>> ReadMissesAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissRecord>>([]);
+
+    /// <summary>
+    /// Reads every <c>miss-fix</c> record for a user, optionally narrowed to one repository (REQ-FN-074).
+    /// </summary>
+    /// <remarks>
+    /// A record whose <c>MissId</c> matches no miss is an orphan; it is returned here like any other and
+    /// counted by the caller rather than filtered out, because a dropped orphan is a fact nobody can see.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis to read.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching fix records, ordered by timestamp.</returns>
+    Task<IReadOnlyList<MissFixRecord>> ReadMissFixesAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissFixRecord>>([]);
+
+    /// <summary>
+    /// Reads every <c>miss-amend</c> record for a user, optionally narrowed to one repository (REQ-FN-074).
+    /// </summary>
+    /// <remarks>
+    /// Ordered by timestamp, which is the order <c>MissAmendFolder</c> applies them in — oldest first,
+    /// re-applying the null-check as it goes (REQ-FN-075).
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis to read.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching amendment records, oldest first.</returns>
+    Task<IReadOnlyList<MissAmendRecord>> ReadMissAmendsAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissAmendRecord>>([]);
+
+    /// <summary>
     /// Reads every Playbook event record for a user, optionally narrowed to one repository.
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
@@ -371,7 +430,10 @@ public interface ITelemetryStore
     /// </summary>
     /// <remarks>
     /// <b>This removes all three layers</b>, scoped to <c>(aUserId, aRepo)</c>: every stream table row
-    /// (<c>"Run"</c>, <c>"Gate"</c>, <c>"Session"</c>, <c>"Commit"</c>, <c>"PbEvent"</c>), the
+    /// (<c>"Run"</c>, <c>"Gate"</c>, <c>"Session"</c>, <c>"Commit"</c>, <c>"Miss"</c>,
+    /// <c>"MissFix"</c>, <c>"MissAmend"</c>, <c>"PbEvent"</c> — <b>all three miss tables</b>, because a
+    /// removal that leaves rows behind puts them back into every figure, which is the worst class of bug
+    /// in a product whose promise is correct numbers, REQ-FN-074), the
     /// <c>"SyncState"</c> row, and the <c>"UserRepo"</c> row itself — so the repository is *disconnected*,
     /// not merely emptied, and the poller stops visiting it (REQ-FN-016). It is the only delete on this
     /// interface, and a caller such as <c>RepoRegistry.RemoveAsync</c> needs nothing else from the store;

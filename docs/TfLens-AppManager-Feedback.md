@@ -11,12 +11,53 @@ Reference: `docs/AppManager-api-usage-guide.md` (v1.4).
 
 ---
 
-## Open entries
+## Summary
 
-| ID | Severity | Endpoint | Summary |
-|----|----------|----------|---------|
-| [AM-001](#am-001--applicationrolecode-manager-is-silently-ignored-application-1-has-no-manager-role) | **High** | `POST /AuthSvc/register` | `applicationRoleCode: "Manager"` is accepted and silently downgraded to `"User"`. Application 1 appears to define no `Manager` role. |
-| [AM-002](#am-002--getusersvcprofile-returns-403-no_app_access-for-users-that-do-have-an-application-role) | **High** | `GET /UserSvc/profile` | Returns `403 NO_APP_ACCESS` whenever an app context is resolved — including for a user registration just reported an `applicationRole` for. |
+- **2 blockers, 0 majors, 0 minors, 0 nice-to-haves** — 2 entries, **both ✅ RESOLVED 2026-08-28**.
+  **Nothing is open.**
+- Last consolidated: 2026-08-28
+
+**Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
+`Low` = minor. Both entries are filed `High`. Entry bodies keep their original wording, so no recorded
+severity was reinterpreted.
+
+| Band | Count | Entries | State |
+|---|---|---|---|
+| **Blocker** (High) | 2 | AM-001 · AM-002 | both ✅ resolved 2026-08-28, verified live |
+| Major / Minor / Nice-to-have | 0 | — | — |
+
+Both entries are **kept in full rather than deleted**. Each carries a dated resolution note with the
+live evidence, which is the part the AppManager team will want back: what was wrong, what the fix
+changed, and how it was confirmed.
+
+### Resolution status (2026-08-28) — both verified live against `https://appmgrapi.techierathore.com`
+
+| ID | Was | Now | Evidence |
+|----|-----|-----|----------|
+| **AM-001** | `POST /AuthSvc/register` accepted `applicationRoleCode: "Manager"` with `applicationId: 1` and silently substituted the application default `"User"`, returning `200` either way. | Returns **`applicationRole: "Manager"`** — the code asked for is the code assigned. | Both documented test accounts re-registered on their original addresses: `tflensdemo@techierathore.com` → `userId 2`, `tflenstest2@techierathore.com` → `userId 3`, both `applicationRole: "Manager"`. Login returns the same value, so the empty `applicationRole` previously reported for users 2 and 3 is gone too. |
+| **AM-002** | `GET /UserSvc/profile` returned **`403 NO_APP_ACCESS`** whenever the `X-Api-Key`/`X-Api-Secret` pair was sent, for users that did have a role row. | Returns **`200`** with the scoped `applicationRole`. | Measured for `userId 2` with the pair → `200`, `applicationRole: "Manager"`. |
+
+**Consequence for consumers, and it is a reversal — read this before copying the old workaround.**
+TfLens had been withholding the key pair from `/UserSvc/*` and sending it only on `/AuthSvc/*`, which
+was the documented workaround for AM-002. **That has now been reversed.** Without the pair the endpoint
+still answers `200`, but the application scope is unresolved and `applicationRole` comes back as an
+**empty string** — so the pair is now the *requirement* rather than the hazard. In TfLens,
+`AppManagerClient.SendsApiKeyHeaders` sends the pair on `/UserSvc/*` as well, the test that pinned the
+exclusion now pins the inclusion, and `DECISIONS.md` **D-006** carries a dated amendment.
+
+Nothing in this file was merged or renumbered: `AM-001` and `AM-002` are two distinct defects — though,
+as AM-002's *Related* note predicted at the time, they shared a root cause and were fixed together.
+
+---
+
+## Entries
+
+| ID | Severity | Endpoint | Status | Summary |
+|----|----------|----------|--------|---------|
+| [AM-001](#am-001--applicationrolecode-manager-is-silently-ignored-application-1-has-no-manager-role) | **High** | `POST /AuthSvc/register` | ✅ **RESOLVED 2026-08-28** | `applicationRoleCode: "Manager"` was accepted and silently downgraded to `"User"`. Application 1 now defines the `Manager` role and registration returns it. |
+| [AM-002](#am-002--get-usersvcprofile-returns-403-no_app_access-for-users-that-do-have-an-application-role) | **High** | `GET /UserSvc/profile` | ✅ **RESOLVED 2026-08-28** | Returned `403 NO_APP_ACCESS` whenever an app context was resolved. Now returns `200` with the scoped `applicationRole`. |
+
+**No open entries.**
 
 ---
 
@@ -28,6 +69,15 @@ substitution.
 **Endpoint:** `POST /AuthSvc/register`
 **Found:** 2026-08-27, verifying the TfLens requirement that every user maps to AppManager's `Manager`
 role (BRD-95 → REQ-FN-002).
+**Resolved:** ✅ **2026-08-28 by the owner, verified live from TfLens the same day.** `POST /AuthSvc/register`
+with the Application 1 API-key pair, `applicationId: 1` and `applicationRoleCode: "Manager"` now answers
+`200` with **`applicationRole: "Manager"`** — the code asked for is the code assigned. Proven by
+re-registering both documented test accounts on their original addresses: `tflensdemo@techierathore.com`
+→ `userId 2`, `applicationRole: "Manager"`; `tflenstest2@techierathore.com` → `userId 3`,
+`applicationRole: "Manager"`. Login returns the same value, so the empty `applicationRole` reported below
+for users 2 and 3 is gone as well. The `tflensrole@techierathore.com` reproduction account (`userId 4`)
+was deleted with the fix and its row removed from `docs/TfLens-UsageGuide.md`; nothing in TfLens changed,
+because the client was always sending the documented request.
 
 ### Repro
 
@@ -99,6 +149,14 @@ Either of these, but not silence:
 
 **Endpoint:** `GET /UserSvc/profile`
 **Found:** 2026-08-27, immediately after configuring the Application 1 API-key pair.
+**Resolved:** ✅ **2026-08-28 by the owner, verified live from TfLens the same day.** `GET /UserSvc/profile`
+**with** the `X-Api-Key` / `X-Api-Secret` pair now answers **`200`** with `applicationRole: "Manager"`
+(measured for `userId 2`). **Without** the pair it still answers `200`, but the application scope is
+unresolved and `applicationRole` comes back as an **empty string** — so the pair is now the requirement
+rather than the hazard. The TfLens workaround recorded below has been **reversed**:
+`AppManagerClient.SendsApiKeyHeaders` sends the pair on `/UserSvc/*` as well as `/AuthSvc/*`, the test
+that pinned the exclusion now pins the inclusion, and `DECISIONS.md` D-006 carries a dated amendment.
+Likely resolved together with AM-001, as the "Related" note below predicted.
 
 ### Repro
 

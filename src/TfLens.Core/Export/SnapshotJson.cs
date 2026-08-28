@@ -38,6 +38,15 @@ internal static class SnapshotJson
     /// <summary>Decimal places the reference rounds commit cadence to.</summary>
     private const int CadenceDigits = 2;
 
+    /// <summary>Decimal places the reference rounds tokens per miss fixed to.</summary>
+    private const int TokensPerMissDigits = 1;
+
+    /// <summary>Decimal places the reference rounds measured dollars per miss to.</summary>
+    private const int MeasuredUsdDigits = 4;
+
+    /// <summary>The reference's bucket for a record that carried no value on a distribution's axis.</summary>
+    private const string NotRecordedKey = "?";
+
     /// <summary>
     /// Builds the whole document.
     /// </summary>
@@ -52,6 +61,7 @@ internal static class SnapshotJson
             ["live"] = Segments(aInputs.Analysis.Live),
             ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
             ["pooled"] = Pooled(aInputs.Analysis.Pooled),
+            ["misses"] = Misses(aInputs),
             ["extras"] = Extras(aInputs),
             ["parity"] = Parity(aInputs)
         };
@@ -188,10 +198,13 @@ internal static class SnapshotJson
     private static JsonArray PerRepo(SnapshotInputs aInputs)
     {
         var vShas = aInputs.DatasetShas.ToDictionary(aP => aP.Key, aP => aP.Value, StringComparer.Ordinal);
+        var vOrigins = aInputs.RepoOrigins.ToDictionary(aO => aO.Repo, StringComparer.Ordinal);
         var vArray = new JsonArray();
 
         foreach (var vRepo in aInputs.Analysis.PerRepo)
         {
+            var vOrigin = vOrigins.GetValueOrDefault(vRepo.Repo);
+
             vArray.Add(new JsonObject
             {
                 ["repo"] = vRepo.Repo,
@@ -202,14 +215,130 @@ internal static class SnapshotJson
                 ["runs"] = vRepo.Runs,
                 ["sessions"] = vRepo.Sessions,
                 ["commits"] = vRepo.Commits,
+                ["misses"] = vOrigin?.Misses ?? 0,
+                ["stale_types"] = Strings(vOrigin?.StaleProjectTypes ?? []),
                 ["commit_hook"] = null,
                 ["framework"] = vRepo.Framework,
                 ["events"] = vRepo.Events,
-                ["source_sha"] = vShas.GetValueOrDefault(vRepo.Repo)
+                ["source_sha"] = vShas.GetValueOrDefault(vRepo.Repo),
+                ["source_kind"] = vOrigin?.SourceKind ?? SourceKinds.Default
             });
         }
 
         return vArray;
+    }
+
+    /// <summary>
+    /// The miss and rework block, in the reference's key layout (REQ-FN-080, BRD-128, BRD-129).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Twenty-nine keys, spelled and shaped exactly as <c>analyse_misses()</c> emits them, so
+    /// <c>tools/parity-compare.py</c> walks them with no mapping layer. The counts come from
+    /// <see cref="MissAnalysis"/>, which already totals them; every distribution, share and cost figure
+    /// comes from <see cref="SnapshotInputs.MissParity"/>, the engine's own block computed in the one
+    /// bucket the reference computes in.
+    /// </para>
+    /// <para>
+    /// <b>The attribution split survives as three distinct keys</b> — <c>cost_sole_n</c>,
+    /// <c>cost_shared_n</c> and <c>cost_unattributable_n</c> — and the two token columns beside them are
+    /// likewise never added together (BRD-122, BRD-128, REQ-NFR-013 clause 1). There is no blended key
+    /// here because <see cref="MissCost"/> has no property that could hold one. Measured dollars keep the
+    /// bare <c>cost_usd_*</c> spelling because they are measurements; every rate-card figure lives under
+    /// <c>extras.misses_repricing</c> and its key ends <c>_usd_estimate</c>.
+    /// </para>
+    /// <para>
+    /// A category the emitter left blank is reported as <c>?</c>, which is the reference's own bucket for
+    /// it. It is <b>not</b> a merge: the engine keeps "not assessed" out of every denominator
+    /// (<see cref="MissSegmentFigures.ClassNotRecorded"/> and friends), and the <c>?</c> row is that same
+    /// count rendered where the reference renders it.
+    /// </para>
+    /// </remarks>
+    /// <param name="aInputs">Everything the snapshot renders from.</param>
+    /// <returns>The <c>misses</c> object.</returns>
+    private static JsonObject Misses(SnapshotInputs aInputs)
+    {
+        var vTotals = aInputs.Analysis.Misses;
+        var vBlock = aInputs.MissParity;
+        var vAttribution = vBlock.Attribution;
+
+        // The two cost_usd_* keys come from the sole-bounded row, not from the whole-segment one: the
+        // reference bounds measured dollars by cost attribution exactly as it bounds the token columns,
+        // and an apportioned record counted as a measured one would overstate cost_usd_records.
+        var vMeasured = aInputs.MeasuredRework;
+
+        return new JsonObject
+        {
+            ["misses_total"] = vTotals.MissesTotal,
+            ["miss_fixes_total"] = vTotals.MissFixesTotal,
+            ["orphan_fixes"] = vTotals.OrphanFixes,
+            ["open_misses"] = vTotals.OpenMisses,
+            ["wont_fix"] = vTotals.WontFix,
+            ["resolved_misses"] = vTotals.ResolvedMisses,
+            ["amendments_applied"] = vTotals.AmendmentsApplied,
+            ["orphan_amends"] = vTotals.OrphanAmends,
+            ["why_missed_n"] = vBlock.WhyMissedN,
+            ["why_missed_eligible"] = vBlock.WhyMissedEligibility.Eligible,
+            ["why_missed_predates_field"] = vBlock.WhyMissedEligibility.PredatesField,
+            ["why_missed"] = Distribution(vBlock.FailedPracticeDistribution, 0),
+            ["escapes_missing_why"] = vTotals.EscapesMissingWhy,
+            ["class_distribution"] = Distribution(vBlock.ClassDistribution, vBlock.ClassNotRecorded),
+            ["found_by"] = Distribution(vBlock.FoundBy, vBlock.FoundByNotRecorded),
+            ["design_miss_share"] = vBlock.DesignMissShare.Display(),
+            ["escape_share"] = vBlock.EscapeShare.Display(),
+            ["attributed_n"] = vAttribution.AttributedN,
+            ["attribution_excluded"] = vAttribution.AttributionExcluded,
+            ["by_origin_phase"] = Distribution(vAttribution.ByOriginPhase, NotRecorded(vAttribution, vAttribution.ByOriginPhase)),
+            ["by_origin_model"] = Distribution(vAttribution.ByOriginModel, NotRecorded(vAttribution, vAttribution.ByOriginModel)),
+            ["by_origin_agent"] = Distribution(vAttribution.ByOriginAgent, NotRecorded(vAttribution, vAttribution.ByOriginAgent)),
+            ["cost_sole_n"] = vBlock.Cost.SoleRecords,
+            ["cost_shared_n"] = vBlock.Cost.SharedRecords,
+            ["cost_unattributable_n"] = vBlock.Cost.TokensPerMissFixed.NoneCount,
+            ["tokens_per_miss_measured"] = Number(vBlock.Cost.TokensPerMissFixed.Sole, TokensPerMissDigits),
+            ["tokens_per_miss_apportioned"] = Number(vBlock.Cost.TokensPerMissFixed.Apportioned, TokensPerMissDigits),
+            ["cost_usd_per_miss_measured"] = vMeasured is null
+                ? null
+                : Number(vMeasured.MeasuredUsdPerMiss, MeasuredUsdDigits),
+            ["cost_usd_records"] = vMeasured?.MeasuredUsdRecords ?? 0
+        };
+    }
+
+    /// <summary>
+    /// Misses the attribution figures counted but that named no value for one axis.
+    /// </summary>
+    /// <remarks>
+    /// The engine keeps a <c>null</c> out of every distribution so it can never become a bucket that
+    /// inflates a share (BRD-119). The reference renders the same records as <c>?</c>, so the count is
+    /// recovered here as "attributed records the rows do not account for" rather than being recomputed
+    /// from the records — arithmetic on the engine's own output, never a second reading of the stream.
+    /// </remarks>
+    /// <param name="aAttribution">The attribution block, whose <c>AttributedN</c> is the denominator.</param>
+    /// <param name="aRows">One axis's rows.</param>
+    /// <returns>How many attributed misses carried no value on that axis.</returns>
+    private static int NotRecorded(MissAttributionFigures aAttribution, IReadOnlyList<MissCategoryCount> aRows) =>
+        Math.Max(0, aAttribution.AttributedN - aRows.Sum(aRow => aRow.Count));
+
+    /// <summary>
+    /// Renders a miss distribution the way the reference does, with the unrecorded records as <c>?</c>.
+    /// </summary>
+    /// <param name="aRows">The categories the engine observed.</param>
+    /// <param name="aNotRecorded">Records carrying no value at all; omitted entirely when zero.</param>
+    /// <returns>The distribution object.</returns>
+    private static JsonObject Distribution(IReadOnlyList<MissCategoryCount> aRows, int aNotRecorded)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vRow in aRows.Where(aRow => aRow.Count > 0))
+        {
+            vObject[vRow.Key] = vRow.Count;
+        }
+
+        if (aNotRecorded > 0)
+        {
+            vObject[NotRecordedKey] = aNotRecorded;
+        }
+
+        return vObject;
     }
 
     /// <summary>
@@ -342,8 +471,81 @@ internal static class SnapshotJson
             + "hand against raw JSONL, recorded in DECISIONS.md (REQ-FN-064).",
         ["harness"] = Harness(aInputs.Harness),
         ["routing"] = Routing(aInputs.Routing),
-        ["repricing"] = Repricing(aInputs)
+        ["repricing"] = Repricing(aInputs),
+        ["misses_repricing"] = MissRepricing(aInputs)
     };
+
+    /// <summary>
+    /// What the rework tokens would have cost at the operator's rate card — an estimate, per harness.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// BRD-123 / BRD-128 / REQ-NFR-013 clause 5. Measured dollars exist in exactly one place in the
+    /// product — <c>cost_usd</c> on OpenCode records — and they are reported under
+    /// <c>misses.cost_usd_per_miss_measured</c>, without a suffix, because they are measurements. Every
+    /// figure here is derived from token counts and a price list instead, so <b>every money key ends
+    /// <c>_usd_estimate</c></b> and every row carries <see cref="RateCard.EstimateLabel"/> — the wording
+    /// <see cref="MissHarnessCost.EstimateLabel"/> says such a figure must travel with.
+    /// </para>
+    /// <para>
+    /// The block sits under <c>extras</c> and not under <c>misses</c> deliberately: the reference computes
+    /// no rate-card dollars, so these figures have no parity oracle, and <c>extras</c> is where the export
+    /// keeps everything that has none (REQ-FN-064). Nothing here is totalled across harnesses — a sum of
+    /// numbers that mean different things per harness is a number nobody was billed (BRD-54).
+    /// </para>
+    /// </remarks>
+    /// <param name="aInputs">Everything the snapshot renders from.</param>
+    /// <returns>The <c>misses_repricing</c> object.</returns>
+    private static JsonObject MissRepricing(SnapshotInputs aInputs)
+    {
+        // A miss-fix record carries token counts but no `model`, so there is no observed mix to price it
+        // at. The ceiling is priced instead — the same counterfactual `extras.repricing` already reports —
+        // because "no more than this" is a statement the data supports and a point estimate is not.
+        var vCeilingModel = aInputs.Routing.MostExpensiveModel;
+        var vCeilingRate = aInputs.Prices.Find(vCeilingModel);
+        var vRows = new JsonArray();
+
+        foreach (var vRow in aInputs.MissParity.Cost.ByHarness)
+        {
+            // TokenRecords is read before the sums, not after: a sum over records that all carried null
+            // is 0, and "0 tokens spent" and "no counts recorded" are different facts (SCHEMA.md §2.5).
+            // Pricing the second as the first would manufacture a $0.00 rework cost out of missing data.
+            var vPriceable = vRow.EstimateLabel is not null && vCeilingRate is not null && vRow.TokenRecords > 0;
+
+            vRows.Add(new JsonObject
+            {
+                ["harness"] = vRow.Harness,
+                ["fix_records"] = vRow.Records,
+                ["token_records"] = vRow.TokenRecords,
+                ["tokens_in"] = vRow.TokensIn,
+                ["tokens_out"] = vRow.TokensOut,
+                ["tokens_cache_read"] = vRow.TokensCacheRead,
+                ["tokens_cache_write"] = vRow.TokensCacheWrite,
+                ["measured"] = vRow.EstimateLabel is null,
+                ["estimate_label"] = vRow.EstimateLabel,
+                ["rework_at_max_usd_estimate"] = vPriceable
+                    ? JsonValue.Create(vCeilingRate!.EstimateUsd(
+                        vRow.TokensIn, vRow.TokensOut, vRow.TokensCacheRead, vRow.TokensCacheWrite))
+                    : null
+            });
+        }
+
+        return new JsonObject
+        {
+            ["estimate"] = true,
+            ["estimate_label"] = RateCard.EstimateLabel,
+            ["basis"] =
+                "rework token counts multiplied by the operator's rate card at its most expensive model — "
+                + "a ceiling, not measured spend. A miss-fix record carries no model, so no observed-mix "
+                + "figure is computable and none is invented. Measured rework dollars are "
+                + "misses.cost_usd_per_miss_measured and carry no _usd_estimate suffix because they are "
+                + "measurements (SCHEMA.md §4, BRD-123).",
+            ["rate_card_path"] = aInputs.RateCardPath,
+            ["rate_card_units"] = RateCard.Units,
+            ["priced_at_model"] = vCeilingModel,
+            ["by_harness"] = vRows
+        };
+    }
 
     /// <summary>
     /// The per-harness comparison.

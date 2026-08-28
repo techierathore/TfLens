@@ -18,7 +18,7 @@ public sealed record ShellNavItem(
     bool HasFrameworkSwitch);
 
 /// <summary>
-/// The fixed navigation of the app shell (REQ-UI-006).
+/// The fixed navigation of the app shell — seven items (REQ-UI-006).
 /// </summary>
 /// <remarks>
 /// The order, the labels and the Lucide icon names are acceptance criteria, not styling — they live in
@@ -30,15 +30,21 @@ public static class ShellNavigation
     /// <summary>Breadcrumb section for the repo-management route.</summary>
     public const string WorkspaceSection = "Workspace";
 
-    /// <summary>Breadcrumb section for the five report routes.</summary>
+    /// <summary>Breadcrumb section for the six report routes.</summary>
     public const string ReportsSection = "Reports";
 
     /// <summary>Breadcrumb section for the profile route, which has no sidebar item.</summary>
     public const string AccountSection = "Account";
 
     /// <summary>
-    /// The six navigation items, in the fixed working order the checklist asserts.
+    /// The seven navigation items, in the fixed working order the checklist asserts.
     /// </summary>
+    /// <remarks>
+    /// Amended 2026-08-28 (BRD-5, BRD-124): <c>/misses</c> — "Misses &amp; rework" — sits <b>between</b>
+    /// Routing &amp; economics and Snapshot export. The position is an acceptance criterion, not a
+    /// preference: the reports read left to right as coverage → quality → harness → routing → rework →
+    /// export, and the export item stays last because it is the only one that leaves the app.
+    /// </remarks>
     public static readonly IReadOnlyList<ShellNavItem> Items =
     [
         new ShellNavItem("/repos", "Repos", "git-branch", WorkspaceSection, false, false),
@@ -46,6 +52,7 @@ public static class ShellNavigation
         new ShellNavItem("/three-questions", "Three questions", "circle-question-mark", ReportsSection, false, true),
         new ShellNavItem("/harness", "Harness comparison", "git-compare", ReportsSection, false, true),
         new ShellNavItem("/routing", "Routing & economics", "route", ReportsSection, false, true),
+        new ShellNavItem("/misses", "Misses & rework", "bug", ReportsSection, false, true),
         new ShellNavItem("/export", "Snapshot export", "download", ReportsSection, false, true)
     ];
 
@@ -121,7 +128,7 @@ public static class ShellNavigation
     /// Decides whether the header Framework switch renders on a route (REQ-UI-010).
     /// </summary>
     /// <param name="aRelativePath">A base-relative path.</param>
-    /// <returns><c>true</c> on the five report routes and nowhere else.</returns>
+    /// <returns><c>true</c> on the six report routes and nowhere else (BRD-108, BRD-126).</returns>
     public static bool ShowsFrameworkSwitch(string aRelativePath) =>
         Match(aRelativePath)?.HasFrameworkSwitch == true;
 }

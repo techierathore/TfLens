@@ -11,6 +11,7 @@ using TfLens.Core.Abstractions;
 using TfLens.Services.Auth;
 using TfLens.Services.Commands;
 using TfLens.Services.Export;
+using TfLens.Services.Import;
 using TfLens.Services.Metrics;
 using TfLens.Services.Playbook;
 using TfLens.Services.Repos;
@@ -135,6 +136,7 @@ try
     vBuilder.Services.AddTfLensSync(vBuilder.Configuration);
     vBuilder.Services.AddTfLensMetrics(vBuilder.Configuration);
     vBuilder.Services.AddTfLensExport(vBuilder.Configuration);
+    vBuilder.Services.AddTfLensImport(vBuilder.Configuration);
     vBuilder.Services.AddTfLensPlaybook(vBuilder.Configuration);
     vBuilder.Services.AddTfLensUiState(vBuilder.Configuration);
 
@@ -214,6 +216,10 @@ try
     // Snapshot downloads. The endpoint takes no user id: it derives the reports root from the auth
     // cookie, so one user cannot fetch another's snapshot by editing a query string (ADR-013).
     vApp.MapExportEndpoints();
+
+    // The Import-metric-files mode of the Add-source dialog. Both routes require authentication and
+    // take no user id, so the only archive either can write into is the caller's own (REQ-NFR-014).
+    vApp.MapImportEndpoints();
 
     vApp.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 

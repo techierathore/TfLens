@@ -163,8 +163,13 @@ test('gate sweep: anonymous screens', async ({ page }) => {
 test('gate sweep: authenticated screens', async ({ page }) => {
   await signIn(page);
 
+  // REQ-UI-006 / REQ-FN-081 — the nav is SEVEN items now: `nav-misses` sits between Routing and
+  // Export. It is asserted on every authenticated screen, not only on /misses, because a nav item
+  // that renders on one page and not another is exactly the kind of shell defect a per-page spec
+  // cannot see.
   const shell = ['app-sidebar', 'nav-repos', 'nav-coverage', 'nav-three-questions', 'nav-harness',
-    'nav-routing', 'nav-export', 'nav-repo-count', 'sync-now', 'last-sync-badge', 'theme-toggle', 'user-menu'];
+    'nav-routing', 'nav-misses', 'nav-export', 'nav-repo-count', 'sync-now', 'last-sync-badge',
+    'theme-toggle', 'user-menu'];
 
   await sweep(page, 'profile', '/profile', {
     required: [...shell, 'profile-identity-note', 'profile-name', 'profile-email', 'profile-role-badge',
@@ -183,9 +188,19 @@ test('gate sweep: authenticated screens', async ({ page }) => {
     required: [...shell, 'framework-switch', 'framework-count-techieflow', 'framework-count-playbook',
       'coverage-parser', 'coverage-status', 'kpi-repos-synced', 'kpi-gate-records', 'kpi-newest-age',
       'kpi-sync-errors', 'unknown-fields', 'rebuild-card', 'rebuild'],
-    prefixes: ['repo-card-', 'repo-sha-', 'repo-state-'],
+    prefixes: ['repo-card-', 'repo-sha-', 'repo-state-', 'repo-source-badge-'],
     tablePrefixes: ['repo-streams-'],
     conditional: ['unknown-fields-trigger', 'unknown-fields-none', 'schema-version-alert', 'coverage-empty', 'coverage-error'],
+    // REQ-UI-039 — the miss data-quality block. The three facts always render (they are counts, and a
+    // zero is a real answer); the three warnings are state-dependent by design and are graded
+    // conditionally, because a workspace with a complete miss stream must not read as a gate failure.
+    conditionalPrefixes: ['repo-reclassified-', 'repo-no-fixes-', 'repo-import-age-'],
+  });
+
+  await sweep(page, 'coverage-miss-quality', '/', {
+    required: ['miss-quality', 'miss-quality-total', 'escapes-missing-why', 'orphan-misses',
+      'miss-backfilled'],
+    conditional: ['misses-without-fixes', 'reclassified-summary'],
   });
 
   await sweep(page, 'three-questions', '/three-questions', {
@@ -244,20 +259,63 @@ test('gate sweep: authenticated screens', async ({ page }) => {
       tables: cfg.tables ?? [],
       tablePrefixes: cfg.tablePrefixes ?? [],
       conditional: [...(cfg.conditional ?? []), 'routing-error'],
+      // The click is RETRIED until the tab reports itself selected. Without that check a click that
+      // silently did not land leaves the previous panel on screen and the sweep records ten
+      // RENDER-EMPTY controls for a page that is working — a false failure that reads exactly like a
+      // real one. Observed on `repricing`, whose panel is the heaviest to swap.
       before: async (p: any) => {
         const trig = p.locator(`[data-testid="routing-tab-${tab}"]`).first();
         await trig.waitFor({ state: 'attached', timeout: 20_000 });
-        const target = p.locator(`[data-testid="routing-tab-${tab}"]`).first();
-        await target.click({ force: true }).catch(async () => {
-          await p.evaluate((t: string) => {
-            const el = document.querySelector(`[data-testid="routing-tab-${t}"]`) as HTMLElement | null;
-            (el?.closest('[role="tab"]') as HTMLElement | null)?.click();
-          }, tab);
-        });
+
+        const isActive = async () => p.evaluate((t: string) => {
+          const el = document.querySelector(`[data-testid="routing-tab-${t}"]`);
+          const tabEl = (el?.closest('[role="tab"]') ?? el) as HTMLElement | null;
+          return tabEl?.getAttribute('aria-selected') === 'true'
+            || tabEl?.getAttribute('data-state') === 'active';
+        }, tab);
+
+        for (let attempt = 0; attempt < 4 && !(await isActive()); attempt++) {
+          await trig.click({ force: true }).catch(async () => {
+            await p.evaluate((t: string) => {
+              const el = document.querySelector(`[data-testid="routing-tab-${t}"]`) as HTMLElement | null;
+              ((el?.closest('[role="tab"]') as HTMLElement | null) ?? el)?.click();
+            }, tab);
+          });
+          await p.waitForTimeout(1200);
+        }
+
         await p.waitForTimeout(1800);
       },
     });
   }
+
+  // REQ-FN-081 — /misses joins the formal sweep. Everything under `required` renders on any dataset
+  // that holds a live miss; everything state-dependent is `conditional`, because a false RENDER-EMPTY
+  // on a control that is absent BY DESIGN is as damaging as a missed one — it teaches the reader to
+  // ignore the gate. The two that most tempt a wrong classification:
+  //   `miss-origin-model-table`  absent whenever no `linked` miss named a model — the honest state,
+  //                              and `miss-origin-model-none` is what proves it was reached.
+  //   `kpi-rework-usd-estimate*` absent unless the rate card can price the observed tokens.
+  await sweep(page, 'misses', '/misses', {
+    required: [...shell, 'framework-switch', 'misses-page', 'misses-period', 'misses-period-label',
+      'miss-kpis', 'kpi-open', 'kpi-wontfix', 'kpi-period', 'kpi-median-close', 'kpi-design-share',
+      'kpi-escape-share', 'kpi-rework-tokens', 'kpi-rework-usd', 'miss-type', 'miss-origin',
+      'miss-whymissed', 'miss-whymissed-denominator', 'miss-whymissed-eligibility', 'miss-cost',
+      'miss-cost-measured', 'miss-cost-apportioned', 'miss-cost-none', 'miss-cost-unattributable',
+      'miss-cost-attribution-missing', 'miss-cost-no-blend', 'miss-taint-count', 'miss-observational',
+      'miss-escape-note', 'miss-detail', 'miss-raw-trigger'],
+    // A table id must be EXACT here, never a prefix: `miss-detail` and `miss-whymissed` are the
+    // sections, and only the `-table` ids are grids (the same trap `model-tokens` documents above).
+    tables: ['miss-detail-table', 'miss-whymissed-table', 'miss-origin-agent-table'],
+    prefixes: ['miss-type-', 'miss-origin-'],
+    conditionalPrefixes: ['miss-raw-'],
+    conditional: ['misses-empty', 'misses-empty-connect', 'misses-error', 'miss-origin-none',
+      'miss-origin-unattributed', 'miss-origin-model-none', 'miss-origin-agent-none',
+      'miss-origin-model-table', 'miss-whymissed-note', 'miss-raw-note', 'miss-cost-sole',
+      'miss-cost-measured-usd', 'kpi-rework-usd-value', 'kpi-rework-usd-estimate',
+      'kpi-rework-usd-estimate-value', 'kpi-rework-usd-estimate-label', 'kpi-rework-usd-unpriced',
+      'misses-playbook-plan', 'misses-playbook-zero-note'],
+  });
 
   await sweep(page, 'export', '/export', {
     required: [...shell, 'framework-switch', 'export-parser-version', 'quotable-banner', 'export-now',
@@ -271,7 +329,7 @@ test('gate sweep: authenticated screens', async ({ page }) => {
   });
 });
 
-test('gate sweep: playbook axis of the five report pages', async ({ page }) => {
+test('gate sweep: playbook axis of the six report pages', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/');
   // Select the Playbook trigger inside the header framework switch.
@@ -284,13 +342,19 @@ test('gate sweep: playbook axis of the five report pages', async ({ page }) => {
   });
   await page.waitForTimeout(2500);
 
+  // REQ-UI-010 / REQ-FN-081 — the switch now spans SIX report pages, so /misses is swept on this axis
+  // too. The Playbook axis emits no misses.jsonl at all, so the page's honest state there is the
+  // Phase-3 plan note rather than a table of zeros — which is why those two ids are conditional and
+  // `playbook-empty` is what proves the state was reached.
   for (const [name, route] of [['pb-coverage', '/'], ['pb-three-questions', '/three-questions'],
-    ['pb-harness', '/harness'], ['pb-routing', '/routing'], ['pb-export', '/export']] as [string, string][]) {
+    ['pb-harness', '/harness'], ['pb-routing', '/routing'], ['pb-misses', '/misses'],
+    ['pb-export', '/export']] as [string, string][]) {
     await sweep(page, name, route, {
       required: ['app-sidebar', 'framework-switch'],
       prefixes: [],
       conditional: ['playbook-empty', 'pb-phases-techieflow', 'coverage-status', 'schema-note',
-        'harness-note', 'routing-tab-drift', 'quotable-banner'],
+        'harness-note', 'routing-tab-drift', 'quotable-banner', 'misses-page',
+        'misses-playbook-plan', 'misses-playbook-zero-note'],
     });
   }
 

@@ -54,6 +54,37 @@ namespace TfLens.Core.Parsing;
 /// <c>subject_prefix</c>→<c>SubjectPrefix</c>, <c>branch</c>→<c>Branch</c>.
 /// </para>
 /// <para>
+/// <c>misses</c> (§5.5, added 2026-08-28 — REQ-FN-071, REQ-FN-072, ADR-018): the one stream whose
+/// records do <b>not</b> all share a shape. Three kinds land in three tables, dispatched on the
+/// record's own <c>kind</c>. Common to all three: the §1 set above.
+/// </para>
+/// <para>
+/// <c>kind: "miss"</c> (§5.5.1) → <c>"Miss"</c>: <c>miss_id</c>→<c>MissId</c>,
+/// <c>req_id</c>→<c>ReqId</c>, <c>req_class</c>→<c>ReqClass</c>, <c>miss_class</c>→<c>MissClass</c>,
+/// <c>artifact</c>→<c>Artifact</c>, <c>severity</c>→<c>Severity</c>,
+/// <c>why_missed</c>→<c>WhyMissed</c>, <c>origin_phase</c>→<c>OriginPhase</c>,
+/// <c>origin_agent</c>→<c>OriginAgent</c>, <c>origin_run_id</c>→<c>OriginRunId</c>,
+/// <c>origin_confidence</c>→<c>OriginConfidence</c>, <c>origin_model</c>→<c>OriginModel</c>,
+/// <c>origin_harness</c>→<c>OriginHarness</c>, <c>found_by</c>→<c>FoundBy</c>,
+/// <c>found_phase</c>→<c>FoundPhase</c>, <c>found_gate</c>→<c>FoundGate</c>,
+/// <c>found_run_id</c>→<c>FoundRunId</c>, <c>failure_class</c>→<c>FailureClass</c>.
+/// </para>
+/// <para>
+/// <c>kind: "miss-fix"</c> (§5.5.2) → <c>"MissFix"</c>: <c>miss_id</c>→<c>MissId</c>,
+/// <c>req_id</c>→<c>ReqId</c>, <c>fix_run_id</c>→<c>FixRunId</c>, <c>fix_cmd</c>→<c>FixCmd</c>,
+/// <c>fix_attempt</c>→<c>FixAttempt</c>, <c>verdict_after</c>→<c>VerdictAfter</c>,
+/// <c>reopened</c>→<c>Reopened</c>, <c>cost_attribution</c>→<c>CostAttribution</c>,
+/// <c>tokens_in</c>→<c>TokensIn</c>, <c>tokens_out</c>→<c>TokensOut</c>,
+/// <c>tokens_cache_read</c>→<c>TokensCacheRead</c>, <c>tokens_cache_write</c>→<c>TokensCacheWrite</c>,
+/// <c>cost_usd</c>→<c>CostUsd</c>, <c>tokens_scope</c>→<c>TokensScope</c>, <c>model</c>→<c>Model</c>.
+/// </para>
+/// <para>
+/// <c>kind: "miss-amend"</c> (§5.5.7) → <c>"MissAmend"</c>: <c>miss_id</c>→<c>MissId</c>,
+/// <c>field</c>→<c>Field</c>, <c>value</c>→<c>Value</c>. Any other <c>kind</c> increments
+/// <see cref="ParseResult.InvalidLines"/> and is skipped — never thrown, because an unknown kind in a
+/// stream TfLens <i>does</i> know is the same class of event as a malformed line (REQ-FN-032).
+/// </para>
+/// <para>
 /// <c>events</c> (Playbook, amended 2026-08-26 from the emitter source — REQ-FN-068, ADR-010): this is
 /// the one stream whose wire spelling is <b>not</b> snake_case. <c>kind</c>→<c>Kind</c>,
 /// <c>command</c>→<c>PhaseGate</c> (latched on <c>phase-start</c> and carried across the phase),
@@ -105,6 +136,25 @@ public sealed class StreamParser : IStreamParser
     private static readonly string[] CommitDocumented =
         ["sha", "files", "insertions", "deletions", "subject_prefix", "branch"];
 
+    /// <summary>Fields SCHEMA.md §5.5.1 documents for a <c>miss</c> record.</summary>
+    private static readonly string[] MissDocumented =
+    [
+        "miss_id", "req_id", "req_class", "miss_class", "artifact", "severity", "why_missed",
+        "origin_phase", "origin_agent", "origin_run_id", "origin_confidence", "origin_model",
+        "origin_harness", "found_by", "found_phase", "found_gate", "found_run_id", "failure_class"
+    ];
+
+    /// <summary>Fields SCHEMA.md §5.5.2 documents for a <c>miss-fix</c> record.</summary>
+    private static readonly string[] MissFixDocumented =
+    [
+        "miss_id", "req_id", "fix_run_id", "fix_cmd", "fix_attempt", "verdict_after", "reopened",
+        "cost_attribution", "tokens_in", "tokens_out", "tokens_cache_read", "tokens_cache_write",
+        "cost_usd", "tokens_scope", "model"
+    ];
+
+    /// <summary>Fields SCHEMA.md §5.5.7 documents for a <c>miss-amend</c> record.</summary>
+    private static readonly string[] MissAmendDocumented = ["miss_id", "field", "value"];
+
     /// <summary>
     /// Playbook <c>events.ndjson</c> wire fields, read off the emitter source (REQ-FN-068, ADR-010).
     /// </summary>
@@ -141,6 +191,15 @@ public sealed class StreamParser : IStreamParser
     private static readonly HashSet<string> CommitMapped =
         BuildMapped(CommitDocumented, "project_type_inferred", "backfilled", "inferred", "harness");
 
+    /// <summary>Wire names that <c>"Miss"</c> has a column for; anything else overflows.</summary>
+    private static readonly HashSet<string> MissMapped = BuildMapped(MissDocumented, "inferred");
+
+    /// <summary>Wire names that <c>"MissFix"</c> has a column for; anything else overflows.</summary>
+    private static readonly HashSet<string> MissFixMapped = BuildMapped(MissFixDocumented, "inferred");
+
+    /// <summary>Wire names that <c>"MissAmend"</c> has a column for; anything else overflows.</summary>
+    private static readonly HashSet<string> MissAmendMapped = BuildMapped(MissAmendDocumented, "inferred");
+
     /// <summary>Wire names that <c>"PbEvent"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> EventMapped = new(EventDocumented, StringComparer.Ordinal)
     {
@@ -163,6 +222,18 @@ public sealed class StreamParser : IStreamParser
     private static readonly HashSet<string> EventKnown = BuildKnown(EventDocumented);
 
     /// <summary>
+    /// Every wire name SCHEMA.md documents for <c>misses</c> — the <b>union</b> of the three kinds.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IsDocumented"/> is keyed on the stream, and <c>misses</c> has three field
+    /// vocabularies. Coverage's "fields observed that SCHEMA.md does not document" report takes their
+    /// union: a <c>miss-fix</c>-only field seen on a <c>miss</c> record is not worth a separate report
+    /// and would only produce noise (REQ-FN-072, ADR-018).
+    /// </remarks>
+    private static readonly HashSet<string> MissesKnown =
+        BuildKnown([.. MissDocumented, .. MissFixDocumented, .. MissAmendDocumented]);
+
+    /// <summary>
     /// Says whether SCHEMA.md documents a wire field name for a stream (REQ-UI-016).
     /// </summary>
     /// <remarks>
@@ -171,6 +242,12 @@ public sealed class StreamParser : IStreamParser
     /// holds documented fields the table happens to have no column for (<c>inferred</c> on a run, for
     /// instance), so the keys have to be measured against the documented set before any of them is called
     /// undocumented. This is that set, exposed from the one class that owns it rather than copied.
+    /// </remarks>
+    /// <remarks>
+    /// <b><see cref="StreamKind.Misses"/> answers over the union of its three field vocabularies</b>
+    /// (<c>miss</c>, <c>miss-fix</c>, <c>miss-amend</c>). The stream is one file with three record
+    /// shapes, and reporting a <c>fix_run_id</c> seen on a <c>miss</c> record as undocumented would be
+    /// noise rather than a finding (REQ-FN-072).
     /// </remarks>
     /// <param name="aStream">The stream the field was observed in.</param>
     /// <param name="aField">The wire field name.</param>
@@ -185,6 +262,7 @@ public sealed class StreamParser : IStreamParser
             StreamKind.Gates => GateKnown.Contains(aField),
             StreamKind.Sessions => SessionKnown.Contains(aField),
             StreamKind.Commits => CommitKnown.Contains(aField),
+            StreamKind.Misses => MissesKnown.Contains(aField),
             StreamKind.Events => EventKnown.Contains(aField),
             _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream kind.")
         };
@@ -280,6 +358,9 @@ public sealed class StreamParser : IStreamParser
                 CollectUnknown(aObj, CommitKnown, aState);
                 aState.Commits.Add(BuildCommit(aObj, aState, vVersion, vTs, vIsAboveV1));
                 break;
+            case StreamKind.Misses:
+                AddMissRecord(aObj, aState, vVersion, vTs, vIsAboveV1);
+                break;
             case StreamKind.Events:
                 CollectUnknown(aObj, EventKnown, aState);
                 aState.PbEvents.Add(BuildPbEvent(aObj, aState, vTs, vIsAboveV1));
@@ -287,6 +368,222 @@ public sealed class StreamParser : IStreamParser
             default:
                 throw new ArgumentOutOfRangeException(nameof(aState), aState.Stream, "Unknown stream kind.");
         }
+    }
+
+    /// <summary>
+    /// Dispatches one <c>misses.jsonl</c> record on its own <c>kind</c> (REQ-FN-072, ADR-018).
+    /// </summary>
+    /// <remarks>
+    /// This is the one place <see cref="StreamKind"/> stops being 1:1 with a table. All three kinds
+    /// parse from one file in a single pass, and an unrecognised <c>kind</c> increments
+    /// <see cref="ParseResult.InvalidLines"/> and is skipped rather than thrown — the same contract a
+    /// malformed line gets (REQ-FN-032), because an unknown kind in a stream TfLens does know is the
+    /// same class of event. The undocumented-field report is collected against the union of the three
+    /// vocabularies, matching <see cref="IsDocumented"/>.
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    private static void AddMissRecord(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vKind = ReadString(aObj, "kind");
+
+        switch (vKind)
+        {
+            case MissKinds.Miss:
+                CollectUnknown(aObj, MissesKnown, aState);
+                aState.Misses.Add(BuildMiss(aObj, aState, aVersion, aTs, aIsAboveV1));
+                return;
+            case MissKinds.MissFix:
+                CollectUnknown(aObj, MissesKnown, aState);
+                aState.MissFixes.Add(BuildMissFix(aObj, aState, aVersion, aTs, aIsAboveV1));
+                return;
+            case MissKinds.MissAmend:
+                CollectUnknown(aObj, MissesKnown, aState);
+                aState.MissAmends.Add(BuildMissAmend(aObj, aState, aVersion, aTs, aIsAboveV1));
+                return;
+            default:
+                aState.InvalidLines++;
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Builds one <c>miss</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static MissRecord BuildMiss(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, MissMapped, aIsAboveV1);
+        if (aIsAboveV1)
+        {
+            return new MissRecord
+            {
+                UserId = aState.UserId,
+                Repo = aState.Repo,
+                SourceSha = aState.SourceSha,
+                V = aVersion,
+                Ts = aTs,
+                App = ReadString(aObj, "app"),
+                MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+                Overflow = vOverflow
+            };
+        }
+
+        return new MissRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = ReadString(aObj, "project_type"),
+            ProjectTypeInferred = ReadBool(aObj, "project_type_inferred"),
+            Backfilled = ReadBool(aObj, "backfilled"),
+            Harness = ReadString(aObj, "harness"),
+            MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+            ReqId = ReadString(aObj, "req_id"),
+            ReqClass = ReadString(aObj, "req_class"),
+            MissClass = ReadString(aObj, "miss_class"),
+            Artifact = ReadString(aObj, "artifact"),
+            Severity = ReadString(aObj, "severity"),
+            WhyMissed = ReadString(aObj, "why_missed"),
+            OriginPhase = ReadString(aObj, "origin_phase"),
+            OriginAgent = ReadString(aObj, "origin_agent"),
+            OriginRunId = ReadString(aObj, "origin_run_id"),
+            OriginConfidence = ReadString(aObj, "origin_confidence"),
+            OriginModel = ReadString(aObj, "origin_model"),
+            OriginHarness = ReadString(aObj, "origin_harness"),
+            FoundBy = ReadString(aObj, "found_by"),
+            FoundPhase = ReadString(aObj, "found_phase"),
+            FoundGate = ReadString(aObj, "found_gate"),
+            FoundRunId = ReadString(aObj, "found_run_id"),
+            FailureClass = ReadString(aObj, "failure_class"),
+            Overflow = vOverflow
+        };
+    }
+
+    /// <summary>
+    /// Builds one <c>miss-fix</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static MissFixRecord BuildMissFix(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, MissFixMapped, aIsAboveV1);
+        if (aIsAboveV1)
+        {
+            return new MissFixRecord
+            {
+                UserId = aState.UserId,
+                Repo = aState.Repo,
+                SourceSha = aState.SourceSha,
+                V = aVersion,
+                Ts = aTs,
+                App = ReadString(aObj, "app"),
+                MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+                FixRunId = ReadString(aObj, "fix_run_id"),
+                Overflow = vOverflow
+            };
+        }
+
+        return new MissFixRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = ReadString(aObj, "project_type"),
+            ProjectTypeInferred = ReadBool(aObj, "project_type_inferred"),
+            Backfilled = ReadBool(aObj, "backfilled"),
+            Harness = ReadString(aObj, "harness"),
+            MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+            ReqId = ReadString(aObj, "req_id"),
+            FixRunId = ReadString(aObj, "fix_run_id"),
+            FixCmd = ReadString(aObj, "fix_cmd"),
+            FixAttempt = ReadInt(aObj, "fix_attempt"),
+            VerdictAfter = ReadString(aObj, "verdict_after"),
+            Reopened = ReadBool(aObj, "reopened"),
+            CostAttribution = ReadString(aObj, "cost_attribution"),
+            TokensIn = ReadInt(aObj, "tokens_in"),
+            TokensOut = ReadInt(aObj, "tokens_out"),
+            TokensCacheRead = ReadInt(aObj, "tokens_cache_read"),
+            TokensCacheWrite = ReadInt(aObj, "tokens_cache_write"),
+            CostUsd = ReadDecimal(aObj, "cost_usd"),
+            TokensScope = ReadString(aObj, "tokens_scope"),
+            Model = ReadString(aObj, "model"),
+            Overflow = vOverflow
+        };
+    }
+
+    /// <summary>
+    /// Builds one <c>miss-amend</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <remarks>
+    /// The amendment is stored exactly as written. Nothing is folded here: the allowlist, the closed
+    /// vocabulary and the never-overwrite-a-value rule are re-applied at read time so a rebuild
+    /// re-derives identical values whatever order the archived files arrived in (ADR-020).
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static MissAmendRecord BuildMissAmend(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, MissAmendMapped, aIsAboveV1);
+        if (aIsAboveV1)
+        {
+            return new MissAmendRecord
+            {
+                UserId = aState.UserId,
+                Repo = aState.Repo,
+                SourceSha = aState.SourceSha,
+                V = aVersion,
+                Ts = aTs,
+                App = ReadString(aObj, "app"),
+                MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+                Field = ReadString(aObj, "field") ?? string.Empty,
+                Overflow = vOverflow
+            };
+        }
+
+        return new MissAmendRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = ReadString(aObj, "project_type"),
+            ProjectTypeInferred = ReadBool(aObj, "project_type_inferred"),
+            Backfilled = ReadBool(aObj, "backfilled"),
+            Harness = ReadString(aObj, "harness"),
+            MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+            Field = ReadString(aObj, "field") ?? string.Empty,
+            Value = ReadString(aObj, "value"),
+            Overflow = vOverflow
+        };
     }
 
     /// <summary>
@@ -818,6 +1115,15 @@ public sealed class StreamParser : IStreamParser
         /// <summary>Playbook event records read so far, before dedupe.</summary>
         public List<PbEventRecord> PbEvents { get; } = [];
 
+        /// <summary><c>miss</c> records read so far, before dedupe.</summary>
+        public List<MissRecord> Misses { get; } = [];
+
+        /// <summary><c>miss-fix</c> records read so far, before dedupe.</summary>
+        public List<MissFixRecord> MissFixes { get; } = [];
+
+        /// <summary><c>miss-amend</c> records read so far, before dedupe.</summary>
+        public List<MissAmendRecord> MissAmends { get; } = [];
+
         /// <summary>Distinct field names SCHEMA.md does not document, in first-seen order.</summary>
         public HashSet<string> UnknownFields { get; } = new(StringComparer.Ordinal);
 
@@ -845,6 +1151,9 @@ public sealed class StreamParser : IStreamParser
             var vSessions = Dedupe.Sessions(Sessions);
             var vCommits = Dedupe.Commits(Commits);
             var vEvents = Dedupe.PbEvents(PbEvents);
+            var vMisses = Dedupe.Misses(Misses);
+            var vMissFixes = Dedupe.MissFixes(MissFixes);
+            var vMissAmends = Dedupe.MissAmends(MissAmends);
 
             return new ParseResult
             {
@@ -857,9 +1166,13 @@ public sealed class StreamParser : IStreamParser
                 Sessions = vSessions.Records,
                 Commits = vCommits.Records,
                 PbEvents = vEvents.Records,
+                Misses = vMisses.Records,
+                MissFixes = vMissFixes.Records,
+                MissAmends = vMissAmends.Records,
                 InvalidLines = InvalidLines,
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
-                    + vCommits.Collapsed + vEvents.Collapsed,
+                    + vCommits.Collapsed + vEvents.Collapsed
+                    + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed,
                 SessionDuplicatesCollapsed = vSessions.Collapsed,
                 UnknownFields = UnknownFields.OrderBy(aN => aN, StringComparer.Ordinal).ToList(),
                 RecordsAboveSchemaV1 = RecordsAboveSchemaV1

@@ -10,18 +10,91 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ---
 
+## Summary
+
+- **2 blockers, 3 majors, 1 minor, 0 nice-to-haves** — 6 entries, of which **5 are resolved** and
+  **1 is open** (`TF-005`).
+- Last consolidated: 2026-08-28
+
+**Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
+`Low` = minor. Nothing here is filed nice-to-have. Entry bodies keep their original `High`/`Medium`/`Low`
+wording, so no recorded severity was silently reinterpreted.
+
+| Band | Count | Entries | State |
+|---|---|---|---|
+| **Blocker** (High) | 2 | TF-001 · TF-003 | both ✅ fixed 2026-08-27 |
+| **Major** (Medium) | 3 | **TF-005** · TF-002 · TF-006 | **TF-005 open**; TF-002 ✅ 2026-08-27; TF-006 ✅ 2026-08-28 |
+| **Minor** (Low) | 1 | TF-004 | ✅ fixed 2026-08-28 |
+| Nice-to-have | 0 | — | — |
+
+The two **Resolution status** blocks below are the correspondence with the TechieFlow team and are kept
+in full — they are the most useful part of the record for the receiving team. Nothing in them was
+deleted; the only edits are the `TF-005` → `TF-006` renumbering described next.
+
+### The one open entry
+
+**`TF-005`** — `analyse_misses` averages an unrecorded `tokens_out` as **zero**, so a repair whose cost
+was never recorded is counted as a free repair and rework is understated. TfLens deliberately diverges
+rather than reproduce a figure it believes is wrong; the divergence is recorded as `DECISIONS.md`
+**D-012** and is **latent, not live** — every dataset seen so far carries the field, so the BRD §13
+parity gate currently passes at exit 0 (P-003). If that gate ever fails on `tokens_per_miss_*`, it is
+this decision surfacing and the fix is upstream, not here.
+
+### What changed in the 2026-08-28 consolidation
+
+1. **`TF-005` was doubly allocated and is now split.** Two unrelated entries were both filed as
+   `TF-005` on 2026-08-28 by different clusters — the same failure the TrBlazeUI file hit on
+   2026-08-27 with `TR-010`…`TR-014`. `TF-005` **keeps** the `analyse_misses` entry, because that is
+   what every citation outside this file means: `DECISIONS.md` D-012, `PROJECT-STATUS.md`,
+   `docs/TfLens-BRD.md` F-MISS and `docs/TfLens-DevGuide-Screens.md`. The other — the closed
+   `miss-amend` / schema-field entry — moves to **`TF-006`**. **One stale citation remains and is
+   reported rather than edited:** `docs/Miss-Telemetry-TfLens.md` lines 6, 12 and §0.65 cite `TF-005`
+   meaning the `miss-amend` entry and should read `TF-006`.
+2. **`TF-001` and `TF-002` gained the resolution banners they were missing.** Both were recorded as
+   fixed in the 2026-08-27 correspondence block, but neither entry body said so and the index table
+   still showed them as live — a reader arriving at either entry would have concluded it was open.
+3. **`TF-002` carries its field confirmation.** Its fix had shipped on 2026-08-27 but had never been
+   exercised; on 2026-08-28 the perf gate ran through `tf-perf.sh` with `--cookie` and measured
+   authenticated pages at **p95 ≤ 42 ms against a 1500 ms budget** — the first such run in the
+   project. Recorded in the entry, since it is the framework team's evidence that the fix works in the
+   field.
+4. **The `## Entries` index was rebuilt.** It had no row at all for the open `TF-005`, so the file's
+   only live defect was invisible from the top of the document.
+5. **Every entry now carries the full schema.** `Encountered in` was missing from all six and has been
+   filled from each entry's own `Found:` line and body — no repro or severity was invented.
+6. **No duplicates were merged:** the six entries describe six distinct defects. The `TF-005`
+   collision was a numbering clash, not a duplicate.
+
+> ### ⚠ One unresolved contradiction with `PROJECT-STATUS.md` — for the owner, not fixable here
+>
+> `PROJECT-STATUS.md` (line 53) records **`TF-004` as open**. This file records it as fixed upstream on
+> 2026-08-28 **and closed after in-repo verification**, with specific evidence: `tf-render-html.sh` on
+> `docs/TfLens-Deployment-Checklist.md` renders at `37.7 KB, 13 H2, sidebar`, exit 0, matching the
+> framework team's own figure exactly, while `docs/TfLens-Checklist.md` is still `REFUSED` with exit 2
+> and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
+> `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
+> entries, where the collision fix above makes six.
+
+---
+
 ## Resolution status (TechieFlow team, 2026-08-28)
 
-**TF-004 and TF-005 are both FIXED upstream.** Deploy with `update-framework.sh <repo>`, then
+> **Numbering note added 2026-08-28:** the entry this block calls `TF-005` is now **`TF-006`** — the
+> number was doubly allocated on 2026-08-28 and `TF-005` was kept by the *other* entry
+> (`analyse_misses` averages an unrecorded token count as zero), which is the one every citation
+> outside this file means. All `TF-005` references in this block have been corrected to `TF-006`;
+> the correspondence is otherwise unaltered. See TF-006's own heading note.
+
+**TF-004 and TF-006 are both FIXED upstream.** Deploy with `update-framework.sh <repo>`, then
 re-verify from your side and close them — TechieFlow does not close a consumer's entries for them.
 Framework-side record: `WorkFlow-Context.md` §5, 2026-08-28 entry.
 
 | ID | Fix | Verify from here |
 |----|-----|------------------|
-| TF-005 | **A third record kind, `miss-amend`** (SCHEMA.md **§5.5.7**), plus `bash .tfcore/utils/tf-emit.sh --amend <miss_id> <field> <value>`. It may set a field that is `null` and **never** overwrites one that is not — so it completes a record instead of altering a fact, and the stream stays append-only in substance rather than only in form. Allowlist is `why_missed` today; the rule for extending it is written down. `tf-metrics.sh` folds amendments before counting, counts orphans, and gained a **`FIELD_SINCE`** table (beside the existing `LATE_GATES`) so a miss written before a field existed leaves that field's denominator instead of counting as unassessed — your two 07:1x records are exactly that case. Constraint 5 now names which record kind carries which correction, and says to **report a missing path rather than edit the file**. | `bash .tfcore/utils/tf-emit.sh --amend <miss_id> why_missed <value>` on a record with the field empty (expect `amended …`), then on one that already has it (expect a printed refusal, exit 0, nothing appended). `--report` should show `amendments folded` and, for anything older than 2026-08-28, `n miss(es) predate the field`. |
+| TF-006 | **A third record kind, `miss-amend`** (SCHEMA.md **§5.5.7**), plus `bash .tfcore/utils/tf-emit.sh --amend <miss_id> <field> <value>`. It may set a field that is `null` and **never** overwrites one that is not — so it completes a record instead of altering a fact, and the stream stays append-only in substance rather than only in form. Allowlist is `why_missed` today; the rule for extending it is written down. `tf-metrics.sh` folds amendments before counting, counts orphans, and gained a **`FIELD_SINCE`** table (beside the existing `LATE_GATES`) so a miss written before a field existed leaves that field's denominator instead of counting as unassessed — your two 07:1x records are exactly that case. Constraint 5 now names which record kind carries which correction, and says to **report a missing path rather than edit the file**. | `bash .tfcore/utils/tf-emit.sh --amend <miss_id> why_missed <value>` on a record with the field empty (expect `amended …`), then on one that already has it (expect a printed refusal, exit 0, nothing appended). `--report` should show `amendments folded` and, for anything older than 2026-08-28, `n miss(es) predate the field`. |
 | TF-004 | The guard now **identifies the document instead of guessing from the suffix**: it refuses a `*-Checklist.md` only when the content also carries `## Requirements Status` or the template's `SINGLE SOURCE OF TRUTH` marker. Your deployment runbook renders; the requirements checklist is still refused with exit 2. Verified against your real `TfLens-Checklist.md` and a runbook fixture. | `bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md` → renders. Same command on `docs/TfLens-Checklist.md` → still `REFUSED`, exit 2. Drop the rename-round-trip workaround. |
 
-**On the sequence of events in TF-005 — your correction is right and worth keeping on the record.**
+**On the sequence of events in TF-006 (filed as TF-005) — your correction is right and worth keeping on the record.**
 `log-miss.md` does carry `why_missed` in four places, the field shipped at 07:17:47, and your run
 finished at 07:13:02. Nothing was ignored, by you or by the task: a field that does not exist yet
 cannot be omitted. `instruction-ignored` was the wrong self-diagnosis and the entry is better without
@@ -36,7 +109,7 @@ kind: the suppression handles records nobody can honestly amend any more, and th
 the ones where the answer is still known. Neither alone covers both.
 
 **Logged as misses in the framework's own stream**, since a framework defect is exactly as countable as
-an app's: `MISS-TechieFlow-20260828-05` (TF-005 — `spec-contradiction` / `architecture` / major /
+an app's: `MISS-TechieFlow-20260828-05` (TF-006, filed as TF-005 — `spec-contradiction` / `architecture` / major /
 `why_missed: missing-checklist-item`) and `MISS-TechieFlow-20260828-06` (TF-004 — `wrong-behaviour` /
 `src` / minor / `why_missed: insufficient-verify-method`), both `found_by: "library-feedback"` and both
 closed `Verified`. Attribution came out `unknown` on both: the framework's own maintenance sessions are
@@ -106,7 +179,7 @@ procedure is runnable in-session.
 > `_metrics-emit-gate.md` constraint 1 continues to describe `tf-metrics.sh` flatly as **"owner-run"**,
 > while the paragraph above tells a consuming agent the parity procedure is runnable in-session. A note
 > in a consumer's feedback file does not amend a framework constraint, so `--report` was **not** run
-> here and the TF-005 report-side checks were verified by reading the code instead. Narrowing
+> here and the TF-006 report-side checks were verified by reading the code instead. Narrowing
 > constraint 1 to *"never `--backfill-*`"* would close this; it needs the owner's word, not an agent's.
 
 ---
@@ -154,22 +227,51 @@ Owner's policy call.
 
 ## Entries
 
-| ID | Severity | Component | Summary |
-|----|----------|-----------|---------|
-| [TF-001](#tf-001--tf-metricssh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated) | **High** | `tf-metrics.sh` | Sessions stream is never de-duplicated, so session counts and every token total derived from them are overstated. Blocks any consumer's parity check. |
-| [TF-002](#tf-002--tf-perfsh-cannot-measure-an-authenticated-app-and-does-not-say-so) | Medium | `tf-perf.sh` | No cookie/auth option, so on a login-gated app it times the redirect and reports it as a page-load figure. |
-| [TF-004](#tf-004--tf-render-htmls-checklist-guard-matches-any--checklistmd-not-just-the-requirements-checklist) | ✅ **Fixed 2026-08-28** | `tf-render-html` | Refuses any file ending `-Checklist.md`, including a human deployment runbook. The ban is meant for the agent's Requirements checklist only. |
-| [TF-005](#tf-005--a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them) | ✅ **Fixed 2026-08-28** | `misses.jsonl` schema | A field added to the schema after a record was written can never be filled in: the correction rule says "a new record, never an edit", but the stream has no correction record kind and re-emitting is barred by the collapse rule. |
-| [TF-003](#tf-003--generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec) | ✅ **Fixed 2026-08-27** | `*generate-html` | No renderer shipped; the agent hand-authored every HTML file from a 494-line spec. `tf-render-html.sh` now ships and the task calls it — verified here on 5 documents / 392 KB. |
+Ordered **blocker → major → minor**, then open before resolved. IDs are unchanged apart from the
+documented `TF-005`/`TF-006` collision fix; the order is a reading aid, never a renumbering.
+
+| ID | Band | Severity | Status | Component | Summary |
+|----|------|----------|--------|-----------|---------|
+| [TF-001](#tf-001--tf-metricssh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated) | Blocker | **High** | ✅ **Fixed 2026-08-27** | `tf-metrics.sh` | Sessions stream is never de-duplicated, so session counts and every token total derived from them are overstated. Blocked every consumer's parity check. |
+| [TF-003](#tf-003--generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec) | Blocker | **High** | ✅ **Fixed 2026-08-27** | `*generate-html` | No renderer shipped; the agent hand-authored every HTML file from a 494-line spec. `tf-render-html.sh` now ships and the task calls it — verified here on 5 documents / 392 KB. |
+| [TF-005](#tf-005--analyse_misses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework) | Major | Medium | 🔴 **OPEN** — the only open entry | `tf-metrics.sh` | `analyse_misses` averages an unrecorded `tokens_out` as **zero**, so an unmeasured repair counts as a free one and rework is understated. TfLens deliberately diverges — `DECISIONS.md` **D-012**. |
+| [TF-002](#tf-002--tf-perfsh-cannot-measure-an-authenticated-app-and-does-not-say-so) | Major | Medium | ✅ **Fixed 2026-08-27** · **exercised in the field 2026-08-28** | `tf-perf.sh` | No cookie/auth option, so on a login-gated app it timed the redirect and reported it as a page-load figure. |
+| [TF-006](#tf-006--a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them) | Major | Medium | ✅ **Fixed 2026-08-28** | `misses.jsonl` schema | A field added to the schema after a record was written could never be filled in: the correction rule says "a new record, never an edit", but the stream had no correction record kind and re-emitting is barred by the collapse rule. **Filed as `TF-005`; renumbered — see its heading note.** |
+| [TF-004](#tf-004--tf-render-htmls-checklist-guard-matches-any--checklistmd-not-just-the-requirements-checklist) | Minor | Low | ✅ **Fixed 2026-08-28** | `tf-render-html` | Refused any file ending `-Checklist.md`, including a human deployment runbook. The ban is meant for the agent's Requirements checklist only. |
+
+---
 
 ---
 
 ## TF-001 — `tf-metrics.sh` never de-duplicates the sessions stream, so sessions and token totals are overstated
 
+> ## ✅ FIXED UPSTREAM — 2026-08-27, same day
+>
+> `dedupe_sessions()` was added to `tf-metrics.sh` as suggested — highest `output_tokens` per
+> `session_id`, ties on the latest `ts`, **per repo** — wired at the `analyse()` call site, with the
+> collapse count surfaced as `session_duplicates_collapsed` in `--json` and in the printed report. The
+> `dedupe_commits` docstring and `SCHEMA.md` §5 were scope-corrected to say the union-merge argument
+> covers `runs`/`gates` only, which was the documentation half of this entry's ask.
+>
+> **✅ CLOSED — verified in this repo.** The BRD §13 parity gate was re-run end to end and the four
+> findings in the table below cleared together, exactly as one duplicated record predicts:
+> `parity-compare.py` exits **0** with **0 findings**, re-run again on 2026-08-28 at parser **1.2.0**
+> after the oracle learned the fifth stream (`DECISIONS.md` **P-002**, then **P-003**).
+> `src/TfLens/data/parity-last.json` is written and `/export` reads **QUOTABLE** — the `NOT QUOTABLE`
+> state this entry's Workaround describes is over. `docs/TfLens-BRD.md`'s F-PARITY row records the same.
+> Nothing below needs action; the entry is kept as the record of what was wrong and why.
+
 **Severity:** High — produces wrong numbers silently, and blocks any consumer's parity check.
 
 **Component:** `.tfcore/telemetry/tf-metrics.sh` (`--report`, `--rollup`) · sha256 `326b586e…4412`
 **Found:** 2026-08-27, on the first full run of TfLens's BRD §13 parity gate.
+
+### Encountered in
+
+TfLens's BRD §13 parity gate — the acceptance requirement that every figure the app renders must match
+this script key for key before it may be quoted (`REQ-FN-058`, `-062`, `-063`, `-064`, `-065`). The
+gate is zero-tolerance, so one duplicated upstream record held the whole `/export` page at
+`NOT QUOTABLE`.
 
 ### Repro
 
@@ -317,49 +419,6 @@ against this script before any figure it renders may be quoted.
 
 ---
 
-## TF-002 — `tf-perf.sh` cannot measure an authenticated app, and does not say so
-
-**Severity:** Medium — reports a meaningless number without flagging it.
-
-**Component:** `.tfcore/utils/tf-perf.sh`
-**Found:** 2026-08-27, grading REQ-NFR-001's `perf-budget` during `*verify all`.
-
-### Repro
-
-```bash
-bash .tfcore/utils/tf-perf.sh --base http://localhost:5099 \
-     --paths "/,/three-questions,/harness,/routing,/export" \
-     --levels 1 --requests 12 --build-config Release
-```
-against any app whose routes require a login.
-
-### Expected
-
-Either a real measurement of the pages, or a clear refusal saying the paths could not be reached
-as an anonymous caller.
-
-### Actual
-
-The harness sends a fixed header set with **no cookie and no auth option** (`--base`, `--paths`,
-`--levels`, `--requests`, `--warmup`, `--timeout`, `--build-config`, `--label`, `--json-out` are the
-whole flag set). Every route answered `302` to `/login`, and it reported `p95 = 4.1 ms` — the speed of
-being turned away at the door, not of any page. The `non_200` array does carry the redirects, so a
-careful reader can catch it, but nothing in the summary marks the latency figure as meaningless.
-
-### Workaround
-
-Graded the REQ as `PERF-UNMEASURED (non-200 responses)` per `verify-phase.md` §4c rather than recording
-the 4.1 ms, and measured the budget instead with the project's own authenticated Playwright spec
-(`tests/verify/perf-report-pages.spec.ts`): p95 **439 ms** against a 1500 ms budget, n=60, Release build.
-
-### Suggested fix
-
-- A `--header` / `--cookie` pass-through so the harness can present a session.
-- Treat an all-`3xx` path set as an error (non-zero exit, as `--base` unreachable already does) rather
-  than returning a latency figure computed from redirects.
-
----
-
 ## TF-003 — `*generate-html` has no renderer: HTML is hand-authored by the model from a 494-line spec
 
 > ## ✅ FIXED UPSTREAM — 2026-08-27, same day
@@ -378,6 +437,14 @@ the 4.1 ms, and measured the budget instead with the project's own authenticated
 **Component:** `.tfcore/tasks/generate-html.md` · `.tfcore/tasks/render-workflow-docs.md` ·
 `.tfcore/templates/v4custom/html-render-shell.md` · enforced by `.tfcore/hooks/guard-status-html.sh`
 **Found:** 2026-08-27, during a `*build-phase` + `*verify all` pass that re-rendered four documents.
+
+### Encountered in
+
+Every phase of TfLens, unavoidably. `_status-update-gate.md` item 8 requires `PROJECT-STATUS.html` to
+be re-rendered in the same turn as the `.md`, and the `Stop` hook `guard-status-html.sh` refuses to end
+the turn while the HTML is older than the markdown — so the cost recurs on every phase for the life of
+the project, not once. Concretely met re-rendering `PROJECT-STATUS.html`, `docs/TfLens-UsageGuide.html`,
+`docs/TfLens-BRD.html` and `docs/TfLens-DevGuide-Screens.html` (≈300 KB) in a single pass.
 
 > **Possible regression — please confirm at your end.** The project owner reports that HTML generation
 > **used to work as a component** and believes it was removed or dropped during a recent framework
@@ -481,81 +548,198 @@ renderer and silently diverges from the shell.
 
 ---
 
-## TF-004 — `tf-render-html`'s checklist guard matches any `*-Checklist.md`, not just the requirements checklist
+## TF-005 — `analyse_misses` averages an unrecorded token count as zero, understating the cost of rework
 
-> ## ✅ FIXED UPSTREAM — 2026-08-28
->
-> The guard now identifies the document by **content**, which is the more robust of the two options
-> this entry offered: a `*-Checklist.md` is refused only when it also carries `## Requirements Status`
-> or the template's `SINGLE SOURCE OF TRUTH` marker. Verified against the real `TfLens-Checklist.md`
-> (still refused, exit 2) and a deployment-runbook fixture (renders). The rename round-trip below is no
-> longer needed. Nothing else in the entry needs action; it is kept as the record of what was wrong.
->
-> **✅ CLOSED — verified in this repo 2026-08-28.** `bash .tfcore/utils/tf-render-html.sh
-> docs/TfLens-Deployment-Checklist.md` → `rendered … (37.7 KB, 13 H2, sidebar)`, exit 0, matching the
-> team's own figure exactly. `bash .tfcore/utils/tf-render-html.sh docs/TfLens-Checklist.md` → still
-> `REFUSED`, exit 2 — and the message now reads *"TfLens-Checklist.md **is the requirements
-> checklist**"* rather than the old suffix guess, so the refusal states the actual reason.
-> **The rename round-trip in the Workaround section below is superseded — do not use it.**
+**Severity:** Medium — the figure is wrong only on datasets where some `sole` fix records carry no
+`tokens_out`, but it is wrong in the direction that flatters the framework, and it forces every
+consumer to choose between agreeing with the reference and being correct.
 
-**Severity:** Low — a false positive with an easy workaround, but it blocks a legitimate document.
+**Component:** `.tfcore/telemetry/tf-metrics.sh` (`analyse_misses`, `--rollup --json`) · sha256 `f4b2667a…d09a7`
+**Found:** 2026-08-28, implementing BRD-122 / REQ-FN-079 against the `misses` block.
 
-**Component:** `.tfcore/utils/tf-render-html.py` line ~464
-**Found:** 2026-08-27, rendering a deployment runbook the owner asked to be named `Deployment-Checklist.md`.
+### Encountered in
+
+BRD-122 / REQ-FN-079 — the rework-economics figures on TfLens's `/misses` page, built against the
+oracle's `misses` block on 2026-08-28. Surfaced while writing `MissFigures`/`MissHarnessCost` to agree
+with the reference key for key under the BRD §13 parity gate, which is where the disagreement had to be
+either adopted or declared.
 
 ### Repro
 
-```bash
-bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md
+Any repository whose `misses.jsonl` holds `sole`-attributed `miss-fix` records where at least one
+omits `tokens_out`. Four such records — three carrying 100, 200 and 300 output tokens and one carrying
+none:
+
+```
+tokens_per_miss_measured = sum(tokens_out or 0) / len(sole)
+                         = (100 + 200 + 300 + 0) / 4
+                         = 150.0
 ```
 
 ### Expected
 
-The document renders. It is a human-facing deployment runbook — prerequisites, secrets, the GitHub-token
-setup, compose steps, first-run verification — with an `Audience:` line and no Requirements Status table.
+`200.0` — the mean output tokens of the repairs whose cost was actually recorded, with the fourth
+record reported as unmeasured. `cost_sole_n` already carries the record count separately, so no
+information is lost by excluding it from the divisor.
 
 ### Actual
 
-```
-tf-render-html: REFUSED — TfLens-Deployment-Checklist.md is a checklist — checklists are
-AI-agent working documents and are NEVER rendered to HTML (html-render-shell §0).
-```
+`150.0`. The unrecorded repair is averaged in as a **free** repair. The error scales with how many
+records lack the field: a stream where half the `sole` fixes predate token capture reports rework as
+costing half what it did.
 
-The guard is `re.search(r"-Checklist\.md$", base, re.I)`, which matches **any** filename ending
-`-Checklist.md`. The rule it enforces (`generate-html.md`, `html-render-shell §0`) is specifically about
-`docs/{AppName}-Checklist.md` — the per-REQ Requirements Status document agents read in markdown. A
-deployment checklist, a release checklist, a QA checklist and so on are ordinary human documents that
-happen to share the word.
+### Root cause
 
-### Workaround
+`tok()` coerces the absent value on the way in, and the divisor then counts the record anyway:
 
-Render from a temporarily-renamed copy and move the output back:
+```python
+def tok(fs):
+    return sum((f.get("tokens_out") or 0) for f in fs)
 
-```bash
-cp docs/TfLens-Deployment-Checklist.md docs/TfLens-Deployment-Runbook.md
-bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Runbook.md
-mv docs/TfLens-Deployment-Runbook.html docs/TfLens-Deployment-Checklist.html
-rm docs/TfLens-Deployment-Runbook.md
+"tokens_per_miss_measured": round(float(tok(sole)) / len(sole), 1) if len(sole) >= MIN_N else None,
 ```
 
-Ugly, and it would be easy for a future agent to instead "solve" this by hand-authoring the HTML — the
-exact path TF-003 removed.
+`or 0` cannot distinguish an absent field from a recorded zero, so `null` becomes a measurement.
+
+### Why it matters
+
+This is the same defect class the miss stream exists to expose, appearing in the tool that measures
+it. SCHEMA.md §2.5 states that an absent optional stays `null` and is never coerced to zero, and the
+rest of `tf-metrics.sh` honours that — `cost_usd` is explicitly *not* pooled across harnesses for
+precisely this reason, with the comment *"a pooled sum over mixed harnesses would silently
+under-report"*. The token mean has the identical hazard and does not guard against it.
+
+It also puts a consumer in an unwinnable position. BRD §13 parity is zero-tolerance, so TfLens must
+either reproduce a figure it believes is wrong, or fail its own acceptance gate.
+
+### Workaround (TfLens, in place)
+
+TfLens divides by the records that carry a count and reports the rest as unmeasured
+(`MissHarnessCost.TokenRecords`). The divergence is **latent, not live**: every dataset seen so far
+has `tokens_out` on every `sole` record, so the two implementations currently agree and the parity
+gate passes (exit 0, recorded as `DECISIONS.md` P-003). The workaround is pinned by
+`MissCostTests.AFixCarryingNoTokenCountIsNotCountedAsZero` and by a comment at the call site in
+`src/TfLens.Core/Metrics/MissFigures.cs` warning against "fixing" the divergence by adopting the
+reference's number.
 
 ### Suggested fix
 
-Tighten the guard so it identifies the document rather than guessing from a suffix. Either:
+Exclude unrecorded records from the divisor, and report them:
 
-- match the canonical name only — `^{AppName}-Checklist\.md$`, resolved the way the tasks already
-  resolve `{AppName}`; or
-- match on content — a file carrying the `## Requirements Status` heading (or the
-  `SINGLE SOURCE OF TRUTH` marker comment the checklist template ships) is the agent document; anything
-  else is not.
+```python
+def tok(fs):
+    priced = [f for f in fs if f.get("tokens_out") is not None]
+    return sum(f["tokens_out"] for f in priced), len(priced)
 
-The content check is the more robust of the two and does not depend on naming discipline.
+tokens, n = tok(sole)
+"tokens_per_miss_measured": round(float(tokens) / n, 1) if n >= MIN_N else None,
+"tokens_per_miss_measured_n": n,
+```
+
+The same applies to `tokens_per_miss_apportioned`. Adding the `_n` key makes the denominator visible
+on both sides, which is what lets a consumer agree with the reference *and* be correct.
+
+**If the current behaviour is intended**, say so in SCHEMA.md §5.5 — state that `tokens_out` is
+mandatory on a `sole` record, and have `tf-emit.sh` refuse to write one without it. Then the absent
+case cannot arise and the coercion is unreachable. Either resolution is fine; the present state,
+where the field is optional and its absence silently means zero, is not.
 
 ---
 
-## TF-005 — a schema field added mid-session leaves already-emitted records incomplete, with no append-only way to complete them
+## TF-002 — `tf-perf.sh` cannot measure an authenticated app, and does not say so
+
+> ## ✅ FIXED UPSTREAM — 2026-08-27, same day
+>
+> `--header 'K: V'` (repeatable) and `--cookie 'k=v'` pass-through were added, along with
+> `redirects` / `redirect_rate` per level. Both halves of the suggested fix were taken: an **all-3xx run
+> is now a refusal** — `status:"redirected"`, **exit 4**, and no latency figure emitted at all — while a
+> mixed run still measures and is flagged. `verify-phase` §4c documents the flags and the
+> `PERF-UNMEASURED (auth wall)` grade.
+>
+> ### ✅ CLOSED — and the fix was exercised for the first time on 2026-08-28
+>
+> **This is the field confirmation the framework team asked for, so it is worth stating plainly: the fix
+> works.** Until 2026-08-28 the fix had shipped but had never actually been run against a login-gated
+> app — TfLens's REQ-NFR-001 was still resting on the Playwright workaround below. On 2026-08-28 the
+> perf gate ran through `tf-perf.sh` itself, presenting the session with `--cookie`, and **measured the
+> authenticated pages**: **p95 ≤ 42 ms against a 1500 ms budget**. That is the **first perf run in this
+> project's history to measure authenticated pages** rather than the redirect to `/login`.
+>
+> Two things follow, both useful upstream:
+>
+> - **The refusal path is no longer reached, because the measurement path now works.** The 4.1 ms figure
+>   in *Actual* below — the speed of being turned away at the door — is what the same harness produced
+>   on the same app the day before.
+> - **The workaround is retired.** REQ-NFR-001 no longer depends on the project's own Playwright spec to
+>   get a number the framework harness could not produce; the framework harness produces it. The
+>   Playwright spec is kept as a second opinion, not as the measurement of record.
+
+**Severity:** Medium — reports a meaningless number without flagging it.
+
+**Component:** `.tfcore/utils/tf-perf.sh`
+**Found:** 2026-08-27, grading REQ-NFR-001's `perf-budget` during `*verify all`.
+
+### Encountered in
+
+REQ-NFR-001 (`perf-budget`, p95 page load under 1500 ms), graded during `*verify all`. Every route in
+TfLens is behind a login, so the whole path set was affected — there was no unauthenticated page for
+the harness to measure honestly.
+
+### Repro
+
+```bash
+bash .tfcore/utils/tf-perf.sh --base http://localhost:5099 \
+     --paths "/,/three-questions,/harness,/routing,/export" \
+     --levels 1 --requests 12 --build-config Release
+```
+against any app whose routes require a login.
+
+### Expected
+
+Either a real measurement of the pages, or a clear refusal saying the paths could not be reached
+as an anonymous caller.
+
+### Actual
+
+The harness sends a fixed header set with **no cookie and no auth option** (`--base`, `--paths`,
+`--levels`, `--requests`, `--warmup`, `--timeout`, `--build-config`, `--label`, `--json-out` are the
+whole flag set). Every route answered `302` to `/login`, and it reported `p95 = 4.1 ms` — the speed of
+being turned away at the door, not of any page. The `non_200` array does carry the redirects, so a
+careful reader can catch it, but nothing in the summary marks the latency figure as meaningless.
+
+### Workaround
+
+Graded the REQ as `PERF-UNMEASURED (non-200 responses)` per `verify-phase.md` §4c rather than recording
+the 4.1 ms, and measured the budget instead with the project's own authenticated Playwright spec
+(`tests/verify/perf-report-pages.spec.ts`): p95 **439 ms** against a 1500 ms budget, n=60, Release build.
+
+### Suggested fix
+
+- A `--header` / `--cookie` pass-through so the harness can present a session.
+- Treat an all-`3xx` path set as an error (non-zero exit, as `--base` unreachable already does) rather
+  than returning a latency figure computed from redirects.
+
+---
+
+## TF-006 — a schema field added mid-session leaves already-emitted records incomplete, with no append-only way to complete them
+
+> ### ⚠ RENUMBERED 2026-08-28 — this entry was originally allocated `TF-005`
+>
+> **`TF-005` was doubly allocated**, the same way `TR-010`…`TR-014` were in the TrBlazeUI file: this
+> entry and *"`analyse_misses` averages an unrecorded token count as zero"* were written on the same day
+> by different clusters and both took the number. The two are unrelated defects, so this is a numbering
+> collision, not a duplicate to merge.
+>
+> **`TF-005` now means the `analyse_misses` entry**, because that is what every citation outside this
+> file means by it: `DECISIONS.md` **D-012** (×4), `PROJECT-STATUS.md` (×3, "TF-005 open"),
+> `docs/TfLens-BRD.md` F-MISS, and `docs/TfLens-DevGuide-Screens.md`. This entry — which is **closed** —
+> takes the next free number, `TF-006`, so the live citations keep resolving and the closed one moves.
+>
+> **One stale citation is left, and it is not fixable from here:** `docs/Miss-Telemetry-TfLens.md`
+> (lines 6, 12 and §0.65) cites `TF-005` meaning **this** entry — the `miss-amend` report. That file is
+> a design record for the TechieFlow repo, so it is reported rather than edited: **those three should
+> read `TF-006`.** Every `TF-005` reference in the resolution blocks at the top of *this* file has
+> already been corrected to `TF-006`.
 
 > ## ✅ FIXED UPSTREAM — 2026-08-28, same day
 >
@@ -598,6 +782,14 @@ correction path does not exist for this stream. Recurs on every future schema ad
 
 **Component:** `.tfcore/telemetry/SCHEMA.md` §5.5 (record kinds) · `_metrics-emit-gate.md` constraint 5
 **Found:** 2026-08-28, when `why_missed` (§5.5.6) landed four minutes after a `*log-miss` run.
+
+### Encountered in
+
+The `*log-miss TfLens` run of 2026-08-28 07:10:35–07:13:02, which emitted `MISS-TfLens-20260828-01`,
+its `miss-fix`, and `MISS-TfLens-20260828-02` — four minutes before `update-framework.sh` added the
+`why_missed` field at 07:17:47. Both `miss` records carry `found_by:"owner"`, which is the category
+§5.5.6 calls the most valuable in the stream, so leaving the field `null` was the costliest available
+outcome.
 
 > **This is not a complaint about the update.** The feature is good and the timing was luck. The defect
 > is that the framework has no legal move for the situation the update created, and it will create it
@@ -677,3 +869,86 @@ stream).
 
 Either way the general point stands: **`why_missed` will not be the last field added to this schema**,
 and every addition repeats this unless the completion path is defined once.
+
+---
+
+## TF-004 — `tf-render-html`'s checklist guard matches any `*-Checklist.md`, not just the requirements checklist
+
+> ## ✅ FIXED UPSTREAM — 2026-08-28
+>
+> The guard now identifies the document by **content**, which is the more robust of the two options
+> this entry offered: a `*-Checklist.md` is refused only when it also carries `## Requirements Status`
+> or the template's `SINGLE SOURCE OF TRUTH` marker. Verified against the real `TfLens-Checklist.md`
+> (still refused, exit 2) and a deployment-runbook fixture (renders). The rename round-trip below is no
+> longer needed. Nothing else in the entry needs action; it is kept as the record of what was wrong.
+>
+> **✅ CLOSED — verified in this repo 2026-08-28.** `bash .tfcore/utils/tf-render-html.sh
+> docs/TfLens-Deployment-Checklist.md` → `rendered … (37.7 KB, 13 H2, sidebar)`, exit 0, matching the
+> team's own figure exactly. `bash .tfcore/utils/tf-render-html.sh docs/TfLens-Checklist.md` → still
+> `REFUSED`, exit 2 — and the message now reads *"TfLens-Checklist.md **is the requirements
+> checklist**"* rather than the old suffix guess, so the refusal states the actual reason.
+> **The rename round-trip in the Workaround section below is superseded — do not use it.**
+
+**Severity:** Low — a false positive with an easy workaround, but it blocks a legitimate document.
+
+**Component:** `.tfcore/utils/tf-render-html.py` line ~464
+**Found:** 2026-08-27, rendering a deployment runbook the owner asked to be named `Deployment-Checklist.md`.
+
+### Encountered in
+
+`docs/TfLens-Deployment-Checklist.md` — the human-facing deployment runbook (prerequisites, secrets,
+the GitHub-token setup, compose steps, first-run verification), whose name the owner chose. It is the
+only document in the project that trips the guard, and it must be rendered like every other
+owner-facing document.
+
+### Repro
+
+```bash
+bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Checklist.md
+```
+
+### Expected
+
+The document renders. It is a human-facing deployment runbook — prerequisites, secrets, the GitHub-token
+setup, compose steps, first-run verification — with an `Audience:` line and no Requirements Status table.
+
+### Actual
+
+```
+tf-render-html: REFUSED — TfLens-Deployment-Checklist.md is a checklist — checklists are
+AI-agent working documents and are NEVER rendered to HTML (html-render-shell §0).
+```
+
+The guard is `re.search(r"-Checklist\.md$", base, re.I)`, which matches **any** filename ending
+`-Checklist.md`. The rule it enforces (`generate-html.md`, `html-render-shell §0`) is specifically about
+`docs/{AppName}-Checklist.md` — the per-REQ Requirements Status document agents read in markdown. A
+deployment checklist, a release checklist, a QA checklist and so on are ordinary human documents that
+happen to share the word.
+
+### Workaround
+
+Render from a temporarily-renamed copy and move the output back:
+
+```bash
+cp docs/TfLens-Deployment-Checklist.md docs/TfLens-Deployment-Runbook.md
+bash .tfcore/utils/tf-render-html.sh docs/TfLens-Deployment-Runbook.md
+mv docs/TfLens-Deployment-Runbook.html docs/TfLens-Deployment-Checklist.html
+rm docs/TfLens-Deployment-Runbook.md
+```
+
+Ugly, and it would be easy for a future agent to instead "solve" this by hand-authoring the HTML — the
+exact path TF-003 removed.
+
+### Suggested fix
+
+Tighten the guard so it identifies the document rather than guessing from a suffix. Either:
+
+- match the canonical name only — `^{AppName}-Checklist\.md$`, resolved the way the tasks already
+  resolve `{AppName}`; or
+- match on content — a file carrying the `## Requirements Status` heading (or the
+  `SINGLE SOURCE OF TRUTH` marker comment the checklist template ships) is the agent document; anything
+  else is not.
+
+The content check is the more robust of the two and does not depend on naming discipline.
+
+---

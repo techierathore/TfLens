@@ -24,8 +24,19 @@ namespace TfLens.Core.Repos;
 /// </remarks>
 public sealed class RepoRegistry : IRepoRegistry, IRepoListReader
 {
-    /// <summary>The exact user-facing refusal for a private repository (BRD-100, REQ-UI-012).</summary>
-    public const string PrivateRepoMessage = "Private repos aren't supported in this release";
+    /// <summary>The exact user-facing refusal for a private repository (BRD-100 as amended, REQ-UI-012).</summary>
+    /// <remarks>
+    /// <b>Amended 2026-08-28 (F-IMPORT).</b> The original sentence — "Private repos aren't supported in
+    /// this release" — became untrue the moment BRD-131 shipped: a private or corporate repository is
+    /// now reachable by uploading the telemetry its framework already writes to disk, with no
+    /// credential and no network route to the repo. What remains out of scope is TfLens
+    /// <i>authenticating to</i> a private repo and pulling from it, which is what this refusal is
+    /// actually about. A refusal that dead-ends a user who has a supported path available is a defect
+    /// in its own right, so the sentence names the way out.
+    /// </remarks>
+    public const string PrivateRepoMessage =
+        "Private repos can't be fetched — use Import metric files to add this repo's telemetry without "
+        + "a credential.";
 
     private readonly ITelemetryStore objStore;
     private readonly IGitHubStreamFetcher objFetcher;

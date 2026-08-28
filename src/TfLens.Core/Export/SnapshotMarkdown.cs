@@ -30,6 +30,7 @@ internal static class SnapshotMarkdown
         Header(vText, aInputs);
         Coverage(vText, aInputs);
         ThreeQuestions(vText, aInputs);
+        Misses(vText, aInputs);
         Harness(vText, aInputs);
         Routing(vText, aInputs);
         Playbook(vText, aInputs);
@@ -246,22 +247,27 @@ internal static class SnapshotMarkdown
     private static void Coverage(StringBuilder aText, SnapshotInputs aInputs)
     {
         var vShas = aInputs.DatasetShas.ToDictionary(aP => aP.Key, aP => aP.Value, StringComparer.Ordinal);
+        var vOrigins = aInputs.RepoOrigins.ToDictionary(aO => aO.Repo, StringComparer.Ordinal);
 
         aText.AppendLine("## Coverage / health").AppendLine();
-        aText.AppendLine("| Repo | App | Project type | Framework | Gates | of which backfilled | Runs | Sessions | Commits | Events | Dataset SHA |");
-        aText.AppendLine("|---|---|---|---|---:|---:|---:|---:|---:|---:|---|");
+        aText.AppendLine("| Repo | App | Project type | Framework | Source | Gates | of which backfilled | Runs | Sessions | Commits | Misses | Events | Dataset SHA |");
+        aText.AppendLine("|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|");
 
         foreach (var vRepo in aInputs.Analysis.PerRepo)
         {
+            var vOrigin = vOrigins.GetValueOrDefault(vRepo.Repo);
+
             aText.Append("| ").Append(vRepo.Repo)
                 .Append(" | ").Append(Dash(vRepo.App))
                 .Append(" | ").Append(Dash(vRepo.ProjectType))
                 .Append(" | ").Append(vRepo.Framework)
+                .Append(" | ").Append(SourceKinds.DisplayName(vOrigin?.SourceKind))
                 .Append(" | ").Append(vRepo.Gates)
                 .Append(" | ").Append(vRepo.GatesBackfilled)
                 .Append(" | ").Append(vRepo.Runs)
                 .Append(" | ").Append(vRepo.Sessions)
                 .Append(" | ").Append(vRepo.Commits)
+                .Append(" | ").Append(vOrigin?.Misses ?? 0)
                 .Append(" | ").Append(vRepo.Events)
                 .Append(" | `").Append(Dash(vShas.GetValueOrDefault(vRepo.Repo))).AppendLine("` |");
         }
@@ -271,6 +277,240 @@ internal static class SnapshotMarkdown
             "The dataset SHAs above are the commits the streams were read at (REQ-FN-062). Check them "
             + "out to re-run `tf-metrics.sh` against exactly this data.")
             .AppendLine();
+
+        aText.AppendLine(
+            "**Source** is how the data arrived — *Synced* from the GitHub API, *Imported* from an "
+            + "uploaded bundle. It is shown on every row and **divides no figure anywhere in this "
+            + "document**: a record's `backfilled`, `project_type`, `harness` and `origin_confidence` "
+            + "mean the same thing whichever way the line arrived, so origin is not a segmentation axis "
+            + "(BRD-136, ADR-021).")
+            .AppendLine();
+
+        var vStale = aInputs.RepoOrigins.Where(aOrigin => aOrigin.StaleProjectTypes.Count > 0).ToList();
+        if (vStale.Count > 0)
+        {
+            foreach (var vOrigin in vStale)
+            {
+                aText.Append("- ⚠ `").Append(vOrigin.Repo)
+                    .Append("` has records still declaring ")
+                    .Append(string.Join(", ", vOrigin.StaleProjectTypes.Select(aType => "`" + aType + "`")))
+                    .AppendLine(" — the streams are append-only, so a reclassification applies at read "
+                        + "time and this repository appears under more than one project-type segment. "
+                        + "SCHEMA.md §6 forbids pooling them: read each as a period of the project.");
+            }
+
+            aText.AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// Section 2b — misses and rework (REQ-FN-080, BRD-118..BRD-123, BRD-128).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two shapes, deliberately, and they are labelled as two. The first table is the block
+    /// <c>tf-metrics.sh --rollup --json</c> computes and <c>tools/parity-compare.py</c> diffs — the
+    /// reference does not segment the miss stream, so neither does this table. Everything under it is
+    /// per <c>project_type</c>, which is the stricter shape TfLens's own pages use (REQ-FN-077); there is
+    /// no "all types" row there and never will be.
+    /// </para>
+    /// <para>
+    /// The three cost columns stay three columns. A measured token window and an apportioned share of one
+    /// are different facts, so <c>sole</c>, <c>shared</c> and <c>none</c> are never added up, and the only
+    /// dollar figure that is not labelled an estimate is the one OpenCode measured (BRD-122, BRD-123).
+    /// </para>
+    /// </remarks>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aInputs">Everything the snapshot renders from.</param>
+    private static void Misses(StringBuilder aText, SnapshotInputs aInputs)
+    {
+        var vTotals = aInputs.Analysis.Misses;
+        var vBlock = aInputs.MissParity;
+
+        aText.AppendLine("## Misses and rework").AppendLine();
+        aText.AppendLine(
+            "The miss stream answers \"what did we ship that we should not have, and what did fixing it "
+            + "cost\". Nothing here is merged into the gate figures above: the miss **escape share** sits "
+            + "beside the gates-derived **escape rate** and never inside it (BRD-118, REQ-NFR-013).")
+            .AppendLine();
+
+        aText.AppendLine("### Parity block").AppendLine();
+        aText.AppendLine(
+            "The shape `tf-metrics.sh` computes, so `tools/parity-compare.py` can diff it key for key "
+            + "(BRD-129). The reference does not segment the miss stream — \"a miss counts as a miss "
+            + "whoever missed it\" — so this table does not either. The per-project-type tables below are "
+            + "TfLens's own, stricter shape.")
+            .AppendLine();
+
+        aText.AppendLine("| Figure | Value |");
+        aText.AppendLine("|---|---|");
+        aText.Append("| Misses | ").Append(vTotals.MissesTotal).AppendLine(" |");
+        aText.Append("| Miss fixes | ").Append(vTotals.MissFixesTotal).AppendLine(" |");
+        aText.Append("| Orphan fixes | ").Append(vTotals.OrphanFixes).AppendLine(" |");
+        aText.Append("| Open | ").Append(vTotals.OpenMisses).AppendLine(" |");
+        aText.Append("| Won't fix | ").Append(vTotals.WontFix).AppendLine(" |");
+        aText.Append("| Resolved | ").Append(vTotals.ResolvedMisses).AppendLine(" |");
+        aText.Append("| Escapes with no `why_missed` | ").Append(vTotals.EscapesMissingWhy).AppendLine(" |");
+        aText.Append("| Amendments applied | ").Append(vTotals.AmendmentsApplied).AppendLine(" |");
+        aText.Append("| Orphan amendments | ").Append(vTotals.OrphanAmends).AppendLine(" |");
+        aText.Append("| `why_missed` recorded / eligible / predates the field | ")
+            .Append(vBlock.WhyMissedN).Append(" / ").Append(vBlock.WhyMissedEligibility.Eligible)
+            .Append(" / ").Append(vBlock.WhyMissedEligibility.PredatesField).AppendLine(" |");
+        aText.Append("| Design-miss share | ").Append(vBlock.DesignMissShare.Display()).AppendLine(" |");
+        aText.Append("| Escape share | ").Append(vBlock.EscapeShare.Display()).AppendLine(" |");
+        aText.Append("| Attributed / excluded | ").Append(vBlock.Attribution.AttributedN)
+            .Append(" / ").Append(vBlock.Attribution.AttributionExcluded).AppendLine(" |");
+        aText.Append("| What was missed | ").Append(Categories(vBlock.ClassDistribution, vBlock.ClassNotRecorded)).AppendLine(" |");
+        aText.Append("| Which practice failed | ").Append(Categories(vBlock.FailedPracticeDistribution, 0)).AppendLine(" |");
+        aText.Append("| Who found it | ").Append(Categories(vBlock.FoundBy, vBlock.FoundByNotRecorded)).AppendLine(" |");
+        var vAttributed = vBlock.Attribution.AttributedN;
+        aText.Append("| By origin phase | ")
+            .Append(Categories(vBlock.Attribution.ByOriginPhase, NotRecorded(vAttributed, vBlock.Attribution.ByOriginPhase)))
+            .AppendLine(" |");
+        aText.Append("| By origin model | ")
+            .Append(Categories(vBlock.Attribution.ByOriginModel, NotRecorded(vAttributed, vBlock.Attribution.ByOriginModel)))
+            .AppendLine(" |");
+        aText.Append("| By origin agent | ")
+            .Append(Categories(vBlock.Attribution.ByOriginAgent, NotRecorded(vAttributed, vBlock.Attribution.ByOriginAgent)))
+            .AppendLine(" |");
+        aText.AppendLine();
+
+        MissCostTable(aText, aInputs);
+        MissSegmentTables(aText, aInputs.Analysis.Misses);
+    }
+
+    /// <summary>
+    /// The three cost columns, which are never added together (BRD-122, REQ-NFR-013 clause 1).
+    /// </summary>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aInputs">Everything the snapshot renders from.</param>
+    private static void MissCostTable(StringBuilder aText, SnapshotInputs aInputs)
+    {
+        var vCost = aInputs.MissParity.Cost;
+
+        aText.AppendLine("### Rework cost").AppendLine();
+        aText.AppendLine("| Attribution | Fix records | Output tokens per miss fixed |");
+        aText.AppendLine("|---|---:|---|");
+        aText.Append("| `sole` — one miss, one token window (**measured**) | ").Append(vCost.SoleRecords)
+            .Append(" | ").Append(vCost.TokensPerMissFixed.Sole.Display()).AppendLine(" |");
+        aText.Append("| `shared:n` — one window across n misses (**apportioned**) | ").Append(vCost.SharedRecords)
+            .Append(" | ").Append(vCost.TokensPerMissFixed.Apportioned.Display()).AppendLine(" |");
+        aText.Append("| `none` — the record can carry no cost | ").Append(vCost.TokensPerMissFixed.NoneCount)
+            .AppendLine(" | — |");
+        aText.Append("| absent — nobody said | ").Append(vCost.AttributionMissing).AppendLine(" | — |");
+        aText.AppendLine();
+
+        aText.AppendLine(
+            "The measured column and the apportioned column are **never summed**. A run that repaired "
+            + "three misses has one token window; dividing it three ways is arithmetic, not measurement, "
+            + "and `none` is a count rather than a divisor.")
+            .AppendLine();
+
+        aText.AppendLine("| Harness | Fix records | With token counts | Tokens out | Measured $ / miss | Measured $ total |");
+        aText.AppendLine("|---|---:|---:|---:|---|---|");
+        foreach (var vRow in vCost.ByHarness)
+        {
+            aText.Append("| `").Append(vRow.Harness)
+                .Append("` | ").Append(vRow.Records)
+                .Append(" | ").Append(vRow.TokenRecords)
+                .Append(" | ").Append(vRow.TokensOut.ToString(CultureInfo.InvariantCulture))
+                .Append(" | ").Append(vRow.EstimateLabel is null ? vRow.MeasuredUsdPerMiss.Display() : "not measured")
+                .Append(" | ").Append(Measured(vRow.MeasuredUsdTotal))
+                .AppendLine(" |");
+        }
+
+        aText.AppendLine();
+        aText.Append("Measured dollars per miss fixed, over `sole` fix records only: **")
+            .Append(aInputs.MeasuredRework is { } vMeasured ? vMeasured.MeasuredUsdPerMiss.Display() : "—")
+            .Append("** from ")
+            .Append(aInputs.MeasuredRework?.MeasuredUsdRecords ?? 0)
+            .AppendLine(" measuring record(s). The cost attribution bounds this figure exactly as it "
+                + "bounds the token columns above: dollars per miss fixed means nothing when the run "
+                + "they came from repaired three.")
+            .AppendLine();
+        aText.AppendLine(
+            "Measured dollars exist in exactly one place in the product — `cost_usd` on OpenCode records "
+            + "— and are never summed across harnesses. Every other row reports **tokens**; any dollar "
+            + "figure derived from them is a rate-card estimate, lives under "
+            + "`extras.misses_repricing` in `tflens.json`, and its key ends `_usd_estimate` (BRD-123, "
+            + "BRD-128).")
+            .AppendLine();
+    }
+
+    /// <summary>
+    /// One table per project type — TfLens's own shape, which the reference does not compute.
+    /// </summary>
+    /// <remarks>There is deliberately no "all types" row: <see cref="MissAnalysis.Live"/> cannot express one.</remarks>
+    /// <param name="aText">The buffer.</param>
+    /// <param name="aMisses">The engine's segmented miss block.</param>
+    private static void MissSegmentTables(StringBuilder aText, MissAnalysis aMisses)
+    {
+        aText.AppendLine("### By project type (TfLens, live only)").AppendLine();
+
+        if (aMisses.Live.Count == 0)
+        {
+            aText.AppendLine("_No live miss records._").AppendLine();
+            return;
+        }
+
+        aText.AppendLine("| Project type | Misses | Open | Won't fix | Resolved | Design-miss share | Escape share | Median hours to close |");
+        aText.AppendLine("|---|---:|---:|---:|---:|---|---|---|");
+
+        foreach (var vType in aMisses.ProjectTypes)
+        {
+            var vSegment = aMisses.Live[vType];
+            aText.Append("| ").Append(vType)
+                .Append(" | ").Append(vSegment.Misses)
+                .Append(" | ").Append(vSegment.OpenMisses)
+                .Append(" | ").Append(vSegment.WontFix)
+                .Append(" | ").Append(vSegment.ResolvedMisses)
+                .Append(" | ").Append(vSegment.DesignMissShare.Display())
+                .Append(" | ").Append(vSegment.EscapeShare.Display())
+                .Append(" | ").Append(vSegment.MedianTimeToCloseHours.Display())
+                .AppendLine(" |");
+        }
+
+        aText.AppendLine();
+        aText.Append("Backfilled misses held out of every figure above: ")
+            .Append(aMisses.BackfilledMissesExcluded)
+            .Append("; backfilled fix records held out: ")
+            .Append(aMisses.BackfilledMissFixesExcluded)
+            .AppendLine(". They are reported rather than dropped.")
+            .AppendLine();
+    }
+
+    /// <summary>
+    /// Attributed misses one axis's rows do not account for — the records that named no value.
+    /// </summary>
+    /// <remarks>
+    /// The engine keeps a <c>null</c> out of every distribution so it can never inflate a share
+    /// (BRD-119); the reference renders those records as <c>?</c>. The count is recovered by arithmetic
+    /// on the engine's own output rather than by re-reading the stream, exactly as
+    /// <c>SnapshotJson</c> does, so the page and the document cannot disagree.
+    /// </remarks>
+    /// <param name="aAttributedN">Records every per-origin figure was computed from.</param>
+    /// <param name="aRows">One axis's rows.</param>
+    /// <returns>How many attributed misses carried no value on that axis.</returns>
+    private static int NotRecorded(int aAttributedN, IReadOnlyList<MissCategoryCount> aRows) =>
+        Math.Max(0, aAttributedN - aRows.Sum(aRow => aRow.Count));
+
+    /// <summary>Renders a miss distribution inline, with unrecorded records as the reference's <c>?</c>.</summary>
+    /// <param name="aRows">The categories the engine observed.</param>
+    /// <param name="aNotRecorded">Records that carried no value at all; omitted when zero.</param>
+    /// <returns>The inline text, or an em dash when there is nothing to show.</returns>
+    private static string Categories(IReadOnlyList<MissCategoryCount> aRows, int aNotRecorded)
+    {
+        var vParts = aRows
+            .Where(aRow => aRow.Count > 0)
+            .Select(aRow => aRow.Key + " " + aRow.Count.ToString(CultureInfo.InvariantCulture))
+            .ToList();
+
+        if (aNotRecorded > 0)
+        {
+            vParts.Add("? " + aNotRecorded.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return vParts.Count == 0 ? "—" : string.Join(" · ", vParts);
     }
 
     /// <summary>
