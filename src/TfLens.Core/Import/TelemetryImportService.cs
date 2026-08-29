@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 using TfLens.Core.Repos;
 
 namespace TfLens.Core.Import;
@@ -198,6 +199,22 @@ public sealed class TelemetryImportService : ITelemetryImportService
         var vBundle = vResolved.Bundle!;
         var vRoot = Path.GetFullPath(objOptions.RawPath(aUserId));
         var vStreams = new List<ImportStreamCommit>();
+
+        // REQ-NFR-019 clause 1 / BRD-143 — an imported source's dataset identity is the bundle's sha256
+        // (BRD-134), and it is recorded as obtained BEFORE any row carrying it is written. This is what
+        // stops an imported source from being reported as unaccounted merely for having no commit SHA:
+        // the audit compares against obtained identities, not against a shape, so the two kinds need no
+        // branch and `SourceKind` stays a thing that is displayed and never divided on (ADR-021).
+        await objStore
+            .RecordSourceProvenanceAsync(
+                new SourceProvenanceRecord(
+                    aUserId,
+                    aSource.Repo,
+                    vBundle.BundleSha,
+                    ProvenanceKinds.Import,
+                    DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)),
+                aCancellationToken)
+            .ConfigureAwait(false);
 
         foreach (var vEntry in Ordered(vBundle.Entries))
         {

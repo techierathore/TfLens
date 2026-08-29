@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
@@ -192,28 +193,90 @@ public sealed class MetricsEngine : IMetricsEngine
     }
 
     /// <summary>
-    /// The project type a repository declares, as the reference reads it from <c>core-config.yaml</c>.
+    /// The project type a repository <em>currently</em> declares — the newest declaration its records carry.
     /// </summary>
     /// <param name="aGates">The repository's gate records.</param>
     /// <param name="aRuns">The repository's run records.</param>
     /// <param name="aSessions">The repository's session records.</param>
     /// <param name="aCommits">The repository's commit records.</param>
-    /// <returns>The first declared type carried by any record, defaulting to <c>app</c> exactly as the reference does.</returns>
+    /// <returns>
+    /// The declared type on the newest record carrying one, across all four streams, defaulting to
+    /// <c>app</c> when no record declares one — the same default the reference falls back to.
+    /// </returns>
     /// <remarks>
+    /// <para>
+    /// <b>Why newest, not first.</b> The reference reads the repository's <c>core-config.yaml</c>, which
+    /// holds one value: what the project declares itself to be <i>today</i>. TfLens has no config file to
+    /// read, only the streams, and each record froze the declaration in force when it was written. A
+    /// reclassified repository therefore carries both the old and the new value, and the record that
+    /// answers the reference's question is the most recent one — not the first the store happens to hand
+    /// back, and not the most numerous. TfLens itself is the live case: it was reclassified from
+    /// <c>docs</c> to <c>app</c>, and <c>docs</c> still outnumbers <c>app</c> in the gate stream while
+    /// every stream's newest record reads <c>app</c>.
+    /// </para>
+    /// <para>
+    /// <b>Ordering and ties.</b> Records are ranked by their <c>Ts</c> instant, newest first. A record
+    /// whose timestamp is missing or unparseable never outranks one that has a usable instant; it is
+    /// considered only when nothing parseable declares a type. Records sharing an instant — and records
+    /// with no usable instant among themselves — are broken by ordinal comparison of the declared value
+    /// itself, lowest first. That tie-break deliberately depends on nothing but the values in hand, so
+    /// the answer is identical on every run regardless of the order the store returns rows in.
+    /// </para>
+    /// <para>
     /// This is the <em>declared</em> type, which is what the reference's <c>per_repo</c> line reports —
     /// it is a coverage fact, not a segment key. Segmentation is <see cref="Segment.KeyFor"/>, and an
     /// inferred record still segments as <c>unclassified</c> there (REQ-FN-048).
+    /// </para>
     /// </remarks>
     private static string DeclaredProjectType(
         IEnumerable<GateRecord> aGates,
         IEnumerable<RunRecord> aRuns,
         IEnumerable<SessionRecord> aSessions,
-        IEnumerable<CommitRecord> aCommits) =>
-        aGates.Select(aGate => aGate.ProjectType)
-            .Concat(aRuns.Select(aRun => aRun.ProjectType))
-            .Concat(aSessions.Select(aSession => aSession.ProjectType))
-            .Concat(aCommits.Select(aCommit => aCommit.ProjectType))
-            .FirstOrDefault(aType => !string.IsNullOrEmpty(aType)) ?? "app";
+        IEnumerable<CommitRecord> aCommits)
+    {
+        var vDeclarations = aGates.Select(aGate => DeclarationOf(aGate.Ts, aGate.ProjectType))
+            .Concat(aRuns.Select(aRun => DeclarationOf(aRun.Ts, aRun.ProjectType)))
+            .Concat(aSessions.Select(aSession => DeclarationOf(aSession.Ts, aSession.ProjectType)))
+            .Concat(aCommits.Select(aCommit => DeclarationOf(aCommit.Ts, aCommit.ProjectType)))
+            .Where(aDeclaration => aDeclaration is not null)
+            .Select(aDeclaration => aDeclaration!.Value);
+
+        var vNewest = vDeclarations
+            .OrderByDescending(aDeclaration => aDeclaration.Instant is not null)
+            .ThenByDescending(aDeclaration => aDeclaration.Instant ?? DateTimeOffset.MinValue)
+            .ThenBy(aDeclaration => aDeclaration.Type, StringComparer.Ordinal)
+            .Select(aDeclaration => aDeclaration.Type)
+            .FirstOrDefault();
+
+        return vNewest ?? "app";
+    }
+
+    /// <summary>
+    /// Pairs one record's declared project type with the instant it was declared at.
+    /// </summary>
+    /// <param name="aTs">The record's ISO-8601 timestamp; may be blank or unparseable.</param>
+    /// <param name="aProjectType">The record's declared project type; may be absent.</param>
+    /// <returns>
+    /// The declaration, or <c>null</c> when the record declares no type. <c>Instant</c> is <c>null</c>
+    /// when the timestamp cannot be read, which ranks the declaration below every dated one.
+    /// </returns>
+    private static (DateTimeOffset? Instant, string Type)? DeclarationOf(string? aTs, string? aProjectType)
+    {
+        if (string.IsNullOrEmpty(aProjectType))
+        {
+            return null;
+        }
+
+        var vInstant = DateTimeOffset.TryParse(
+            aTs,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+            out var vMoment)
+            ? vMoment
+            : (DateTimeOffset?)null;
+
+        return (vInstant, aProjectType);
+    }
 
     /// <summary>
     /// Computes one figure block per project type inside a single provenance bucket.

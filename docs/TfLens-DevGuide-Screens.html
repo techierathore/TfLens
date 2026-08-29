@@ -109,7 +109,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     <div class="sub">Last rendered: 2026-08-29</div>
     <div class="group">Contents</div>
     <ol>
-        <li><a href="#runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-27 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
         <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
@@ -214,7 +214,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-27 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
         <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
@@ -321,7 +321,7 @@ reading twice.</p>
 <p>Screenshots in <code>docs/devguide-images/</code> are a point-in-time capture. The dev database is shared, so row
 counts in a shot will not match what you see today; the <em>structure</em> is what the shot is for.</p>
 <hr>
-<h2 id="runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-27 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)<a class="anchor-link" href="#runtime-verified-2026-08-27-as-tflensdemo-techierathore-com-userid-2-manager">#</a></h2>
+<h2 id="runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)<a class="anchor-link" href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">#</a></h2>
 <p>Observed, not inferred. A full <code>*verify all</code> pass drove every screen below on a <strong>Release</strong> build at
 <code>http://localhost:5099</code> with headless Chromium at <strong>1280×800 and 390×844</strong>, applying the data-render
 gate (does every control listed in its <em>Control → data path</em> table actually render its data?) and the
@@ -331,23 +331,31 @@ screenshots <code>tests/.artifacts/gates/{screen}-{1280,390}.png</code>.</p>
 <table>
 <thead><tr><th>Screen</th><th>Controls checked</th><th>Data render</th><th>Looks right</th></tr></thead>
 <tbody>
-<tr><td><code>/login</code></td><td>8</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/register</code></td><td>12</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/forgot-password</code></td><td>4</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/reset-password</code></td><td>11</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/profile</code></td><td>21</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/repos</code></td><td>43</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/</code> — Coverage / health</td><td>52</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/three-questions</code></td><td>29</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/harness</code></td><td>27</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/routing</code> (4 tabs)</td><td>62</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td><code>/export</code></td><td>29</td><td>renders ✓</td><td>looks-right ✓</td></tr>
-<tr><td>Playbook axis of all five report pages</td><td>45</td><td>renders ✓</td><td>looks-right ✓</td></tr>
+<tr><td><code>/login</code></td><td>8</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/register</code></td><td>12</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/forgot-password</code></td><td>4</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/reset-password</code></td><td>11</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/profile</code></td><td>22</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/repos</code></td><td>32</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/</code> — Coverage / health</td><td>53</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/</code> — Coverage miss-quality card</td><td>7</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/three-questions</code></td><td>32</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/harness</code></td><td>28</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/routing</code> — drift · models · repricing · poolable</td><td>23 · 8 · 19 · 13</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/misses</code></td><td>102</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/export</code></td><td>30</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td>Playbook axis of all six report pages</td><td>12 each (72)</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
 </tbody>
 </table>
-<p><strong>Zero</strong> render-empty controls and <strong>zero</strong> visual failures across all 19 screen-states. Defects found
-were behavioural, not rendering — they are listed against their screens below and in
-<code>docs/TfLens-Checklist.md</code>.</p>
+<p><strong>Zero</strong> render-empty controls, <strong>zero</strong> render errors, <strong>zero</strong> visual failures and <strong>zero</strong> console
+errors across all <strong>22 screen-states / 476 controls</strong>. Defects found were behavioural, not rendering —
+they are listed against their screens below and in <code>docs/TfLens-Checklist.md</code>.</p>
+<p><strong>One screen is NOT runtime-verified with data: the Playbook axis.</strong> Every Playbook state above was
+confirmed as its <em>empty</em> state (<code>playbook-axis-note</code> + <code>playbook-empty</code> + <code>playbook-empty-connect</code>,
+with no TechieFlow figure leaking across the axis). No connected repository emits <code>events.ndjson</code>, so
+the populated Playbook surface — the tabbed <code>pb-phases-*</code> panels behind <code>REQ-FN-067</code> / <code>REQ-FN-070</code> —
+has never been driven with data and must not be read here as "renders". Its spec skips for want of a
+dataset.</p>
 <p>Three things a reader should know before trusting a screen here:</p>
 <ul>
 <li><strong><code>/repos</code>, <code>/routing</code> and <code>/export</code> are horizontally scrollable at 390 px by design.</strong> Their wide tables and the routing tab strip live in <code>overflow-x-auto</code> boxes, so controls sit outside the viewport and are reached by scrolling <em>that region</em>. The page body itself never scrolls sideways.

@@ -12,7 +12,7 @@ counts in a shot will not match what you see today; the *structure* is what the 
 
 ---
 
-## Runtime-verified 2026-08-27 as `tflensdemo@techierathore.com` (userId 2, Manager)
+## Runtime-verified 2026-08-29 as `tflensdemo@techierathore.com` (userId 2, Manager)
 
 Observed, not inferred. A full `*verify all` pass drove every screen below on a **Release** build at
 `http://localhost:5099` with headless Chromium at **1280×800 and 390×844**, applying the data-render
@@ -23,22 +23,31 @@ screenshots `tests/.artifacts/gates/{screen}-{1280,390}.png`.
 
 | Screen | Controls checked | Data render | Looks right |
 |---|---|---|---|
-| `/login` | 8 | renders ✓ | looks-right ✓ |
-| `/register` | 12 | renders ✓ | looks-right ✓ |
-| `/forgot-password` | 4 | renders ✓ | looks-right ✓ |
-| `/reset-password` | 11 | renders ✓ | looks-right ✓ |
-| `/profile` | 21 | renders ✓ | looks-right ✓ |
-| `/repos` | 43 | renders ✓ | looks-right ✓ |
-| `/` — Coverage / health | 52 | renders ✓ | looks-right ✓ |
-| `/three-questions` | 29 | renders ✓ | looks-right ✓ |
-| `/harness` | 27 | renders ✓ | looks-right ✓ |
-| `/routing` (4 tabs) | 62 | renders ✓ | looks-right ✓ |
-| `/export` | 29 | renders ✓ | looks-right ✓ |
-| Playbook axis of all five report pages | 45 | renders ✓ | looks-right ✓ |
+| `/login` | 8 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/register` | 12 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/forgot-password` | 4 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/reset-password` | 11 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/profile` | 22 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/repos` | 32 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/` — Coverage / health | 53 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/` — Coverage miss-quality card | 7 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/three-questions` | 32 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/harness` | 28 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/routing` — drift · models · repricing · poolable | 23 · 8 · 19 · 13 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/misses` | 102 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| `/export` | 30 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+| Playbook axis of all six report pages | 12 each (72) | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
 
-**Zero** render-empty controls and **zero** visual failures across all 19 screen-states. Defects found
-were behavioural, not rendering — they are listed against their screens below and in
-`docs/TfLens-Checklist.md`.
+**Zero** render-empty controls, **zero** render errors, **zero** visual failures and **zero** console
+errors across all **22 screen-states / 476 controls**. Defects found were behavioural, not rendering —
+they are listed against their screens below and in `docs/TfLens-Checklist.md`.
+
+**One screen is NOT runtime-verified with data: the Playbook axis.** Every Playbook state above was
+confirmed as its *empty* state (`playbook-axis-note` + `playbook-empty` + `playbook-empty-connect`,
+with no TechieFlow figure leaking across the axis). No connected repository emits `events.ndjson`, so
+the populated Playbook surface — the tabbed `pb-phases-*` panels behind `REQ-FN-067` / `REQ-FN-070` —
+has never been driven with data and must not be read here as "renders". Its spec skips for want of a
+dataset.
 
 Three things a reader should know before trusting a screen here:
 

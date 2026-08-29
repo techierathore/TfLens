@@ -5,6 +5,7 @@ using Npgsql;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
 using TfLens.Core.Parsing;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Storage;
 
@@ -187,6 +188,67 @@ public sealed class PostgresStore : ITelemetryStore
             new CommandDefinition(vSql, new { aUserId, aRepo }, cancellationToken: aCancellationToken))
             .ConfigureAwait(false);
         return vRows.ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task RecordSourceProvenanceAsync(
+        SourceProvenanceRecord aRecord, CancellationToken aCancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(aRecord);
+        ProvenanceRules.RequireObtained(aRecord.UserId, aRecord.Repo, aRecord.SourceSha);
+
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+        await vConnection.ExecuteAsync(new CommandDefinition(
+            InsertProvenanceSql,
+            new
+            {
+                aRecord.UserId,
+                aRecord.Repo,
+                aRecord.SourceSha,
+                aRecord.Kind,
+                aRecord.ObtainedTs
+            },
+            cancellationToken: aCancellationToken)).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<ProvenanceAuditReport> AuditProvenanceAsync(
+        int? aUserId = null, CancellationToken aCancellationToken = default)
+    {
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+
+        var vStored = (await vConnection.QueryAsync<StoredProvenance>(new CommandDefinition(
+            StoredProvenanceSql, new { aUserId }, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false)).ToList();
+
+        var vObtained = (await vConnection.QueryAsync<SourceProvenanceRecord>(new CommandDefinition(
+            ObtainedProvenanceSql, new { aUserId }, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false)).ToList();
+
+        // BRD-19 — the raw archive is the app's own record of what a sync fetched, written by the sync
+        // path before the parse. It is a weaker attestation than the ledger (a file-system write can
+        // forge a name, which is exactly what happened on 2026-08-29 alongside the seeded rows), but it
+        // is the only oracle that covers a SHA an EARLIER sync obtained: "SyncState" keeps just the
+        // newest, and user 2's four repositories legitimately hold rows on eight different SHAs.
+        // Dropping it would report six real datasets as fabricated, and a check that cries wolf is a
+        // check nobody runs.
+        foreach (var vArchive in EnumerateArchive(aUserId))
+        {
+            vObtained.Add(new SourceProvenanceRecord(
+                vArchive.UserId, vArchive.Repo, vArchive.Sha, ProvenanceKinds.Archive, string.Empty));
+        }
+
+        var vReport = ProvenanceAudit.Compare(vStored, vObtained);
+
+        if (vReport.HasOrphans)
+        {
+            objLogger.LogWarning(
+                "Provenance audit found {Sources} unaccounted source SHA(s) over {Rows} row(s)",
+                vReport.Orphans.Count,
+                vReport.OrphanRows);
+        }
+
+        return vReport;
     }
 
     /// <inheritdoc />
@@ -1042,6 +1104,73 @@ public sealed class PostgresStore : ITelemetryStore
         INSERT INTO "PbEvent" ({PbEventColumns})
         VALUES ({PbEventValues})
         ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Records one obtained dataset identity; re-recording the same triple is a no-op (REQ-NFR-019).
+    /// </summary>
+    private const string InsertProvenanceSql = """
+        INSERT INTO "SourceProvenance" ("UserId","Repo","SourceSha","Kind","ObtainedTs")
+        VALUES (@UserId,@Repo,@SourceSha,@Kind,@ObtainedTs)
+        ON CONFLICT ON CONSTRAINT "PkSourceProvenance" DO NOTHING
+        """;
+
+    /// <summary>
+    /// Every distinct <c>(user, repo, source SHA)</c> the eight stream tables hold rows under.
+    /// </summary>
+    /// <remarks>
+    /// One <c>UNION ALL</c> arm per table so a finding names the table it sits in — the fact the
+    /// 2026-08-29 cleanup had to reconstruct by hand. The list is the same eight tables
+    /// <see cref="StreamTables"/> names, and a guardrail test asserts the two do not drift: a stream
+    /// table this query forgot is a table pollution could hide in.
+    /// </remarks>
+    private const string StoredProvenanceSql = """
+        SELECT "UserId", "Repo", "SourceSha", 'Run' AS "Table", COUNT(*)::int AS "Rows"
+        FROM "Run" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'Gate', COUNT(*)::int
+        FROM "Gate" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'Session', COUNT(*)::int
+        FROM "Session" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'Commit', COUNT(*)::int
+        FROM "Commit" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'Miss', COUNT(*)::int
+        FROM "Miss" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'MissFix', COUNT(*)::int
+        FROM "MissFix" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'MissAmend', COUNT(*)::int
+        FROM "MissAmend" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'PbEvent', COUNT(*)::int
+        FROM "PbEvent" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        """;
+
+    /// <summary>
+    /// Every dataset identity an ingest path recorded obtaining — the ledger and the two stamps.
+    /// </summary>
+    /// <remarks>
+    /// <c>"SyncState"."LastSha"</c> and <c>"UserRepo"."BundleSha"</c> are read directly rather than
+    /// relying on the schema script having adopted them, so the audit is correct on the first run
+    /// against a database whose schema has not been re-applied since.
+    /// </remarks>
+    private const string ObtainedProvenanceSql = """
+        SELECT "UserId", "Repo", "SourceSha", "Kind", "ObtainedTs"
+        FROM "SourceProvenance" WHERE @aUserId IS NULL OR "UserId" = @aUserId
+        UNION ALL
+        SELECT "UserId", "Repo", "LastSha", 'api', COALESCE("LastSyncTs", '')
+        FROM "SyncState"
+        WHERE (@aUserId IS NULL OR "UserId" = @aUserId)
+          AND "LastSha" IS NOT NULL AND btrim("LastSha") <> ''
+        UNION ALL
+        SELECT "UserId", "Repo", "BundleSha", 'import', "ConnectedTs"
+        FROM "UserRepo"
+        WHERE (@aUserId IS NULL OR "UserId" = @aUserId)
+          AND "BundleSha" IS NOT NULL AND btrim("BundleSha") <> ''
         """;
 
     /// <summary>Writes one repository's sync bookkeeping, replacing whatever was there.</summary>

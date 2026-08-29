@@ -19,6 +19,7 @@
 @namespace TfLens.Components.Pages.ExportParts
 @using Microsoft.Extensions.Options
 @using TfLens.Core.Export
+@using TfLens.Core.Provenance
 @using TfLens.Services.Export
 @using TrBlazeUI.Components.Empty
 @inject ISnapshotExporter objExporter
@@ -336,6 +337,11 @@
 
     private ParityRecord? objParity;
     private ParityStamp objParityStamp = new(ParityStatuses.NeverRun, ParityReasons.NeverRun);
+
+    // REQ-NFR-019 clause 4 — the provenance of the data behind the figures, re-read on every load for
+    // the same reason the parity stamp is: a row seeded while the page was open must take the banner
+    // amber on the next refresh, not on a restart.
+    private ProvenanceAuditReport objProvenance = ProvenanceAuditReport.Unsupported;
     private bool objIsExporting;
     private bool objIsLoaded;
     private string? objLoadedKey;
@@ -373,6 +379,8 @@
             "the reference script changed after the last parity run; re-run the parity procedure",
         ParityReasons.ScriptUnavailable =>
             "the reference script cannot be hashed, so the recorded parity run cannot be confirmed; restore it and re-run the parity procedure",
+        ParityReasons.ProvenanceOrphan =>
+            $"{objProvenance.OrphanRows} stored row(s) on {objProvenance.Orphans.Count} source SHA(s) that no sync and no import ever obtained; run \"provenance-check\" and purge them before quoting any figure",
         _ =>
             "no parity run has ever been recorded; run the parity procedure before quoting any figure"
     };
@@ -463,10 +471,21 @@
         // change would be a false statement about the evidence — the exact class of error the parity
         // gate exists to catch (REQ-FN-063).
         objParity = ParityRecord.Read(objOptions.Value.ParityLastPath);
-        objParityStamp = ParityRecord.EvaluateFor(
+
+        // REQ-NFR-019 clause 4 / BRD-143 — the fourth thing that can refuse QUOTABLE, and the only one
+        // that is about the data rather than about the evidence: a stored source_sha no sync and no
+        // import ever obtained. It is checked against the store alone, so the banner is honest with no
+        // network available. EvaluateWithProvenance holds the precedence rule in ONE place, shared with
+        // SnapshotExporter — the page and the written snapshot cannot disagree about what is quotable.
+        objProvenance = UserId is null
+            ? ProvenanceAuditReport.Unsupported
+            : await objStore.AuditProvenanceAsync(UserId.Value);
+
+        objParityStamp = ParityRecord.EvaluateWithProvenance(
             objParity,
             ParserVersion.Current,
-            objOptions.Value.ResolveReferenceScriptPath());
+            objOptions.Value.ResolveReferenceScriptPath(),
+            objProvenance);
 
         objShaRows = [];
         objSnapshots = [];

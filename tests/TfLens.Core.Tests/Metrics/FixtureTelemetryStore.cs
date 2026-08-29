@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Tests.Metrics;
 
@@ -37,6 +38,22 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     /// is what a repository with no duplicates would genuinely report.
     /// </remarks>
     private readonly Dictionary<(int UserId, string Repo), int> objSessionCollapses = [];
+
+    /// <summary>
+    /// What this store answers when the export asks whether its rows have real provenance.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="ProvenanceAuditReport.Unsupported"/>, which is the honest answer for a
+    /// store served out of fixture files: it has no ledger, no sync state and no raw archive, so it is
+    /// not in a position to declare itself clean. A test that wants the export to see pollution sets a
+    /// report with orphans in it (REQ-NFR-019 clause 4).
+    /// </remarks>
+    public ProvenanceAuditReport Provenance { get; set; } = ProvenanceAuditReport.Unsupported;
+
+    /// <inheritdoc />
+    public Task<ProvenanceAuditReport> AuditProvenanceAsync(
+        int? aUserId = null, CancellationToken aCancellationToken = default) =>
+        Task.FromResult(Provenance);
 
     /// <summary>
     /// Records how many session records ingest collapsed for one repository.

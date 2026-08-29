@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Parsing;
 
@@ -273,6 +274,12 @@ public sealed class StreamParser : IStreamParser
     {
         ArgumentNullException.ThrowIfNull(aRepo);
         ArgumentNullException.ThrowIfNull(aSourceSha);
+
+        // REQ-NFR-019 clause 1 — this is the single door every stream row comes through, so it is where
+        // "no path writes a row with provenance nobody obtained" is made structural. A blank SHA is
+        // refused outright rather than stored as an empty string, which is what a row nobody can trace
+        // back to a fetch or an upload would be.
+        ProvenanceRules.RequireObtained(aUserId, aRepo, aSourceSha);
 
         var vState = new ParseState(aUserId, aRepo, aSourceSha, aStream);
 

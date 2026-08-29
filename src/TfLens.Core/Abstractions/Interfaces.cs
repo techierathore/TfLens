@@ -1,4 +1,5 @@
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Abstractions;
 
@@ -513,6 +514,54 @@ public interface ITelemetryStore
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>What the replay found — files, records and duplicates collapsed.</returns>
     Task<RebuildReport> RebuildAsync(int? aUserId = null, CancellationToken aCancellationToken = default);
+
+    /// <summary>
+    /// Records that an ingest path obtained one dataset identity (REQ-NFR-019 clause 1).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called by the sync as it fetches and by the import as it commits — at the moment the bytes
+    /// actually arrive, which is the only moment the claim is true. The ledger it writes is what
+    /// <see cref="AuditProvenanceAsync"/> compares stored rows against, so a row seeded straight into
+    /// the tables has nothing behind it and shows up as an orphan.
+    /// </para>
+    /// <para>
+    /// Idempotent: re-recording the same triple is a no-op, because a sync that fetches the same SHA
+    /// twice has obtained it once.
+    /// </para>
+    /// </remarks>
+    /// <param name="aRecord">What was obtained, from where, and when.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>A task that completes when the ledger entry exists.</returns>
+    Task RecordSourceProvenanceAsync(
+        SourceProvenanceRecord aRecord,
+        CancellationToken aCancellationToken = default) =>
+        Task.CompletedTask;
+
+    /// <summary>
+    /// Reports every stored <c>SourceSha</c> that no ingest path accounts for (REQ-NFR-019 clause 3).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No network call and no count comparison.</b> The oracle is the store itself — the provenance
+    /// ledger, the <c>"SyncState"</c> SHA, the <c>"UserRepo"."BundleSha"</c> and the raw archive's file
+    /// names. That is what makes the check runnable in an air-gapped deployment and what makes it catch
+    /// pollution that happens to be small enough for the numbers to look plausible.
+    /// </para>
+    /// <para>
+    /// The default answers <see cref="ProvenanceAuditReport.Unsupported"/>, which asserts nothing in
+    /// either direction: an in-memory fixture has no ledger, no archive and no sync state, so it is not
+    /// in a position to say a store is clean. Only a non-empty
+    /// <see cref="ProvenanceAuditReport.Orphans"/> is ever read as a finding.
+    /// </para>
+    /// </remarks>
+    /// <param name="aUserId">One user, or <c>null</c> to audit the whole store.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The findings, or the unsupported answer.</returns>
+    Task<ProvenanceAuditReport> AuditProvenanceAsync(
+        int? aUserId = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult(ProvenanceAuditReport.Unsupported);
 }
 
 /// <summary>Server-side storage of the AppManager tokens behind a TfLens cookie.</summary>

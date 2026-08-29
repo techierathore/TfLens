@@ -1,6 +1,7 @@
 using TfLens.Core.Abstractions;
 using TfLens.Core.AppManager;
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Services.Commands;
 
@@ -28,7 +29,13 @@ public static class CommandRunner
     /// </summary>
     public const string ProvisionTestAccounts = "provision-test-accounts";
 
-    private static readonly string[] Verbs = [Rebuild, Sync, Export, ProvisionTestAccounts];
+    /// <summary>
+    /// The <c>provenance-check</c> verb — reports stored SHAs no ingest path obtained (REQ-NFR-019).
+    /// </summary>
+    public const string ProvenanceCheck = "provenance-check";
+
+    private static readonly string[] Verbs =
+        [Rebuild, Sync, Export, ProvisionTestAccounts, ProvenanceCheck];
 
     /// <summary>
     /// Tells whether the first argument names a command verb rather than a host switch.
@@ -56,6 +63,7 @@ public static class CommandRunner
             Sync => await RunSyncAsync(vScope.ServiceProvider, aArgs),
             Export => await RunExportAsync(vScope.ServiceProvider, aArgs),
             ProvisionTestAccounts => await RunProvisionTestAccountsAsync(vScope.ServiceProvider, aArgs),
+            ProvenanceCheck => await RunProvenanceCheckAsync(vScope.ServiceProvider, aArgs),
             _ => throw new ArgumentOutOfRangeException(nameof(aArgs), vVerb, "Unknown verb.")
         };
     }
@@ -284,6 +292,46 @@ public static class CommandRunner
         {
             return (false, $"could not be registered — AppManager answered {vRegisterEx.Code}");
         }
+    }
+
+    /// <summary>
+    /// Reports every stored <c>SourceSha</c> that no sync and no import ever obtained (REQ-NFR-019).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// BRD-143 clause 3. The check runs entirely against the store — the provenance ledger, the
+    /// <c>"SyncState"</c> SHA, the <c>"UserRepo"."BundleSha"</c> and the raw archive's file names — so it
+    /// needs <b>no network call</b> and does not compare counts against GitHub by hand. That matters:
+    /// the 155 fabricated rows found on 2026-08-29 were caught only because their counts happened to
+    /// disagree with upstream, and a smaller forgery would have read as plausible.
+    /// </para>
+    /// <para>
+    /// It has no <c>--fix</c>, no <c>--ignore</c> and no threshold. Deciding what to delete from a store
+    /// of real telemetry is the owner's call with a backup to hand, not a verb's; this reports, and the
+    /// export refuses to stamp QUOTABLE while a finding stands.
+    /// </para>
+    /// </remarks>
+    /// <param name="aServices">A scoped service provider.</param>
+    /// <param name="aArgs">The command line; <c>--user &lt;id&gt;</c> narrows the audit to one user.</param>
+    /// <returns>Zero when nothing is unaccounted, 1 when any source SHA is.</returns>
+    private static async Task<int> RunProvenanceCheckAsync(IServiceProvider aServices, string[] aArgs)
+    {
+        var vStore = aServices.GetRequiredService<ITelemetryStore>();
+        var vReport = await vStore.AuditProvenanceAsync(ReadUserId(aArgs));
+
+        foreach (var vLine in ProvenanceAudit.Describe(vReport))
+        {
+            Console.WriteLine(vLine);
+        }
+
+        if (!vReport.IsSupported)
+        {
+            Console.Error.WriteLine(
+                $"{ProvenanceCheck}: the configured store cannot answer this question.");
+            return 1;
+        }
+
+        return vReport.HasOrphans ? 1 : 0;
     }
 
     /// <summary>Reads <c>--user &lt;id&gt;</c> from the command line.</summary>

@@ -409,6 +409,26 @@ public static class ParityReasons
 
     /// <summary>The reference script cannot be hashed — absent, unreadable, or never recorded.</summary>
     public const string ScriptUnavailable = "script-unavailable";
+
+    /// <summary>
+    /// The store holds rows on a <c>source_sha</c> no sync or import ever obtained (REQ-NFR-019).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// BRD-143. A passing parity diff is not a licence to quote: provenance the store never obtained is
+    /// invisible to the diff until the counts happen to disagree with upstream, which is how 155 rows
+    /// carrying two invented SHAs survived until 2026-08-29. The reason is deliberately distinguishable
+    /// from <see cref="ScriptChanged"/> and <see cref="ParserChanged"/> — those say the <i>evidence</i>
+    /// went stale, this says the <i>data</i> is not what it claims to be, and the fixes are different.
+    /// </para>
+    /// <para>
+    /// It is a new <b>reason</b>, not a new key: <c>tflens.json</c>'s <c>parity</c> object still carries
+    /// exactly <c>status</c> and <c>status_reason</c>, and <c>extras</c> and <c>parity</c> are still the
+    /// only two top-level keys beyond the reference's, so <c>tools/parity-compare.py</c> walks the
+    /// document with no mapping layer (REQ-FN-058).
+    /// </para>
+    /// </remarks>
+    public const string ProvenanceOrphan = "provenance-orphan";
 }
 
 /// <summary>The parity stamp evaluated against this build — the status and the reason behind it.</summary>

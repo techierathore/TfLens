@@ -6,6 +6,7 @@ using TfLens.Core;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
 using TfLens.Core.Import;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Services.Sync;
 
@@ -226,6 +227,19 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
 
             return new RepoSyncResult(aRepo.Repo, SyncOutcome.Skipped, vSha ?? aPrevious.LastSha, 0, null);
         }
+
+        // REQ-NFR-019 clause 1 / BRD-143 — the ledger entry is written at the moment the SHA was
+        // actually obtained from GitHub, BEFORE any row carrying it exists. That ordering is the whole
+        // point: a row can only be accounted for by a claim some ingest path made first, so a row seeded
+        // straight into the tables has nothing behind it and the audit reports it. "SyncState" alone
+        // could not serve — it keeps only the newest SHA, while the store legitimately holds rows from
+        // every earlier sync.
+        await aWork.Store
+            .RecordSourceProvenanceAsync(
+                new SourceProvenanceRecord(
+                    aRepo.UserId, aRepo.Repo, vSha, ProvenanceKinds.Api, Timestamp()),
+                aCancellationToken)
+            .ConfigureAwait(false);
 
         var vCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var vWritten = 0;

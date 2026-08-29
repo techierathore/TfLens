@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TfLens.Core.Contracts;
+using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Export;
 
@@ -153,6 +154,48 @@ public sealed record ParityRecord
         return string.Equals(vRecorded, vCurrent, StringComparison.Ordinal)
             ? new ParityStamp(ParityStatuses.Quotable, ParityReasons.Current)
             : new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ScriptChanged);
+    }
+
+    /// <summary>
+    /// Decides quotability with the stored data's provenance taken into account (REQ-NFR-019 clause 4).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// BRD-143. <see cref="EvaluateFor"/> answers "is the <b>evidence</b> still current" — the parser
+    /// and the reference script the comparison was run against. This adds the question the 2026-08-29
+    /// parity re-run showed the evidence cannot answer: <b>is the data the comparison ran over actually
+    /// the repositories' data</b>. A stored <c>source_sha</c> that no sync and no import ever obtained
+    /// makes an exported figure unreproducible by the person checking it, which is the same failure a
+    /// changed reference script produces and is refused for the same reason.
+    /// </para>
+    /// <para>
+    /// <b>Provenance is checked first</b> and its verdict wins. A store carrying invented rows is not
+    /// quotable whatever the stamp says, and reporting "the parser moved on" while the numbers are
+    /// fabricated would send the reader to the wrong fix. There is no argument, setting or overload that
+    /// skips the check: a caller that has an audit passes it, and one that has none is simply not
+    /// asserting anything about the data (BRD-89 / REQ-NFR-009).
+    /// </para>
+    /// </remarks>
+    /// <param name="aRecord">The last parity record, or <c>null</c>.</param>
+    /// <param name="aParserVersion">The parser version that produced the figures.</param>
+    /// <param name="aReferenceScriptPath">Path of the reference script.</param>
+    /// <param name="aAudit">
+    /// The provenance audit over the data being published, or <c>null</c> when none was run. An
+    /// <see cref="ProvenanceAuditReport.IsSupported"/> of <c>false</c> makes no claim either way.
+    /// </param>
+    /// <returns>The status and the reason behind it.</returns>
+    public static ParityStamp EvaluateWithProvenance(
+        ParityRecord? aRecord,
+        string aParserVersion,
+        string? aReferenceScriptPath,
+        ProvenanceAuditReport? aAudit)
+    {
+        if (aAudit is { HasOrphans: true })
+        {
+            return new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ProvenanceOrphan);
+        }
+
+        return EvaluateFor(aRecord, aParserVersion, aReferenceScriptPath);
     }
 
     /// <summary>

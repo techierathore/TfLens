@@ -2,7 +2,7 @@
 project: TfLens
 stack: .NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose
 last_updated: 2026-08-29
-current_phase: Build — mockup parity repaired; local-dev database un-pinned; 15 UI REQs + REQ-NFR-011 awaiting a verifier run
+current_phase: Build — the mockup-parity gate now exists and immediately demoted 8 screens
 last_verified_build: PASS
 last_verified_date: 2026-08-29
 ---
@@ -20,59 +20,57 @@ last_verified_date: 2026-08-29
 
 ## Where I am
 
-**Two owner reports today, both about things every gate passed.**
+**`REQ-FN-058` is fixed and `Verified`, so the export's figures are honest again.** `MetricsEngine.DeclaredProjectType` took `.FirstOrDefault()` with no ordering and returned whichever record the store handed back first; it now ranks all four streams by instant and returns the repository's **current** declaration, which is what the reference reads. `project_type` and `stale_types` for the reclassified TfLens repo now read `app` / `docs` on **both** sides. The before/after was measured, not quoted — the old body was restored, rebuilt and re-compared (3 findings), then the fix restored (1 finding). **The surviving finding is not a defect:** `pooled.session_duplicates_collapsed` 45 vs 7 is the counter reading `presented − stored` across the whole 34-file archive while the reference sees one pinned snapshot per repo, matching the 2026-08-29 adjudication.
 
-**1. Mockup parity.** 18 mockups vs the running app: 13 of 14 comparable screens had drifted, against a checklist reading 145 `Verified`. All 15 REQs repaired. `/harness` rendered figures in a **71px** column so `Cache read 2,287,975,139` broke across three lines **mid-number** (now 149px, one line, with the mockup's pass-share bar); `/routing` had escaped the shell's scroll container — `document.scrollHeight` **2607px against a 900px viewport** — because `.tflens-page` was `position: static` (now 900/900 everywhere).
+**The two most consequential rows were built — and both are `Implemented`, not `Verified`, on purpose.** `BRD-143`/`BRD-144` were appended *before* either was built, so neither is inferred from a UAT finding any more. `REQ-NFR-019` enforces provenance at three layers, including CHECK constraints that refuse the raw-SQL path the 155 fabricated rows actually used, and it **proved detection end to end** (clean → orphan injected under test user 3 → NOT QUOTABLE → cleaned → QUOTABLE). `REQ-NFR-020`'s gate proved it can **catch**, and that catch-proof found a bug in the gate itself: a column crushed to 18px returned `null` instead of the worst overflow, so it had been silently passing the most broken column it could meet.
 
-**2. The local development database was one nobody chose.** The `build-phase` run of `2026-08-28T04:46:59Z` ran `docker compose up -d postgres`, creating `tflens-postgres` on port 5433 **at that same second** and stopping **`WinPostgre`** — this machine's actual local dev server on 5550, which also hosts **`AppMngrDb`**, the AppManager database TfLens authenticates against. It went unnoticed for a day because **the same connection string was hard-coded in five places** (`TfLensOptions.LocalDevelopmentConnection`, `PostgresFixture.LocalDefault`, and three separate `const`s in the Core DB tests), all naming `Port=5433` with the password inline. Every layer agreed with every other layer, so nothing could disagree loudly enough to fail — and the DevGuide, `.env.example`, the startup error message and two guardrail tests all *instructed and enforced* that arrangement. All five copies are gone; there is now **no database default in any environment**; `TfLens:DbConnection` and `TfLens:AppManagerAppId` live in the user-secrets store; and the tests resolve the connection exactly the way the app does, so they can never drift onto a different server again. Data migrated to `WinPostgre` with **verified row parity on every table**.
-
-**What links them is the same thing the telemetry already said:** `insufficient-verify-method` is the largest `why_missed` category and the `app` escape rate is **91%**. The gates measure whether something is alive, not whether it is right — and in the database case they measured five copies of one assumption agreeing with each other.
+**The new gate immediately demoted 8 previously-`Verified` screens — which is the whole point of it.** 44 findings over 21 screens. `framework-switch` renders as plain text with no track where the mockup draws a badge, on all six report pages: **12 findings, and the entire verdict for three screens.** `drift-table` breaks `claude-opus-5` and `fix-issues` mid-token — the exact failure BRD-144 was written around, invisible to render-truth and visual-truth because the text is present and nothing overlaps.
 
 ## Next command to run
 
 ```
-/TechieFlow:agents:verifier *verify all
+/TechieFlow:agents:flow-master *build-phase TfLens
 ```
-15 UI REQs plus `REQ-NFR-011` sit at `Implemented` / `Needs re-verify` — the ceiling for a self-smoke; only an executed verify-phase writes `Verified` (`guard-verify.sh` enforces it).
-
-**One thing is yours, and it is destructive so I did not do it.** `tflens-postgres` is stopped with its restart policy cleared, but the container and its `pgdata` volume still exist. Its data is in `WinPostgre` with verified parity, and a dump is at `/tmp/tflens-from-stray-container-2026-08-29.sql`. To remove it:
-```bash
-docker rm tflens-postgres && docker volume rm tflens_pgdata
-```
+FIX mode over the 8 drifted UI rows. Start with **`REQ-UI-010`** — one control, clears three screens outright and leads on three more.
 
 ## Open requirements
-- `Implemented` — the **15 UI REQs repaired today**; each carries its measured before/after in the checklist Remarks. Awaiting the verifier, not more work
-- `Planned` — **`REQ-NFR-020`** a built screen is graded against its approved mockup, mechanically. **The root cause. Nothing on this list recurs less until it exists**
-- `Needs re-verify` — **`REQ-NFR-011`** local-development configuration: no database default anywhere, connection + app id in user secrets, tests resolving the connection the way the app does
-- `Planned` — `REQ-NFR-019` stored provenance is real: no row may claim a `source_sha` no sync obtained
-- `Needs re-verify` — `REQ-FN-067` / `REQ-FN-070` Playbook-native figures — owner-gated on a repository that emits `events.ndjson`
+- `Needs re-verify` — **`REQ-UI-010`** framework switch has no badge chrome on 6 pages (12 findings). **The single highest-value fix on this list**
+- `Needs re-verify` — **`REQ-UI-027`** (18) · **`REQ-UI-037`** (4) · **`REQ-UI-014`** (2) formatted values break mid-digit in too-narrow cells
+- `Needs re-verify` — **`REQ-UI-011`** (6) row wrap · **`REQ-UI-036`** (2) `kpi-rework-usd` green in the mockup, neutral in the app
+- `Needs re-verify` — **`REQ-UI-001`** / **`REQ-UI-003`** document escapes the scroll container @390 (122px / 14px) where the mockup does **not** scroll
+- `Implemented` — **`REQ-NFR-019`** built; 4 named gaps below · **`REQ-NFR-020`** built; clause 3 (`gates_run`) unwired
+- `Needs re-verify` — `REQ-FN-067` / `REQ-FN-070` owner-gated on a repo emitting `events.ndjson`; unchanged
 - `N/A` — `REQ-FN-012` GitHub SSO, deferred by BRD-94 / ADR-012
 
 ## Known blockers
-- **OWNER — no repository emits `events.ndjson`**, so the Playbook axis has 0 repos. The four Playbook mockups are **not comparable** and were not counted as drift.
-- **OWNER — remove the stray container when you are ready** (command above). Stopped and un-pinned, but `docker rm` + `docker volume rm` are destructive, so they are yours.
-- **OWNER — `docs/mockups/profile.html` is wrong and should be corrected.** It says passwords are RSA-encrypted "before they leave the **browser**". This is Blazor Server: `AppManagerClient.Encrypt` (`AppManagerClient.cs:281`) runs RSA-OAEP-SHA256 **server-side**. The app's "server" wording is accurate; the triage's claim that it misstated a security property was **withdrawn**, and the mockup is the artefact to fix.
-- **UPSTREAM — TF-008 raised today (High):** no mockup-parity gate. Same shape as TF-007 one day earlier.
+- **OWNER — is BRD-144 clause 2 meant to bind the anonymous auth routes?** `/register` and `/reset-password` overflow, but **their approved mockups scroll too**. The clause is worded absolutely yet says *app-shell* scroll container, and those four routes sit outside the shell. Left `Verified` and logged as `MISS-…-29` rather than resolved by the agent that benefits from either answer.
+- **OWNER — `REQ-NFR-019` still cannot see a poisoned raw `.jsonl` replayed by `rebuild`**, which is *half of what happened on 2026-08-29*. The raw archive must be a provenance oracle because `SyncState` keeps only the newest SHA while user 2 holds rows on 8 SHAs. Making the ledger the sole oracle is a one-time adoption decision on live data.
+- **OWNER — legacy harness rows under `userId 9001`** sit below the new 90000 reserved floor and are technically exportable. Not purged; deletion is yours.
+- **OWNER — remove the stray container:** `docker rm tflens-postgres && docker volume rm tflens_pgdata`. Data is in `WinPostgre` with verified parity.
+- **OWNER — `docs/mockups/profile.html` is wrong** (claims RSA-in-browser; this is Blazor Server). The app's wording is correct — the mockup is the artefact to fix.
+- **`REQ-NFR-008` — order-dependent instability in the verify suite, recorded not dismissed.** `ui-misses.spec.ts` failed in **both** full runs at a **different test each time**, and passes **9/9 twice in isolation**. Pre-existing: the 2026-08-29 occurrence predates the new gate. It was written off as flake once already.
+- **UPSTREAM — TF-008 open:** wiring `mockup-parity` into `gates_run` needs a `.tfcore/` change that `REQ-NFR-018` forbids this repo from making.
 - **UPSTREAM — TF-005 open**: `analyse_misses` averages an unrecorded `tokens_out` as zero. Latent only.
 
 ## Verification log
 | Date | Phase | Result | Status table |
 |------|-------|--------|--------------|
-| 2026-08-29 | **BRD §13 parity re-run + verifier** | Parity **PASS, 0 findings**, `/export` QUOTABLE after purging 155 fabricated-provenance rows · 638/638 .NET · 79/82 Playwright | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **`*triage-issues`** (analyse-only, mockup parity) | 18 mockups vs the running app at 1280x900; **14 comparable, 13 drifted, 20 findings**; **15 REQs demoted**, 1 new `Planned` (`REQ-NFR-020`); 16 `escaped` gate records + 16 misses. **Zero source/test files modified** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **`*log-miss`** x2 | `MISS-…-21` the DevGuide and the code disagreed on whether `Connected repos` may plot a trend — **resolved in the code's favour**: `ConnectedTs` IS stored history, the docs were stale and were corrected. `MISS-…-22` a filter fix declared complete 2026-08-28 was not true in the shipped page (measured x=313, y=482) | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **`*fix-issues` — the local-dev database** | `tflens-postgres` (created by the `2026-08-28T04:46:59Z` build-phase run, **not** by this session) stopped and un-pinned; **5 hard-coded copies** of one connection string removed; DB connection + app id moved into user secrets; DevGuide setup, `.env.example`, `secrets.example.json` and both startup messages rewritten to stop telling developers to stand up a second server; 2 guardrail tests inverted to forbid what they used to require. Data migrated to `WinPostgre` — **row parity exact on all 7 tables**. **638/638 .NET**, integration suite now running against `WinPostgre`; app smoked end-to-end, 0 console errors. `MISS-…-23` (the pinning) + `MISS-…-24` (mine: used the container and read past the inline password without questioning either) | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **`*fix-issues` — mockup parity** | All 15 REQs repaired to `Implemented`. Build **PASS, 0 warnings** · **638/638 .NET** · **Playwright 79 passed / 0 failed / 3 skipped (15.9m, exit 0)** — fully green. The first post-fix run showed 1 failure which was **not a regression**: `ui-coverage-misses.spec.ts` hard-coded `TechieRag`, a repo this workspace no longer connects (TfLens is connected in its place), so its selector returned `[]` while every connected repo rendered all five stream rows correctly. The spec now reads the repo list **from the page**, which is the assertion it always meant to make — a literal list fails on a swap and, worse, silently passes over a repo that was removed · **0 console errors on all 18 screen captures** · mobile 390: no horizontal scroll on any route, no document-scroll escape · header **105px → 64px**, harness value column **71px → 149px**, `/routing` doc **2607px → 900px**, `Days since` visible again. **→ 130 Verified / 15 Implemented / 2 Needs re-verify / 2 Planned / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*amend-docs` + `*build-phase` + `*verify all`** | **BRD-143 / BRD-144 appended before build**; §13 gained a second standing rule, §14 two criteria, F-OPS reopened. 3 clusters fanned out. Build **PASS 0 warnings**; **.NET 683/683 serial**; Playwright 2 full runs **78/85 then 79/85**, 3 skipped. `rebuild` replayed **34 files / 1101 records / 0 invalid** through the new provenance write-path. Parity: FN-058's two keys match the reference exactly; 1 finding, adjudicated dataset-shape. **New `mockup-parity` gate: 1 PASS / 11 FAIL / 6 SKIPPED / 3 NO-MOCKUP, 44 findings** → 8 UI rows demoted. `REQ-FN-058` → **Verified**; `REQ-NFR-019` / `REQ-NFR-020` → **Implemented** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **Purge of the 155 fabricated rows + BRD §13 parity re-run** | Purged exactly **155** plus the **8 poisoned raw files**; `rebuild --user 2` → 34 files, 1101 records, **0 invalid**. Parity FAILED with the inverted `project_type` — **fixed above**. TechieFlow's gate data was 100% fabricated (34 → 0) | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*verify all`** (Release, all 4 gates) | **145 of 150 `Verified`** (+17). Perf gate credited for the first time — `REQ-NFR-001` p95 **172.2 ms** vs a 1500 ms budget. Booted with **no `TfLens*` env var**, which is `REQ-NFR-011`'s acceptance observed rather than argued | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*triage-issues`** (analyse-only, mockup parity) | 18 mockups vs the running app; **14 comparable, 13 drifted, 20 findings**; 15 REQs demoted, `REQ-NFR-020` raised. **Zero source files modified** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*fix-issues` — the local-dev database** | `tflens-postgres` stopped and un-pinned; **5 hard-coded copies** of one connection string removed; data migrated to `WinPostgre` with **exact row parity on all 7 tables** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 
 ## Library feedback summary
-- **TrBlazeUI: 20 entries, all open.** **TR-016** (no info/success/warning Badge variant) is behind several of today's "badge rendered as plain text" findings. Noted for a future entry: `SelectContent.DisposeAsync` throws `JSDisconnectedException` on circuit teardown — harmless, but the library should swallow it.
-- **TechieFlow framework: 8 entries, 3 open** — **TF-008 added today** (no mockup-parity gate) · TF-007 · TF-005.
+- **TrBlazeUI: 20 entries, all open** (highest TR-023). None added today — the `framework-switch` chrome is app-level composition, and the theme-toggle icon finding was anchoring plus a recorded decision, not a library gap.
+- **TechieFlow framework: 8 entries, 3 open** — TF-008 (no mockup-parity gate — **this session built the app-side half**) · TF-007 · TF-005.
 - **AppManager: 2 entries, both resolved.** TechieRag: 0 — not used (ADR-003).
 
 ## Standards compliance (last check)
-- `TfLens.Guardrails.Tests` **95/95**. Also repaired today: **6 checklist status rows carried unescaped `|` inside their Remarks** and rendered as broken table rows; all 150 rows are now well-formed.
+- `TfLens.Guardrails.Tests` **104/104**. **9 rows in the Requirements Status table carry stray unescaped pipes** (`REQ-UI-005/011/012/023/032/040/041`, `REQ-NFR-011`, `REQ-FN-087`) and therefore mis-split their cells. This session's writer located `Status` by its enum value and `Details` by its `[view]` link instead of by position, so it added no new corruption — but `REQ-UI-040`'s lost 2026-08-28 owner remark is still lost and still needs one `git show`, which is yours to run.
 
 ## Deferred / future
 - GitHub SSO (BRD-94 → REQ-FN-012) — waits on an AppManager external-login endpoint
-- **Sparklines on 3 of 4 Coverage tiles and 2 of 3 Three-questions tiles are deliberately NOT built.** The mockups draw them; `Newest record age`, `Sync errors` and `Last successful sync` have no stored series behind them, and a line through invented points is what BRD §1 exists to forbid. Recorded as a deviation, not a gap
-- The Coverage repo-card header runs to two rows because it carries a `Synced`/`Imported` source badge the mockup predates (REQ-UI-042 / BRD-136) — removing a required badge to match an older drawing would be the wrong fix
+- **Sparklines on 3 of 4 Coverage tiles and 2 of 3 Three-questions tiles are deliberately NOT built** — no stored series behind them, and a line through invented points is what BRD §1 forbids. The mockup-parity allow-list carries these as `UNUSED`: those mockups have no `kpi-*` anchors, so the gate cannot reach them either way
+- The Coverage repo-card header runs to two rows because it carries a `Synced`/`Imported` badge the mockup predates (REQ-UI-042 / BRD-136)
+- **Chart series colours are ungraded** — canvas/SVG carry no per-series anchor on either side, though BRD-144 names them

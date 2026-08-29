@@ -251,6 +251,12 @@ Options: `--user <id>` narrows a verb to one user (required for `export`), and
 `--framework <techieflow\|playbook>` selects the provenance axis for `export` (default
 `techieflow`).
 
+`provenance-check` (REQ-NFR-019 / BRD-143) reports every stored `source_sha` that no sync and no
+import ever obtained, comparing the stream tables against the `"SourceProvenance"` ledger, the
+`"SyncState"` SHA, the `"UserRepo"."BundleSha"` and the raw archive. It makes **no network call**, it
+has no ignore or force switch, and it exits non-zero on a finding. `/export` refuses to stamp a
+snapshot QUOTABLE while one stands, with `parity.status_reason = provenance-orphan`.
+
 ### In a container
 
 ```bash
@@ -259,6 +265,8 @@ docker exec tflens dotnet TfLens.dll sync    --user 2
 docker exec tflens dotnet TfLens.dll rebuild
 docker exec tflens dotnet TfLens.dll rebuild --user 2
 docker exec tflens dotnet TfLens.dll export  --user 2 --framework techieflow
+docker exec tflens dotnet TfLens.dll provenance-check
+docker exec tflens dotnet TfLens.dll provenance-check --user 2
 ```
 
 ### From a published build
@@ -268,6 +276,7 @@ dotnet publish src/TfLens -c Release -o out
 dotnet out/TfLens.dll sync
 dotnet out/TfLens.dll rebuild
 dotnet out/TfLens.dll export --user 2 --framework techieflow
+dotnet out/TfLens.dll provenance-check
 ```
 
 ### From the source tree

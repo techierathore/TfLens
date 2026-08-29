@@ -115,12 +115,21 @@ public sealed class SnapshotExporter : ISnapshotExporter
     /// <returns>Where the two files were written and what stamp they carry.</returns>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     /// <exception cref="IOException">The reports folder could not be written.</exception>
+    /// <exception cref="Provenance.ProvenanceException">
+    /// The user id is in the harness band reserved by <see cref="Provenance.ReservedUserIds"/>
+    /// (REQ-NFR-019 clause 2) — a seeded id has no published figure, by construction.
+    /// </exception>
     public async Task<SnapshotResult> ExportAsync(
         int aUserId,
         string aFramework,
         DateOnly aDate,
         CancellationToken aCancellationToken = default)
     {
+        // REQ-NFR-019 clause 2 — the export is the publication surface, so it is where the reserved
+        // harness band has to bite. Seeded rows stay visible to the smoke that wrote them and can never
+        // become a figure anybody quotes.
+        Provenance.ProvenanceRules.RefuseReservedUser(aUserId);
+
         var vInputs = await GatherAsync(aUserId, aFramework, aDate, aCancellationToken).ConfigureAwait(false);
         var vFolder = FolderFor(aUserId, aFramework, aDate);
         Directory.CreateDirectory(vFolder);
@@ -265,10 +274,26 @@ public sealed class SnapshotExporter : ISnapshotExporter
 
         var vParity = ParityRecord.Read(objOptions.ParityLastPath);
 
+        // REQ-NFR-019 clause 4 / BRD-143 — the data's own provenance, checked without a network call
+        // and without comparing counts against GitHub. A row on a source_sha no sync or import ever
+        // obtained refuses QUOTABLE for the same reason a changed reference script does: the figure
+        // cannot be reproduced by the person checking it.
+        var vAudit = await objStore.AuditProvenanceAsync(aUserId, aCancellationToken).ConfigureAwait(false);
+
+        if (vAudit.HasOrphans)
+        {
+            objLogger.LogWarning(
+                "Snapshot for user {UserId} is not quotable: {Sources} source SHA(s) over {Rows} row(s) "
+                + "have no sync or import behind them",
+                aUserId,
+                vAudit.Orphans.Count,
+                vAudit.OrphanRows);
+        }
+
         // REQ-FN-063 — the stamp is checked against BOTH invalidators: the parser version and the hash
-        // of the reference script the recorded run was compared with.
-        var vStamp = ParityRecord.EvaluateFor(
-            vParity, vAnalysis.ParserVersion, objOptions.ResolveReferenceScriptPath());
+        // of the reference script the recorded run was compared with; REQ-NFR-019 adds the third.
+        var vStamp = ParityRecord.EvaluateWithProvenance(
+            vParity, vAnalysis.ParserVersion, objOptions.ResolveReferenceScriptPath(), vAudit);
 
         return new SnapshotInputs(
             aUserId,

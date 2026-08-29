@@ -419,3 +419,77 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UcPbEventMarker"
 CREATE INDEX IF NOT EXISTS "IxPbEventUserRepo" ON "PbEvent" ("UserId", "Repo");
 
 CREATE INDEX IF NOT EXISTS "IxPbEventPhaseGate" ON "PbEvent" ("UserId", "Repo", "PhaseGate");
+
+-- ---------------------------------------------------------------- provenance (REQ-NFR-019 / BRD-143)
+
+-- The ledger of dataset identities an ingest path states it ACTUALLY OBTAINED.
+--
+-- On 2026-08-29 the BRD §13 parity re-run found 155 rows across "Gate"/"Run"/"Session"/"Commit"
+-- carrying two "SourceSha" values that do not exist in their repositories. They had been seeded
+-- straight into the tables, and the only reason anyone noticed is that the counts disagreed with
+-- upstream — had there been fewer rows the numbers would have looked plausible and been wrong. A
+-- "SourceSha" is what BRD §13 pins a quotable figure to and what /export publishes as dataset
+-- identity, so an invented one makes an exported number unreproducible by the person checking it.
+--
+-- This table is the oracle that makes such a row detectable WITHOUT a network call: the sync writes a
+-- row here at the moment it fetches, the import writes one at the moment it commits a bundle, and
+-- ProvenanceAudit reports any stored "SourceSha" that matches no entry here, no "SyncState"."LastSha",
+-- no "UserRepo"."BundleSha" and no raw-archive file name.
+CREATE TABLE IF NOT EXISTS "SourceProvenance" (
+    "UserId"     integer NOT NULL,
+    "Repo"       text    NOT NULL,
+    "SourceSha"  text    NOT NULL,
+    "Kind"       text    NOT NULL,   -- api | import | archive
+    "ObtainedTs" text    NOT NULL,
+    CONSTRAINT "PkSourceProvenance" PRIMARY KEY ("UserId", "Repo", "SourceSha")
+);
+
+CREATE INDEX IF NOT EXISTS "IxSourceProvenanceUser" ON "SourceProvenance" ("UserId");
+
+-- Adoption of what is already known, run on every startup because it derives ONLY from facts an ingest
+-- path recorded: the SHA a sync stamped onto "SyncState", and the bundle sha256 an import stamped onto
+-- "UserRepo". It can never manufacture provenance for a SHA nobody obtained, so it is idempotent and
+-- safe to repeat. Rows already present are left exactly as they are.
+INSERT INTO "SourceProvenance" ("UserId", "Repo", "SourceSha", "Kind", "ObtainedTs")
+SELECT "UserId", "Repo", "LastSha", 'api', COALESCE("LastSyncTs", '')
+FROM "SyncState"
+WHERE "LastSha" IS NOT NULL AND btrim("LastSha") <> ''
+ON CONFLICT ON CONSTRAINT "PkSourceProvenance" DO NOTHING;
+
+INSERT INTO "SourceProvenance" ("UserId", "Repo", "SourceSha", "Kind", "ObtainedTs")
+SELECT "UserId", "Repo", "BundleSha", 'import', "ConnectedTs"
+FROM "UserRepo"
+WHERE "BundleSha" IS NOT NULL AND btrim("BundleSha") <> ''
+ON CONFLICT ON CONSTRAINT "PkSourceProvenance" DO NOTHING;
+
+-- REQ-NFR-019 clause 1, second layer. StreamParser.Parse refuses a blank source SHA, but the 155 rows
+-- arrived through raw SQL, which is exactly the layer the application does not control. PostgreSQL
+-- enforces the same rule for every writer: a stream row with no provenance at all cannot exist.
+-- Wrapped so the file stays idempotent — ALTER TABLE ... ADD CONSTRAINT has no IF NOT EXISTS.
+--
+-- The existence test is NOT decoration. This script is re-applied by every startup AND by every
+-- `rebuild`, and ALTER TABLE takes an ACCESS EXCLUSIVE lock the moment it is attempted — even when it
+-- is about to fail as a duplicate and be rolled back. Attempting it unconditionally deadlocked the
+-- Postgres-backed test classes against each other within minutes of being added. Checking
+-- pg_constraint first means an established database takes no lock at all.
+DO $$
+DECLARE
+    vTable text;
+    vName  text;
+BEGIN
+    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'PbEvent']
+    LOOP
+        vName := 'Ck' || vTable || 'SourceShaPresent';
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = vName AND conrelid = format('%I', vTable)::regclass)
+        THEN
+            EXECUTE format(
+                'ALTER TABLE %I ADD CONSTRAINT %I CHECK (btrim("SourceSha") <> '''')',
+                vTable,
+                vName);
+        END IF;
+    END LOOP;
+END
+$$;
