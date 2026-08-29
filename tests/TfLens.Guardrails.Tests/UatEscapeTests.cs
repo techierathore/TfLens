@@ -96,31 +96,38 @@ public sealed class UatEscapeTests
     }
 
     /// <summary>
-    /// REQ-NFR-011 — the Compose password and the code's Development fallback still agree.
+    /// REQ-NFR-011 — Compose's two halves agree with each other, and no password lives in source.
     /// </summary>
     /// <remarks>
-    /// <c>docker compose up -d postgres</c> interpolates <c>TfLensDbPassword</c> from <c>.env</c>, while
-    /// <c>dotnet run</c> falls back to <see cref="TfLens.Core.TfLensOptions.LocalDevelopmentConnection"/>.
-    /// If the two disagree, Compose brings up a database the app cannot authenticate against, and the
-    /// error names the database rather than the file that caused it.
+    /// Rewritten 2026-08-29 (owner report, MISS-TfLens-20260829-23). This used to assert that
+    /// <c>.env.example</c>'s <c>TfLensDbPassword</c> matched a hard-coded Development fallback in
+    /// <c>TfLensOptions</c>. Keeping those two in step was a real onboarding fix, but the mechanism was
+    /// wrong: it required a database password to exist in committed source, and it pinned every
+    /// unconfigured developer to one specific server. The fallback is gone — local development reads
+    /// <c>TfLens:DbConnection</c> from user secrets — so what is left to pin is that COMPOSE agrees
+    /// with itself, plus the rule that put us here: no password in source, ever.
     /// </remarks>
     [Fact]
-    public void ComposePasswordMatchesTheDevelopmentFallback()
+    public void ComposeAgreesWithItselfAndNoPasswordLivesInSource()
     {
-        var vEnvExample = File.ReadAllText(Path.Combine(RepositoryRoot(), ".env.example"));
+        var vCompose = File.ReadAllText(Path.Combine(RepositoryRoot(), "docker-compose.yml"));
 
-        var vDeclared = vEnvExample
-            .Split('\n')
-            .Select(aLine => aLine.Trim())
-            .FirstOrDefault(aLine => aLine.StartsWith("TfLensDbPassword=", StringComparison.Ordinal));
+        vCompose.Should().Contain("Password=${TfLensDbPassword}",
+            "the app's compose connection string must interpolate the same variable the postgres service takes");
+        vCompose.Should().Contain("POSTGRES_PASSWORD: ${TfLensDbPassword",
+            "the postgres service must take its password from that same variable");
 
-        vDeclared.Should().NotBeNull(".env.example must declare TfLensDbPassword for the compose service");
+        foreach (var vRelative in new[]
+                 {
+                     Path.Combine("src", "TfLens.Core", "TfLensOptions.cs"),
+                     Path.Combine("src", "TfLens", "Program.cs"),
+                 })
+        {
+            var vSource = File.ReadAllText(Path.Combine(RepositoryRoot(), vRelative));
 
-        var vPassword = vDeclared!["TfLensDbPassword=".Length..].Split('#')[0].Trim();
-
-        TfLens.Core.TfLensOptions.LocalDevelopmentConnection.Should().Contain(
-            $"Password={vPassword}",
-            "the compose password and the app's Development fallback must be the same value, or the container and the app disagree");
+            System.Text.RegularExpressions.Regex.Matches(vSource, "Password=[A-Za-z0-9]")
+                .Should().BeEmpty($"{vRelative} must not carry a database password, throwaway or not");
+        }
     }
 
     /// <summary>

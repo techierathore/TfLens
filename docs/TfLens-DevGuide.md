@@ -144,25 +144,37 @@ TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing 
 
 Same three steps on every OS. Run them from the repository root.
 
-**1. Start the database (once).**
+**1. Point TfLens at a PostgreSQL server you already run.**
+
+TfLens does **not** start a database for you, and as of 2026-08-29 it has **no default connection
+string in any environment**. Use whatever PostgreSQL you already have on the machine — you almost
+certainly have one, and standing up a second server per project is how you end up with two.
 
 ```bash
-cp .env.example .env            # Windows: copy .env.example .env
-docker compose up -d postgres
+dotnet user-secrets set "TfLens:DbConnection" \
+  "Host=localhost;Port=<your-port>;Database=tflens;Username=<user>;Password=<password>" \
+  --project src/TfLens
 ```
 
-PostgreSQL 16 comes up as the container `tflens-postgres` on **localhost:5433**. `.env` is needed
-*here only* — Compose reads it; the app never does. Leave `TfLensDbPassword=tflensdev` alone: it is
-the password inside the app's Development fallback connection string, and if the two disagree you get
-a database the app cannot authenticate against.
+Create an empty `tflens` database on that server first — that is all it needs. You do **not** need to
+create the schema: `database/001-schema.sql` is idempotent and is applied at every startup (ADR-015).
 
-**2. Put your settings in user secrets (once).**
+> **This step used to read `docker compose up -d postgres`, and that instruction was the bug.**
+> Following it stands up a second PostgreSQL container, `tflens-postgres` on port 5433, beside the one
+> the machine already runs — and because the app also carried a matching hard-coded fallback, nothing
+> ever surfaced that a new server had appeared or that the old one had been stopped. That is exactly
+> what happened here on 2026-08-28 (`MISS-TfLens-20260829-23`). The compose `postgres` service still
+> exists and is still correct **for running the whole stack in containers** (`docker compose up`); it
+> is not the local-development database and this guide no longer presents it as one.
+
+**2. Put your remaining settings in user secrets (once).**
 
 `src/TfLens/secrets.example.json` is the **complete** configuration surface — every setting TfLens
-reads, secret or not, with its default. Copy the block into your own `secrets.json` and fill in only
-what you need. That file lives outside the repository and cannot be committed.
+reads, secret or not. Copy the block into your own `secrets.json` and fill in what you need. That file
+lives outside the repository and cannot be committed.
 
 ```bash
+dotnet user-secrets set "TfLens:AppManagerAppId"     "1" --project src/TfLens
 dotnet user-secrets set "TfLens:AppManagerApiKey"    "…" --project src/TfLens
 dotnet user-secrets set "TfLens:AppManagerApiSecret" "…" --project src/TfLens
 ```
@@ -179,65 +191,49 @@ dotnet run --project src/TfLens          # or just press F5
 
 <http://localhost:5014>. There is **one** launch profile, `TfLens`, and it pins no connection string.
 
-> **You can skip step 2 and still sign in.** Most AppManager endpoints resolve the application from
-> the `applicationId` in the request body. Only `/AuthSvc/forgot-password` and `/AuthSvc/reset-password`
-> take the app scope from the key headers, so **password reset is the part that dies without the pair**.
-> Supply it whole or not at all — a half-pair is refused at startup (see the configuration table).
+> **`TfLens:DbConnection` and `TfLens:AppManagerAppId` are both REQUIRED** — startup fails with a
+> message naming the setting and the command to set it, rather than guessing a server or an
+> application. The AppManager **key/secret pair** is separate: most endpoints resolve the application
+> from the `applicationId` in the request body, so you can sign in without it. Only
+> `/AuthSvc/forgot-password` and `/AuthSvc/reset-password` take the app scope from the key headers, so
+> **password reset is the part that dies without the pair.** Supply it whole or not at all — a
+> half-pair is refused at startup.
 
-### Where the development default comes from
+### Where each setting comes from
 
-TfLens **refuses to start without a database** rather than starting and failing at the first user's
-sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on
-where a new developer's connection string comes from — so in Development, and only in Development,
-`TfLensOptions.LocalDevelopmentConnection` is seeded as the **lowest-priority** configuration source.
+TfLens **refuses to start without a database or an application id** rather than starting and failing at
+the first user's sign-in (BRD-9). There is no fallback for either.
 
 Priority, lowest to highest:
 
 | # | Source | Overrides the one above | Committed? |
 |---|---|---|---|
-| 1 | The Development fallback (code) | — | yes — but it is a throwaway local container credential, not a secret |
-| 2 | `appsettings.json` / `appsettings.Development.json` | yes | **yes — never put a secret here** |
-| 3 | `dotnet user-secrets` (`secrets.json`) | yes | **no — this is the local-development secrets path** |
-| 4 | Environment variables, including `TfLensDbConnection` | yes | no — this is the *deployment* path (`docker compose`, CI/CD) |
+| 1 | `appsettings.json` / `appsettings.Development.json` | — | **yes — never put a secret here** |
+| 2 | `dotnet user-secrets` (`secrets.json`) | yes | **no — this is the local-development path** |
+| 3 | Environment variables, including `TfLensDbConnection` | yes | no — this is the *deployment* path (`docker compose`, CI/CD) |
 
-So `dotnet user-secrets set TfLens:DbConnection …` works, and an environment variable beats even that.
-Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.
-
-**Rows 3 and 4 are the same settings by two routes, for two audiences.** Row 3 is how *you* run the app
-on your machine; row 4 is how a *deployment* supplies the same values. `.env` belongs to row 4 and only
-row 4 — it feeds `docker compose`, never `dotnet run`. Row 2 is deliberately the one place with no
+**Rows 2 and 3 are the same settings by two routes, for two audiences.** Row 2 is how *you* run the app
+on your machine; row 3 is how a *deployment* supplies the same values. `.env` belongs to row 3 and only
+row 3 — it feeds `docker compose`, never `dotnet run`. Row 1 is deliberately the one place with no
 secret in it at all, which is what `ConfigurationHygieneTests` enforces.
 
-> **Why not put it in the launch profile?** That was the first attempt and it was wrong. A launch
+> **There used to be a row 0: a Development-only default seeded from a `const` in `TfLensOptions`,
+> holding `Host=localhost;Port=5433;…;Password=tflensdev`.** It was removed on 2026-08-29. It put a
+> credential in committed source — defended at the time as "a throwaway local container credential,
+> not a secret", which is how credentials usually get into repositories — and, worse, it meant an
+> unconfigured developer got a *working* app pointed at a database nobody had chosen. A default nobody
+> selected is not a convenience; it is a silent decision. An error you read is better.
+
+> **Why not put it in the launch profile?** That was an earlier attempt and it was also wrong. A launch
 > profile sets an *environment variable* — the highest-priority source — so it silently overrode
-> `user-secrets`, meaning the documented way to point at your own database did nothing at all. It also
-> needed a second "own database" profile that existed only in order to fail. One profile, and a default
-> that anything can override, is the smaller and more honest design.
+> `user-secrets`, meaning the documented way to point at your own database did nothing at all.
 
-### Using your own PostgreSQL instead
+### Running the whole stack in containers
 
-Just set the value — no profile switching. Any of these beats the Development fallback:
-
-```powershell
-# PowerShell, this session only
-$env:TfLensDbConnection = "Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src\TfLens
-```
-
-```bash
-# bash
-export TfLensDbConnection="Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src/TfLens
-```
-
-Or store it on your machine only, never committed:
-
-```bash
-dotnet user-secrets set TfLens:DbConnection "Host=…" --project src/TfLens
-```
-
-You do **not** need to create the schema. `database/001-schema.sql` is idempotent and is applied at
-every startup (ADR-015); an empty database is enough.
+`docker compose up` runs TfLens **and** its own PostgreSQL, together, as a deployment would. That
+compose `postgres` service is correct and is not going anywhere — it is what `.env` and
+`TfLensDbPassword` exist for. It is simply **not** the local-development database: for `dotnet run` /
+F5, use step 1 above and your own server.
 
 ### Signing in
 
@@ -264,12 +260,12 @@ variables onto `TfLens:*` configuration keys, which is why application code read
 
 | Setting | Required | What it is |
 |---|---|---|
-| `TfLensDbConnection` | **Yes** | Npgsql connection string. Startup fails without it, and fails again if the database is unreachable. |
+| `TfLensDbConnection` | **Yes**, in every environment | Npgsql connection string. **No default anywhere** — point it at a PostgreSQL server you already run. Startup fails without it, and fails again if the database is unreachable. |
 | `TfLensAppManagerApiKey` | No* | AppManager API key. |
 | `TfLensAppManagerApiSecret` | No* | AppManager API secret. |
 | `TfLensGitHubToken` | No | GitHub PAT. **Raises the rate limit only** (60/hr → 5,000/hr); it grants no access a public request would not have. |
 | `TfLensAppManagerBaseUrl` | No | Defaults to `https://appmgrapi.techierathore.com`. |
-| `TfLensAppManagerAppId` | No | Defaults to `1`. |
+| `TfLensAppManagerAppId` | **Yes** | The AppManager application whose users may sign in here; TfLens is `1`. No source default as of 2026-08-29 — a wrong-but-present value sends real credentials to the wrong application and fails as an opaque 401 rather than a configuration error. `docker-compose.yml` sets it explicitly. |
 | `TfLensDataRoot` | No | Defaults to `data`. Holds `raw/`, `reports/`, `prices.json`. |
 | `TfLensPollIntervalMinutes` | No | Defaults to `15`. |
 | `TfLensStalenessDays` | No | Defaults to `7`. Drives the Coverage staleness warning. |
@@ -297,25 +293,32 @@ variables onto `TfLens:*` configuration keys, which is why application code read
 
 ### `TfLens cannot start — the database connection string is not configured`
 
-The app has no `TfLensDbConnection`. Either you are on the `TfLens (own database)` launch profile, or
-you are running the binary directly without an environment. The error message itself lists the exact
-commands for your platform. See [Running TfLens locally](#running-tflens-locally).
+Expected on a fresh clone: there is no default. Set `TfLens:DbConnection` in user secrets, pointing at
+a PostgreSQL server you already run — see *Setup* step 1. Do **not** start a new container for it.
+
+### `TfLens cannot start — TfLens:AppManagerAppId is not configured`
+
+Also expected on a fresh clone, and also deliberate — which AppManager application accepts your users
+is a property of your deployment, not of the source. For this project it is `1`:
+
+```bash
+dotnet user-secrets set "TfLens:AppManagerAppId" "1" --project src/TfLens
+```
 
 ### `TfLens cannot start — the database named by TfLensDbConnection is unreachable`
 
-The connection string is set but nothing answered. In order of likelihood:
+The connection string **is** configured, so this is about the server. In order of likelihood:
 
-1. **The container isn't running.** `docker compose up -d postgres`, then check with
-   `docker ps --filter name=tflens-postgres`.
-2. **`.env` is missing**, so Compose could not interpolate `TfLensDbPassword` and never started the
-   service. Copy `.env.example` to `.env`.
-3. **Port 5433 isn't published.** Production compose deliberately keeps Postgres off the host network;
-   `docker-compose.override.yml` publishes `5433:5432` for local development and Compose merges it
-   automatically. If you ran `docker compose -f docker-compose.yml up`, the override was skipped.
-4. **Windows + Docker in WSL.** `localhost:5433` normally works from Windows thanks to WSL2 port
-   forwarding. If it does not, confirm the container is up inside WSL and that Docker Desktop's WSL
-   integration is enabled.
-5. **Something else owns 5433.** `docker ps` and look for another Postgres.
+1. **Your PostgreSQL server isn't running.** Start it — `docker ps -a` if it is a container you
+   already have, or your local service manager.
+2. **Wrong port.** Check the port your server actually publishes and that your connection string
+   matches it.
+3. **The `tflens` database does not exist on that server.** Create it (empty is enough — the schema is
+   applied at startup).
+4. **Wrong credentials.** The user in your connection string must be able to create tables in that
+   database.
+5. **Windows + Docker in WSL.** `localhost:<port>` normally works from Windows thanks to WSL2 port
+   forwarding; if it does not, try `127.0.0.1` explicitly.
 
 ### `TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together`
 

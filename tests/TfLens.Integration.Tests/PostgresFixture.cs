@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Dapper;
 using Npgsql;
 
@@ -16,12 +17,20 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// <summary>The environment variable the app itself reads (Coding Standards §Environment Variables).</summary>
     public const string ConnectionVariable = "TfLensDbConnection";
 
-    /// <summary>The documented local connection — compose publishes 5433 via the override file (D-007).</summary>
-    private const string LocalDefault =
-        "Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev";
+    /// <summary>The user-secrets store the app itself reads in development.</summary>
+    /// <remarks>
+    /// Changed 2026-08-29 (owner report, MISS-TfLens-20260829-23). This used to hold a
+    /// <c>LocalDefault</c> const — <c>Host=localhost;Port=5433;…;Password=tflensdev</c> — a second copy
+    /// of the same hard-coded credential the application carried, dialling the same specific container.
+    /// So the tests silently agreed with the app about a database neither the developer nor the machine
+    /// had chosen, and both had to be found before either could be corrected. There is no default now:
+    /// the fixture resolves the connection exactly the way the app does, and reports itself unavailable
+    /// with an actionable message when nothing is configured.
+    /// </remarks>
+    private const string UserSecretsId = "tflens-dev-secrets";
 
     /// <summary>The connection string every test in this project uses.</summary>
-    public string ConnectionString { get; private set; } = LocalDefault;
+    public string ConnectionString { get; private set; } = string.Empty;
 
     /// <summary>Whether the database answered, so a test can report "blocked" rather than "failed".</summary>
     public bool IsAvailable { get; private set; }
@@ -42,8 +51,29 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// <returns>A task that completes when the fixture is ready.</returns>
     public async Task InitializeAsync()
     {
+        // Same precedence the app uses: environment variable beats user secrets. No fallback.
         var vFromEnvironment = Environment.GetEnvironmentVariable(ConnectionVariable);
-        ConnectionString = string.IsNullOrWhiteSpace(vFromEnvironment) ? LocalDefault : vFromEnvironment;
+
+        if (string.IsNullOrWhiteSpace(vFromEnvironment))
+        {
+            vFromEnvironment = new ConfigurationBuilder()
+                .AddUserSecrets(UserSecretsId)
+                .Build()["TfLens:DbConnection"];
+        }
+
+        if (string.IsNullOrWhiteSpace(vFromEnvironment))
+        {
+            IsAvailable = false;
+            UnavailableReason =
+                "No database is configured for the integration tests. They read the SAME setting the " +
+                "app does, and there is no hard-coded default any more. Point them at a PostgreSQL " +
+                "server you already run:\n" +
+                "  dotnet user-secrets set \"TfLens:DbConnection\" \"Host=…;Port=…;Database=tflens;Username=…;Password=…\" --project src/TfLens\n" +
+                "or set the TfLensDbConnection environment variable for this run.";
+            return;
+        }
+
+        ConnectionString = vFromEnvironment;
 
         // The head reads the same variable through the PascalCase provider, so setting it here is what
         // makes the app-level tests talk to the database the raw-SQL tests just seeded.

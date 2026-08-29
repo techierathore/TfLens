@@ -22,8 +22,8 @@ namespace TfLens.Core.Tests.Storage;
 /// </remarks>
 public sealed class PostgresStoreTests : IAsyncLifetime
 {
-    private const string DefaultConnection =
-        "Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev";
+    // No hard-coded connection: resolved the way the app resolves it (TestDatabase, 2026-08-29).
+    private static string DefaultConnection => TestDatabase.ConnectionStringOrNull() ?? string.Empty;
 
     /// <summary>Valid session records in the TrSetup fixture — one further line is deliberately malformed.</summary>
     private const int FixtureSessionRecords = 7;

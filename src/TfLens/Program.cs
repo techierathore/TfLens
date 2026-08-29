@@ -47,28 +47,26 @@ try
 {
     var vBuilder = WebApplication.CreateBuilder(args);
 
-    // A developer who has just cloned the repository has configured nothing, and TfLens refuses to
-    // start without a database (BRD-9) — so out of the box F5 would crash. The local compose database
-    // is therefore seeded as a DEVELOPMENT-ONLY default.
+    // REMOVED 2026-08-29 (owner report, MISS-TfLens-20260829-23): a Development-only default that
+    // seeded `TfLens:DbConnection` from a connection string held as a `const` in TfLensOptions,
+    // with its password inline.
     //
-    // It is inserted at index 0, which makes it the LOWEST-priority source: appsettings, user secrets
-    // and environment variables all override it. That ordering is the whole point. The first attempt at
-    // this put the value in launchSettings.json instead, which made it an environment variable — the
-    // HIGHEST-priority source — so it silently overrode `dotnet user-secrets set TfLens:DbConnection`,
-    // the very thing the Developer Guide tells people to use. A default that cannot be overridden is
-    // not a default, it is a hard-coding.
+    // Two things were wrong with it, and the second is the expensive one.
     //
-    // Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.
-    if (vBuilder.Environment.IsDevelopment())
-    {
-        vBuilder.Configuration.Sources.Insert(0, new MemoryConfigurationSource
-        {
-            InitialData = new Dictionary<string, string?>
-            {
-                ["TfLens:DbConnection"] = TfLensOptions.LocalDevelopmentConnection
-            }
-        });
-    }
+    // 1. It put a credential in committed source. It was argued to be safe because the password is a
+    //    throwaway already published in `.env.example`. That reasoning is how credentials normally get
+    //    into repositories: the exception is always locally true and never stays local.
+    // 2. It silently PINNED local development to one specific database — the compose container on
+    //    port 5433 — so a developer who never configured anything got a working app pointed at a
+    //    server they never chose. That is exactly what happened: an agent brought up a second
+    //    PostgreSQL container beside the machine's real local dev server (`WinPostgre`, port 5550,
+    //    which also hosts `AppMngrDb`), stopped that server, and nothing ever surfaced the switch,
+    //    because the fallback made the wrong database look like a correct default.
+    //
+    // There is now NO database default in any environment. `TfLens:DbConnection` comes from user
+    // secrets in development and from the `TfLensDbConnection` environment variable in deployment, and
+    // a missing value fails fast at startup (BRD-9) with a message naming the two ways to supply it.
+    // A default nobody chose is worse than an error somebody reads.
 
     // PascalCase env vars (TfLensDbConnection) map onto TfLens:* config paths — Coding Standards
     // §Environment Variables. Application code never reads the environment directly.

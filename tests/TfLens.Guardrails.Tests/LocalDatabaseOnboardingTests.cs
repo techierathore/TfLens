@@ -5,7 +5,7 @@ namespace TfLens.Guardrails.Tests;
 
 /// <summary>
 /// Pins the one value a new developer cannot discover for themselves: the local PostgreSQL password
-/// has to be the same in <c>.env.example</c> and in <see cref="TfLensOptions.LocalDevelopmentConnection"/>.
+/// has to be the same on both halves of <c>docker-compose.yml</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -70,10 +70,23 @@ public class LocalDatabaseOnboardingTests
 
         var vEnvPassword = EnvPassword();
 
-        var vFallback = Regex.Match(TfLensOptions.LocalDevelopmentConnection, @"Password=([^;]+)");
-        Assert.True(vFallback.Success, "LocalDevelopmentConnection no longer carries a Password= segment.");
+        // RETARGETED 2026-08-29 (MISS-TfLens-20260829-23). This used to compare `.env.example`'s
+        // TfLensDbPassword against `TfLensOptions.LocalDevelopmentConnection`. That constant is gone:
+        // it put a password in committed source and silently pinned local development to one specific
+        // database. `.env.example` is DEPLOYMENT-only (compose reads it; Program.cs never does), so
+        // there is no longer a code-side value for it to agree with — and that is the point. What is
+        // still worth pinning is that compose's own two halves agree with each other, because a
+        // mismatch there starts a container the app cannot authenticate against.
+        var vCompose = File.ReadAllText(Path.Combine(RepoRoot(), "docker-compose.yml"));
 
-        Assert.Equal(vFallback.Groups[1].Value, vEnvPassword);
+        Assert.True(
+            vCompose.Contains("Password=${TfLensDbPassword}", StringComparison.Ordinal),
+            "the app's compose connection string must interpolate the SAME variable the postgres " +
+            "service is given, or `docker compose up` brings up a database the app cannot sign in to");
+
+        Assert.True(
+            vCompose.Contains("POSTGRES_PASSWORD: ${TfLensDbPassword", StringComparison.Ordinal),
+            "the postgres service must take its password from that same variable");
     }
 
     /// <summary>The template carries a usable default rather than a placeholder nobody can act on.</summary>

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using FluentAssertions;
 using TfLens.Core;
@@ -21,6 +22,19 @@ namespace TfLens.Guardrails.Tests;
 /// </remarks>
 public sealed class DeveloperOnboardingTests
 {
+    private static string RepoRoot()
+    {
+        var vDir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (vDir is not null && !File.Exists(Path.Combine(vDir.FullName, "TfLens.slnx")))
+        {
+            vDir = vDir.Parent;
+        }
+
+        Assert.NotNull(vDir);
+        return vDir!.FullName;
+    }
+
     /// <summary>Repository-relative path of the launch profiles.</summary>
     private static string LaunchSettingsPath =>
         Path.Combine(RepositoryRoot(), "src", "TfLens", "Properties", "launchSettings.json");
@@ -35,7 +49,7 @@ public sealed class DeveloperOnboardingTests
     /// Guide recommends, so the documented way to use your own database did nothing. It also meant four
     /// profiles, one of which existed only to fail.
     /// The default now lives in code as the LOWEST-priority source (see
-    /// <see cref="TfLensOptions.LocalDevelopmentConnection"/>), so one profile is enough and anything a
+    /// user secrets), so one profile is enough and anything a
     /// developer sets overrides it.
     /// </remarks>
     [Fact]
@@ -58,15 +72,38 @@ public sealed class DeveloperOnboardingTests
     }
 
     /// <summary>
-    /// The development default is a real, local connection string.
+    /// There is NO database default in source — in any environment.
     /// </summary>
+    /// <remarks>
+    /// This test is the inversion of the one it replaces. That test pinned a hard-coded development
+    /// connection string (<c>Host=localhost;Port=5433;…;Password=tflensdev</c>) and asserted it stayed
+    /// hard-coded. It did two kinds of harm: a credential lived in committed source, and every
+    /// unconfigured developer was silently pointed at one specific database — which is how a second
+    /// PostgreSQL container came to sit beside this machine's real local dev server, unnoticed
+    /// (owner report 2026-08-29, MISS-TfLens-20260829-23). The connection string is now configuration
+    /// with no fallback, and this test exists so nothing quietly reintroduces one.
+    /// </remarks>
     [Fact]
-    public void DevelopmentDefaultPointsAtTheLocalComposeDatabase()
+    public void NoConnectionStringIsHardCodedInSource()
     {
-        TfLensOptions.LocalDevelopmentConnection.Should().Contain("Host=localhost");
-        TfLensOptions.LocalDevelopmentConnection.Should().Contain("Port=5433",
-            "docker-compose.override.yml publishes the compose Postgres on 5433 for local development");
-        TfLensOptions.LocalDevelopmentConnection.Should().Contain("Database=tflens");
+        var vOptionsSource = File.ReadAllText(
+            Path.Combine(RepoRoot(), "src", "TfLens.Core", "TfLensOptions.cs"));
+        var vProgramSource = File.ReadAllText(
+            Path.Combine(RepoRoot(), "src", "TfLens", "Program.cs"));
+
+        foreach (var vFile in new[] { vOptionsSource, vProgramSource })
+        {
+            Regex.Matches(vFile, "Password=[A-Za-z0-9]")
+                .Should().BeEmpty("no source file may carry a database password, throwaway or not");
+        }
+
+        // An unconfigured TfLens must REFUSE to start rather than guess a server.
+        var vUnconfigured = new TfLensOptions { AppManagerAppId = 1 };
+        vUnconfigured.DbConnection.Should().BeNull("there is no development fallback any more");
+
+        var vAct = () => vUnconfigured.Validate();
+        vAct.Should().Throw<InvalidOperationException>()
+            .WithMessage("*DbConnection*", "the failure must name the setting the developer has to supply");
     }
 
     /// <summary>
@@ -84,11 +121,18 @@ public sealed class DeveloperOnboardingTests
         var vMessage = vOptions.Invoking(aO => aO.Validate())
             .Should().Throw<InvalidOperationException>().Which.Message;
 
-        vMessage.Should().Contain("docker compose up -d postgres", "it must name how to start the database");
+        // Rewritten 2026-08-29 (MISS-TfLens-20260829-23). This test used to REQUIRE the message to say
+        // "docker compose up -d postgres" and to quote a working "Port=5433" — that is, it pinned the
+        // very instruction that told developers to stand up a second PostgreSQL server beside the one
+        // their machine already ran, and pinned a hard-coded port as proof of helpfulness. The message
+        // must still be actionable; it must no longer choose a database on the developer's behalf.
         vMessage.Should().Contain("TfLensDbConnection", "it must name the setting");
-        vMessage.Should().Contain("Port=5433", "it must give a value that actually works locally");
         vMessage.Should().Contain("user-secrets", "it must offer a way that commits nothing");
         vMessage.Should().Contain("TfLens-DevGuide.md", "it must point at the fuller instructions");
+        vMessage.Should().Contain("ALREADY RUN",
+            "it must send the developer to a server they already have, not to a new container");
+        vMessage.Should().NotContain("docker compose up -d postgres",
+            "starting a project-specific database is exactly the instruction that caused the incident");
     }
 
     /// <summary>
@@ -100,10 +144,13 @@ public sealed class DeveloperOnboardingTests
         var vMessage = TfLensOptions.UnreachableDatabaseMessage(
             new InvalidOperationException("Failed to connect to 127.0.0.1:59999"));
 
-        vMessage.Should().Contain("docker compose up -d postgres");
-        vMessage.Should().Contain(".env");
-        vMessage.Should().Contain("docker-compose.override.yml", "the published port is the usual cause");
+        // Same rewrite, same reason: the causes it lists are now about the developer's OWN server.
         vMessage.Should().Contain("Failed to connect", "the underlying cause must survive, not be swallowed");
+        vMessage.Should().Contain("not running", "the commonest cause must be named first");
+        vMessage.Should().Contain("does not exist", "a missing database is the second commonest cause");
+        vMessage.Should().Contain("credentials", "wrong credentials must be named");
+        vMessage.Should().NotContain("docker compose up -d postgres",
+            "the message must not send a developer to create a second database for this project");
     }
 
     /// <summary>

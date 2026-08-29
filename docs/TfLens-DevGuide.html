@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Developer Guide</h1>
-    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="sub">Last rendered: 2026-08-29</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -116,13 +116,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#tests">Tests</a></li>
         <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
         <li class="h3"><a href="#setup-three-steps-one-path">Setup — three steps, one path</a></li>
-        <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
-        <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
+        <li class="h3"><a href="#where-each-setting-comes-from">Where each setting comes from</a></li>
+        <li class="h3"><a href="#running-the-whole-stack-in-containers">Running the whole stack in containers</a></li>
         <li class="h3"><a href="#signing-in">Signing in</a></li>
         <li><a href="#configuration-reference">Configuration reference</a></li>
         <li class="h3"><a href="#where-to-put-each-one">Where to put each one</a></li>
         <li><a href="#troubleshooting">Troubleshooting</a></li>
         <li class="h3"><a href="#tflens-cannot-start-the-database-connection-string-is-not-configured">TfLens cannot start — the database connection string is not configured</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-tflens-appmanagerappid-is-not-configured">TfLens cannot start — TfLens:AppManagerAppId is not configured</a></li>
         <li class="h3"><a href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">TfLens cannot start — the database named by TfLensDbConnection is unreachable</a></li>
         <li class="h3"><a href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</a></li>
         <li class="h3"><a href="#sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</a></li>
@@ -136,7 +137,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Developer Guide</h1>
-    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-DevGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>TfLens-DevGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -148,13 +149,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#tests">Tests</a></li>
         <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
         <li class="h3"><a href="#setup-three-steps-one-path">Setup — three steps, one path</a></li>
-        <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
-        <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
+        <li class="h3"><a href="#where-each-setting-comes-from">Where each setting comes from</a></li>
+        <li class="h3"><a href="#running-the-whole-stack-in-containers">Running the whole stack in containers</a></li>
         <li class="h3"><a href="#signing-in">Signing in</a></li>
         <li><a href="#configuration-reference">Configuration reference</a></li>
         <li class="h3"><a href="#where-to-put-each-one">Where to put each one</a></li>
         <li><a href="#troubleshooting">Troubleshooting</a></li>
         <li class="h3"><a href="#tflens-cannot-start-the-database-connection-string-is-not-configured">TfLens cannot start — the database connection string is not configured</a></li>
+        <li class="h3"><a href="#tflens-cannot-start-tflens-appmanagerappid-is-not-configured">TfLens cannot start — TfLens:AppManagerAppId is not configured</a></li>
         <li class="h3"><a href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">TfLens cannot start — the database named by TfLensDbConnection is unreachable</a></li>
         <li class="h3"><a href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</a></li>
         <li class="h3"><a href="#sign-in-fails-for-a-known-good-password">Sign-in fails for a known-good password</a></li>
@@ -277,18 +279,30 @@ stop exactly that.</p>
 </blockquote>
 <h3 id="setup-three-steps-one-path">Setup — three steps, one path<a class="anchor-link" href="#setup-three-steps-one-path">#</a></h3>
 <p>Same three steps on every OS. Run them from the repository root.</p>
-<p><strong>1. Start the database (once).</strong></p>
-<pre><code class="language-bash">cp .env.example .env            # Windows: copy .env.example .env
-docker compose up -d postgres</code></pre>
-<p>PostgreSQL 16 comes up as the container <code>tflens-postgres</code> on <strong>localhost:5433</strong>. <code>.env</code> is needed
-<em>here only</em> — Compose reads it; the app never does. Leave <code>TfLensDbPassword=tflensdev</code> alone: it is
-the password inside the app's Development fallback connection string, and if the two disagree you get
-a database the app cannot authenticate against.</p>
-<p><strong>2. Put your settings in user secrets (once).</strong></p>
+<p><strong>1. Point TfLens at a PostgreSQL server you already run.</strong></p>
+<p>TfLens does <strong>not</strong> start a database for you, and as of 2026-08-29 it has <strong>no default connection
+string in any environment</strong>. Use whatever PostgreSQL you already have on the machine — you almost
+certainly have one, and standing up a second server per project is how you end up with two.</p>
+<pre><code class="language-bash">dotnet user-secrets set "TfLens:DbConnection" \
+  "Host=localhost;Port=&lt;your-port&gt;;Database=tflens;Username=&lt;user&gt;;Password=&lt;password&gt;" \
+  --project src/TfLens</code></pre>
+<p>Create an empty <code>tflens</code> database on that server first — that is all it needs. You do <strong>not</strong> need to
+create the schema: <code>database/001-schema.sql</code> is idempotent and is applied at every startup (ADR-015).</p>
+<blockquote>
+<p><strong>This step used to read <code>docker compose up -d postgres</code>, and that instruction was the bug.</strong>
+Following it stands up a second PostgreSQL container, <code>tflens-postgres</code> on port 5433, beside the one
+the machine already runs — and because the app also carried a matching hard-coded fallback, nothing
+ever surfaced that a new server had appeared or that the old one had been stopped. That is exactly
+what happened here on 2026-08-28 (<code>MISS-TfLens-20260829-23</code>). The compose <code>postgres</code> service still
+exists and is still correct <strong>for running the whole stack in containers</strong> (<code>docker compose up</code>); it
+is not the local-development database and this guide no longer presents it as one.</p>
+</blockquote>
+<p><strong>2. Put your remaining settings in user secrets (once).</strong></p>
 <p><code>src/TfLens/secrets.example.json</code> is the <strong>complete</strong> configuration surface — every setting TfLens
-reads, secret or not, with its default. Copy the block into your own <code>secrets.json</code> and fill in only
-what you need. That file lives outside the repository and cannot be committed.</p>
-<pre><code class="language-bash">dotnet user-secrets set "TfLens:AppManagerApiKey"    "…" --project src/TfLens
+reads, secret or not. Copy the block into your own <code>secrets.json</code> and fill in what you need. That file
+lives outside the repository and cannot be committed.</p>
+<pre><code class="language-bash">dotnet user-secrets set "TfLens:AppManagerAppId"     "1" --project src/TfLens
+dotnet user-secrets set "TfLens:AppManagerApiKey"    "…" --project src/TfLens
 dotnet user-secrets set "TfLens:AppManagerApiSecret" "…" --project src/TfLens</code></pre>
 <p><em>Visual Studio / Rider:</em> right-click the <strong>TfLens</strong> project → <strong>Manage User Secrets</strong> and paste the
 block in instead. The file is at <code>%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json</code>
@@ -297,51 +311,48 @@ on Windows, <code>~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json</code
 <pre><code class="language-bash">dotnet run --project src/TfLens          # or just press F5</code></pre>
 <http://localhost:5014>. There is **one** launch profile, `TfLens`, and it pins no connection string.
 <blockquote>
-<p><strong>You can skip step 2 and still sign in.</strong> Most AppManager endpoints resolve the application from
-the <code>applicationId</code> in the request body. Only <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code>
-take the app scope from the key headers, so <strong>password reset is the part that dies without the pair</strong>.
-Supply it whole or not at all — a half-pair is refused at startup (see the configuration table).</p>
+<p><strong><code>TfLens:DbConnection</code> and <code>TfLens:AppManagerAppId</code> are both REQUIRED</strong> — startup fails with a
+message naming the setting and the command to set it, rather than guessing a server or an
+application. The AppManager <strong>key/secret pair</strong> is separate: most endpoints resolve the application
+from the <code>applicationId</code> in the request body, so you can sign in without it. Only
+<code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code> take the app scope from the key headers, so
+<strong>password reset is the part that dies without the pair.</strong> Supply it whole or not at all — a
+half-pair is refused at startup.</p>
 </blockquote>
-<h3 id="where-the-development-default-comes-from">Where the development default comes from<a class="anchor-link" href="#where-the-development-default-comes-from">#</a></h3>
-<p>TfLens <strong>refuses to start without a database</strong> rather than starting and failing at the first user's
-sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on
-where a new developer's connection string comes from — so in Development, and only in Development,
-<code>TfLensOptions.LocalDevelopmentConnection</code> is seeded as the <strong>lowest-priority</strong> configuration source.</p>
+<h3 id="where-each-setting-comes-from">Where each setting comes from<a class="anchor-link" href="#where-each-setting-comes-from">#</a></h3>
+<p>TfLens <strong>refuses to start without a database or an application id</strong> rather than starting and failing at
+the first user's sign-in (BRD-9). There is no fallback for either.</p>
 <p>Priority, lowest to highest:</p>
 <table>
 <thead><tr><th>#</th><th>Source</th><th>Overrides the one above</th><th>Committed?</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>The Development fallback (code)</td><td>—</td><td>yes — but it is a throwaway local container credential, not a secret</td></tr>
-<tr><td>2</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>yes</td><td><strong>yes — never put a secret here</strong></td></tr>
-<tr><td>3</td><td><code>dotnet user-secrets</code> (<code>secrets.json</code>)</td><td>yes</td><td><strong>no — this is the local-development secrets path</strong></td></tr>
-<tr><td>4</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td><td>no — this is the <em>deployment</em> path (<code>docker compose</code>, CI/CD)</td></tr>
+<tr><td>1</td><td><code>appsettings.json</code> / <code>appsettings.Development.json</code></td><td>—</td><td><strong>yes — never put a secret here</strong></td></tr>
+<tr><td>2</td><td><code>dotnet user-secrets</code> (<code>secrets.json</code>)</td><td>yes</td><td><strong>no — this is the local-development path</strong></td></tr>
+<tr><td>3</td><td>Environment variables, including <code>TfLensDbConnection</code></td><td>yes</td><td>no — this is the <em>deployment</em> path (<code>docker compose</code>, CI/CD)</td></tr>
 </tbody>
 </table>
-<p>So <code>dotnet user-secrets set TfLens:DbConnection …</code> works, and an environment variable beats even that.
-Nothing is seeded outside Development, so a deployment still fails fast on a missing setting.</p>
-<p><strong>Rows 3 and 4 are the same settings by two routes, for two audiences.</strong> Row 3 is how <em>you</em> run the app
-on your machine; row 4 is how a <em>deployment</em> supplies the same values. <code>.env</code> belongs to row 4 and only
-row 4 — it feeds <code>docker compose</code>, never <code>dotnet run</code>. Row 2 is deliberately the one place with no
+<p><strong>Rows 2 and 3 are the same settings by two routes, for two audiences.</strong> Row 2 is how <em>you</em> run the app
+on your machine; row 3 is how a <em>deployment</em> supplies the same values. <code>.env</code> belongs to row 3 and only
+row 3 — it feeds <code>docker compose</code>, never <code>dotnet run</code>. Row 1 is deliberately the one place with no
 secret in it at all, which is what <code>ConfigurationHygieneTests</code> enforces.</p>
 <blockquote>
-<p><strong>Why not put it in the launch profile?</strong> That was the first attempt and it was wrong. A launch
-profile sets an <em>environment variable</em> — the highest-priority source — so it silently overrode
-<code>user-secrets</code>, meaning the documented way to point at your own database did nothing at all. It also
-needed a second "own database" profile that existed only in order to fail. One profile, and a default
-that anything can override, is the smaller and more honest design.</p>
+<p><strong>There used to be a row 0: a Development-only default seeded from a <code>const</code> in <code>TfLensOptions</code>,
+holding <code>Host=localhost;Port=5433;…;Password=tflensdev</code>.</strong> It was removed on 2026-08-29. It put a
+credential in committed source — defended at the time as "a throwaway local container credential,
+not a secret", which is how credentials usually get into repositories — and, worse, it meant an
+unconfigured developer got a <em>working</em> app pointed at a database nobody had chosen. A default nobody
+selected is not a convenience; it is a silent decision. An error you read is better.</p>
 </blockquote>
-<h3 id="using-your-own-postgresql-instead">Using your own PostgreSQL instead<a class="anchor-link" href="#using-your-own-postgresql-instead">#</a></h3>
-<p>Just set the value — no profile switching. Any of these beats the Development fallback:</p>
-<pre><code class="language-powershell"># PowerShell, this session only
-$env:TfLensDbConnection = "Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src\TfLens</code></pre>
-<pre><code class="language-bash"># bash
-export TfLensDbConnection="Host=localhost;Port=5432;Database=tflens;Username=me;Password=…"
-dotnet run --project src/TfLens</code></pre>
-<p>Or store it on your machine only, never committed:</p>
-<pre><code class="language-bash">dotnet user-secrets set TfLens:DbConnection "Host=…" --project src/TfLens</code></pre>
-<p>You do <strong>not</strong> need to create the schema. <code>database/001-schema.sql</code> is idempotent and is applied at
-every startup (ADR-015); an empty database is enough.</p>
+<blockquote>
+<p><strong>Why not put it in the launch profile?</strong> That was an earlier attempt and it was also wrong. A launch
+profile sets an <em>environment variable</em> — the highest-priority source — so it silently overrode
+<code>user-secrets</code>, meaning the documented way to point at your own database did nothing at all.</p>
+</blockquote>
+<h3 id="running-the-whole-stack-in-containers">Running the whole stack in containers<a class="anchor-link" href="#running-the-whole-stack-in-containers">#</a></h3>
+<p><code>docker compose up</code> runs TfLens <strong>and</strong> its own PostgreSQL, together, as a deployment would. That
+compose <code>postgres</code> service is correct and is not going anywhere — it is what <code>.env</code> and
+<code>TfLensDbPassword</code> exist for. It is simply <strong>not</strong> the local-development database: for <code>dotnet run</code> /
+F5, use step 1 above and your own server.</p>
 <h3 id="signing-in">Signing in<a class="anchor-link" href="#signing-in">#</a></h3>
 <p>Identity is <strong>AppManager</strong> (Application Id 1) — TfLens stores no users and no passwords (ADR-011). The
 documented test accounts live in <a href="./TfLens-UsageGuide.md"><code>docs/TfLens-UsageGuide.md</code></a>:</p>
@@ -364,12 +375,12 @@ variables onto <code>TfLens:*</code> configuration keys, which is why applicatio
 <table>
 <thead><tr><th>Setting</th><th>Required</th><th>What it is</th></tr></thead>
 <tbody>
-<tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong></td><td>Npgsql connection string. Startup fails without it, and fails again if the database is unreachable.</td></tr>
+<tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong>, in every environment</td><td>Npgsql connection string. <strong>No default anywhere</strong> — point it at a PostgreSQL server you already run. Startup fails without it, and fails again if the database is unreachable.</td></tr>
 <tr><td><code>TfLensAppManagerApiKey</code></td><td>No*</td><td>AppManager API key.</td></tr>
 <tr><td><code>TfLensAppManagerApiSecret</code></td><td>No*</td><td>AppManager API secret.</td></tr>
 <tr><td><code>TfLensGitHubToken</code></td><td>No</td><td>GitHub PAT. <strong>Raises the rate limit only</strong> (60/hr → 5,000/hr); it grants no access a public request would not have.</td></tr>
 <tr><td><code>TfLensAppManagerBaseUrl</code></td><td>No</td><td>Defaults to <code>https://appmgrapi.techierathore.com</code>.</td></tr>
-<tr><td><code>TfLensAppManagerAppId</code></td><td>No</td><td>Defaults to <code>1</code>.</td></tr>
+<tr><td><code>TfLensAppManagerAppId</code></td><td><strong>Yes</strong></td><td>The AppManager application whose users may sign in here; TfLens is <code>1</code>. No source default as of 2026-08-29 — a wrong-but-present value sends real credentials to the wrong application and fails as an opaque 401 rather than a configuration error. <code>docker-compose.yml</code> sets it explicitly.</td></tr>
 <tr><td><code>TfLensDataRoot</code></td><td>No</td><td>Defaults to <code>data</code>. Holds <code>raw/</code>, <code>reports/</code>, <code>prices.json</code>.</td></tr>
 <tr><td><code>TfLensPollIntervalMinutes</code></td><td>No</td><td>Defaults to <code>15</code>.</td></tr>
 <tr><td><code>TfLensStalenessDays</code></td><td>No</td><td>Defaults to <code>7</code>. Drives the Coverage staleness warning.</td></tr>
@@ -397,21 +408,24 @@ startup rather than letting every sign-in fail mysteriously. Recorded as <code>D
 <hr>
 <h2 id="troubleshooting">Troubleshooting<a class="anchor-link" href="#troubleshooting">#</a></h2>
 <h3 id="tflens-cannot-start-the-database-connection-string-is-not-configured"><code>TfLens cannot start — the database connection string is not configured</code><a class="anchor-link" href="#tflens-cannot-start-the-database-connection-string-is-not-configured">#</a></h3>
-<p>The app has no <code>TfLensDbConnection</code>. Either you are on the <code>TfLens (own database)</code> launch profile, or
-you are running the binary directly without an environment. The error message itself lists the exact
-commands for your platform. See <a href="#running-tflens-locally">Running TfLens locally</a>.</p>
+<p>Expected on a fresh clone: there is no default. Set <code>TfLens:DbConnection</code> in user secrets, pointing at
+a PostgreSQL server you already run — see <em>Setup</em> step 1. Do <strong>not</strong> start a new container for it.</p>
+<h3 id="tflens-cannot-start-tflens-appmanagerappid-is-not-configured"><code>TfLens cannot start — TfLens:AppManagerAppId is not configured</code><a class="anchor-link" href="#tflens-cannot-start-tflens-appmanagerappid-is-not-configured">#</a></h3>
+<p>Also expected on a fresh clone, and also deliberate — which AppManager application accepts your users
+is a property of your deployment, not of the source. For this project it is <code>1</code>:</p>
+<pre><code class="language-bash">dotnet user-secrets set "TfLens:AppManagerAppId" "1" --project src/TfLens</code></pre>
 <h3 id="tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable"><code>TfLens cannot start — the database named by TfLensDbConnection is unreachable</code><a class="anchor-link" href="#tflens-cannot-start-the-database-named-by-tflensdbconnection-is-unreachable">#</a></h3>
-<p>The connection string is set but nothing answered. In order of likelihood:</p>
+<p>The connection string <strong>is</strong> configured, so this is about the server. In order of likelihood:</p>
 <ol>
-<li><strong>The container isn't running.</strong> <code>docker compose up -d postgres</code>, then check with <code>docker ps --filter name=tflens-postgres</code>.
+<li><strong>Your PostgreSQL server isn't running.</strong> Start it — <code>docker ps -a</code> if it is a container you already have, or your local service manager.
 </li>
-<li><strong><code>.env</code> is missing</strong>, so Compose could not interpolate <code>TfLensDbPassword</code> and never started the service. Copy <code>.env.example</code> to <code>.env</code>.
+<li><strong>Wrong port.</strong> Check the port your server actually publishes and that your connection string matches it.
 </li>
-<li><strong>Port 5433 isn't published.</strong> Production compose deliberately keeps Postgres off the host network; <code>docker-compose.override.yml</code> publishes <code>5433:5432</code> for local development and Compose merges it automatically. If you ran <code>docker compose -f docker-compose.yml up</code>, the override was skipped.
+<li><strong>The <code>tflens</code> database does not exist on that server.</strong> Create it (empty is enough — the schema is applied at startup).
 </li>
-<li><strong>Windows + Docker in WSL.</strong> <code>localhost:5433</code> normally works from Windows thanks to WSL2 port forwarding. If it does not, confirm the container is up inside WSL and that Docker Desktop's WSL integration is enabled.
+<li><strong>Wrong credentials.</strong> The user in your connection string must be able to create tables in that database.
 </li>
-<li><strong>Something else owns 5433.</strong> <code>docker ps</code> and look for another Postgres.
+<li><strong>Windows + Docker in WSL.</strong> <code>localhost:&lt;port&gt;</code> normally works from Windows thanks to WSL2 port forwarding; if it does not, try <code>127.0.0.1</code> explicitly.
 </li>
 </ol>
 <h3 id="tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together"><code>TfLens cannot start — TfLensAppManagerApiKey and TfLensAppManagerApiSecret must be set together</code><a class="anchor-link" href="#tflens-cannot-start-tflensappmanagerapikey-and-tflensappmanagerapisecret-must-be-set-together">#</a></h3>

@@ -44,8 +44,7 @@ public sealed class RepoRegistryTests : IAsyncLifetime
     /// </summary>
     /// <returns>The connection string to test against.</returns>
     private static string ConnectionString() =>
-        Environment.GetEnvironmentVariable("TfLensDbConnection")
-        ?? "Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev";
+        TestDatabase.ConnectionStringOrNull() ?? string.Empty;
 
     /// <inheritdoc />
     public async Task InitializeAsync()

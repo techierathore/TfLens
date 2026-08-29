@@ -30,8 +30,8 @@ namespace TfLens.Core.Tests.Storage;
 /// </remarks>
 public sealed class MissStoreTests : IAsyncLifetime
 {
-    private const string DefaultConnection =
-        "Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev";
+    // No hard-coded connection: resolved the way the app resolves it (TestDatabase, 2026-08-29).
+    private static string DefaultConnection => TestDatabase.ConnectionStringOrNull() ?? string.Empty;
 
     /// <summary>Miss records the TrSetup fixture holds after its own dedupe.</summary>
     private const int FixtureMisses = 3;
