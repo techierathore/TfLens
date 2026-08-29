@@ -543,3 +543,31 @@ Two defects met on the same screen; both make a control unusable as shipped.
 > **Not counted** in this file's severity totals; it is an alias, not an entry.
 
 ---
+
+---
+
+## TR-023 — `BreadcrumbLink` drops every unmatched attribute, so a breadcrumb cannot carry a `data-testid`
+
+**Severity:** Medium · **Raised:** 2026-08-28 · **Status:** open
+
+`TrBlazeUI.Components.Breadcrumb.BreadcrumbLink` declares no
+`[Parameter(CaptureUnmatchedValues = true)]`, so any attribute it does not know about is not ignored
+— it **throws**:
+
+```
+InvalidOperationException: Object of type 'TrBlazeUI.Components.Breadcrumb.BreadcrumbLink'
+does not have a property matching the name 'data-testid'.
+```
+
+This is the third component in the same family — `TabsTrigger` (TR-010) and `Typography*` (TR-013)
+behave identically — which is what makes it worth raising as a pattern rather than a third one-off.
+The cost is not the workaround (a `<span data-testid>` inside the link, which is what TfLens does);
+it is that the failure is a **runtime 500 on first render**, not a compile error. Two new pages in
+this codebase shipped, built cleanly, and returned a Blazor error page the first time they were
+opened — twice, for two different components in the same family.
+
+**Ask:** add `CaptureUnmatchedValues` to every leaf component that renders a real DOM element, or
+state in the reference which components accept passthrough attributes and which throw. A consumer
+cannot tell by looking, and the build will not tell them either.
+
+**Reproduce:** `<BreadcrumbLink Href="/x" data-testid="y">z</BreadcrumbLink>` → 500 on render.

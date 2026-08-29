@@ -24,12 +24,15 @@ public sealed class MissCostTests
     {
         var vMoney = await MoneyAsync(
         [
-            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100),
-            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200),
-            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300),
-            MissFixtures.Fix("M4", aCostAttribution: "shared:3", aTokensOut: 900),
-            MissFixtures.Fix("M5", aCostAttribution: "shared:3", aTokensOut: 900),
-            MissFixtures.Fix("M6", aCostAttribution: "shared:3", aTokensOut: 900)
+            // Three runs that each closed ONE miss, and one run that closed three. The divisor is
+            // DERIVED from that (2026-08-29): the stored string is no longer what decides the split,
+            // so the fixture has to model the runs rather than assert the answer.
+            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300, aFixRunId: "R3"),
+            MissFixtures.Fix("M4", aTokensOut: 900, aFixRunId: "R4"),
+            MissFixtures.Fix("M5", aTokensOut: 900, aFixRunId: "R4"),
+            MissFixtures.Fix("M6", aTokensOut: 900, aFixRunId: "R4")
         ]);
 
         vMoney.SoleRecords.Should().Be(3);
@@ -45,12 +48,13 @@ public sealed class MissCostTests
     {
         var vMoney = await MoneyAsync(
         [
-            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100),
-            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200),
-            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300),
-            MissFixtures.Fix("M4", aCostAttribution: "shared:2", aTokensOut: 100),
-            MissFixtures.Fix("M5", aCostAttribution: "shared:2", aTokensOut: 200),
-            MissFixtures.Fix("M6", aCostAttribution: "shared:2", aTokensOut: 300)
+            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300, aFixRunId: "R3"),
+            // One run closed all three, so each window divides by three: 50, 100, 150 — mean 100.
+            MissFixtures.Fix("M4", aTokensOut: 150, aFixRunId: "R4"),
+            MissFixtures.Fix("M5", aTokensOut: 300, aFixRunId: "R4"),
+            MissFixtures.Fix("M6", aTokensOut: 450, aFixRunId: "R4")
         ]);
 
         vMoney.TokensPerMissFixed.Sole.TryGetValue(out var vSole).Should().BeTrue();
@@ -68,9 +72,10 @@ public sealed class MissCostTests
     {
         var vMoney = await MoneyAsync(
         [
-            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100),
-            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200),
-            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300),
+            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300, aFixRunId: "R3"),
+            // No run to divide by: genuinely unattributable, and still not a denominator.
             MissFixtures.Fix("M4", aCostAttribution: "none", aFixRunId: null),
             MissFixtures.Fix("M5", aCostAttribution: "none", aFixRunId: null)
         ]);
@@ -80,20 +85,42 @@ public sealed class MissCostTests
         vMoney.TokensPerMissFixed.Sole.Display().Should().Be("200");
     }
 
-    /// <summary>An absent attribution is missing data and is never folded into <c>none</c>.</summary>
+    /// <summary>
+    /// A stored attribution is recomputed, never trusted — and only a record with no window at all
+    /// is unattributable.
+    /// </summary>
+    /// <remarks>
+    /// Replaced <c>AnAbsentAttributionIsNeverFoldedIntoNone</c> on 2026-08-29, when BRD §13 caught
+    /// TfLens reading the stored string. The stored value cannot be trusted for two reasons the
+    /// stream can prove about itself: it is written one record at a time (a run closing four misses
+    /// stamps shared:1..shared:4 and only the last is right), and records written before 2026-08-28
+    /// carry <c>none</c> from the empty-<c>reqs_touched</c> bug. What survives from the old test is
+    /// the SCHEMA.md §2.5 point it existed to make — absent and <c>none</c> are different facts —
+    /// now expressed where it still bites: a stale <c>none</c> with a real window is RECOVERED,
+    /// while a record with no window is unattributable however it is labelled.
+    /// </remarks>
     /// <returns>The running test.</returns>
     [Fact]
-    public async Task AnAbsentAttributionIsNeverFoldedIntoNone()
+    public async Task AStaleAttributionIsRecomputedRatherThanTrusted()
     {
         var vMoney = await MoneyAsync(
         [
-            MissFixtures.Fix("M1", aCostAttribution: "none"),
-            MissFixtures.Fix("M2"),
-            MissFixtures.Fix("M3", aCostAttribution: "shared:oops")
+            // Stored `none`, but it names a run and carries a window: the divisor recovers it.
+            MissFixtures.Fix("M1", aCostAttribution: "none", aTokensOut: 100, aFixRunId: "R1"),
+            // Never stamped at all — recomputed, not discarded.
+            MissFixtures.Fix("M2", aTokensOut: 200, aFixRunId: "R2"),
+            // Stamped with something unparseable — the recompute does not care what it says.
+            MissFixtures.Fix("M3", aCostAttribution: "shared:oops", aTokensOut: 300, aFixRunId: "R3"),
+            // No window: unattributable, and no divisor can invent one.
+            MissFixtures.Fix("M4", aCostAttribution: "sole", aTokensOut: 400, aTokensScope: null),
+            MissFixtures.Fix("M5", aCostAttribution: "sole", aTokensOut: 500, aFixRunId: null)
         ]);
 
-        vMoney.TokensPerMissFixed.NoneCount.Should().Be(1);
-        vMoney.AttributionMissing.Should().Be(2);
+        vMoney.SoleRecords.Should().Be(3, "three runs each closed exactly one miss");
+        vMoney.SharedRecords.Should().Be(0);
+        vMoney.TokensPerMissFixed.NoneCount.Should().Be(2, "no window means nothing to divide");
+        vMoney.RecoveredRecords.Should().Be(1, "one stored `none` had a real window after all");
+        vMoney.TokensPerMissFixed.Sole.Display().Should().Be("200", "the mean of 100, 200 and 300");
     }
 
     /// <summary>Measured dollars come from OpenCode records and are never summed across harnesses.</summary>
@@ -171,10 +198,10 @@ public sealed class MissCostTests
     {
         var vMoney = await MoneyAsync(
         [
-            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100),
-            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200),
-            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300),
-            MissFixtures.Fix("M4", aCostAttribution: "sole")
+            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aCostAttribution: "sole", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aCostAttribution: "sole", aTokensOut: 300, aFixRunId: "R3"),
+            MissFixtures.Fix("M4", aCostAttribution: "sole", aFixRunId: "R4")
         ]);
 
         vMoney.SoleRecords.Should().Be(4);

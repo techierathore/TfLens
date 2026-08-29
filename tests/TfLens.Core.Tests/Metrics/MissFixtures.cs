@@ -97,6 +97,7 @@ public static class MissFixtures
         string aTs = "2026-08-28T12:00:00Z",
         string? aFixRunId = "2026-08-28T11:00:00Z",
         int? aFixAttempt = 1,
+        string? aTokensScope = "tree",
         string? aProjectType = "app",
         bool? aBackfilled = null,
         string aRepo = Repo) => new()
@@ -116,7 +117,11 @@ public static class MissFixtures
         VerdictAfter = aVerdictAfter,
         CostAttribution = aCostAttribution,
         TokensOut = aTokensOut,
-        CostUsd = aCostUsd
+        CostUsd = aCostUsd,
+        // A real emitted record always carries a scope; `null` and "none" both mean the window
+        // could not be computed, which is what makes a record genuinely unattributable. The
+        // fixture defaulted to null before 2026-08-29, which modelled a record no emitter writes.
+        TokensScope = aTokensScope
     };
 
     /// <summary>

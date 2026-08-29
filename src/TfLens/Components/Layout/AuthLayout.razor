@@ -5,6 +5,13 @@
     the centred form card on the right, so sign in, register, forgot and reset read as one flow.
     The layout also supplies the --sidebar / --alert-* design tokens TrBlazeUI 2.0.0 references but
     never defines (TR-001) — custom properties inherit, so every TrBlazeUI control below picks them up.
+
+    The `.auth-*` rules live in wwwroot/app.css, NOT in a co-located AuthLayout.razor.css.
+    That is deliberate (REQ-NFR-015): they used to sit in the scoped-CSS bundle, which made this
+    whole screen depend on one optional file — when TfLens.styles.css did not arrive, sign-in
+    collapsed into an unstyled single column with no error anywhere. It reached the owner in UAT
+    (2026-08-28, docs/uatissuessc/Login.png). app.css is served straight from wwwroot and does not
+    go through the static-web-assets manifest. Do not move these rules back into a scoped file.
 *@
 
 <div class="auth-split">

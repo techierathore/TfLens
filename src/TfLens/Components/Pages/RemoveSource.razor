@@ -1,0 +1,211 @@
+@*
+    REQ-UI-013 / BRD-141 — remove a source. A ROUTED PAGE, not an AlertDialog.
+
+    This was a modal `AlertDialog` until 2026-08-28, and it is the screen the owner reported as
+    "deleting a repo disabled the whole page" (docs/uatissuessc/Repos-delete-issue.png — a mounted
+    `bg-black/80` backdrop with no panel on top of it). Nine reproduction attempts in headless
+    Chromium could not produce that state, which is the whole argument for this change: a construct
+    whose failure mode cannot be reproduced from the harness cannot be signed off from the harness
+    either. A page has no backdrop to strand and no portal to miss, and TrBlazeUI 2.0.0's
+    `AlertDialog` ships no Escape handling at all (TR-014) — a route needs none, because Back is the
+    browser's own. See REQ-UI-044.
+
+    The confirmation is unchanged in substance: it names the source, states exactly what is deleted
+    and what is not, and nothing is removed until the destructive button is pressed.
+*@
+@page "/repos/remove/{Source}"
+@using TfLens.Core.Import
+@using TfLens.Core.Repos
+@inject IRepoListReader objRepoListReader
+@inject RepoRegistry objRepoRegistry
+@inject ShellState objShellState
+@inject ToastService objToastService
+@inject NavigationManager objNavigation
+
+<PageTitle>Remove a source · TfLens</PageTitle>
+
+<div class="tflens-stack" data-testid="remove-source-page">
+
+    <div class="flex flex-col gap-1">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    @* TR-023 — BreadcrumbLink captures no unmatched attributes, so the test id sits on a span inside it. *@
+                    <BreadcrumbLink Href="/repos"><span data-testid="remove-back">Repos</span></BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Remove</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </div>
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-1/2" />
+                    <Skeleton Class="h-4 w-3/4" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objTarget is null)
+    {
+        @* A stale link, a Back after the removal, or a hand-typed name. Say so rather than
+           confirming the removal of something that is not there. *@
+        <Empty Title="That source isn't connected"
+               Description="@($"Nothing here is called {RepoName}. It may already have been removed.")"
+               Size="EmptySize.Default"
+               data-testid="remove-unknown">
+            <Icon>
+                <LucideIcon Name="circle-question-mark" Size="40" />
+            </Icon>
+            <ChildContent>
+                <Button Variant="ButtonVariant.Outline" OnClick="BackToRepos" data-testid="remove-unknown-back">
+                    Back to Repos
+                </Button>
+            </ChildContent>
+        </Empty>
+    }
+    else
+    {
+        <Card>
+            <CardHeader>
+                <CardTitle>
+                    <span data-testid="remove-title">Remove @objTarget.Repo.Repo?</span>
+                </CardTitle>
+                <CardDescription>
+                    <span data-testid="remove-description">
+                        Stops syncing and deletes the parsed rows and raw archive for
+                        @objTarget.Repo.Repo. Your GitHub repo, or your uploaded file, is untouched.
+                    </span>
+                </CardDescription>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <Alert Variant="AlertVariant.Warning" data-testid="remove-impact">
+                    <LucideIcon Name="triangle-alert" Size="16" />
+                    <AlertTitle>This cannot be undone</AlertTitle>
+                    <AlertDescription>
+                        @($"{objTarget.RecordCount:N0} parsed records will be deleted. ")
+                        @(ImportedSourceRules.IsImported(objTarget.Repo.SourceKind)
+                            ? "This source was imported, so re-adding it means uploading the bundle again."
+                            : "This source is fetched, so re-adding it will sync it from GitHub again.")
+                    </AlertDescription>
+                </Alert>
+
+                <div class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+                    <Button Variant="ButtonVariant.Outline"
+                            Disabled="@objIsRemoving"
+                            OnClick="BackToRepos"
+                            data-testid="remove-cancel">Cancel</Button>
+                    <Button Variant="ButtonVariant.Destructive"
+                            Disabled="@objIsRemoving"
+                            OnClick="ConfirmRemoveAsync"
+                            data-testid="remove-confirm">
+                        @if (objIsRemoving)
+                        {
+                            <Spinner Size="SpinnerSize.Small" />
+                        }
+                        else
+                        {
+                            <LucideIcon Name="trash-2" Size="16" />
+                        }
+                        Remove
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    }
+</div>
+
+@code {
+    private RepoListItem? objTarget;
+    private bool objIsLoaded;
+    private bool objIsRemoving;
+    private int? objUserId;
+
+    /// <summary>
+    /// The <c>owner/name</c> to remove, from the route.
+    /// </summary>
+    /// <remarks>
+    /// A repository name carries a slash, so the grid escapes it once
+    /// (<see cref="Uri.EscapeDataString(string)"/>) and this unescapes it.
+    /// </remarks>
+    [Parameter]
+    public string? Source { get; set; }
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>The source name as the page prints it.</summary>
+    private string RepoName => string.IsNullOrWhiteSpace(Source) ? "—" : Uri.UnescapeDataString(Source!);
+
+    /// <summary>
+    /// Resolves the user and finds the row the route names.
+    /// </summary>
+    /// <returns>A task that completes when the confirmation has its subject.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var vState = await AuthenticationStateTask;
+        objUserId = ShellIdentity.UserId(vState.User);
+
+        if (objUserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        // Scoped to the signed-in user by parameter, never by filter (ADR-013) — so one user cannot
+        // reach another's source by typing its name into the address bar.
+        var vRows = await objRepoListReader.ListWithCountsAsync(objUserId.Value);
+
+        objTarget = vRows.FirstOrDefault(aRow =>
+            string.Equals(aRow.Repo.Repo, RepoName, StringComparison.OrdinalIgnoreCase));
+
+        objIsLoaded = true;
+    }
+
+    /// <summary>
+    /// Removes the source the confirmation named — the only path that deletes anything.
+    /// </summary>
+    /// <returns>A task that completes when the source and its data are gone.</returns>
+    private async Task ConfirmRemoveAsync()
+    {
+        var vTarget = objTarget;
+
+        if (vTarget is null || objUserId is null || objIsRemoving)
+        {
+            return;
+        }
+
+        objIsRemoving = true;
+
+        try
+        {
+            await objRepoRegistry.RemoveAsync(objUserId.Value, vTarget.Repo.Repo);
+            await objShellState.RefreshAsync(objUserId.Value);
+            objToastService.Success($"{vTarget.Repo.Repo} removed — its rows and raw archive are gone.", "Removed");
+            BackToRepos();
+        }
+        catch (Exception vEx)
+        {
+            objToastService.Error(vEx.Message, "Couldn't remove the repo");
+        }
+        finally
+        {
+            objIsRemoving = false;
+        }
+    }
+
+    /// <summary>Returns to the sources grid — the one exit this page has.</summary>
+    private void BackToRepos() => objNavigation.NavigateTo("/repos");
+}

@@ -71,16 +71,20 @@ public static class MissExportFixture
     /// <returns>The fix records.</returns>
     private static IReadOnlyList<MissFixRecord> AppFixes() =>
     [
-        Fix("MISS-01", AppRepo, "app", "Verified", "sole", 300, "claude-code", null),
-        Fix("MISS-02", AppRepo, "app", "wont-fix", "sole", 600, "claude-code", null),
-        Fix("MISS-03", AppRepo, "app", "deferred", "sole", 900, "claude-code", null)
+        // Each fix names the run that made it, because the cost divisor is DERIVED from how many
+        // misses a run closed (2026-08-29) rather than read from the stored string. RUN-1 and RUN-2
+        // each closed one miss; RUN-3 closed two — MISS-03 here and MISS-04 in the library repo —
+        // which is what makes the shared column non-empty without stamping it by hand.
+        Fix("MISS-01", AppRepo, "app", "Verified", "sole", 300, "claude-code", null, "RUN-1"),
+        Fix("MISS-02", AppRepo, "app", "wont-fix", "sole", 600, "claude-code", null, "RUN-2"),
+        Fix("MISS-03", AppRepo, "app", "deferred", "sole", 900, "claude-code", null, "RUN-3")
     ];
 
     /// <summary>One apportioned fix, on the only harness that measures dollars.</summary>
     /// <returns>The fix records.</returns>
     private static IReadOnlyList<MissFixRecord> LibraryFixes() =>
     [
-        Fix("MISS-04", LibraryRepo, "library", "Verified", "shared:2", 400, "opencode", 0.5m)
+        Fix("MISS-04", LibraryRepo, "library", "Verified", "shared:2", 400, "opencode", 0.5m, "RUN-3")
     ];
 
     /// <summary>Builds one miss record.</summary>
@@ -142,7 +146,8 @@ public static class MissExportFixture
         string aCostAttribution,
         int aTokensOut,
         string aHarness,
-        decimal? aCostUsd) => new()
+        decimal? aCostUsd,
+        string aFixRunId) => new()
     {
         UserId = ExportFixture.UserId,
         Repo = aRepo,
@@ -153,10 +158,14 @@ public static class MissExportFixture
         Harness = aHarness,
         MissId = aMissId,
         FixCmd = "fix-issues",
+        FixRunId = aFixRunId,
         FixAttempt = 1,
         VerdictAfter = aVerdict,
         CostAttribution = aCostAttribution,
         TokensOut = aTokensOut,
-        CostUsd = aCostUsd
+        CostUsd = aCostUsd,
+        // A real emitted record always carries a scope; without one there is no window to divide
+        // and the record is unattributable however it is labelled.
+        TokensScope = "tree"
     };
 }

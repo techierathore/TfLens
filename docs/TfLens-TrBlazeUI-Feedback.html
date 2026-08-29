@@ -132,6 +132,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#tr-016-badge-has-no-success-warning-variant-so-a-status-badge-cannot-carry-its-own-semantics">TR-016 — Badge has no success/warning variant, so a status badge cannot carry its own semantics</a></li>
         <li><a href="#tr-017-empty-lives-in-trblazeui-components-empty-which-the-reference-s-imports-list-omits">TR-017 — Empty lives in TrBlazeUI.Components.Empty, which the reference&#x27;s _Imports list omits</a></li>
         <li><a href="#tr-022-merged-into-tr-008-lucideicon-does-not-resolve-lucide-json-aliases">TR-022 — merged into TR-008 (LucideIcon does not resolve lucide.json aliases)</a></li>
+        <li><a href="#tr-023-breadcrumblink-drops-every-unmatched-attribute-so-a-breadcrumb-cannot-carry-a-data-testid">TR-023 — BreadcrumbLink drops every unmatched attribute, so a breadcrumb cannot carry a data-testid</a></li>
     </ol>
   </nav>
   <main>
@@ -164,6 +165,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#tr-016-badge-has-no-success-warning-variant-so-a-status-badge-cannot-carry-its-own-semantics">TR-016 — Badge has no success/warning variant, so a status badge cannot carry its own semantics</a></li>
         <li><a href="#tr-017-empty-lives-in-trblazeui-components-empty-which-the-reference-s-imports-list-omits">TR-017 — Empty lives in TrBlazeUI.Components.Empty, which the reference&#x27;s _Imports list omits</a></li>
         <li><a href="#tr-022-merged-into-tr-008-lucideicon-does-not-resolve-lucide-json-aliases">TR-022 — merged into TR-008 (LucideIcon does not resolve lucide.json aliases)</a></li>
+        <li><a href="#tr-023-breadcrumblink-drops-every-unmatched-attribute-so-a-breadcrumb-cannot-carry-a-data-testid">TR-023 — BreadcrumbLink drops every unmatched attribute, so a breadcrumb cannot carry a data-testid</a></li>
       </ol>
     </div>
 <p>Gaps found while building TfLens against <strong>TrBlazeUI.Components 2.0.0</strong> / <strong>TrBlazeUI.Icons.Lucide 2.0.0</strong>.
@@ -626,6 +628,24 @@ into TR-008 in full, under "Root cause". Nothing was dropped in the merge.</p>
 <p><strong>Not counted</strong> in this file's severity totals; it is an alias, not an entry.</p>
 </blockquote>
 <hr>
+<hr>
+<h2 id="tr-023-breadcrumblink-drops-every-unmatched-attribute-so-a-breadcrumb-cannot-carry-a-data-testid">TR-023 — <code>BreadcrumbLink</code> drops every unmatched attribute, so a breadcrumb cannot carry a <code>data-testid</code><a class="anchor-link" href="#tr-023-breadcrumblink-drops-every-unmatched-attribute-so-a-breadcrumb-cannot-carry-a-data-testid">#</a></h2>
+<p><strong>Severity:</strong> Medium · <strong>Raised:</strong> 2026-08-28 · <strong>Status:</strong> open</p>
+<p><code>TrBlazeUI.Components.Breadcrumb.BreadcrumbLink</code> declares no
+<code>[Parameter(CaptureUnmatchedValues = true)]</code>, so any attribute it does not know about is not ignored
+— it <strong>throws</strong>:</p>
+<pre><code>InvalidOperationException: Object of type 'TrBlazeUI.Components.Breadcrumb.BreadcrumbLink'
+does not have a property matching the name 'data-testid'.</code></pre>
+<p>This is the third component in the same family — <code>TabsTrigger</code> (TR-010) and <code>Typography*</code> (TR-013)
+behave identically — which is what makes it worth raising as a pattern rather than a third one-off.
+The cost is not the workaround (a <code>&lt;span data-testid&gt;</code> inside the link, which is what TfLens does);
+it is that the failure is a <strong>runtime 500 on first render</strong>, not a compile error. Two new pages in
+this codebase shipped, built cleanly, and returned a Blazor error page the first time they were
+opened — twice, for two different components in the same family.</p>
+<p><strong>Ask:</strong> add <code>CaptureUnmatchedValues</code> to every leaf component that renders a real DOM element, or
+state in the reference which components accept passthrough attributes and which throw. A consumer
+cannot tell by looking, and the build will not tell them either.</p>
+<p><strong>Reproduce:</strong> <code>&lt;BreadcrumbLink Href="/x" data-testid="y"&gt;z&lt;/BreadcrumbLink&gt;</code> → 500 on render.</p>
   </main>
 </div>
 

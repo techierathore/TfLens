@@ -541,6 +541,28 @@ The design map specifies `TypographyH2` for the brand wordmark; `AuthLayout.razo
 design tokens TrBlazeUI 2.0.0 references but never defines (TR-001) — custom properties inherit, so
 every control below picks them up. Do not delete `.auth-split` styling assuming it is decoration.
 
+### Known issues (UAT 2026-08-28) — `REQ-UI-001` — **FIXED 2026-08-28**
+
+- ~~**The whole screen collapses if `TfLens.styles.css` does not load.**~~ **Fixed 2026-08-28.** The
+  `.auth-*` rules now live in `src/TfLens/wwwroot/app.css`, served straight from the web root, and
+  `AuthLayout.razor.css` is deleted — so the anonymous layout no longer depends on the scoped bundle
+  at all. `tests/verify/asset-integrity.spec.ts` serves `/login` with that bundle 404'd and asserts
+  the split, the card width and the bullet rows survive. **Do not move these rules back into a
+  co-located `.razor.css`.** What follows is the original diagnosis, kept because the *shape* of the
+  failure is worth recognising. Every rule that laid this page out lived in
+  `AuthLayout.razor.css`, i.e. in the Blazor scoped-CSS bundle. `trblazeui.css` and `app.css` are
+  *not* enough: with them alone you get styled inputs and a dark theme laid out as one full-width
+  column starting at x=0, which is exactly what the owner reported
+  (`docs/uatissuessc/Login.png`). Reproduced pixel-for-pixel by serving `/login` with only that
+  bundle 404'd. There is **no console error and no server log line** — the page just looks wrong.
+  When triaging any "the page looks unstyled" report, check
+  `curl -o /dev/null -w '%{http_code}' <base>/TfLens.styles.css` **first** — or just run
+  `npx playwright test tests/verify/asset-integrity.spec.ts`, which now checks every declared
+  stylesheet and script on `/login` and on the authenticated shell (REQ-NFR-015).
+- Related repo hazard: `bin/` and `obj/` are tracked in git, and
+  `bin/Debug/net10.0/TfLens.staticwebassets.runtime.json` carries **machine-absolute** content roots
+  (`/mnt/c/…` after a WSL build, `C:\1MyCode\…` after a Windows build). See `REQ-NFR-016`.
+
 ---
 
 ## `/register`
@@ -950,6 +972,72 @@ blank icons, no page-level horizontal scroll, no console or page errors.
   behind by a build-phase store harness. They surface here and on Coverage as repos whose sync fails,
   and they inflate `Connected repos` to 8. They are database pollution, not user data — see the
   checklist's `*verify all` findings.
+
+### 2026-08-28 — Add source and Remove are their own ROUTES now (`REQ-UI-044`)
+
+This screen is the **grid only**. The three write flows moved out:
+
+| Flow | Route | Page |
+|---|---|---|
+| Add a source | `/repos/add`, `/repos/add/{api\|import}` | `Components/Pages/AddSource.razor` |
+| Re-import a source | `/repos/reimport/{Source}` | same page, re-import mode |
+| Remove a source | `/repos/remove/{Source}` | `Components/Pages/RemoveSource.razor` |
+
+`{Source}` is `owner/name` escaped once with `Uri.EscapeDataString` by the grid and unescaped once by
+the page — the round trip is in `GoToRemove` / `GoToReimport` and the pages' `Source` parameter.
+
+**Why, and what it bought.** They were a `Dialog` and an `AlertDialog` until the owner reported that
+deleting or adding a source could leave the whole page dimmed and dead (a mounted `bg-black/80`
+backdrop with no panel — `docs/uatissuessc/Repos-delete-issue.png`). Nine reproduction attempts here
+could not produce that state, and a construct whose failure mode the harness cannot reproduce is one
+the harness cannot sign off either. As routes there is **no backdrop to strand, no portal to miss, no
+`body{overflow:hidden}` scroll lock to leak**, and no need for the page-owned Escape handler that only
+existed because TrBlazeUI ships none (TR-014) — `Repos.razor.js` is deleted and its import half is
+`AddSource.razor.js`. Back and Cancel are both aborts, and every flow has a URL you can paste into a
+bug report. **Do not move these back into a dialog** — `UatEscapeTests.SourceFlowsAreRoutesAndNotDialogs`
+and the `expectNoOverlay` assertions in `ui-auth-shell.spec.ts` will fail if you do.
+
+Two TrBlazeUI traps cost a 500 on first render of each new page, both in the same family as TR-010:
+`BreadcrumbLink` (TR-023) and `Typography*` (TR-013) **throw** on an unrecognised attribute rather
+than ignoring it, so a `data-testid` on either is a runtime `InvalidOperationException`. Put the id on
+a `<span>` inside. The build will not warn you.
+
+### Known issues (UAT 2026-08-28)
+
+- ~~**The KPI stat cards ship without the mockup's trend sparkline (`REQ-UI-011`).**~~
+  **Fixed 2026-08-28.** The Records-synced tile now plots the real `DailySeries` (`ReadDailySeriesAsync`,
+  the same source Coverage / Three-questions / Routing already used — `StatTile` supported `Sparkline`
+  all along and this page simply never passed one). Measured live: 14 points, labelled
+  `gate records per day, last 14 days — techieflow sources only`. **The label names the framework on
+  purpose**: the series is one framework's while the tile's headline counts both, and an unlabelled
+  line invites the reader to treat it as the headline's trend. `Connected repos` and
+  `Last successful sync` deliberately get **no** sparkline — neither has stored history, and a line
+  through invented points is the fabrication this product exists to prevent.
+  **Also closed 2026-08-28:** the filter control now matches the mockup — one `Filter repos…` input,
+  right-aligned on the card-header row at 240px (`repos-filter`), with the DataTable's own toolbar
+  switched off; Kind / Source / Status badges are colour-coded through `tflens-badge-*` tones
+  (TrBlazeUI ships no info/success/warning variant — TR-016); Records is right-aligned; repo names are
+  semibold. Cell padding was tightened to `0.625rem` so all nine columns fit at 1440 — before that the
+  Remove button on every row was **clipped by the card edge**, visible but unpressable, and no
+  measurement caught it because the grid had been squeezed to fit and so reported no overflow. Only
+  the screenshot showed it. The previous divergence text follows for the record: the
+  mockup has one right-aligned `Filter repos…` input on the section-header row, the build has a
+  left-aligned `Search…` box plus separate `Filter` and `Columns` buttons on their own row. The
+  breadcrumb axis chips (`TechieFlow n` / `Playbook n`) are absent.
+- ~~**OWNER-REPORTED, NOT REPRODUCED: "deleting a repo disabled the whole page" and the same on Add
+  source.**~~ **Closed 2026-08-28 by removing the construct** — see `REQ-UI-044` above. The failure
+  was never reproduced; the overlay it depended on no longer exists, so it cannot recur. What
+  follows is the original diagnosis, kept because the *reasoning* is the transferable part.
+  (`docs/uatissuessc/Repos-delete-issue.png` — the `bg-black/80` backdrop mounted with no
+  dialog panel.) Driven live here across nine variants — open / Cancel / Escape / outside-click /
+  **confirmed** delete (rows 4→3, page stayed interactive, 0 console errors), the full
+  Validate→Connect add flow, and each of `TfLens.styles.css`, `app.css`, `trblazeui.css`, `portal.js`
+  and the server process removed — none reproduce it. Untested variable: **Edge on Windows**; every
+  run here was headless Chromium. If you can reproduce it, capture the Network tab and
+  `document.querySelector('.trblazeui-portal').children.length` at the moment the page goes dead.
+- The checklist Remark on `REQ-UI-013` still carries the superseded 2026-08-27 "Escape does not
+  dismiss" finding. Escape **does** dismiss (re-confirmed live 2026-08-28); the fix note above is the
+  current truth.
 
 ### Gotchas
 

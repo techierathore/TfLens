@@ -136,6 +136,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-2">States</a></li>
         <li class="h3"><a href="#gotchas-2">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li class="h3"><a href="#known-issues-uat-2026-08-28-req-ui-001-fixed-2026-08-28">Known issues (UAT 2026-08-28) — REQ-UI-001 — FIXED 2026-08-28</a></li>
         <li><a href="#register">/register</a></li>
         <li class="h3"><a href="#control-data-path-3">Control → data path</a></li>
         <li class="h3"><a href="#states-3">States</a></li>
@@ -160,6 +161,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-7">States</a></li>
         <li class="h3"><a href="#observed-2026-08-28">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</a></li>
+        <li class="h3"><a href="#add-source-and-remove-are-their-own-routes-now-req-ui-044">2026-08-28 — Add source and Remove are their own ROUTES now (REQ-UI-044)</a></li>
+        <li class="h3"><a href="#known-issues-uat-2026-08-28">Known issues (UAT 2026-08-28)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
         <li><a href="#coverage-health">/ — Coverage / health</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
@@ -237,6 +240,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-2">States</a></li>
         <li class="h3"><a href="#gotchas-2">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li class="h3"><a href="#known-issues-uat-2026-08-28-req-ui-001-fixed-2026-08-28">Known issues (UAT 2026-08-28) — REQ-UI-001 — FIXED 2026-08-28</a></li>
         <li><a href="#register">/register</a></li>
         <li class="h3"><a href="#control-data-path-3">Control → data path</a></li>
         <li class="h3"><a href="#states-3">States</a></li>
@@ -261,6 +265,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#states-7">States</a></li>
         <li class="h3"><a href="#observed-2026-08-28">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#known-issues-runtime-observed-2026-08-27">Known issues (runtime-observed 2026-08-27)</a></li>
+        <li class="h3"><a href="#add-source-and-remove-are-their-own-routes-now-req-ui-044">2026-08-28 — Add source and Remove are their own ROUTES now (REQ-UI-044)</a></li>
+        <li class="h3"><a href="#known-issues-uat-2026-08-28">Known issues (UAT 2026-08-28)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
         <li><a href="#coverage-health">/ — Coverage / health</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
@@ -747,6 +753,13 @@ when <code>ReadUserReposAsync</code> returns nothing, else <code>/</code>.</p>
 <code>&lt;span class="auth-wordmark"&gt;</code>. Cosmetic, and the layout also supplies the <code>--sidebar</code> / <code>--alert-*</code>
 design tokens TrBlazeUI 2.0.0 references but never defines (TR-001) — custom properties inherit, so
 every control below picks them up. Do not delete <code>.auth-split</code> styling assuming it is decoration.</p>
+<h3 id="known-issues-uat-2026-08-28-req-ui-001-fixed-2026-08-28">Known issues (UAT 2026-08-28) — <code>REQ-UI-001</code> — <strong>FIXED 2026-08-28</strong><a class="anchor-link" href="#known-issues-uat-2026-08-28-req-ui-001-fixed-2026-08-28">#</a></h3>
+<ul>
+<li><s><strong>The whole screen collapses if <code>TfLens.styles.css</code> does not load.</strong></s> <strong>Fixed 2026-08-28.</strong> The <code>.auth-*</code> rules now live in <code>src/TfLens/wwwroot/app.css</code>, served straight from the web root, and <code>AuthLayout.razor.css</code> is deleted — so the anonymous layout no longer depends on the scoped bundle at all. <code>tests/verify/asset-integrity.spec.ts</code> serves <code>/login</code> with that bundle 404'd and asserts the split, the card width and the bullet rows survive. <strong>Do not move these rules back into a co-located <code>.razor.css</code>.</strong> What follows is the original diagnosis, kept because the <em>shape</em> of the failure is worth recognising. Every rule that laid this page out lived in <code>AuthLayout.razor.css</code>, i.e. in the Blazor scoped-CSS bundle. <code>trblazeui.css</code> and <code>app.css</code> are <em>not</em> enough: with them alone you get styled inputs and a dark theme laid out as one full-width column starting at x=0, which is exactly what the owner reported (<code>docs/uatissuessc/Login.png</code>). Reproduced pixel-for-pixel by serving <code>/login</code> with only that bundle 404'd. There is <strong>no console error and no server log line</strong> — the page just looks wrong. When triaging any "the page looks unstyled" report, check <code>curl -o /dev/null -w '%{http_code}' &lt;base&gt;/TfLens.styles.css</code> <strong>first</strong> — or just run <code>npx playwright test tests/verify/asset-integrity.spec.ts</code>, which now checks every declared stylesheet and script on <code>/login</code> and on the authenticated shell (REQ-NFR-015).
+</li>
+<li>Related repo hazard: <code>bin/</code> and <code>obj/</code> are tracked in git, and <code>bin/Debug/net10.0/TfLens.staticwebassets.runtime.json</code> carries <strong>machine-absolute</strong> content roots (<code>/mnt/c/…</code> after a WSL build, <code>C:\1MyCode\…</code> after a Windows build). See <code>REQ-NFR-016</code>.
+</li>
+</ul>
 <hr>
 <h2 id="register"><code>/register</code><a class="anchor-link" href="#register">#</a></h2>
 <p><strong>File:</strong> <code>src/TfLens/Components/Pages/Auth/Register.razor</code> · <code>@page "/register"</code> · <code>AuthLayout</code> ·
@@ -1092,6 +1105,41 @@ blank icons, no page-level horizontal scroll, no console or page errors.</p>
 <li><strong>The <code>Actions</code> column renders no text by design</strong> — the row Sync and Remove controls are icon-only buttons. A cell-level "is it blank?" check will report one blank cell per row on <code>repos-table</code>; that is the Actions column, not a data defect.
 </li>
 <li><strong>The demo account carries five <code>tflenstest/Store*</code> rows that are not real GitHub repos</strong>, left behind by a build-phase store harness. They surface here and on Coverage as repos whose sync fails, and they inflate <code>Connected repos</code> to 8. They are database pollution, not user data — see the checklist's <code>*verify all</code> findings.
+</li>
+</ul>
+<h3 id="add-source-and-remove-are-their-own-routes-now-req-ui-044">2026-08-28 — Add source and Remove are their own ROUTES now (<code>REQ-UI-044</code>)<a class="anchor-link" href="#add-source-and-remove-are-their-own-routes-now-req-ui-044">#</a></h3>
+<p>This screen is the <strong>grid only</strong>. The three write flows moved out:</p>
+<table>
+<thead><tr><th>Flow</th><th>Route</th><th>Page</th></tr></thead>
+<tbody>
+<tr><td>Add a source</td><td><code>/repos/add</code>, <code>/repos/add/{api|import}</code></td><td><code>Components/Pages/AddSource.razor</code></td></tr>
+<tr><td>Re-import a source</td><td><code>/repos/reimport/{Source}</code></td><td>same page, re-import mode</td></tr>
+<tr><td>Remove a source</td><td><code>/repos/remove/{Source}</code></td><td><code>Components/Pages/RemoveSource.razor</code></td></tr>
+</tbody>
+</table>
+<p><code>{Source}</code> is <code>owner/name</code> escaped once with <code>Uri.EscapeDataString</code> by the grid and unescaped once by
+the page — the round trip is in <code>GoToRemove</code> / <code>GoToReimport</code> and the pages' <code>Source</code> parameter.</p>
+<p><strong>Why, and what it bought.</strong> They were a <code>Dialog</code> and an <code>AlertDialog</code> until the owner reported that
+deleting or adding a source could leave the whole page dimmed and dead (a mounted <code>bg-black/80</code>
+backdrop with no panel — <code>docs/uatissuessc/Repos-delete-issue.png</code>). Nine reproduction attempts here
+could not produce that state, and a construct whose failure mode the harness cannot reproduce is one
+the harness cannot sign off either. As routes there is <strong>no backdrop to strand, no portal to miss, no
+<code>body{overflow:hidden}</code> scroll lock to leak</strong>, and no need for the page-owned Escape handler that only
+existed because TrBlazeUI ships none (TR-014) — <code>Repos.razor.js</code> is deleted and its import half is
+<code>AddSource.razor.js</code>. Back and Cancel are both aborts, and every flow has a URL you can paste into a
+bug report. <strong>Do not move these back into a dialog</strong> — <code>UatEscapeTests.SourceFlowsAreRoutesAndNotDialogs</code>
+and the <code>expectNoOverlay</code> assertions in <code>ui-auth-shell.spec.ts</code> will fail if you do.</p>
+<p>Two TrBlazeUI traps cost a 500 on first render of each new page, both in the same family as TR-010:
+<code>BreadcrumbLink</code> (TR-023) and <code>Typography*</code> (TR-013) <strong>throw</strong> on an unrecognised attribute rather
+than ignoring it, so a <code>data-testid</code> on either is a runtime <code>InvalidOperationException</code>. Put the id on
+a <code>&lt;span&gt;</code> inside. The build will not warn you.</p>
+<h3 id="known-issues-uat-2026-08-28">Known issues (UAT 2026-08-28)<a class="anchor-link" href="#known-issues-uat-2026-08-28">#</a></h3>
+<ul>
+<li><s><strong>The KPI stat cards ship without the mockup's trend sparkline (<code>REQ-UI-011</code>).</strong></s> <strong>Fixed 2026-08-28.</strong> The Records-synced tile now plots the real <code>DailySeries</code> (<code>ReadDailySeriesAsync</code>, the same source Coverage / Three-questions / Routing already used — <code>StatTile</code> supported <code>Sparkline</code> all along and this page simply never passed one). Measured live: 14 points, labelled <code>gate records per day, last 14 days — techieflow sources only</code>. <strong>The label names the framework on purpose</strong>: the series is one framework's while the tile's headline counts both, and an unlabelled line invites the reader to treat it as the headline's trend. <code>Connected repos</code> and <code>Last successful sync</code> deliberately get <strong>no</strong> sparkline — neither has stored history, and a line through invented points is the fabrication this product exists to prevent. <strong>Also closed 2026-08-28:</strong> the filter control now matches the mockup — one <code>Filter repos…</code> input, right-aligned on the card-header row at 240px (<code>repos-filter</code>), with the DataTable's own toolbar switched off; Kind / Source / Status badges are colour-coded through <code>tflens-badge-*</code> tones (TrBlazeUI ships no info/success/warning variant — TR-016); Records is right-aligned; repo names are semibold. Cell padding was tightened to <code>0.625rem</code> so all nine columns fit at 1440 — before that the Remove button on every row was <strong>clipped by the card edge</strong>, visible but unpressable, and no measurement caught it because the grid had been squeezed to fit and so reported no overflow. Only the screenshot showed it. The previous divergence text follows for the record: the mockup has one right-aligned <code>Filter repos…</code> input on the section-header row, the build has a left-aligned <code>Search…</code> box plus separate <code>Filter</code> and <code>Columns</code> buttons on their own row. The breadcrumb axis chips (<code>TechieFlow n</code> / <code>Playbook n</code>) are absent.
+</li>
+<li><s><strong>OWNER-REPORTED, NOT REPRODUCED: "deleting a repo disabled the whole page" and the same on Add source.</strong></s> <strong>Closed 2026-08-28 by removing the construct</strong> — see <code>REQ-UI-044</code> above. The failure was never reproduced; the overlay it depended on no longer exists, so it cannot recur. What follows is the original diagnosis, kept because the <em>reasoning</em> is the transferable part. (<code>docs/uatissuessc/Repos-delete-issue.png</code> — the <code>bg-black/80</code> backdrop mounted with no dialog panel.) Driven live here across nine variants — open / Cancel / Escape / outside-click / <strong>confirmed</strong> delete (rows 4→3, page stayed interactive, 0 console errors), the full Validate→Connect add flow, and each of <code>TfLens.styles.css</code>, <code>app.css</code>, <code>trblazeui.css</code>, <code>portal.js</code> and the server process removed — none reproduce it. Untested variable: <strong>Edge on Windows</strong>; every run here was headless Chromium. If you can reproduce it, capture the Network tab and <code>document.querySelector('.trblazeui-portal').children.length</code> at the moment the page goes dead.
+</li>
+<li>The checklist Remark on <code>REQ-UI-013</code> still carries the superseded 2026-08-27 "Escape does not dismiss" finding. Escape <strong>does</strong> dismiss (re-confirmed live 2026-08-28); the fix note above is the current truth.
 </li>
 </ul>
 <h3 id="gotchas-7">Gotchas<a class="anchor-link" href="#gotchas-7">#</a></h3>

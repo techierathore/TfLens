@@ -38,8 +38,8 @@ public sealed class ParityStampTests : IDisposable
     /// oracle is framework-owned and read-only here; the constant follows it, never the other way round.
     /// </para>
     /// </remarks>
-    private const string RecordedOracleHash =
-        "sha256:f4b2667a265f2ff3afa4d4ee0330b8bf15f92acf494d3852eec5c0813a7d09a7";
+    // Retired 2026-08-28 (REQ-NFR-018) — see HashingAgreesWithTheDigestTheRecorderWrites. The
+    // digest of a framework-owned, untracked file is not this suite's to pin.
 
     /// <summary>The SHA-256 of the three bytes <c>abc</c> — the standard vector, hashed by no code here.</summary>
     private const string AbcDigest =
@@ -192,14 +192,25 @@ public sealed class ParityStampTests : IDisposable
 
         ParityRecord.HashScript(vVector).Should().Be(AbcDigest);
 
-        // The oracle is READ, never written: this is the digest the 2026-08-27 parity run recorded for
-        // .tfcore/telemetry/tf-metrics.sh, so an accidental change to the hashing shows up here.
-        var vOracle = Path.Combine(
-            ExportFixture.RepositoryRoot(), ".tfcore", "telemetry", "tf-metrics.sh");
-        if (File.Exists(vOracle))
-        {
-            ParityRecord.HashScript(vOracle).Should().Be(RecordedOracleHash);
-        }
+        // REQ-NFR-018 (2026-08-28). This used to also assert HashScript(.tfcore/telemetry/tf-metrics.sh)
+        // against a constant recorded on 2026-08-27. That assertion tested nothing about the hashing —
+        // the "abc" vector above is the complete guarantee of the algorithm — and it coupled this
+        // suite to the byte-exact content of an UNTRACKED, framework-owned file that TechieFlow's own
+        // updater rewrites. It duly went red the moment the framework updated itself (2026-08-28
+        // 17:04), failing the app's test suite for a change in a file the app does not own, does not
+        // commit, and cannot control. What the oracle's identity legitimately gates is the parity run,
+        // where ParityRecord.StatusFor already compares the recorded hash against the live script and
+        // answers NotQuotable when they differ — exercised by OracleChangeMakesTheStampNotQuotable
+        // above. Pinning it a second time here only bought a recurring false alarm.
+        //
+        // Hashing stability across calls, which is what this test is actually for, is asserted
+        // directly and on a file this repository owns.
+        var vRepeat = Path.Combine(objFolder, "repeat.txt");
+        File.WriteAllBytes(vRepeat, Encoding.ASCII.GetBytes("abc"));
+
+        ParityRecord.HashScript(vRepeat).Should().Be(
+            ParityRecord.HashScript(vVector),
+            "identical bytes must hash identically regardless of the path they were read from");
     }
 
     /// <summary>

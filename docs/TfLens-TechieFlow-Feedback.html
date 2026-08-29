@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — TechieFlow framework feedback</h1>
-    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="sub">Last rendered: 2026-08-29</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#summary">Summary</a></li>
@@ -163,11 +163,16 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#actual-6">Actual</a></li>
         <li class="h3"><a href="#workaround-5">Workaround</a></li>
         <li class="h3"><a href="#suggested-fix-6">Suggested fix</a></li>
+        <li><a href="#tf-007-the-gate-set-has-no-asset-integrity-gate-so-a-page-can-lose-its-entire-stylesheet-and-every-gate-still-passes">TF-007 — the gate set has no asset-integrity gate, so a page can lose its entire stylesheet and every gate still passes</a></li>
+        <li class="h3"><a href="#what-happened">What happened</a></li>
+        <li class="h3"><a href="#the-gap-stated-precisely">The gap, stated precisely</a></li>
+        <li class="h3"><a href="#what-tflens-did-about-it-locally">What TfLens did about it locally</a></li>
+        <li class="h3"><a href="#ask">Ask</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — TechieFlow framework feedback</h1>
-    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-TechieFlow-Feedback.md</code></div>
+    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>TfLens-TechieFlow-Feedback.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -226,6 +231,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#actual-6">Actual</a></li>
         <li class="h3"><a href="#workaround-5">Workaround</a></li>
         <li class="h3"><a href="#suggested-fix-6">Suggested fix</a></li>
+        <li><a href="#tf-007-the-gate-set-has-no-asset-integrity-gate-so-a-page-can-lose-its-entire-stylesheet-and-every-gate-still-passes">TF-007 — the gate set has no asset-integrity gate, so a page can lose its entire stylesheet and every gate still passes</a></li>
+        <li class="h3"><a href="#what-happened">What happened</a></li>
+        <li class="h3"><a href="#the-gap-stated-precisely">The gap, stated precisely</a></li>
+        <li class="h3"><a href="#what-tflens-did-about-it-locally">What TfLens did about it locally</a></li>
+        <li class="h3"><a href="#ask">Ask</a></li>
       </ol>
     </div>
 <p>Defects found in the <strong>TechieFlow framework itself</strong> (<code>.tfcore/</code>) while building TfLens. That directory
@@ -972,6 +982,77 @@ exact path TF-003 removed.</p>
 </ul>
 <p>The content check is the more robust of the two and does not depend on naming discipline.</p>
 <hr>
+<hr>
+<h2 id="tf-007-the-gate-set-has-no-asset-integrity-gate-so-a-page-can-lose-its-entire-stylesheet-and-every-gate-still-passes">TF-007 — the gate set has no asset-integrity gate, so a page can lose its entire stylesheet and every gate still passes<a class="anchor-link" href="#tf-007-the-gate-set-has-no-asset-integrity-gate-so-a-page-can-lose-its-entire-stylesheet-and-every-gate-still-passes">#</a></h2>
+<p><strong>Severity:</strong> High · <strong>Raised:</strong> 2026-08-28 · <strong>Status:</strong> open · <strong>Found by:</strong> owner, UAT</p>
+<h3 id="what-happened">What happened<a class="anchor-link" href="#what-happened">#</a></h3>
+<p>On 2026-08-28 <code>*handoff-phase</code> declared TfLens <strong>READY FOR UAT</strong> on a build reporting <strong>140 of 143
+<code>Verified</code></strong>, with acceptance, data-render, visual-truth, standards, BRD §13 parity and perf all
+green. The owner opened <code>/login</code> and got an unstyled single column: brand panel, bullets and sign-in
+card stacked at x=0. One stylesheet — the Blazor scoped-CSS bundle — had not arrived, and it carried
+100% of that page's layout.</p>
+<p><strong>No gate asked the question that would have caught it, and none of them could have.</strong></p>
+<table>
+<thead><tr><th>Gate</th><th>Why it passed</th></tr></thead>
+<tbody>
+<tr><td>acceptance</td><td>Every control was present and every assertion about behaviour held. An unstyled page behaves correctly.</td></tr>
+<tr><td>data-render (§4a)</td><td>"Does this control carry non-placeholder text?" — yes. Text renders fine without CSS.</td></tr>
+<tr><td>visual-truth (§4b)</td><td>"Do these boxes overlap / clip / sit off-viewport?" — no. A single stacked column overlaps nothing. It is the <em>tidiest</em> possible failure.</td></tr>
+<tr><td>standards</td><td>File-level; never loads the app.</td></tr>
+<tr><td>perf</td><td>Measures latency. An unstyled page is if anything faster.</td></tr>
+</tbody>
+</table>
+<p>The visual-truth gate is the one that ought to own this, and its geometry checks are structurally
+blind to it: <strong>total loss of layout produces a page that passes every geometric assertion.</strong> Partial
+breakage overlaps; complete breakage stacks neatly.</p>
+<h3 id="the-gap-stated-precisely">The gap, stated precisely<a class="anchor-link" href="#the-gap-stated-precisely">#</a></h3>
+<p>Nothing in the framework verifies that <strong>the assets a page declares actually arrived</strong>. A 404 on a
+<code>&lt;link rel="stylesheet"&gt;</code> or a <code>&lt;script src&gt;</code> produces no console error the gates read, no server log
+line, no Blazor error boundary, and no failed assertion. The app renders something that looks
+intentional and every gate agrees.</p>
+<h3 id="what-tflens-did-about-it-locally">What TfLens did about it locally<a class="anchor-link" href="#what-tflens-did-about-it-locally">#</a></h3>
+<p>Added <code>REQ-NFR-015</code> and <code>tests/verify/asset-integrity.spec.ts</code>: for <code>/login</code> and the authenticated
+shell, read every <code>&lt;link rel="stylesheet"&gt;</code> and <code>&lt;script src&gt;</code> the document declares and assert a
+<strong>200 with a non-empty body</strong> for each. Fourteen lines of real logic. It runs in under a second and
+would have caught this on the day it was introduced.</p>
+<h3 id="ask">Ask<a class="anchor-link" href="#ask">#</a></h3>
+<p><strong>Add an asset-integrity gate to <code>verify-phase.md</code> §4, between <code>render</code> (§4a) and <code>visual</code> (§4b)</strong>,
+with <code>"assets"</code> in the <code>gates_run</code> vocabulary and the <code>gate</code> enum in <code>SCHEMA.md</code> §3.2 so its catch
+rate is measurable like every other gate. The check is generic — it needs no knowledge of the app,
+only the rendered document — so it belongs in the framework rather than in each project.</p>
+<p>Two smaller companions, both from the same session and both currently unowned by any gate:</p>
+<ol>
+<li><strong>The scaffold writes a <code>.gitignore</code> with no section for the project's own stack.</strong> <em>Upgraded 2026-08-29 from "a check worth adding" to a located root cause, with evidence.</em>
+</li>
+</ol>
+<p>TfLens's <code>.gitignore</code> was created by the day-1 scaffold (commit <code>979265f</code>, 2026-08-26). Every
+   section in it is framework-managed and labelled as such — <code>.tfcore/</code>, <code>.claude/</code>, <code>node_modules/</code>,
+   <code>tests/.artifacts/</code>, <code>playwright-report/</code>, <code>logs/</code>. It is a complete, careful ignore file <strong>for
+   TechieFlow's own artifacts</strong>, and it contains no <code>bin/</code>, no <code>obj/</code>, and no rule of any kind for
+   the stack the project is actually written in — in a repository whose <code>core-config.yaml</code> and four
+   <code>.csproj</code> files say .NET 10 throughout.</p>
+<p>The consequence was mechanical and immediate: the first build produced build output, and commit
+   <code>80cb71c</code> — named, with some irony, <em>"Updated git ignore"</em> (2026-08-27) — swept <strong>1,041</strong>
+   build-output files into the index. Four later commits added more, reaching <strong>1,962</strong>.</p>
+<p>Those files carry the static-web-assets manifest, whose content roots are <strong>machine-absolute</strong>:
+   <code>/mnt/c/…</code> + <code>/home/&lt;user&gt;/.nuget/…</code> after a WSL build, <code>C:\1MyCode\…</code> +
+   <code>C:\Users\&lt;user&gt;\.nuget\…</code> after a Windows build (both captured on 2026-08-28). Committing them
+   ships one machine's absolute paths to another, which is a plausible route to precisely the 404
+   this entry is about.</p>
+<p><strong>Ask:</strong> the day-1 tasks already know the stack — they choose it, write it into <code>core-config.yaml</code>
+   and generate the solution. Whichever step emits <code>.gitignore</code> should emit the stack's build-output
+   rules with it (<code>bin/</code>, <code>obj/</code> for .NET; <code>__pycache__/</code>, <code>.venv/</code> for Python; <code>dist/</code>, <code>build/</code> for
+   Node), and <code>update-framework.sh</code> should assert on every refresh that a repository's build output
+   is ignored <strong>and untracked</strong> — the second half matters, because a tracked file is never ignored no
+   matter what the ignore file says, so adding the rule later fixes nothing on its own. Every project
+   the scaffold has ever created is likely to carry this.</p>
+<p><strong>Reproduce:</strong> scaffold a new .NET project and run one build; the artefacts are stageable.</p>
+<ol>
+<li><strong>A "no unreproducible construct" prompt.</strong> The same UAT reported a modal dialog leaving the page dimmed and dead. Nine reproduction attempts in headless Chromium could not produce it. TfLens's resolution was to delete the construct — the flows became routes (<code>REQ-UI-044</code>) — which is probably the right general answer: <em>if the harness cannot reproduce a UI construct's failure mode, the harness cannot sign it off either.</em> Worth a line in <code>_smoke-test-policy.md</code>.
+</li>
+</ol>
+<p><strong>Verify:</strong> point the gate at a page and 404 one of its stylesheets; the run must fail with
+<code>gate:"assets"</code>. Then run it against a healthy page; it must cost well under a second.</p>
   </main>
 </div>
 

@@ -105,3 +105,200 @@ li:has(> [data-testid="nav-repo-count"]) {
     bottom: auto;
     transform: translateY(-50%);
 }
+
+/* ------------------------------------------------------------------------
+   THE ANONYMOUS SPLIT LAYOUT (REQ-UI-001..004, REQ-NFR-015)
+
+   These rules used to live in Components/Layout/AuthLayout.razor.css, i.e. in
+   the Blazor SCOPED-CSS BUNDLE (TfLens.styles.css). That made every anonymous
+   screen depend on one optional file: `trblazeui.css` and `app.css` alone are
+   not enough to lay this page out, so when the bundle did not arrive the whole
+   sign-in screen collapsed into one full-width column starting at x=0 — with no
+   console error, no Blazor error and no log line. It reached the owner in UAT
+   on 2026-08-28 (docs/uatissuessc/Login.png) and was reproduced pixel-for-pixel.
+
+   app.css is served straight out of wwwroot by UseStaticFiles and does not go
+   through the static-web-assets manifest, so it has strictly fewer ways to go
+   missing. The class names are unique to this layout, so dropping the scoping
+   attribute changes nothing about what they match.
+
+   Written by hand rather than with Tailwind utilities because the TrBlazeUI
+   2.0.0 stylesheet ships only the utilities the library itself uses — it carries
+   no responsive (sm:/md:/lg:) variants at all, so a media query cannot be
+   expressed in markup (TR-002).
+   ------------------------------------------------------------------------ */
+
+.auth-split {
+    /*
+        TR-001 — TrBlazeUI 2.0.0 references these tokens from bg-sidebar and from every Alert
+        variant but never defines them, so an Alert renders with no colour at all. Custom
+        properties inherit, so declaring them here repairs every TrBlazeUI control in the layout.
+    */
+    --sidebar: var(--muted);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --alert-success: oklch(72.3% 0.19 149.6);
+    --alert-success-bg: color-mix(in oklab, oklch(72.3% 0.19 149.6) 10%, transparent);
+    --alert-info: oklch(62.3% 0.19 259.8);
+    --alert-info-bg: color-mix(in oklab, oklch(62.3% 0.19 259.8) 10%, transparent);
+    --alert-warning: oklch(76.9% 0.16 70.1);
+    --alert-warning-bg: color-mix(in oklab, oklch(76.9% 0.16 70.1) 10%, transparent);
+    --alert-danger: oklch(63.7% 0.21 25.3);
+    --alert-danger-bg: color-mix(in oklab, oklch(63.7% 0.21 25.3) 10%, transparent);
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.auth-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.auth-word {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.auth-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    flex: none;
+}
+
+.auth-wordmark {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.auth-tagline {
+    margin: 1rem 0 0;
+    max-width: 26rem;
+    font-size: 1.125rem;
+    line-height: 1.5;
+}
+
+.auth-bullets {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.auth-bullets li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+}
+
+/* The mockup's ticks are green (docs/mockups/login.html); the build rendered them in the
+   inherited foreground because --alert-success was declared on .auth-split AFTER the icon
+   inherited its colour. Naming the token directly on the tick is what makes it green. */
+.auth-tick {
+    color: var(--alert-success);
+    flex: none;
+}
+
+.auth-right {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+}
+
+.auth-panel {
+    width: 100%;
+    max-width: 25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .auth-split {
+        flex-direction: row;
+    }
+
+    .auth-brand {
+        width: 45%;
+        flex: none;
+        padding: 3rem;
+        border-bottom: 0;
+        border-right: 1px solid var(--border);
+    }
+
+    .auth-bullets {
+        margin-top: 2rem;
+    }
+
+    .auth-right {
+        padding: 3rem 1.5rem;
+    }
+}
+
+/* ------------------------------------------------------------------------
+   .tflens-stack — the standard page rhythm (REQ-NFR-015).
+
+   TrBlazeUI's shipped CSS carries `gap-4` but no `gap-6`, and the mockups set
+   sections 24px apart, so this one measurement has to be written by hand. It
+   was written by hand ELEVEN times — once in each page's scoped stylesheet —
+   which meant a new page got no spacing at all until someone remembered to
+   copy it, and it made the page's rhythm depend on the scoped-CSS bundle
+   arriving. That is the REQ-UI-001 failure shape in miniature.
+
+   Declared once here, globally, from app.css (served straight from wwwroot).
+   The per-page scoped copies are identical and harmless where they remain;
+   delete them as those pages are next touched.
+   ------------------------------------------------------------------------ */
+.tflens-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ------------------------------------------------------------------------
+   Badge tones the mockups use and TrBlazeUI 2.0.0 does not ship (TR-016).
+
+   `BadgeVariant` offers exactly four members — Default, Destructive, Outline,
+   Secondary — so `info`, `success` and `warning`, which docs/mockups/*.html
+   use on every status column, had no expression at all. The build rendered
+   them all monochrome, which is why the Repos grid read as flatter than its
+   mockup and why a synced row and a stale row looked alike (REQ-UI-011).
+
+   These ride on the existing --alert-* tokens rather than inventing colours,
+   so a badge and its matching Alert are the same hue. Applied through the
+   component's `Class`, so the library's own shape and metrics still win.
+   ------------------------------------------------------------------------ */
+.tflens-badge-info {
+    background: color-mix(in oklab, var(--alert-info) 14%, transparent);
+    color: var(--alert-info);
+    border-color: color-mix(in oklab, var(--alert-info) 30%, transparent);
+}
+
+.tflens-badge-success {
+    background: color-mix(in oklab, var(--alert-success) 14%, transparent);
+    color: var(--alert-success);
+    border-color: color-mix(in oklab, var(--alert-success) 30%, transparent);
+}
+
+.tflens-badge-warning {
+    background: color-mix(in oklab, var(--alert-warning) 14%, transparent);
+    color: var(--alert-warning);
+    border-color: color-mix(in oklab, var(--alert-warning) 30%, transparent);
+}

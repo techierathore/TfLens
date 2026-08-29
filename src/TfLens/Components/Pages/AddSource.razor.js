@@ -1,69 +1,23 @@
-// Browser-side helpers for the Repos screen: Escape-to-dismiss for its overlays, and the file
-// handling the Add-source dialog's "Import metric files" mode needs (REQ-UI-040).
+// Browser-side file handling for the Add-source PAGE's "Import metric files" mode (REQ-UI-040).
 //
 // Why the upload lives here rather than in an <InputFile>: the bundle is posted straight to
 // /api/import/preview and /api/import/commit as multipart, so a 25 MB zip never travels over the
 // SignalR circuit, and the endpoints' own size gate (which runs before a byte of the body is read)
 // is the thing that bounds it. The circuit only ever sees counts and messages.
 //
-// Why this file exists: TrBlazeUI 2.0.0's `AlertDialog` ships no Escape handling at all — its only
-// parameters are Open / OpenChanged / DefaultOpen / OnOpenChange, and unlike `Dialog` it is not built
-// on `TrBlazeUI.Primitives.Dialog.DialogContent`, so it never gets that primitive's `CloseOnEscape`.
-// The remove confirmation therefore could only be dismissed with Cancel (see TR-014 in
-// docs/TfLens-TrBlazeUI-Feedback.md). The same document-level listener also covers the Connect
-// `Dialog`, whose own Escape handling stops firing once a validation result has re-rendered its
-// content.
-//
-// The listener is deliberately dumb: it reports the key press and lets the circuit decide which
-// overlay — if any — should close. The one thing it decides for itself is the `role="listbox"` case,
-// where an open Select/Combobox popup owns the Escape and the dialog behind it must stay put.
-
-let escapeHandler = null;
-
-/**
- * Starts reporting Escape presses to the page.
- * @param {object} dotNetRef - Reference to the Repos component.
- */
-export function watchEscape(dotNetRef) {
-    stopWatchingEscape();
-
-    if (!dotNetRef) {
-        return;
-    }
-
-    escapeHandler = (event) => {
-        if (event.key !== 'Escape') {
-            return;
-        }
-
-        // An open Select / Combobox popup consumes its own Escape; the dialog behind it stays open.
-        if (document.querySelector('[role="listbox"]')) {
-            return;
-        }
-
-        dotNetRef.invokeMethodAsync('DismissOpenDialogAsync').catch(() => {
-            // The circuit went away between the key press and the call; nothing to dismiss.
-        });
-    };
-
-    document.addEventListener('keydown', escapeHandler, true);
-}
-
-/** Stops reporting Escape presses. */
-export function stopWatchingEscape() {
-    if (escapeHandler) {
-        document.removeEventListener('keydown', escapeHandler, true);
-        escapeHandler = null;
-    }
-}
+// This file was Repos.razor.js until 2026-08-28 (REQ-UI-044). What it lost in the move is the
+// document-level Escape watcher: that existed only because TrBlazeUI 2.0.0's AlertDialog ships no
+// Escape handling at all (TR-014) and the Connect Dialog stopped honouring its own once a
+// validation result re-rendered its content. Add source and Remove are routes now, so the browser's
+// own Back is the dismissal and there is no overlay left to dismiss.
 
 // ---------------------------------------------------------------------------------------------
 // Import metric files (REQ-UI-040)
 // ---------------------------------------------------------------------------------------------
 //
-// The drop zone and the file input live inside a portalled dialog that Blazor re-renders on every
+// The drop zone and the file input live on a page Blazor re-renders on every
 // keystroke, so nothing here holds an element reference. Both listeners are delegated from
-// `document` and match on the dialog's own data-testid / id, which survives any number of renders.
+// `document` and match on the page's own data-testid / id, which survives any number of renders.
 
 const DROP_SELECTOR = '[data-testid="import-drop"]';
 const FILE_INPUT_ID = 'tflens-import-file';

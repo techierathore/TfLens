@@ -48,12 +48,31 @@ data/
 # box and not another's — the class of failure behind REQ-UI-001. It also made
 # every build dirty ~34 tracked files.
 #
-# Adding them here stops NEW build output being staged. The already-tracked
-# files must be untracked ONCE, by hand, by the owner (agents never run git):
-#     git rm -r --cached src/TfLens/bin src/TfLens/obj \
-#                        src/TfLens.Core/bin src/TfLens.Core/obj \
-#                        tests/*/bin tests/*/obj
-#     git commit -m "Untrack build output (REQ-NFR-016)"
+# ROOT CAUSE, established 2026-08-29. The agent running day-1 wrote this file
+# (commit 979265f, 2026-08-26) with sections for the FRAMEWORK's own artifacts
+# (.tfcore/, node_modules/, tests/.artifacts/ ...) and NO section for the
+# project's own stack — no bin/, no obj/, in a .NET solution it had just
+# scaffolded and whose core-config.yaml and four .csproj files it had written
+# itself. Commit 80cb71c ("Updated git ignore", 2026-08-27) then swept 1,041
+# build-output files into the index; four later commits took it to 1,962.
+#
+# The responsibility is the agent's, not the template's. The scaffold's template
+# should carry stack rules and TF-007 asks upstream for that — but an agent that
+# generates a file is responsible for reading it, and "the generator omitted it"
+# is not a defence when the generator is the thing you are operating. Whoever
+# adds a stack to this repository owns checking that its build output is ignored.
+#
+# READ THIS BEFORE ASSUMING THE TWO LINES BELOW ARE ENOUGH: a file that is
+# already TRACKED is never ignored, whatever this file says. The ~1,962 build
+# artefacts already in the index are unaffected by the patterns below — those
+# only stop NEW ones being staged. Removing the tracked ones is a one-off the
+# owner runs (agents are barred from writing to version control in every mode):
+#
+#     bash scripts/untrack-build-output.sh          # dry run — shows the command
+#     bash scripts/untrack-build-output.sh --run    # removes them from the index
+#
+# Nothing is deleted from your disk: --cached edits the index only, the files
+# stay where they are and the next build reuses them.
 # ---------------------------------------------------------------------------
 [Bb]in/
 [Oo]bj/

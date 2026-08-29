@@ -209,7 +209,12 @@
                                                          Property="@(aRow => aRow.Stream)" Header="Stream">
                                             <CellTemplate Context="vRow">
                                                 <span class="flex items-center gap-2">
-                                                    <span>@vRow.Stream</span>
+                                                    @* The stale badge sits in this same cell with no
+                                                       whitespace between them, so the cell's textContent
+                                                       reads "commitsstale". A test that parsed the cell
+                                                       text therefore broke the day a real stream went
+                                                       stale (REQ-NFR-008 — the id IS the test surface). *@
+                                                    <span data-testid="@($"stream-name-{vCard.Repo.Name}-{vRow.Stream}")">@vRow.Stream</span>
                                                     @if (vRow.IsStale)
                                                     {
                                                         <Badge Variant="BadgeVariant.Destructive"

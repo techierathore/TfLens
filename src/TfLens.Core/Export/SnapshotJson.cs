@@ -294,6 +294,7 @@ internal static class SnapshotJson
             ["cost_sole_n"] = vBlock.Cost.SoleRecords,
             ["cost_shared_n"] = vBlock.Cost.SharedRecords,
             ["cost_unattributable_n"] = vBlock.Cost.TokensPerMissFixed.NoneCount,
+            ["cost_recovered_n"] = vBlock.Cost.RecoveredRecords,
             ["tokens_per_miss_measured"] = Number(vBlock.Cost.TokensPerMissFixed.Sole, TokensPerMissDigits),
             ["tokens_per_miss_apportioned"] = Number(vBlock.Cost.TokensPerMissFixed.Apportioned, TokensPerMissDigits),
             ["cost_usd_per_miss_measured"] = vMeasured is null

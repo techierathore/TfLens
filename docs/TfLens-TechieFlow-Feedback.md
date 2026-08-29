@@ -952,3 +952,99 @@ Tighten the guard so it identifies the document rather than guessing from a suff
 The content check is the more robust of the two and does not depend on naming discipline.
 
 ---
+
+---
+
+## TF-007 — the gate set has no asset-integrity gate, so a page can lose its entire stylesheet and every gate still passes
+
+**Severity:** High · **Raised:** 2026-08-28 · **Status:** open · **Found by:** owner, UAT
+
+### What happened
+
+On 2026-08-28 `*handoff-phase` declared TfLens **READY FOR UAT** on a build reporting **140 of 143
+`Verified`**, with acceptance, data-render, visual-truth, standards, BRD §13 parity and perf all
+green. The owner opened `/login` and got an unstyled single column: brand panel, bullets and sign-in
+card stacked at x=0. One stylesheet — the Blazor scoped-CSS bundle — had not arrived, and it carried
+100% of that page's layout.
+
+**No gate asked the question that would have caught it, and none of them could have.**
+
+| Gate | Why it passed |
+|---|---|
+| acceptance | Every control was present and every assertion about behaviour held. An unstyled page behaves correctly. |
+| data-render (§4a) | "Does this control carry non-placeholder text?" — yes. Text renders fine without CSS. |
+| visual-truth (§4b) | "Do these boxes overlap / clip / sit off-viewport?" — no. A single stacked column overlaps nothing. It is the *tidiest* possible failure. |
+| standards | File-level; never loads the app. |
+| perf | Measures latency. An unstyled page is if anything faster. |
+
+The visual-truth gate is the one that ought to own this, and its geometry checks are structurally
+blind to it: **total loss of layout produces a page that passes every geometric assertion.** Partial
+breakage overlaps; complete breakage stacks neatly.
+
+### The gap, stated precisely
+
+Nothing in the framework verifies that **the assets a page declares actually arrived**. A 404 on a
+`<link rel="stylesheet">` or a `<script src>` produces no console error the gates read, no server log
+line, no Blazor error boundary, and no failed assertion. The app renders something that looks
+intentional and every gate agrees.
+
+### What TfLens did about it locally
+
+Added `REQ-NFR-015` and `tests/verify/asset-integrity.spec.ts`: for `/login` and the authenticated
+shell, read every `<link rel="stylesheet">` and `<script src>` the document declares and assert a
+**200 with a non-empty body** for each. Fourteen lines of real logic. It runs in under a second and
+would have caught this on the day it was introduced.
+
+### Ask
+
+**Add an asset-integrity gate to `verify-phase.md` §4, between `render` (§4a) and `visual` (§4b)**,
+with `"assets"` in the `gates_run` vocabulary and the `gate` enum in `SCHEMA.md` §3.2 so its catch
+rate is measurable like every other gate. The check is generic — it needs no knowledge of the app,
+only the rendered document — so it belongs in the framework rather than in each project.
+
+Two smaller companions, both from the same session and both currently unowned by any gate:
+
+1. **The scaffold writes a `.gitignore` with no section for the project's own stack.**
+   *Upgraded 2026-08-29 from "a check worth adding" to a located root cause, with evidence.*
+
+   > **Whose fault this is, stated plainly, because it was first stated wrongly.** The agent that ran
+   > day-1 generated this file and did not read it, having just chosen the stack and written the
+   > solution itself. That agent is responsible. This entry asks the framework to make the mistake
+   > harder to make — which is worth doing precisely *because* it is easy to make — but a generator's
+   > omission is not a defence for the agent operating the generator, and TfLens's own record
+   > (`REQ-NFR-016`) names the phase, not the template.
+
+   TfLens's `.gitignore` was created by the day-1 scaffold (commit `979265f`, 2026-08-26). Every
+   section in it is framework-managed and labelled as such — `.tfcore/`, `.claude/`, `node_modules/`,
+   `tests/.artifacts/`, `playwright-report/`, `logs/`. It is a complete, careful ignore file **for
+   TechieFlow's own artifacts**, and it contains no `bin/`, no `obj/`, and no rule of any kind for
+   the stack the project is actually written in — in a repository whose `core-config.yaml` and four
+   `.csproj` files say .NET 10 throughout.
+
+   The consequence was mechanical and immediate: the first build produced build output, and commit
+   `80cb71c` — named, with some irony, *"Updated git ignore"* (2026-08-27) — swept **1,041**
+   build-output files into the index. Four later commits added more, reaching **1,962**.
+
+   Those files carry the static-web-assets manifest, whose content roots are **machine-absolute**:
+   `/mnt/c/…` + `/home/<user>/.nuget/…` after a WSL build, `C:\1MyCode\…` +
+   `C:\Users\<user>\.nuget\…` after a Windows build (both captured on 2026-08-28). Committing them
+   ships one machine's absolute paths to another, which is a plausible route to precisely the 404
+   this entry is about.
+
+   **Ask:** the day-1 tasks already know the stack — they choose it, write it into `core-config.yaml`
+   and generate the solution. Whichever step emits `.gitignore` should emit the stack's build-output
+   rules with it (`bin/`, `obj/` for .NET; `__pycache__/`, `.venv/` for Python; `dist/`, `build/` for
+   Node), and `update-framework.sh` should assert on every refresh that a repository's build output
+   is ignored **and untracked** — the second half matters, because a tracked file is never ignored no
+   matter what the ignore file says, so adding the rule later fixes nothing on its own. Every project
+   the scaffold has ever created is likely to carry this.
+
+   **Reproduce:** scaffold a new .NET project and run one build; the artefacts are stageable.
+2. **A "no unreproducible construct" prompt.** The same UAT reported a modal dialog leaving the page
+   dimmed and dead. Nine reproduction attempts in headless Chromium could not produce it. TfLens's
+   resolution was to delete the construct — the flows became routes (`REQ-UI-044`) — which is
+   probably the right general answer: *if the harness cannot reproduce a UI construct's failure mode,
+   the harness cannot sign it off either.* Worth a line in `_smoke-test-policy.md`.
+
+**Verify:** point the gate at a page and 404 one of its stylesheets; the run must fail with
+`gate:"assets"`. Then run it against a healthy page; it must cost well under a second.

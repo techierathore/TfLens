@@ -264,30 +264,69 @@ public static class MissFigures
     /// <returns>The money block.</returns>
     private static MissMoney MoneyFor(IReadOnlyList<MissFixRecord> aFixes)
     {
-        var vSole = new List<MissFixRecord>();
-        var vShared = new List<(MissFixRecord Fix, int Across)>();
-        var vNone = 0;
-        var vMissing = 0;
+        // RECOMPUTE the share per fix run before bucketing; do NOT trust the stored
+        // `cost_attribution` (SCHEMA.md §8 — a derived metric is computed at report time).
+        //
+        // This used to read the stored string, and BRD §13 caught it on 2026-08-29 when the
+        // reference implementation started recomputing. Two reasons the stored value cannot be
+        // trusted, both of which the stream can prove about itself:
+        //
+        //   1. It is written one record at a time. A run that closed four misses stamped
+        //      shared:1, shared:2, shared:3, shared:4 — only the last is right, and the stream is
+        //      append-only so none of the first three can be corrected in place.
+        //   2. Records written before 2026-08-28 carry "none" from the empty-`reqs_touched` bug:
+        //      a `framework` or `docs` repo has no REQs, so the divisor collapsed and every
+        //      measured window in those repos was discarded as unattributable.
+        //
+        // Counting the miss_ids actually closed against each fix_run_id recovers both cases from
+        // data already on the stream, which is why RecoveredRecords is reported beside the split:
+        // a jump in the cost figures should read as a fixed derivation, not as work getting dearer.
+        var vClosedPerRun = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
         foreach (var vFix in aFixes)
         {
-            if (string.Equals(vFix.CostAttribution, SoleAttribution, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(vFix.FixRunId) || string.IsNullOrEmpty(vFix.MissId))
+            {
+                continue;
+            }
+
+            if (!vClosedPerRun.TryGetValue(vFix.FixRunId, out var vClosed))
+            {
+                vClosed = new HashSet<string>(StringComparer.Ordinal);
+                vClosedPerRun[vFix.FixRunId] = vClosed;
+            }
+
+            vClosed.Add(vFix.MissId);
+        }
+
+        var vSole = new List<MissFixRecord>();
+        var vShared = new List<(MissFixRecord Fix, int Across)>();
+        var vNone = 0;
+        var vRecovered = 0;
+
+        foreach (var vFix in aFixes)
+        {
+            var vComputed = ComputedAttribution(vFix, vClosedPerRun);
+
+            if (vComputed is null)
+            {
+                vNone++;
+                continue;
+            }
+
+            if (string.Equals(vFix.CostAttribution, NoneAttribution, StringComparison.Ordinal))
+            {
+                // The stream had written this window off; the recomputed divisor gets it back.
+                vRecovered++;
+            }
+
+            if (vComputed.Value == 1)
             {
                 vSole.Add(vFix);
             }
-            else if (string.Equals(vFix.CostAttribution, NoneAttribution, StringComparison.Ordinal))
-            {
-                vNone++;
-            }
-            else if (SharedAcross(vFix.CostAttribution) is { } vAcross)
-            {
-                vShared.Add((vFix, vAcross));
-            }
             else
             {
-                // Absent or unrecognised. Not coerced into `none`: one is a value the emitter wrote, the
-                // other is nobody having said, and they are different facts (SCHEMA.md §2.5).
-                vMissing++;
+                vShared.Add((vFix, vComputed.Value));
             }
         }
 
@@ -318,7 +357,8 @@ public static class MissFigures
                 vNone),
             SoleRecords = vSole.Count,
             SharedRecords = vShared.Count,
-            AttributionMissing = vMissing,
+            RecoveredRecords = vRecovered,
+            AttributionMissing = 0,
             ByHarness = ExtraMetrics.HarnessOrder.Select(aHarness => HarnessRow(aHarness, aFixes)).ToList()
         };
     }
@@ -643,6 +683,44 @@ public static class MissFigures
     /// </summary>
     /// <param name="aAttribution">The <c>cost_attribution</c> value.</param>
     /// <returns>The count when the value is a well-formed <c>shared:n</c> with <c>n</c> at least 1, else <c>null</c>.</returns>
+    /// <summary>
+    /// How many ways one fix run's token window splits, recomputed from the stream.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> means genuinely unattributable — there is nothing to divide, because no run
+    /// matched or the window itself could not be computed. Anything with a real window IS a share,
+    /// and how many ways it splits is countable from the miss_ids that run closed. A stored
+    /// <c>sole</c> is honoured as written: it is the one value a single record can state correctly
+    /// about itself.
+    /// </remarks>
+    /// <param name="aFix">The fix record.</param>
+    /// <param name="aClosedPerRun">Miss ids closed by each fix run.</param>
+    /// <returns>The divisor, or <c>null</c> when the record is unattributable.</returns>
+    private static int? ComputedAttribution(
+        MissFixRecord aFix,
+        IReadOnlyDictionary<string, HashSet<string>> aClosedPerRun)
+    {
+        if (string.IsNullOrEmpty(aFix.TokensScope)
+            || string.Equals(aFix.TokensScope, NoneAttribution, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(aFix.FixRunId))
+        {
+            return null;
+        }
+
+        if (string.Equals(aFix.CostAttribution, SoleAttribution, StringComparison.Ordinal))
+        {
+            return 1;
+        }
+
+        return aClosedPerRun.TryGetValue(aFix.FixRunId, out var vClosed) && vClosed.Count > 0
+            ? vClosed.Count
+            : 1;
+    }
+
     private static int? SharedAcross(string? aAttribution)
     {
         if (aAttribution is null || !aAttribution.StartsWith(SharedAttributionPrefix, StringComparison.Ordinal))

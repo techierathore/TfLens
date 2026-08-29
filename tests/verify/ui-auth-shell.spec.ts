@@ -457,13 +457,39 @@ test('REQ-UI-011 repos renders the table, the KPI tiles and per-row sync/remove 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// REQ-UI-012 — Connect-repo dialog. connect-submit is NEVER pressed.
+// REQ-UI-012 / REQ-UI-044 — Add source is a ROUTE. connect-submit is NEVER pressed.
+//
+// These were dialog tests until 2026-08-28. The flows moved to their own routes after the owner
+// reported that adding and removing a source could leave the page dimmed and dead, and nine
+// reproduction attempts could not make it happen here. The acceptance being graded is unchanged —
+// Connect stays disabled until validation passes — but two properties are now assertable that a
+// dialog could never offer: the flow has a URL, and NO overlay is ever mounted.
 // ─────────────────────────────────────────────────────────────────────────────
-test('REQ-UI-012 the connect dialog keeps Connect disabled until validation passes, and a repo with no telemetry path never enables it', async ({ page }) => {
+
+/** REQ-UI-044 — no dialog, no backdrop, no scroll lock, anywhere in these flows. */
+async function expectNoOverlay(page: import('@playwright/test').Page, where: string) {
+  const state = await page.evaluate(() => ({
+    dialogs: document.querySelectorAll('[role="dialog"],[role="alertdialog"]').length,
+    backdrop: [...document.querySelectorAll('div')]
+      .some(e => (e.className || '').toString().includes('bg-black/80')),
+    bodyOverflow: document.body.style.overflow || '',
+  }));
+
+  expect(state.dialogs, `${where}: a modal dialog is mounted — these flows are routes now`).toBe(0);
+  expect(state.backdrop, `${where}: a dialog backdrop is mounted with no dialog — the reported failure`).toBe(false);
+  expect(state.bodyOverflow, `${where}: body scroll is locked, which only an overlay does`).not.toBe('hidden');
+}
+
+test('REQ-UI-012 Add source is its own route and keeps Connect disabled until validation passes', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/repos');
+  await expectNoOverlay(page, '/repos');
 
   await page.locator('[data-testid="connect-repo"]').first().click();
+
+  await page.waitForURL(/\/repos\/add$/, { timeout: 20_000 });
+  await page.locator('[data-testid="add-source-page"]').first().waitFor({ state: 'visible', timeout: 20_000 });
+  await expectNoOverlay(page, '/repos/add');
 
   for (const id of ['connect-input', 'connect-branch', 'connect-kind', 'connect-validate', 'connect-submit']) {
     await page.locator(`[data-testid="${id}"]`).first().waitFor({ state: 'visible', timeout: 20_000 });
@@ -487,48 +513,49 @@ test('REQ-UI-012 the connect dialog keeps Connect disabled until validation pass
     .first()
     .waitFor({ state: 'attached', timeout: 45_000 });
 
-  // The safety property holds in BOTH branches and is asserted first: whatever validation reported,
-  // Connect must not become enabled for a repo with no telemetry path.
+  // The safety property holds in BOTH branches and is asserted first.
   await expect(submit, 'connect-submit became enabled for a repo with no telemetry path').toBeDisabled();
 
-  // Which branch rendered depends on the environment, not on the app. GitHub's unauthenticated API
-  // allows 60 requests/hour, and validation spends several per repo, so a run that follows a sync (or
-  // any other run in the same hour) can legitimately find the quota exhausted. When that happens the
-  // app correctly renders `connect-rate-limit` INSTEAD of `connect-validation` — asserting the latter
-  // unconditionally turned correct behaviour into a red test. Grade the branch that actually rendered.
+  // Which branch rendered depends on the environment, not on the app: GitHub's unauthenticated API
+  // allows 60 requests/hour, so a run that follows a sync can legitimately find the quota exhausted.
   const vRateLimited = (await page.locator('[data-testid="connect-rate-limit"]').count()) > 0;
   if (vRateLimited) {
     const vText = (await page.locator('[data-testid="connect-rate-limit"]').first().textContent()) ?? '';
-    console.log(`BRANCH: REQ-UI-012 GitHub rate limit hit — validation not reachable :: ${vText.replace(/\s+/g, ' ').trim()}`);
+    console.log(`BRANCH: REQ-UI-012 GitHub rate limit hit :: ${vText.replace(/\s+/g, ' ').trim()}`);
     expect(vText, 'the rate-limit alert should say so in words').toMatch(/rate limit/i);
   } else {
     await expect(page.locator('[data-testid="connect-validation"]').first()).toBeAttached({ timeout: 20_000 });
   }
   await expect(submit).toBeDisabled();
 
-  // Teardown. REQ-UI-012's acceptance does not name Escape (only REQ-UI-013's does), and
-  // this dialog stops honouring Escape once a validation result is on screen — recorded as
-  // an observation, not graded here. Cancel is the documented way out and does close it.
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(1200);
-  const closedByEscape = (await page.locator('[data-testid="connect-input"]').count()) === 0;
-  console.log(`BRANCH: REQ-UI-012 Escape closed the dialog after validation = ${closedByEscape}`);
-  if (!closedByEscape) {
-    await page.getByRole('button', { name: /^cancel$/i }).first().click();
-  }
-  await expect(page.locator('[data-testid="connect-input"]').first(), 'the connect dialog could not be dismissed at all').toBeHidden({ timeout: 20_000 });
+  // Cancel is a navigation now, not a dismissal — and it cannot strand an overlay.
+  await page.locator('[data-testid="add-source-cancel"]').first().click();
+  await page.waitForURL(/\/repos$/, { timeout: 20_000 });
+  await expectNoOverlay(page, 'after Cancel');
+});
+
+test('REQ-UI-044 the Add-source route is addressable and opens on the mode the URL names', async ({ page }) => {
+  await signIn(page);
+
+  // A dialog has no URL, so this could not be asserted at all before.
+  await gotoScreen(page, '/repos/add/import');
+  await expect(page.locator('[data-testid="source-panel-import"]').first()).toBeVisible({ timeout: 20_000 });
+  await expectNoOverlay(page, '/repos/add/import');
+
+  await gotoScreen(page, '/repos/add/api');
+  await expect(page.locator('[data-testid="source-panel-api"]').first()).toBeVisible({ timeout: 20_000 });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// REQ-UI-013 — Remove-repo confirmation. remove-confirm is NEVER pressed.
+// REQ-UI-013 / REQ-UI-044 — Remove is a ROUTE. remove-confirm is NEVER pressed.
 // ─────────────────────────────────────────────────────────────────────────────
-test('REQ-UI-013 the remove dialog names the repo and cancelling leaves every row in place', async ({ page }) => {
+test('REQ-UI-013 the remove page names the repo and cancelling leaves every row in place', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/repos');
 
   const rows = page.locator('[data-testid="repos-table"] tbody tr');
   const before = await rows.count();
-  expect(before, 'no repo rows to exercise the remove dialog against').toBeGreaterThan(0);
+  expect(before, 'no repo rows to exercise the remove flow against').toBeGreaterThan(0);
 
   const removeButton = page.locator('[data-testid^="repo-remove-"]').first();
   const removeTestId = (await removeButton.getAttribute('data-testid')) || '';
@@ -536,8 +563,10 @@ test('REQ-UI-013 the remove dialog names the repo and cancelling leaves every ro
   expect(repoName.length, `could not read the repo name from "${removeTestId}"`).toBeGreaterThan(0);
 
   await removeButton.click();
+  await page.waitForURL(/\/repos\/remove\//, { timeout: 20_000 });
+  await expectNoOverlay(page, '/repos/remove');
 
-  for (const id of ['remove-title', 'remove-description', 'remove-cancel', 'remove-confirm']) {
+  for (const id of ['remove-title', 'remove-description', 'remove-impact', 'remove-cancel', 'remove-confirm']) {
     await page.locator(`[data-testid="${id}"]`).first().waitFor({ state: 'visible', timeout: 20_000 });
   }
 
@@ -546,52 +575,51 @@ test('REQ-UI-013 the remove dialog names the repo and cancelling leaves every ro
 
   // Cancel — remove-confirm is destructive and is never pressed.
   await page.locator('[data-testid="remove-cancel"]').first().click();
-  await expect(page.locator('[data-testid="remove-confirm"]').first(), 'Cancel did not close the remove dialog').toBeHidden({ timeout: 20_000 });
+  await page.waitForURL(/\/repos$/, { timeout: 20_000 });
+  await expectNoOverlay(page, 'after Cancel');
 
   await page.waitForTimeout(1000);
   const after = await page.locator('[data-testid="repos-table"] tbody tr').count();
-  expect(after, `cancelling the remove dialog changed the row count (${before} -> ${after})`).toBe(before);
+  expect(after, `cancelling the remove page changed the row count (${before} -> ${after})`).toBe(before);
 });
 
-// REQ-UI-013's acceptance names Escape explicitly: "removal only proceeds through the confirm action
-// (Escape/Cancel aborts with no data change)". TrBlazeUI 2.0.0's AlertDialog ships no Escape handling
-// of its own (TR-014), so this is guarded by page-owned code that can silently regress — hence a test
-// of its own. remove-confirm is NEVER pressed here.
-test('REQ-UI-013 Escape dismisses the remove dialog and leaves every row in place', async ({ page }) => {
+// REQ-UI-013's acceptance names an abort that changes no data. As a dialog that meant Escape, which
+// TrBlazeUI 2.0.0 does not implement (TR-014) and which page-owned JavaScript had to supply. As a
+// route the browser's own Back is the abort, and it cannot regress.
+test('REQ-UI-013 browser Back aborts the removal and leaves every row in place', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/repos');
 
-  const rows = page.locator('[data-testid="repos-table"] tbody tr');
-  const before = await rows.count();
-  expect(before, 'no repo rows to exercise the remove dialog against').toBeGreaterThan(0);
+  const before = await page.locator('[data-testid="repos-table"] tbody tr').count();
+  expect(before, 'no repo rows to exercise the remove flow against').toBeGreaterThan(0);
 
   const removeButton = page.locator('[data-testid^="repo-remove-"]').first();
-  const removeTestId = (await removeButton.getAttribute('data-testid')) || '';
-  const repoName = removeTestId.replace(/^repo-remove-/, '');
+  const repoName = ((await removeButton.getAttribute('data-testid')) || '').replace(/^repo-remove-/, '');
 
   await removeButton.click();
-  await page.locator('[data-testid="remove-title"]').first().waitFor({ state: 'visible', timeout: 20_000 });
+  await page.waitForURL(/\/repos\/remove\//, { timeout: 20_000 });
   await expect(page.locator('[data-testid="remove-title"]').first()).toContainText(repoName);
 
-  await page.keyboard.press('Escape');
-
-  await expect(
-    page.locator('[data-testid="remove-title"]').first(),
-    'Escape did not dismiss the remove AlertDialog',
-  ).toBeHidden({ timeout: 20_000 });
-  await expect(page.locator('[data-testid="remove-confirm"]').first()).toBeHidden({ timeout: 20_000 });
+  await page.goBack();
+  await page.waitForURL(/\/repos$/, { timeout: 20_000 });
+  await expectNoOverlay(page, 'after Back');
 
   await page.waitForTimeout(1000);
   const after = await page.locator('[data-testid="repos-table"] tbody tr').count();
-  expect(after, `Escape on the remove dialog changed the row count (${before} -> ${after})`).toBe(before);
+  expect(after, `Back from the remove page changed the row count (${before} -> ${after})`).toBe(before);
 
-  // The dialog must still be openable afterwards — a listener torn down by the dismiss would
-  // leave the second Escape dead.
+  // And the flow is still usable afterwards — a stranded overlay or a dead circuit would stop this.
   await page.locator('[data-testid^="repo-remove-"]').first().click();
-  await page.locator('[data-testid="remove-title"]').first().waitFor({ state: 'visible', timeout: 20_000 });
-  await page.keyboard.press('Escape');
-  await expect(
-    page.locator('[data-testid="remove-title"]').first(),
-    'Escape stopped working after the first dismiss',
-  ).toBeHidden({ timeout: 20_000 });
+  await page.waitForURL(/\/repos\/remove\//, { timeout: 20_000 });
+  await expect(page.locator('[data-testid="remove-title"]').first()).toBeVisible({ timeout: 20_000 });
+});
+
+test('REQ-UI-044 a remove URL naming a source that is not connected refuses rather than confirming', async ({ page }) => {
+  await signIn(page);
+
+  // Hand-typed, stale, or a Back after the removal already happened. A dialog had no such state.
+  await gotoScreen(page, '/repos/remove/nobody%2Fnot-connected');
+  await expect(page.locator('[data-testid="remove-unknown"]').first()).toBeVisible({ timeout: 20_000 });
+  expect(await page.locator('[data-testid="remove-confirm"]').count(),
+    'a Remove button was offered for a source that is not connected').toBe(0);
 });

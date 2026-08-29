@@ -543,6 +543,17 @@ public sealed record MissMoney
     public required int SharedRecords { get; init; }
 
     /// <summary>
+    /// Fix records whose window the stream had written off as unattributable and the recomputed
+    /// divisor recovers (<c>cost_recovered_n</c>).
+    /// </summary>
+    /// <remarks>
+    /// Reported beside the split rather than folded into it, so a jump in the cost figures reads as
+    /// a corrected derivation rather than as the work having become more expensive. See
+    /// <c>MissFigures.MoneyFor</c> for the two ways a stored attribution goes stale.
+    /// </remarks>
+    public int RecoveredRecords { get; init; }
+
+    /// <summary>
     /// Fix records whose <c>cost_attribution</c> is absent or unrecognised.
     /// </summary>
     /// <remarks>

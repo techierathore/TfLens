@@ -64,7 +64,7 @@ async function removeProbe(page: import('@playwright/test').Page) {
   await expect(page.locator(`[data-testid="repo-source-${SHORT}"]`)).toHaveCount(0);
 }
 
-test('REQ-UI-040 the Add-source dialog forks into two modes and previews before it commits', async ({ page }) => {
+test('REQ-UI-040 the Add-source page forks into two modes and previews before it commits', async ({ page }) => {
   const errors = collectErrors(page);
   await signIn(page);
   await removeProbe(page);
@@ -106,10 +106,10 @@ test('REQ-UI-040 the Add-source dialog forks into two modes and previews before 
   await expect(page.locator('[data-testid="import-submit"]')).toBeEnabled();
   await expect(page.locator('[data-testid="import-submit"]')).toContainText('records');
 
-  // A preview writes nothing: the grid behind the dialog is untouched.
-  expect(await page.locator('[data-testid="repos-table"] tbody tr').count()).toBe(rowsBefore);
-
-  // …and an abandoned preview leaves nothing behind either.
+  // A preview writes nothing, and an abandoned preview leaves nothing behind either. Add source is
+  // a ROUTE now (REQ-UI-044), not an overlay, so the grid is not on screen to check while the
+  // preview is up — the check happens on return, which is the same property and a stronger one: it
+  // survives a full page load rather than reading a grid that was never re-fetched.
   await page.click('[data-testid="add-source-cancel"]');
   await page.waitForTimeout(1500);
   await gotoScreen(page, '/repos');
@@ -142,8 +142,11 @@ test('REQ-UI-040 a precomputed rollup is refused with the message that names wha
   await expect(page.locator('[data-testid="import-preview"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="import-submit"]')).toBeDisabled();
 
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(800);
+  // Teardown. Add source is a ROUTE now (REQ-UI-044): Escape dismissed the old dialog, and a page
+  // rightly ignores it. Cancel is a navigation, and leaving the route is what clears the drop zone —
+  // which is a stronger guarantee than a dismissal, because it cannot leave anything mounted behind.
+  await page.click('[data-testid="add-source-cancel"]');
+  await page.waitForURL(/\/repos$/, { timeout: 20_000 });
   await expect(page.locator('[data-testid="import-drop"]')).toHaveCount(0);
 });
 
@@ -253,7 +256,7 @@ test('REQ-UI-042 Coverage badges the source and reads its age as days since impo
   }
 });
 
-test('REQ-UI-040/041 the import dialog and the grid hold together at 1280 and 390', async ({ page }) => {
+test('REQ-UI-040/041 the import page and the grid hold together at 1280 and 390', async ({ page }) => {
   await signIn(page);
 
   for (const vp of [DESKTOP, MOBILE]) {

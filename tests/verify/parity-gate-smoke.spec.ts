@@ -1,13 +1,20 @@
 // REQ-FN-063 / REQ-FN-064 / REQ-FN-080 smoke — the BRD §13 parity gate, driven against the running app.
 // Proves the quotable banner reports the REAL state of data/parity-last.json.
 //
-// Re-pinned 2026-08-28. The framework shipped an oracle that reads the fifth stream (STREAMS gained
-// "misses", and with it analyse_misses() and a 29-figure `misses` block), which invalidated the
-// 2026-08-27 stamp exactly as REQ-FN-063 clause 3 says it must — /export went NOT QUOTABLE on its own.
-// The block was implemented, parity was re-run end to end at parser 1.2.0 with an empty diff, and the
-// record was rewritten (DECISIONS.md P-003). The date and digest below track that run, not the old one.
+// Re-pinned 2026-08-29. This test used to hard-code the stamp's date and script digest, so it went red
+// every time the parity procedure was legitimately re-run — twice in two days, both times reporting a
+// re-pin as a failure. It now reads data/parity-last.json and asserts the PAGE AGREES WITH THE RECORD,
+// which is the property REQ-FN-063 actually names ("the banner reports the real state of the record")
+// and the only one that survives a re-pin. Literal dates in a test are a promise about the calendar.
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { signIn, gotoScreen, testid, visualCheck, DESKTOP, MOBILE } from './_helpers';
+
+/** The stamp the app reads, so the assertions below track the record rather than the calendar. */
+function recordedStamp(): { date: string; scriptHash: string; passed: boolean } {
+  const raw = JSON.parse(readFileSync('src/TfLens/data/parity-last.json', 'utf8'));
+  return { date: raw.date, scriptHash: raw.script_hash, passed: raw.passed };
+}
 
 test('parity gate: /export banner reports the recorded passing run as quotable', async ({ page }) => {
   await signIn(page);
@@ -29,8 +36,11 @@ test('parity gate: /export banner reports the recorded passing run as quotable',
   const facts = await testid(page, 'parity-facts');
   const factsText = (await facts.innerText()).trim();
   console.log('PARITY FACTS: ' + factsText.replace(/\s+/g, ' ').slice(0, 600));
-  expect(factsText).toContain('2026-08-28');
-  expect(factsText).toContain('f4b2667a');
+  const stamp = recordedStamp();
+  expect(stamp.passed, 'the recorded run did not pass — the banner has nothing to report').toBe(true);
+  expect(factsText).toContain(stamp.date);
+  // The digest the page shows must be the digest of the script the record was made against.
+  expect(factsText).toContain(stamp.scriptHash.replace(/^sha256:/, '').slice(0, 8));
 
   // The compare output is the evidence, not a summary of it: it must say PASS.
   const output = await testid(page, 'parity-output');

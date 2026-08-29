@@ -30,9 +30,13 @@ test('REQ-UI-014: every per-repo stream table has FIVE rows, misses last', async
   await gotoScreen(page, '/');
 
   for (const name of REPOS) {
+    // Read the stream name from its OWN element, not from the cell's text. A `stale` badge shares
+    // that cell with no whitespace between them, so `textContent` reads "commitsstale" and a
+    // whitespace split cannot separate it — this assertion went red on 2026-08-28 because a real
+    // stream had genuinely gone stale, i.e. because the page was CORRECT.
     const rows = await page.$$eval(
-      `[data-testid="repo-streams-${name}"] tbody tr td:first-child`,
-      cells => cells.map(c => (c.textContent || '').trim().split(/\s+/)[0]));
+      `[data-testid="repo-streams-${name}"] tbody tr td:first-child [data-testid^="stream-name-"]`,
+      cells => cells.map(c => (c.textContent || '').trim()));
     console.log(`STREAM ROWS ${name}: ${JSON.stringify(rows)}`);
     expect(rows, `${name} stream rows`).toEqual(['runs', 'gates', 'sessions', 'commits', 'misses']);
   }

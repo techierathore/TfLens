@@ -266,7 +266,27 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
 
             if (vStream == StreamNames.Sessions)
             {
-                vSessionsCollapsed += Math.Max(0, vParsed.SessionsPresented - vInserted);
+                // The dataset's own duplicate count, from THIS snapshot — not how many rows the
+                // store rejected as already present.
+                //
+                // It used to be `SessionsPresented - vInserted`, accumulated onto the previous
+                // total. Both halves were wrong for a figure that gets quoted. Re-syncing a repo
+                // whose sessions.jsonl had not changed presented every record again and inserted
+                // none, so the count grew by a whole file each time: TechieFlow reached 25 against
+                // the 3 duplicates its file actually contains, and BRD §13 caught it on 2026-08-29.
+                //
+                // A quotable figure is a property of the data, not of how many times we read it.
+                // Two TfLens instances pointed at the same repositories have to report the same
+                // number, and the reference (`dedupe_sessions`, per repo) counts duplicates WITHIN
+                // the snapshot it is reading. `vParsed.SessionDuplicatesCollapsed` is exactly that
+                // count, so it is assigned — the newest snapshot replaces the older answer rather
+                // than being added to it.
+                //
+                // What this deliberately gives up: a session id repeated across two archived
+                // snapshots, which no single parse can see. That is real, but it is a fact about
+                // TfLens's archive rather than about the user's telemetry, and pricing it into a
+                // published figure is what made the number indefensible.
+                vSessionsCollapsed = vParsed.SessionDuplicatesCollapsed;
             }
         }
 
@@ -274,7 +294,7 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
         await WriteStateAsync(
                 aWork,
                 aRepo,
-                BuildState(aRepo, vSha, vCounts, aPrevious.SessionDuplicatesCollapsed + vSessionsCollapsed),
+                BuildState(aRepo, vSha, vCounts, vSessionsCollapsed),
                 aCancellationToken)
             .ConfigureAwait(false);
 

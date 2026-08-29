@@ -1,22 +1,126 @@
 # TfLens — Developer Guide
 
-**Last updated:** 2026-08-27
-**Audience:** a developer who has just cloned this repository and needs to run it, change it, and fix bugs in it.
+**Last updated:** 2026-08-28
+**Audience:** a developer who needs to **debug a screen** — find the code behind a control, follow it
+to the service and the SQL, and fix it.
 
-> **Start here if the app won't start.** Jump straight to [Running TfLens locally](#running-tflens-locally),
-> or to [Troubleshooting](#troubleshooting) if you already have an error on screen.
+> **Debugging a screen? That is what this guide is for — start below.**
+> Only setting the project up for the first time? [Running TfLens locally](#running-tflens-locally)
+> is at the bottom, with [Troubleshooting](#troubleshooting) beside it.
+
+<!-- REQ-NFR-017 (owner UAT 2026-08-28): this guide used to open with ~300 lines of setup,
+     configuration and four separate "how to run it" variants, and mentioned the screen-by-screen
+     reference once, on its last line. The owner opened it to debug screens and never reached the
+     material that does that. Screens now come first; setup is reference material at the end.
+     Do not move setup back above the screen index. -->
 
 ## Table of Contents
 
-1. [Running TfLens locally](#running-tflens-locally)
-2. [Configuration reference](#configuration-reference)
-3. [Troubleshooting](#troubleshooting)
-4. [How the solution fits together](#how-the-solution-fits-together)
-5. [Command verbs](#command-verbs)
-6. [Tests](#tests)
-7. [Screen-by-screen reference](#screen-by-screen-reference)
+1. [Screen-by-screen reference](#screen-by-screen-reference) — **start here**
+2. [How the solution fits together](#how-the-solution-fits-together)
+3. [Tests](#tests)
+4. [Command verbs](#command-verbs)
+5. [Running TfLens locally](#running-tflens-locally)
+6. [Configuration reference](#configuration-reference)
+7. [Troubleshooting](#troubleshooting)
 
 ---
+
+## Screen-by-screen reference
+
+**[`TfLens-DevGuide-Screens.md`](./TfLens-DevGuide-Screens.md) is the body of this guide.** For every
+route it gives the same four things: the **control → service → data-access → SQL** path for each
+control on the screen, the screen's **states**, its **gotchas**, and any **deviation from the design**.
+
+Read [Cross-cutting gotchas](./TfLens-DevGuide-Screens.md#cross-cutting-gotchas--read-these-first)
+first — thirteen behaviours of TrBlazeUI and Blazor that have each cost a debugging session
+(`DataTable` silently truncating to `InitialPageSize`, `LucideIcon` aliases rendering an invisible
+placeholder, `IHttpContextAccessor.HttpContext` being `null` inside a circuit, `trblazeui.css`'s
+spacing scale having holes so `w-20` renders at zero width).
+
+| Screen | Route | Section |
+|---|---|---|
+| App shell (sidebar + header) | — | [The shell: `MainLayout`](./TfLens-DevGuide-Screens.md#the-shell-mainlayout) |
+| Sign in | `/login` | [`/login`](./TfLens-DevGuide-Screens.md#login) |
+| Register | `/register` | [`/register`](./TfLens-DevGuide-Screens.md#register) |
+| Forgot password | `/forgot-password` | [`/forgot-password`](./TfLens-DevGuide-Screens.md#forgot-password) |
+| Reset password | `/reset-password` | [`/reset-password`](./TfLens-DevGuide-Screens.md#reset-password) |
+| Profile | `/profile` | [`/profile`](./TfLens-DevGuide-Screens.md#profile) |
+| Repos (grid) | `/repos` | [`/repos`](./TfLens-DevGuide-Screens.md#repos) |
+| Add / re-import a source | `/repos/add`, `/repos/reimport/{Source}` | [`/repos` § routes](./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044) |
+| Remove a source | `/repos/remove/{Source}` | [`/repos` § routes](./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044) |
+| Coverage / health | `/` | [`/` — Coverage / health](./TfLens-DevGuide-Screens.md#--coverage--health) |
+| Three questions | `/three-questions` | [`/three-questions`](./TfLens-DevGuide-Screens.md#three-questions) |
+| Harness comparison | `/harness` | [`/harness`](./TfLens-DevGuide-Screens.md#harness) |
+| Routing & economics | `/routing` | [`/routing`](./TfLens-DevGuide-Screens.md#routing) |
+| Misses & rework | `/misses` | [`/misses`](./TfLens-DevGuide-Screens.md#misses) |
+| Snapshot export | `/export` | [`/export`](./TfLens-DevGuide-Screens.md#export) |
+| Playbook framework state | (all report pages) | [The Playbook axis](./TfLens-DevGuide-Screens.md#the-playbook-axis) |
+
+Looking for a file rather than a screen?
+[Route and file index](./TfLens-DevGuide-Screens.md#route-and-file-index) maps every route to its
+Razor page, service and tests.
+
+---
+
+## How the solution fits together
+
+```
+src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
+src/TfLens.Core     the engine: AppManager client, repo registry, GitHub fetch, parse, store,
+                    metrics, export, Playbook adapter. No web dependency, unit-testable alone.
+tests/              Core.Tests (263) · Guardrails.Tests (45) · Integration.Tests (16)
+database/           001-schema.sql — idempotent, applied at every startup
+tools/              parity-compare.py — key-by-key diff against tf-metrics.sh
+data/               raw/ (rebuild source of truth) · reports/ · prices.json
+```
+
+Two rules shape almost every file, and are worth internalising before changing anything:
+
+- **`UserId` is a parameter, never a filter.** Every store read, every engine call, the raw-archive path
+  and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather
+  than a forgotten `WHERE`.
+- **The result type forbids the wrong number.** `AnalysisResult` has no member that can hold a
+  cross-`project_type` or cross-provenance rate, and `Figure` has no way to print a number for its
+  `InsufficientData` / `NotApplicable` cases (ADR-007). Always render a figure through
+  `Components/Shared/FigureText.razor`.
+
+---
+
+## Command verbs
+
+The same binary that serves the UI runs the verbs, so a parity run exercises production code (ADR-005):
+
+```bash
+dotnet run --project src/TfLens -- sync    --user 2
+dotnet run --project src/TfLens -- rebuild --user 2
+dotnet run --project src/TfLens -- export  --user 2 --framework techieflow
+```
+
+In a container: `docker exec tflens dotnet TfLens.dll rebuild --user 2`.
+Visual Studio ships `sync verb` and `rebuild verb` launch profiles for the same thing.
+
+---
+
+## Tests
+
+```bash
+dotnet test                                     # all three projects
+dotnet test tests/TfLens.Core.Tests             # engine, parser, store
+dotnet test tests/TfLens.Guardrails.Tests       # coding standards + secret-leak checks, as tests
+dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP
+```
+
+The integration and store tests need the live PostgreSQL. They read `TfLensDbConnection` and otherwise
+fall back to the documented local compose service.
+
+---
+
+---
+
+# Setting the project up
+
+*Reference material. If you already have TfLens running, you do not need this section.*
 
 ## Running TfLens locally
 
@@ -36,60 +140,49 @@ TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing 
 > AppManager secret in it goes to git history — and `ConfigurationHygieneTests` fails the build to
 > stop exactly that.
 
-### The short version (Visual Studio / Rider, Windows)
+### Setup — three steps, one path
 
-1. **Start the database once**, from the repository root:
+Same three steps on every OS. Run them from the repository root.
 
-   ```powershell
-   copy .env.example .env
-   docker compose up -d postgres
-   ```
+**1. Start the database (once).**
 
-   This runs PostgreSQL 16 as the container `tflens-postgres` and publishes it on **localhost:5433**.
-   (`.env` is needed *here* — Compose reads it. The app still won't.)
+```bash
+cp .env.example .env            # Windows: copy .env.example .env
+docker compose up -d postgres
+```
 
-2. **Put your AppManager credentials in user secrets, once.** Right-click the **TfLens** project →
-   **Manage User Secrets**. Visual Studio opens your own private `secrets.json`, stored at
-   `%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json`. Paste in the block from
-   [`src/TfLens/secrets.example.json`](../src/TfLens/secrets.example.json) and fill it in:
+PostgreSQL 16 comes up as the container `tflens-postgres` on **localhost:5433**. `.env` is needed
+*here only* — Compose reads it; the app never does. Leave `TfLensDbPassword=tflensdev` alone: it is
+the password inside the app's Development fallback connection string, and if the two disagree you get
+a database the app cannot authenticate against.
 
-   ```json
-   {
-     "TfLens:AppManagerApiKey": "ak_live_…",
-     "TfLens:AppManagerApiSecret": "sk_live_…",
-     "TfLens:GitHubToken": ""
-   }
-   ```
+**2. Put your settings in user secrets (once).**
 
-   This is the file to come back to whenever a credential changes. It is not in the repository and
-   cannot be committed.
+`src/TfLens/secrets.example.json` is the **complete** configuration surface — every setting TfLens
+reads, secret or not, with its default. Copy the block into your own `secrets.json` and fill in only
+what you need. That file lives outside the repository and cannot be committed.
 
-3. **Press F5.**
+```bash
+dotnet user-secrets set "TfLens:AppManagerApiKey"    "…" --project src/TfLens
+dotnet user-secrets set "TfLens:AppManagerApiSecret" "…" --project src/TfLens
+```
 
-That is the whole setup. There is **one** launch profile, `TfLens`. It pins no connection string —
-TfLens falls back to the local compose database **in Development only**, as the lowest-priority
-configuration source, so anything you set overrides it. It opens on <http://localhost:5014>.
+*Visual Studio / Rider:* right-click the **TfLens** project → **Manage User Secrets** and paste the
+block in instead. The file is at `%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json`
+on Windows, `~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json` on Linux/macOS.
+
+**3. Run it.**
+
+```bash
+dotnet run --project src/TfLens          # or just press F5
+```
+
+<http://localhost:5014>. There is **one** launch profile, `TfLens`, and it pins no connection string.
 
 > **You can skip step 2 and still sign in.** Most AppManager endpoints resolve the application from
 > the `applicationId` in the request body. Only `/AuthSvc/forgot-password` and `/AuthSvc/reset-password`
 > take the app scope from the key headers, so **password reset is the part that dies without the pair**.
 > Supply it whole or not at all — a half-pair is refused at startup (see the configuration table).
-
-### The short version (shell, Linux/macOS/WSL)
-
-```bash
-cp .env.example .env
-docker compose up -d postgres
-
-dotnet user-secrets set "TfLens:AppManagerApiKey"    "ak_live_…" --project src/TfLens
-dotnet user-secrets set "TfLens:AppManagerApiSecret" "sk_live_…" --project src/TfLens
-
-dotnet run --project src/TfLens          # http://localhost:5014
-```
-
-`dotnet run` uses the same single profile and the same Development fallback. On Linux/macOS the same
-secrets file is at `~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json`, and you can edit it
-directly instead of using the CLI.
 
 ### Where the development default comes from
 
@@ -294,60 +387,3 @@ Run the BRD §13 parity procedure; the banner turns green only when a passing ru
 
 ---
 
-## How the solution fits together
-
-```
-src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
-src/TfLens.Core     the engine: AppManager client, repo registry, GitHub fetch, parse, store,
-                    metrics, export, Playbook adapter. No web dependency, unit-testable alone.
-tests/              Core.Tests (263) · Guardrails.Tests (45) · Integration.Tests (16)
-database/           001-schema.sql — idempotent, applied at every startup
-tools/              parity-compare.py — key-by-key diff against tf-metrics.sh
-data/               raw/ (rebuild source of truth) · reports/ · prices.json
-```
-
-Two rules shape almost every file, and are worth internalising before changing anything:
-
-- **`UserId` is a parameter, never a filter.** Every store read, every engine call, the raw-archive path
-  and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather
-  than a forgotten `WHERE`.
-- **The result type forbids the wrong number.** `AnalysisResult` has no member that can hold a
-  cross-`project_type` or cross-provenance rate, and `Figure` has no way to print a number for its
-  `InsufficientData` / `NotApplicable` cases (ADR-007). Always render a figure through
-  `Components/Shared/FigureText.razor`.
-
----
-
-## Command verbs
-
-The same binary that serves the UI runs the verbs, so a parity run exercises production code (ADR-005):
-
-```bash
-dotnet run --project src/TfLens -- sync    --user 2
-dotnet run --project src/TfLens -- rebuild --user 2
-dotnet run --project src/TfLens -- export  --user 2 --framework techieflow
-```
-
-In a container: `docker exec tflens dotnet TfLens.dll rebuild --user 2`.
-Visual Studio ships `sync verb` and `rebuild verb` launch profiles for the same thing.
-
----
-
-## Tests
-
-```bash
-dotnet test                                     # all three projects
-dotnet test tests/TfLens.Core.Tests             # engine, parser, store
-dotnet test tests/TfLens.Guardrails.Tests       # coding standards + secret-leak checks, as tests
-dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP
-```
-
-The integration and store tests need the live PostgreSQL. They read `TfLensDbConnection` and otherwise
-fall back to the documented local compose service.
-
----
-
-## Screen-by-screen reference
-
-See [`TfLens-DevGuide-Screens.md`](./TfLens-DevGuide-Screens.md) for the per-screen trace: every route,
-its controls, the service and SQL behind each, its states, and its known gotchas.

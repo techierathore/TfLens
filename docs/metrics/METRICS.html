@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Development telemetry</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — Development telemetry</h1>
+    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>METRICS.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#the-headline-a-human-still-found-more-than-the-gates-did">1. The headline: a human still found more than the gates did</a></li>
+        <li class="h3"><a href="#where-app-side-failures-were-caught">Where app-side failures were caught</a></li>
+        <li><a href="#misses-what-was-missed-and-which-practice-let-it-through">2. Misses — what was missed, and which practice let it through</a></li>
+        <li class="h3"><a href="#which-practice-failed-whymissed-n-28-of-29-eligible-0-predate-the-field">Which practice failed (why_missed, n=28 of 29 eligible; 0 predate the field)</a></li>
+        <li class="h3"><a href="#what-kind-of-defect">What kind of defect</a></li>
+        <li class="h3"><a href="#who-found-them">Who found them</a></li>
+        <li class="h3"><a href="#attribution-17-of-29-usable">Attribution — 17 of 29 usable</a></li>
+        <li><a href="#cost-of-rework-apportioned-not-measured">3. Cost of rework — apportioned, not measured</a></li>
+        <li><a href="#throughput">4. Throughput</a></li>
+        <li><a href="#what-is-missing-and-what-these-numbers-cannot-tell-you">5. What is missing, and what these numbers cannot tell you</a></li>
+      </ol>
+    </div>
+<p><strong>Generated:</strong> 2026-08-29 (fourth pass, after the build-output untracking) · <strong>Source:</strong> <code>docs/metrics/*.jsonl</code> via <code>.tfcore/telemetry/tf-metrics.sh --report . --json</code>
+<strong>Every figure below is the tool's.</strong> Nothing is recomputed by hand, and nothing is pooled across a provenance boundary.</p>
+<blockquote>
+<p><strong>How to read this page.</strong> Three separations are load-bearing and are never crossed:
+<strong>live vs backfilled</strong> (this repo has <strong>0 backfilled</strong> gate records — everything below is live),
+<strong><code>project_type</code></strong> (<code>app</code> and <code>docs</code> are reported side by side, never summed), and
+<strong>attribution/cost confidence</strong> (a miss whose origin is not <code>linked</code> never enters a per-model
+figure; a fix whose cost is not <code>sole</code> never enters a headline cost figure).
+An <code>n</code> is printed beside every rate. Rates from <code>n &lt; 3</code> are reported as <em>insufficient data</em>.</p>
+</blockquote>
+<hr>
+<h2 id="the-headline-a-human-still-found-more-than-the-gates-did">1. The headline: a human still found more than the gates did<a class="anchor-link" href="#the-headline-a-human-still-found-more-than-the-gates-did">#</a></h2>
+<table>
+<thead><tr><th></th><th><code>app</code> (live)</th><th><code>docs</code> (live)</th></tr></thead>
+<tbody>
+<tr><td>REQs scored</td><td>146</td><td>113</td></tr>
+<tr><td><strong>First-pass rate</strong></td><td><strong>21%</strong> (n=31)</td><td><strong>94%</strong> (n=106)</td></tr>
+<tr><td><strong>Escape rate</strong></td><td><strong>67%</strong> (n=13 attributed failures)</td><td><strong>0%</strong></td></tr>
+</tbody>
+</table>
+<p><strong>These two columns must not be averaged.</strong> A docs REQ has no screen, so it can never fail the visual
+gate; an app REQ can. Summing them produces a number that describes nothing.</p>
+<p><strong>The <code>app</code> escape rate of 67% is still the finding of this report.</strong> Two in three attributable
+app-side failures were found by a <strong>human running the application</strong>, not by a gate — the direct record
+of the 2026-08-28 UAT session, in which four defects were found on a build every gate had just passed.</p>
+<p>It was 75% a day ago. It fell because the gates caught three defects on 2026-08-29, <strong>not</strong> because
+fewer escaped: the numerator is unchanged and the denominator grew. A falling escape rate driven by
+gates finding more is the only kind worth having, and it is worth saying which kind it is.</p>
+<h3 id="where-app-side-failures-were-caught">Where app-side failures were caught<a class="anchor-link" href="#where-app-side-failures-were-caught">#</a></h3>
+<table>
+<thead><tr><th>Caught by</th><th>n</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><strong>escaped — no gate fired</strong></td><td><strong>6</strong></td><td>UAT; the whole finding</td></tr>
+<tr><td>acceptance</td><td>4</td><td>found by the gates themselves — three of them by the BRD §13 parity gate on 2026-08-29</td></tr>
+<tr><td>visual</td><td>1</td><td>the <code>/repos</code> mockup drift</td></tr>
+<tr><td>unattributed</td><td>2</td><td></td></tr>
+</tbody>
+</table>
+<p><code>late_gate_coverage</code>: the <strong>perf</strong> gate (added 2026-08-10) has run <strong>once</strong> and caught <strong>0</strong>. One run
+is not evidence either way; it is printed so a low catch count is not misread as a low defect rate.</p>
+<hr>
+<h2 id="misses-what-was-missed-and-which-practice-let-it-through">2. Misses — what was missed, and which practice let it through<a class="anchor-link" href="#misses-what-was-missed-and-which-practice-let-it-through">#</a></h2>
+<p>29 miss records · 29 fixes · <strong>3 still open</strong> · 0 <code>wont-fix</code> · 0 orphans.</p>
+<h3 id="which-practice-failed-whymissed-n-28-of-29-eligible-0-predate-the-field">Which practice failed (<code>why_missed</code>, n=28 of 29 eligible; 0 predate the field)<a class="anchor-link" href="#which-practice-failed-whymissed-n-28-of-29-eligible-0-predate-the-field">#</a></h3>
+<table>
+<thead><tr><th>Practice that failed</th><th>n</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><code>missing-checklist-item</code></td><td>10</td><td><strong>Nothing in the spec covered the behaviour at all</strong></td></tr>
+<tr><td><code>insufficient-verify-method</code></td><td>8</td><td>Acceptance existed; no gate could have caught this class</td></tr>
+<tr><td><code>ambiguous-acceptance</code></td><td>5</td><td>Two honest readings of the clause</td></tr>
+<tr><td><code>dependency-not-declared</code></td><td>2</td><td></td></tr>
+<tr><td><code>instruction-ignored</code></td><td>2</td><td>A written framework rule existed and was not honoured</td></tr>
+<tr><td><code>other</code></td><td>1</td><td></td></tr>
+</tbody>
+</table>
+<p><strong><code>missing-checklist-item</code> is the largest bucket, and it grew this pass.</strong> The dominant failure mode
+on this project is not sloppy building — it is <strong>things nobody wrote down</strong>. Four of today's records
+are exactly that, and all four are now REQs with acceptance clauses and guardrail tests:
+<code>REQ-NFR-015</code> (fail loudly when an asset 404s), <code>REQ-NFR-016</code> (build output is not source),
+<code>REQ-NFR-017</code> (the DevGuide leads with screens), and <code>REQ-UI-044</code> (<strong>a UI construct whose failure
+mode the harness cannot reproduce is one the harness cannot sign off</strong>).</p>
+<h3 id="what-kind-of-defect">What kind of defect<a class="anchor-link" href="#what-kind-of-defect">#</a></h3>
+<table>
+<thead><tr><th><code>miss_class</code></th><th>n</th></tr></thead>
+<tbody>
+<tr><td><code>wrong-behaviour</code></td><td>13</td></tr>
+<tr><td><code>unspecified-gap</code> (<strong>design miss</strong>)</td><td>6</td></tr>
+<tr><td><code>partial-implementation</code></td><td>5</td></tr>
+<tr><td><code>standards-violation</code></td><td>4</td></tr>
+</tbody>
+</table>
+<p><strong>Design-miss share 21%</strong> · <strong>Escape share 32%</strong>.</p>
+<blockquote>
+<p>The 32% escape <em>share</em> and the 67% escape <em>rate</em> in §1 measure different populations and are
+reported side by side, never merged (SCHEMA.md §5.5.5).</p>
+</blockquote>
+<h3 id="who-found-them">Who found them<a class="anchor-link" href="#who-found-them">#</a></h3>
+<table>
+<thead><tr><th>Found by</th><th>n</th></tr></thead>
+<tbody>
+<tr><td><code>agent-review</code></td><td>12</td></tr>
+<tr><td><strong><code>owner</code></strong></td><td><strong>10</strong></td></tr>
+<tr><td><code>gate</code></td><td>6</td></tr>
+<tr><td><code>self-smoke</code></td><td>1</td></tr>
+</tbody>
+</table>
+<p><strong>A human found ten; gates found six</strong> — up from three, entirely because the BRD §13 parity gate
+caught all three of the 2026-08-29 defects before anyone published a number from them. That is what a
+gate is worth, and it is the argument TF-007 makes for adding the one the framework still lacks.</p>
+<h3 id="attribution-17-of-29-usable">Attribution — 17 of 29 usable<a class="anchor-link" href="#attribution-17-of-29-usable">#</a></h3>
+<p><code>attributed_n</code> <strong>17</strong>, <code>attribution_excluded</code> <strong>12</strong>. Only records whose origin run was actually found
+in <code>runs.jsonl</code> carry a model; the other twelve were written <code>null</code> by the emitter rather than guessed.</p>
+<table>
+<thead><tr><th>Origin phase</th><th>n</th><th></th><th>Origin agent</th><th>n</th></tr></thead>
+<tbody>
+<tr><td><code>build-phase</code></td><td>13</td><td></td><td><code>general-purpose</code></td><td>8</td></tr>
+<tr><td><code>fix-issues</code></td><td>1</td><td></td><td><code>flow-master</code></td><td>6</td></tr>
+<tr><td><code>handoff-phase</code></td><td>1</td><td></td><td><code>trblazeui</code></td><td>2</td></tr>
+<tr><td><code>split-brd</code></td><td>1</td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+<p><code>by_origin_model</code>: <strong><code>claude-opus-5</code> — 16</strong>. Every attributed miss came from one model, so this table
+ranks phases and agents but <strong>cannot compare models</strong>: there is nothing to compare against.</p>
+<hr>
+<h2 id="cost-of-rework-apportioned-not-measured">3. Cost of rework — apportioned, not measured<a class="anchor-link" href="#cost-of-rework-apportioned-not-measured">#</a></h2>
+<table>
+<thead><tr><th>Figure</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>tokens_per_miss_measured</code></td><td><strong>null — no fix run touched exactly one miss</strong></td></tr>
+<tr><td><code>tokens_per_miss_apportioned</code></td><td>47,160</td></tr>
+<tr><td>Fixes costed <code>sole</code> / <code>shared</code> / unattributable</td><td><strong>2</strong> / 26 / 1</td></tr>
+<tr><td><code>cost_recovered_n</code></td><td><strong>4</strong> — windows the old derivation had written off</td></tr>
+<tr><td><code>cost_usd</code></td><td><strong>null — Claude Code's transcript carries no cost</strong></td></tr>
+</tbody>
+</table>
+<p><strong>The 47,160 figure is apportioned and must never be quoted as measured.</strong> Twenty-six of 28 fixes are
+<code>shared</code>: each fix run closed several misses at once, so its token window divides across them rather
+than measuring any one. No dollar figure is produced — a rate-card estimate printed beside measured
+token counts would be an estimate wearing a measurement's clothes.</p>
+<p><strong><code>cost_recovered_n</code> is new, and it is 4.</strong> These are windows the stream had stamped <code>none</code> and the
+recomputed divisor got back. Until 2026-08-29 TfLens read the stored <code>cost_attribution</code> string; the
+reference now recomputes it per fix run, because the stored value is written one record at a time (a
+run closing four misses stamps <code>shared:1..shared:4</code> and only the last is right) and pre-2026-08-28
+records carry <code>none</code> from the empty-<code>reqs_touched</code> bug. BRD §13 caught the divergence. The figure is
+reported separately so a jump in rework cost reads as a corrected derivation rather than as the work
+having become more expensive.</p>
+<hr>
+<h2 id="throughput">4. Throughput<a class="anchor-link" href="#throughput">#</a></h2>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Runs</td><td>26 — <code>log-miss</code> 5 · <code>fix-issues</code> 5 · <code>build-phase</code> 4 · <code>amend-docs</code> 2 · <code>mockups</code> 2 · <code>metrics-report</code> 2 · <code>verify-phase</code> 2 · <code>handoff-phase</code> 1 · <code>split-brd</code> 1 · <code>triage-issues</code> 1</td></tr>
+<tr><td><strong>Rework ratio</strong></td><td><strong>150%</strong></td></tr>
+<tr><td>Throughput (median)</td><td>20.93 REQs/hour</td></tr>
+<tr><td>Batch size (median)</td><td>21.5 REQs</td></tr>
+<tr><td>Tokens total</td><td>3,329,747</td></tr>
+<tr><td>Tokens per Verified REQ</td><td>9,073</td></tr>
+<tr><td>Sessions</td><td>9 (2 duplicates collapsed)</td></tr>
+<tr><td>Commits</td><td>12 over 3 active days — 4.0/day</td></tr>
+</tbody>
+</table>
+<p><strong>Rework ratio is 150%</strong>: there have now been half again as many rework passes as REQs — the average
+REQ has been revisited more than once, and some several times. Read it with the 21% app first-pass rate — the same fact stated twice.
+Median batch size 21.5 is part of the picture: a pass carrying twenty REQs cannot fail small.</p>
+<hr>
+<h2 id="what-is-missing-and-what-these-numbers-cannot-tell-you">5. What is missing, and what these numbers cannot tell you<a class="anchor-link" href="#what-is-missing-and-what-these-numbers-cannot-tell-you">#</a></h2>
+<ul>
+<li><strong>The <code>app</code> gate-distribution sample is n=13.</strong> The escape bucket dominates it and is corroborated independently by the miss stream (9 owner-found). Treat the <em>shape</em> as real, the <em>percentages</em> as provisional.
+</li>
+<li><strong><code>docs</code> records are stale</strong> (<code>stale_types: ["docs"]</code>) — the 94% first-pass rate describes a period that has ended.
+</li>
+<li><strong>No model comparison is possible.</strong> One model produced every attributed miss.
+</li>
+<li><strong>No measured cost per miss exists</strong>, and none will until a fix run touches exactly one REQ. The honest way to get one is smaller fix batches, which is a real trade against throughput.
+</li>
+<li><strong><code>why_missed</code> covers 24 of 25</strong>; none predate the field. <strong><code>escapes_missing_why</code> is 0</strong> — every owner-found record says why nothing caught it, which is the most valuable field in the stream.
+</li>
+<li><strong>Three misses remain open:</strong> <code>MISS-…0828-21</code> (build output still tracked in git — blocked on one owner-run command, <code>scripts/untrack-build-output.sh</code>), <code>MISS-…0828-25</code> (the Coverage assertion — now fixed and <code>Verified</code>, awaiting its close record) and <strong><code>MISS-…0829-01</code></strong> (<code>REQ-NFR-019</code>: nothing stops a row entering the store with a <code>source_sha</code> no sync ever obtained — 155 such rows were found and purged on 2026-08-29, and that is the single most consequential open item on this list, because <code>source_sha</code> is what a quotable figure is pinned to).
+</li>
+<li><strong>A tenth owner-found miss was added on 2026-08-29 (<code>MISS-…0829-04</code>) and it is worth reading</strong>, because it is not a defect in the app: the handover script for <code>REQ-NFR-016</code> did its job correctly and <em>reported</em> it in a way that read as failure. Removing 1,962 files from the index stages 1,962 deletions, so the editor then lists them all under "Changes to be committed" — indistinguishable from "nothing happened" unless you read the change type. Nobody had run it end to end and looked at what the operator would see. <strong>A deliverable that works and cannot be seen to work has not been delivered</strong>, and this stream is the only place that fact is written down.
+</li>
+<li><strong>The one number worth acting on</strong> is still not a rate: the largest <code>why_missed</code> bucket is <code>missing-checklist-item</code>, and it grew. The gates were not failing to run — they were running against acceptance clauses that never mentioned the thing that broke. Every fix this session added the missing clause <em>and</em> a test for it, which is the only move that changes this figure next time.
+</li>
+</ul>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

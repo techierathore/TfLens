@@ -110,9 +110,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
+        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
+        <li><a href="#command-verbs">Command verbs</a></li>
+        <li><a href="#tests">Tests</a></li>
         <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
-        <li class="h3"><a href="#the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</a></li>
-        <li class="h3"><a href="#the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)</a></li>
+        <li class="h3"><a href="#setup-three-steps-one-path">Setup — three steps, one path</a></li>
         <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
         <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
         <li class="h3"><a href="#signing-in">Signing in</a></li>
@@ -129,10 +132,6 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</a></li>
         <li class="h3"><a href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">rebuild in the container replays 0 files, but works on the dev machine</a></li>
         <li class="h3"><a href="#the-export-says-not-quotable">The export says NOT QUOTABLE</a></li>
-        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
-        <li><a href="#command-verbs">Command verbs</a></li>
-        <li><a href="#tests">Tests</a></li>
-        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
     </ol>
   </nav>
   <main>
@@ -143,9 +142,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       <div>Contents</div>
       <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
+        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
+        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
+        <li><a href="#command-verbs">Command verbs</a></li>
+        <li><a href="#tests">Tests</a></li>
         <li><a href="#running-tflens-locally">Running TfLens locally</a></li>
-        <li class="h3"><a href="#the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)</a></li>
-        <li class="h3"><a href="#the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)</a></li>
+        <li class="h3"><a href="#setup-three-steps-one-path">Setup — three steps, one path</a></li>
         <li class="h3"><a href="#where-the-development-default-comes-from">Where the development default comes from</a></li>
         <li class="h3"><a href="#using-your-own-postgresql-instead">Using your own PostgreSQL instead</a></li>
         <li class="h3"><a href="#signing-in">Signing in</a></li>
@@ -162,36 +164,103 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#a-report-page-shows-no-data-although-rows-exist-in-the-database">A report page shows no data although rows exist in the database</a></li>
         <li class="h3"><a href="#rebuild-in-the-container-replays-0-files-but-works-on-the-dev-machine">rebuild in the container replays 0 files, but works on the dev machine</a></li>
         <li class="h3"><a href="#the-export-says-not-quotable">The export says NOT QUOTABLE</a></li>
-        <li><a href="#how-the-solution-fits-together">How the solution fits together</a></li>
-        <li><a href="#command-verbs">Command verbs</a></li>
-        <li><a href="#tests">Tests</a></li>
-        <li><a href="#screen-by-screen-reference">Screen-by-screen reference</a></li>
       </ol>
     </div>
-<p><strong>Last updated:</strong> 2026-08-27
-<strong>Audience:</strong> a developer who has just cloned this repository and needs to run it, change it, and fix bugs in it.</p>
+<p><strong>Last updated:</strong> 2026-08-28
+<strong>Audience:</strong> a developer who needs to <strong>debug a screen</strong> — find the code behind a control, follow it
+to the service and the SQL, and fix it.</p>
 <blockquote>
-<p><strong>Start here if the app won't start.</strong> Jump straight to <a href="#running-tflens-locally">Running TfLens locally</a>,
-or to <a href="#troubleshooting">Troubleshooting</a> if you already have an error on screen.</p>
+<p><strong>Debugging a screen? That is what this guide is for — start below.</strong>
+Only setting the project up for the first time? <a href="#running-tflens-locally">Running TfLens locally</a>
+is at the bottom, with <a href="#troubleshooting">Troubleshooting</a> beside it.</p>
 </blockquote>
 <h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
+<li><a href="#screen-by-screen-reference">Screen-by-screen reference</a> — <strong>start here</strong>
+</li>
+<li><a href="#how-the-solution-fits-together">How the solution fits together</a>
+</li>
+<li><a href="#tests">Tests</a>
+</li>
+<li><a href="#command-verbs">Command verbs</a>
+</li>
 <li><a href="#running-tflens-locally">Running TfLens locally</a>
 </li>
 <li><a href="#configuration-reference">Configuration reference</a>
 </li>
 <li><a href="#troubleshooting">Troubleshooting</a>
 </li>
-<li><a href="#how-the-solution-fits-together">How the solution fits together</a>
-</li>
-<li><a href="#command-verbs">Command verbs</a>
-</li>
-<li><a href="#tests">Tests</a>
-</li>
-<li><a href="#screen-by-screen-reference">Screen-by-screen reference</a>
-</li>
 </ol>
 <hr>
+<h2 id="screen-by-screen-reference">Screen-by-screen reference<a class="anchor-link" href="#screen-by-screen-reference">#</a></h2>
+<p><strong><a href="./TfLens-DevGuide-Screens.md"><code>TfLens-DevGuide-Screens.md</code></a> is the body of this guide.</strong> For every
+route it gives the same four things: the <strong>control → service → data-access → SQL</strong> path for each
+control on the screen, the screen's <strong>states</strong>, its <strong>gotchas</strong>, and any <strong>deviation from the design</strong>.</p>
+<p>Read <a href="./TfLens-DevGuide-Screens.md#cross-cutting-gotchas--read-these-first">Cross-cutting gotchas</a>
+first — thirteen behaviours of TrBlazeUI and Blazor that have each cost a debugging session
+(<code>DataTable</code> silently truncating to <code>InitialPageSize</code>, <code>LucideIcon</code> aliases rendering an invisible
+placeholder, <code>IHttpContextAccessor.HttpContext</code> being <code>null</code> inside a circuit, <code>trblazeui.css</code>'s
+spacing scale having holes so <code>w-20</code> renders at zero width).</p>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Section</th></tr></thead>
+<tbody>
+<tr><td>App shell (sidebar + header)</td><td>—</td><td><a href="./TfLens-DevGuide-Screens.md#the-shell-mainlayout">The shell: <code>MainLayout</code></a></td></tr>
+<tr><td>Sign in</td><td><code>/login</code></td><td><a href="./TfLens-DevGuide-Screens.md#login"><code>/login</code></a></td></tr>
+<tr><td>Register</td><td><code>/register</code></td><td><a href="./TfLens-DevGuide-Screens.md#register"><code>/register</code></a></td></tr>
+<tr><td>Forgot password</td><td><code>/forgot-password</code></td><td><a href="./TfLens-DevGuide-Screens.md#forgot-password"><code>/forgot-password</code></a></td></tr>
+<tr><td>Reset password</td><td><code>/reset-password</code></td><td><a href="./TfLens-DevGuide-Screens.md#reset-password"><code>/reset-password</code></a></td></tr>
+<tr><td>Profile</td><td><code>/profile</code></td><td><a href="./TfLens-DevGuide-Screens.md#profile"><code>/profile</code></a></td></tr>
+<tr><td>Repos (grid)</td><td><code>/repos</code></td><td><a href="./TfLens-DevGuide-Screens.md#repos"><code>/repos</code></a></td></tr>
+<tr><td>Add / re-import a source</td><td><code>/repos/add</code>, <code>/repos/reimport/{Source}</code></td><td><a href="./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044"><code>/repos</code> § routes</a></td></tr>
+<tr><td>Remove a source</td><td><code>/repos/remove/{Source}</code></td><td><a href="./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044"><code>/repos</code> § routes</a></td></tr>
+<tr><td>Coverage / health</td><td><code>/</code></td><td><a href="./TfLens-DevGuide-Screens.md#--coverage--health"><code>/</code> — Coverage / health</a></td></tr>
+<tr><td>Three questions</td><td><code>/three-questions</code></td><td><a href="./TfLens-DevGuide-Screens.md#three-questions"><code>/three-questions</code></a></td></tr>
+<tr><td>Harness comparison</td><td><code>/harness</code></td><td><a href="./TfLens-DevGuide-Screens.md#harness"><code>/harness</code></a></td></tr>
+<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td><a href="./TfLens-DevGuide-Screens.md#routing"><code>/routing</code></a></td></tr>
+<tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td><a href="./TfLens-DevGuide-Screens.md#misses"><code>/misses</code></a></td></tr>
+<tr><td>Snapshot export</td><td><code>/export</code></td><td><a href="./TfLens-DevGuide-Screens.md#export"><code>/export</code></a></td></tr>
+<tr><td>Playbook framework state</td><td>(all report pages)</td><td><a href="./TfLens-DevGuide-Screens.md#the-playbook-axis">The Playbook axis</a></td></tr>
+</tbody>
+</table>
+<p>Looking for a file rather than a screen?
+<a href="./TfLens-DevGuide-Screens.md#route-and-file-index">Route and file index</a> maps every route to its
+Razor page, service and tests.</p>
+<hr>
+<h2 id="how-the-solution-fits-together">How the solution fits together<a class="anchor-link" href="#how-the-solution-fits-together">#</a></h2>
+<pre><code>src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
+src/TfLens.Core     the engine: AppManager client, repo registry, GitHub fetch, parse, store,
+                    metrics, export, Playbook adapter. No web dependency, unit-testable alone.
+tests/              Core.Tests (263) · Guardrails.Tests (45) · Integration.Tests (16)
+database/           001-schema.sql — idempotent, applied at every startup
+tools/              parity-compare.py — key-by-key diff against tf-metrics.sh
+data/               raw/ (rebuild source of truth) · reports/ · prices.json</code></pre>
+<p>Two rules shape almost every file, and are worth internalising before changing anything:</p>
+<ul>
+<li><strong><code>UserId</code> is a parameter, never a filter.</strong> Every store read, every engine call, the raw-archive path and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather than a forgotten <code>WHERE</code>.
+</li>
+<li><strong>The result type forbids the wrong number.</strong> <code>AnalysisResult</code> has no member that can hold a cross-<code>project_type</code> or cross-provenance rate, and <code>Figure</code> has no way to print a number for its <code>InsufficientData</code> / <code>NotApplicable</code> cases (ADR-007). Always render a figure through <code>Components/Shared/FigureText.razor</code>.
+</li>
+</ul>
+<hr>
+<h2 id="command-verbs">Command verbs<a class="anchor-link" href="#command-verbs">#</a></h2>
+<p>The same binary that serves the UI runs the verbs, so a parity run exercises production code (ADR-005):</p>
+<pre><code class="language-bash">dotnet run --project src/TfLens -- sync    --user 2
+dotnet run --project src/TfLens -- rebuild --user 2
+dotnet run --project src/TfLens -- export  --user 2 --framework techieflow</code></pre>
+<p>In a container: <code>docker exec tflens dotnet TfLens.dll rebuild --user 2</code>.
+Visual Studio ships <code>sync verb</code> and <code>rebuild verb</code> launch profiles for the same thing.</p>
+<hr>
+<h2 id="tests">Tests<a class="anchor-link" href="#tests">#</a></h2>
+<pre><code class="language-bash">dotnet test                                     # all three projects
+dotnet test tests/TfLens.Core.Tests             # engine, parser, store
+dotnet test tests/TfLens.Guardrails.Tests       # coding standards + secret-leak checks, as tests
+dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP</code></pre>
+<p>The integration and store tests need the live PostgreSQL. They read <code>TfLensDbConnection</code> and otherwise
+fall back to the documented local compose service.</p>
+<hr>
+<hr>
+<h1>Setting the project up</h1>
+<p><em>Reference material. If you already have TfLens running, you do not need this section.</em></p>
 <h2 id="running-tflens-locally">Running TfLens locally<a class="anchor-link" href="#running-tflens-locally">#</a></h2>
 <p>TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing else.</p>
 <blockquote>
@@ -206,50 +275,33 @@ is the one to edit when you need to change a key.</p>
 AppManager secret in it goes to git history — and <code>ConfigurationHygieneTests</code> fails the build to
 stop exactly that.</p>
 </blockquote>
-<h3 id="the-short-version-visual-studio-rider-windows">The short version (Visual Studio / Rider, Windows)<a class="anchor-link" href="#the-short-version-visual-studio-rider-windows">#</a></h3>
-<ol>
-<li><strong>Start the database once</strong>, from the repository root:
-</li>
-</ol>
-<pre><code class="language-powershell">   copy .env.example .env
-   docker compose up -d postgres</code></pre>
-<p>This runs PostgreSQL 16 as the container <code>tflens-postgres</code> and publishes it on <strong>localhost:5433</strong>.
-   (<code>.env</code> is needed <em>here</em> — Compose reads it. The app still won't.)</p>
-<ol>
-<li><strong>Put your AppManager credentials in user secrets, once.</strong> Right-click the <strong>TfLens</strong> project → <strong>Manage User Secrets</strong>. Visual Studio opens your own private <code>secrets.json</code>, stored at <code>%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json</code>. Paste in the block from <a href="../src/TfLens/secrets.example.json"><code>src/TfLens/secrets.example.json</code></a> and fill it in:
-</li>
-</ol>
-<pre><code class="language-json">   {
-     "TfLens:AppManagerApiKey": "ak_live_…",
-     "TfLens:AppManagerApiSecret": "sk_live_…",
-     "TfLens:GitHubToken": ""
-   }</code></pre>
-<p>This is the file to come back to whenever a credential changes. It is not in the repository and
-   cannot be committed.</p>
-<ol>
-<li><strong>Press F5.</strong>
-</li>
-</ol>
-<p>That is the whole setup. There is <strong>one</strong> launch profile, <code>TfLens</code>. It pins no connection string —
-TfLens falls back to the local compose database <strong>in Development only</strong>, as the lowest-priority
-configuration source, so anything you set overrides it. It opens on &lt;http://localhost:5014&gt;.</p>
+<h3 id="setup-three-steps-one-path">Setup — three steps, one path<a class="anchor-link" href="#setup-three-steps-one-path">#</a></h3>
+<p>Same three steps on every OS. Run them from the repository root.</p>
+<p><strong>1. Start the database (once).</strong></p>
+<pre><code class="language-bash">cp .env.example .env            # Windows: copy .env.example .env
+docker compose up -d postgres</code></pre>
+<p>PostgreSQL 16 comes up as the container <code>tflens-postgres</code> on <strong>localhost:5433</strong>. <code>.env</code> is needed
+<em>here only</em> — Compose reads it; the app never does. Leave <code>TfLensDbPassword=tflensdev</code> alone: it is
+the password inside the app's Development fallback connection string, and if the two disagree you get
+a database the app cannot authenticate against.</p>
+<p><strong>2. Put your settings in user secrets (once).</strong></p>
+<p><code>src/TfLens/secrets.example.json</code> is the <strong>complete</strong> configuration surface — every setting TfLens
+reads, secret or not, with its default. Copy the block into your own <code>secrets.json</code> and fill in only
+what you need. That file lives outside the repository and cannot be committed.</p>
+<pre><code class="language-bash">dotnet user-secrets set "TfLens:AppManagerApiKey"    "…" --project src/TfLens
+dotnet user-secrets set "TfLens:AppManagerApiSecret" "…" --project src/TfLens</code></pre>
+<p><em>Visual Studio / Rider:</em> right-click the <strong>TfLens</strong> project → <strong>Manage User Secrets</strong> and paste the
+block in instead. The file is at <code>%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json</code>
+on Windows, <code>~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json</code> on Linux/macOS.</p>
+<p><strong>3. Run it.</strong></p>
+<pre><code class="language-bash">dotnet run --project src/TfLens          # or just press F5</code></pre>
+<http://localhost:5014>. There is **one** launch profile, `TfLens`, and it pins no connection string.
 <blockquote>
 <p><strong>You can skip step 2 and still sign in.</strong> Most AppManager endpoints resolve the application from
 the <code>applicationId</code> in the request body. Only <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code>
 take the app scope from the key headers, so <strong>password reset is the part that dies without the pair</strong>.
 Supply it whole or not at all — a half-pair is refused at startup (see the configuration table).</p>
 </blockquote>
-<h3 id="the-short-version-shell-linux-macos-wsl">The short version (shell, Linux/macOS/WSL)<a class="anchor-link" href="#the-short-version-shell-linux-macos-wsl">#</a></h3>
-<pre><code class="language-bash">cp .env.example .env
-docker compose up -d postgres
-
-dotnet user-secrets set "TfLens:AppManagerApiKey"    "ak_live_…" --project src/TfLens
-dotnet user-secrets set "TfLens:AppManagerApiSecret" "sk_live_…" --project src/TfLens
-
-dotnet run --project src/TfLens          # http://localhost:5014</code></pre>
-<p><code>dotnet run</code> uses the same single profile and the same Development fallback. On Linux/macOS the same
-secrets file is at <code>~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json</code>, and you can edit it
-directly instead of using the CLI.</p>
 <h3 id="where-the-development-default-comes-from">Where the development default comes from<a class="anchor-link" href="#where-the-development-default-comes-from">#</a></h3>
 <p>TfLens <strong>refuses to start without a database</strong> rather than starting and failing at the first user's
 sign-in (BRD-9). That is deliberate, but it makes the out-of-the-box experience depend entirely on
@@ -416,41 +468,6 @@ deleting the ring; existing sessions will simply be re-issued on next sign-in.</
 Run the BRD §13 parity procedure; the banner turns green only when a passing run covers the current
 <code>ParserVersion.Current</code>.</p>
 <hr>
-<h2 id="how-the-solution-fits-together">How the solution fits together<a class="anchor-link" href="#how-the-solution-fits-together">#</a></h2>
-<pre><code>src/TfLens          Blazor Server head — pages, shell, auth, background sync, command verbs
-src/TfLens.Core     the engine: AppManager client, repo registry, GitHub fetch, parse, store,
-                    metrics, export, Playbook adapter. No web dependency, unit-testable alone.
-tests/              Core.Tests (263) · Guardrails.Tests (45) · Integration.Tests (16)
-database/           001-schema.sql — idempotent, applied at every startup
-tools/              parity-compare.py — key-by-key diff against tf-metrics.sh
-data/               raw/ (rebuild source of truth) · reports/ · prices.json</code></pre>
-<p>Two rules shape almost every file, and are worth internalising before changing anything:</p>
-<ul>
-<li><strong><code>UserId</code> is a parameter, never a filter.</strong> Every store read, every engine call, the raw-archive path and the reports path all take it (ADR-013). A cross-user leak should be a compile-time absence rather than a forgotten <code>WHERE</code>.
-</li>
-<li><strong>The result type forbids the wrong number.</strong> <code>AnalysisResult</code> has no member that can hold a cross-<code>project_type</code> or cross-provenance rate, and <code>Figure</code> has no way to print a number for its <code>InsufficientData</code> / <code>NotApplicable</code> cases (ADR-007). Always render a figure through <code>Components/Shared/FigureText.razor</code>.
-</li>
-</ul>
-<hr>
-<h2 id="command-verbs">Command verbs<a class="anchor-link" href="#command-verbs">#</a></h2>
-<p>The same binary that serves the UI runs the verbs, so a parity run exercises production code (ADR-005):</p>
-<pre><code class="language-bash">dotnet run --project src/TfLens -- sync    --user 2
-dotnet run --project src/TfLens -- rebuild --user 2
-dotnet run --project src/TfLens -- export  --user 2 --framework techieflow</code></pre>
-<p>In a container: <code>docker exec tflens dotnet TfLens.dll rebuild --user 2</code>.
-Visual Studio ships <code>sync verb</code> and <code>rebuild verb</code> launch profiles for the same thing.</p>
-<hr>
-<h2 id="tests">Tests<a class="anchor-link" href="#tests">#</a></h2>
-<pre><code class="language-bash">dotnet test                                     # all three projects
-dotnet test tests/TfLens.Core.Tests             # engine, parser, store
-dotnet test tests/TfLens.Guardrails.Tests       # coding standards + secret-leak checks, as tests
-dotnet test tests/TfLens.Integration.Tests      # boots the real host; cross-user isolation over HTTP</code></pre>
-<p>The integration and store tests need the live PostgreSQL. They read <code>TfLensDbConnection</code> and otherwise
-fall back to the documented local compose service.</p>
-<hr>
-<h2 id="screen-by-screen-reference">Screen-by-screen reference<a class="anchor-link" href="#screen-by-screen-reference">#</a></h2>
-<p>See <a href="./TfLens-DevGuide-Screens.md"><code>TfLens-DevGuide-Screens.md</code></a> for the per-screen trace: every route,
-its controls, the service and SQL behind each, its states, and its known gotchas.</p>
   </main>
 </div>
 
