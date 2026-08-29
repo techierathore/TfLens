@@ -96,3 +96,54 @@
 .profile-identity-text ::deep * {
     overflow-wrap: anywhere;
 }
+
+/* REQ-UI-005, fixed 2026-08-29 — the profile key/value card, as docs/mockups/profile.html draws it.
+
+   The mockup's card is headerless: the left cell IS the label, so a "Field | Value" header row only
+   repeats it. TrBlazeUI's DataTable has no ShowHeader switch, so the header stays declared for the
+   component's own metadata and is hidden here — the same treatment the Harness page's kv tables use. */
+.profile-kv ::deep thead {
+    display: none;
+}
+
+/* `table-layout: fixed` above splits the columns 50/50, which is why the email wrapped mid-word:
+   `tflensdemo@techierat` / `hore.com`. The label side never needs half the card. */
+.profile-kv ::deep td:first-child {
+    width: 34%;
+    color: var(--muted-foreground);
+}
+
+.profile-kv ::deep td:last-child {
+    width: 66%;
+}
+
+/* `overflow-wrap: anywhere` (inherited from the .profile-grid rule above) breaks inside a word even
+   when the word would fit on a line of its own — that is what split the address. `break-word` breaks
+   only a word that genuinely cannot fit, so the email stays whole at every width that can hold it and
+   still wraps rather than overflowing on a phone. */
+.profile-kv ::deep td {
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+/* Role / Identity provider: badge first, then the caption the mockup sets beside it. */
+.profile-badge-row {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.profile-badge-role {
+    color: var(--alert-success);
+    border-color: color-mix(in oklab, var(--alert-success) 40%, transparent);
+    background: var(--alert-success-bg);
+}
+
+/* The mockup's role badge is a green pill with the tick spaced off the word; the built one ran them
+   together as "✓Manager". */
+.profile-badge-tick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}

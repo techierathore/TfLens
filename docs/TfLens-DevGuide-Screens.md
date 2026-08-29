@@ -1013,7 +1013,19 @@ a `<span>` inside. The build will not warn you.
   line invites the reader to treat it as the headline's trend. `Connected repos` and
   `Last successful sync` deliberately get **no** sparkline — neither has stored history, and a line
   through invented points is the fabrication this product exists to prevent.
-  **Also closed 2026-08-28:** the filter control now matches the mockup — one `Filter repos…` input,
+  **CORRECTED 2026-08-29 (`MISS-TfLens-20260829-21`, owner mockup-parity UAT).** The sentence above is
+  half wrong, and it was wrong in the direction that matters: it claims `Connected repos` has no stored
+  history, but every source carries a real `ConnectedTs`, and `BuildConnectedSeries` (`Repos.razor`)
+  plots exactly that — when each repo was actually connected, cumulative by day. That tile has had a
+  sparkline in the shipped build all along, and it is **not** a fabrication. Only `Last successful sync`
+  has genuinely no history (only the latest sync per source is stored), and only that tile goes without.
+  The code was right; this note and the matching inline comment were the stale artefacts, and both have
+  been corrected. Recorded because a reader trusting this page would have "fixed" working code.
+  **Also closed 2026-08-28** *(and REOPENED 2026-08-29 — see `MISS-TfLens-20260829-22`: the width was
+  honoured but the placement was not. Measured at 1280x900 the input sat at **x=313, y=482** — left-
+  aligned, on its own row below the description — because the header row was `flex-wrap` and the long
+  description claimed the full width. Fixed for real on 2026-08-29 with `flex-nowrap` on that row plus
+  the magnifier glyph the mockup shows and the build never had.)*: one `Filter repos…` input,
   right-aligned on the card-header row at 240px (`repos-filter`), with the DataTable's own toolbar
   switched off; Kind / Source / Status badges are colour-coded through `tflens-badge-*` tones
   (TrBlazeUI ships no info/success/warning variant — TR-016); Records is right-aligned; repo names are
@@ -2023,3 +2035,36 @@ has signed in — without them the sign-in form cannot be interactive at all.
 | **`POST /api/import/commit`** | **`Services/Import/ImportEndpoints.cs`** | **authorized + antiforgery** |
 | `GET /healthz` | `HealthEndpoint.cs` | anonymous |
 | **`GET /signout`** | **nowhere — 404** | — |
+
+---
+
+## Known issues — mockup parity (owner UAT, 2026-08-29) — **OPEN**
+
+The owner compared every screen in `docs/mockups/` against the running app and found structural drift
+on **13 of the 14 comparable screens**, against a checklist that read 145 `Verified`. Evidence:
+`tests/.artifacts/mockup-parity/` (`mock-<screen>.png` beside `app-<screen>.png`, both 1280x900).
+Nothing in `src/` was changed by the triage that recorded these — see `*fix-issues`.
+
+**Why every gate passed anyway (`REQ-NFR-020`).** The §4a data-render gate asks *does the control show
+data?* and the §4b visual-truth gate asks *do controls overlap or leave the viewport?* Neither asks
+*does this screen match its approved design*. A badge rendered as plain text has text and does not
+overlap; a header that wraps to two rows does not overlap; a 71px value column that splits
+`2,287,975,139` across three lines does not overlap; a missing icon is nothing to measure. All pass.
+
+| Screen | REQ | Symptom | Kind |
+|---|---|---|---|
+| all six report routes | `REQ-UI-010` | Header wraps to two rows — **105px** vs the mockup's single **64px** row. `ShellHeader` is `flex min-h-16 flex-wrap` and the Framework switch overflows 1280px, dropping Sync now / synced badge / theme toggle / user menu to a second line. | layout |
+| `/routing` | `REQ-UI-006` | Document escapes the shell scroll container: `scrollHeight` **2607px** against a 900px viewport, leaving ~1,700px of blank void with the shell repainted at the bottom. `.tflens-page` (`MainLayout.razor:89`) is the `overflow-auto` scroller but is `position: static`, so TrBlazeUI's `position:absolute` `sr-only` pagination labels anchor to `main.relative` and escape it. | layout |
+| `/harness` | `REQ-UI-023` | Every value cell is **71px** wide: `Cache read` `2,287,975,139` breaks across **3 lines mid-number**, `Runs by cmd` takes 10 lines, `Verdict mix` 14. `Verdict mix` also renders as a raw text dump instead of the mockup's pass-share bar + `78% pass`; the three harness icon tiles lost their tinted backgrounds. | layout |
+| `/` | `REQ-UI-014` | Two status badges per repo card (`Synced` + `synced`) where the mockup has one green pill; the `Days since` column is in the DOM but clipped off the card edge; 3 of 4 KPI cards render no sparkline, and the one that does is violet against the mockup's blue. | layout |
+| `/profile` | `REQ-UI-005` | `Member since` renders the raw ISO instant `2026-08-28T10:48:58.00636Z`; the change-password caption says passwords are encrypted **"before they leave the server"** where the mockup says **"browser"** — RSA-OAEP is client-side, so the shipped wording misstates the security property; `Role` and `Identity provider` lost their badges and captions; the identity email wraps mid-word. | data/logic + layout |
+| `/three-questions` | `REQ-UI-018` | KPI status-icon colours wrong (first-pass violet not green, escape green not amber); Live/Backfilled share bars lost their blue/violet fills; the type tab strip is shrink-to-fit, not full-width. | layout |
+| `/export` | `REQ-UI-032`, `REQ-UI-033` | The `Export` card-header download icon button is missing; `Parity status` renders as plain text instead of a coloured status pill; the KV table adds a `Field \| Value` header row the mockup does not have. | layout |
+| `/misses` | `REQ-UI-036` | The `Measured USD on rework` tile lost the green ring and the inline `opencode · measured` badge that mark it as the only *measured* dollar figure — exactly the distinction the mockup's own note says a reader must not lose. | layout |
+| `/repos` | `REQ-UI-011` | `Filter repos...` moved to its own left-aligned row (mockup right-aligns it on the heading row) and lost its magnifier icon; sparkline colours inconsistent between tiles. | layout |
+| `/login` `/register` `/forgot-password` `/reset-password` | `REQ-UI-001`–`004`, `REQ-UI-009` | No leading mail/lock icon in any field; the password reveal button sits outside the input; no card footer divider; footer links not underlined; **the theme toggle is absent from the auth layout entirely** (the mockups place it bottom-left). | layout |
+
+**Not defects.** The Framework switch works (`tflens-framework` cookie flips and the tab activates —
+an earlier harness used the wrong cookie name). The four Playbook-axis mockups are **not comparable**:
+no connected repository emits `events.ndjson`, so the Playbook axis has 0 repos and renders its empty
+state — the documented owner blocker, not drift.

@@ -2,7 +2,7 @@
 project: TfLens
 stack: .NET 10 / Blazor Server / TrBlazeUI 2.0.0 / PostgreSQL 16 (Dapper + Npgsql) / Serilog / docker compose
 last_updated: 2026-08-29
-current_phase: Build — 145 Verified; build output untracked, awaiting the owner's commit
+current_phase: Build — mockup parity repaired; 15 UI REQs `Implemented`, awaiting a verifier run
 last_verified_build: PASS
 last_verified_date: 2026-08-29
 ---
@@ -20,50 +20,49 @@ last_verified_date: 2026-08-29
 
 ## Where I am
 
-**BRD §13 parity passes again — `/export` reads QUOTABLE — and the browser suite is fully green for the first time (79/82, 0 failures, 3 skipped).** The re-run turned up four distinct causes, three of them real defects, and the most serious was not the parity mismatch itself: **155 rows in the store carried a `source_sha` that is not a commit in its repository** (`a91f3c2e…`, `e3b9d40a…` — both HTTP 422 from GitHub, both hand-typed sequential hex), inflating TechieFlow to 34 gate records against 0 upstream. `source_sha` is exactly what a quotable figure is pinned to, so those rows made published numbers unreproducible by anyone checking them. Purged, with a backup, and logged as `REQ-NFR-019` because nothing yet stops it recurring. The two code defects were both figures that described **TfLens's history rather than the user's data**: cost attribution was read from storage instead of recomputed per fix run, and `session_duplicates_collapsed` accumulated on every sync so re-reading an unchanged file grew it by a whole file (TechieFlow reached 25 against the 3 duplicates its file actually contains). A figure that changes with how many times you read the data cannot be quoted — two instances on the same repos would disagree.
+**The owner compared all 18 mockups against the running app and found structural drift on 13 of the 14 comparable screens — against a checklist that read 145 `Verified`.** Triage reproduced 20 findings and demoted 15 REQs; `*fix-issues` has now repaired all 15. The two worst were real damage to the product's purpose and both are gone: `/harness` rendered every figure in a **71px** column so `Cache read 2,287,975,139` broke across three lines **mid-number** (now 149px, one line, and `Verdict mix` is the mockup's pass-share bar instead of a 14-line text dump); and `/routing` had escaped the shell's scroll container — `document.scrollHeight` **2607px against a 900px viewport**, ~1,700px of blank void — because `.tflens-page` was `position: static`, so TrBlazeUI's absolutely-positioned `sr-only` pagination labels anchored to `main.relative`. Every route now measures 900/900.
+
+**The finding that outlives the fixes is why nothing caught any of it.** All 15 REQs had passed acceptance, the §4a data-render gate and the §4b visual-truth gate — because those gates ask *does the control show data* and *do controls overlap*, and a badge rendered as plain text has text, a header that wraps does not overlap, and a missing icon is nothing to measure. The telemetry now says the same thing numerically: **`insufficient-verify-method` is 24 of 46** answered `why_missed` records and the `app` **escape rate is 91%**, with `escaped` (22) larger than every real gate catch combined (5). That gap is `REQ-NFR-020`, raised upstream as **TF-008**.
 
 ## Next command to run
 
-The untracking is **done** — `git ls-files` returns 0 paths under `bin/`/`obj/` (was 1,962). One step
-left, and it is the owner's because agents cannot write to version control:
-
-```bash
-git commit -m "Untrack build output (REQ-NFR-016)"
 ```
-Your editor is showing 1,962 entries under *Changes to be committed*: those are the **deletions**, not
-the folders still being staged. `bash scripts/untrack-build-output.sh` will say so if in doubt.
+/TechieFlow:agents:verifier *verify ui
+```
+15 REQs sit at `Implemented`, which is the ceiling for a self-smoke — only an executed verify-phase can write `Verified` (`guard-verify.sh` enforces it). Targets: `REQ-UI-001` `-002` `-003` `-004` `-005` `-006` `-009` `-010` `-011` `-014` `-018` `-023` `-032` `-033` `-036`.
 
 Then `*handoff-phase TfLens`.
 
 ## Open requirements
-- `Planned` — `REQ-NFR-019` stored provenance is real: no row may claim a `source_sha` no sync or import obtained. The 155 offending rows are purged; the hole that let them in is open, and it is the most consequential item here because `source_sha` is what a quotable figure is pinned to
-- `Needs re-verify` — `REQ-FN-067` / `REQ-FN-070` Playbook-native figures — unchanged, owner-gated on a repository that emits `events.ndjson`
+- `Implemented` — the **15 UI REQs repaired today**; each carries its measured before/after in the checklist Remarks. Awaiting the verifier, not more work
+- `Planned` — **`REQ-NFR-020`** a built screen is graded against its approved mockup, mechanically. **The root cause. Nothing on this list recurs less until it exists**
+- `Planned` — `REQ-NFR-019` stored provenance is real: no row may claim a `source_sha` no sync obtained
+- `Needs re-verify` — `REQ-FN-067` / `REQ-FN-070` Playbook-native figures — owner-gated on a repository that emits `events.ndjson`
 - `N/A` — `REQ-FN-012` GitHub SSO, deferred by BRD-94 / ADR-012
 
 ## Known blockers
-- **OWNER — no repository emits `events.ndjson`**, so the Playbook axis has no data source. Blocks `REQ-FN-067` / `REQ-FN-070` only. Import via **Repos → Add source → Import metric files** needs no credential.
-- **UPSTREAM — TF-005 open**: `analyse_misses` averages an unrecorded `tokens_out` as zero. TfLens diverges deliberately (D-012). Latent only.
-- **UPSTREAM — TF-007 raised today (High):** the framework's gate set has **no asset-integrity gate**, so a page can lose its entire stylesheet and every gate still passes — which is precisely how `/login` reached the owner. Includes the `bin/`-`obj/` scaffold check and a "no unreproducible construct" rule for `_smoke-test-policy.md`.
+- **OWNER — no repository emits `events.ndjson`**, so the Playbook axis has 0 repos. The four Playbook mockups are **not comparable** and were not counted as drift.
+- **OWNER — `docs/mockups/profile.html` is wrong and should be corrected.** It says passwords are RSA-encrypted "before they leave the **browser**". This is Blazor Server: `AppManagerClient.Encrypt` (`AppManagerClient.cs:281`) runs RSA-OAEP-SHA256 **server-side**. The app's "server" wording is accurate; the triage's claim that it misstated a security property was **withdrawn**, and the mockup is the artefact to fix.
+- **UPSTREAM — TF-008 raised today (High):** no mockup-parity gate. Same shape as TF-007 one day earlier.
+- **UPSTREAM — TF-005 open**: `analyse_misses` averages an unrecorded `tokens_out` as zero. Latent only.
 
 ## Verification log
 | Date | Phase | Result | Status table |
 |------|-------|--------|--------------|
-| 2026-08-28 | **`*triage-issues`** (analyse-only) | 4 owner issues → 3 reproduced, 1 could-not-reproduce; 3 REQs demoted, 3 new `Planned` rows; 6 `escaped` gate records + 6 misses | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-28 | **`*fix-issues` r1 + verifier** | `/login` fix (+ regression test), config surface, DevGuide restructure, asset-integrity gate · 637/637 .NET · 75/80 Playwright · render+visual 465/22, 0 failures | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-28 | **`*fix-issues` r2 + verifier — dialogs → routes** | `REQ-UI-044` built and verified; `/repos` mockup drift closed; clipped Remove button fixed; Coverage assertion fixed · Build PASS 0 warnings · **638/638 .NET** (500 Core + **95** Guardrails + 43 Integration) · **78/82 Playwright** (1 fail = the parity stamp, 3 skipped) · render+visual **465 controls / 22 screen-states, 0 render failures, 0 visual problems, 0 console errors** · **142 Verified / 3 Needs re-verify / 2 Implemented / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **`REQ-NFR-016` closed + handover defect** | Owner ran `untrack-build-output.sh --run`: `git ls-files` under `bin`/`obj` **1,962 → 0**, guardrail passes, `REQ-NFR-016` **Verified** (the commit makes it permanent). Root cause located and **attributed to the day-1 agent, not to the scaffold template** — an agent that generates a file is responsible for reading it. A second miss logged (`MISS-…0829-04`): the script worked but reported success as 1,962 staged deletions, which reads as failure; it now names the repository's state and warns before you open your editor. **145 Verified / 2 Needs re-verify / 1 Planned / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
-| 2026-08-29 | **BRD §13 parity re-run + verifier** | Parity **PASS, 0 findings** (stamp recorded, `/export` QUOTABLE) after purging 155 fabricated-provenance rows and fixing two history-dependent figures · **638/638 .NET** · **79/82 Playwright, 0 failures** — first fully green suite · render+visual **464 controls / 22 screen-states, 0 failures, 0 console errors** · **144 Verified / 2 Needs re-verify / 1 Implemented / 1 Planned / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **BRD §13 parity re-run + verifier** | Parity **PASS, 0 findings**, `/export` QUOTABLE after purging 155 fabricated-provenance rows · 638/638 .NET · 79/82 Playwright | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*triage-issues`** (analyse-only, mockup parity) | 18 mockups vs the running app at 1280x900; **14 comparable, 13 drifted, 20 findings**; **15 REQs demoted**, 1 new `Planned` (`REQ-NFR-020`); 16 `escaped` gate records + 16 misses. **Zero source/test files modified** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*log-miss`** x2 | `MISS-…-21` the DevGuide and the code disagreed on whether `Connected repos` may plot a trend — **resolved in the code's favour**: `ConnectedTs` IS stored history, the docs were stale and were corrected. `MISS-…-22` a filter fix declared complete 2026-08-28 was not true in the shipped page (measured x=313, y=482) | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
+| 2026-08-29 | **`*fix-issues` — mockup parity** | All 15 REQs repaired to `Implemented`. Build **PASS, 0 warnings** · **638/638 .NET** · **Playwright 79 passed / 0 failed / 3 skipped (15.9m, exit 0)** — fully green. The first post-fix run showed 1 failure which was **not a regression**: `ui-coverage-misses.spec.ts` hard-coded `TechieRag`, a repo this workspace no longer connects (TfLens is connected in its place), so its selector returned `[]` while every connected repo rendered all five stream rows correctly. The spec now reads the repo list **from the page**, which is the assertion it always meant to make — a literal list fails on a swap and, worse, silently passes over a repo that was removed · **0 console errors on all 18 screen captures** · mobile 390: no horizontal scroll on any route, no document-scroll escape · header **105px → 64px**, harness value column **71px → 149px**, `/routing` doc **2607px → 900px**, `Days since` visible again. **→ 130 Verified / 15 Implemented / 2 Needs re-verify / 2 Planned / 1 N/A** | [Requirements Status](docs/TfLens-Checklist.md#requirements-status) |
 
 ## Library feedback summary
-- **TrBlazeUI: 20 entries, all open** — **TR-023 added today**: `BreadcrumbLink` *throws* on an unrecognised attribute rather than ignoring it, the third component in the same family as `TabsTrigger` (TR-010) and `Typography*` (TR-013). Both new pages built cleanly and returned a 500 on first render, twice, for two different components. **TR-016** (no info/success/warning Badge variant) is why the grid's status colours had to be hand-built as `tflens-badge-*` tones. **TR-014** (AlertDialog has no Escape) is now moot here — the routes retired the workaround.
-- **TechieFlow framework: 7 entries, 2 open** — **TF-007 added today** (see Known blockers) · TF-005.
+- **TrBlazeUI: 20 entries, all open.** **TR-016** (no info/success/warning Badge variant) is behind several of today's "badge rendered as plain text" findings. Noted for a future entry: `SelectContent.DisposeAsync` throws `JSDisconnectedException` on circuit teardown — harmless, but the library should swallow it.
+- **TechieFlow framework: 8 entries, 3 open** — **TF-008 added today** (no mockup-parity gate) · TF-007 · TF-005.
 - **AppManager: 2 entries, both resolved.** TechieRag: 0 — not used (ADR-003).
 
 ## Standards compliance (last check)
-- `TfLens.Guardrails.Tests` **95/95**. New: build output gitignored, secrets template complete, Compose password matches the code fallback, DevGuide leads with screens, auth layout out of the scoped bundle, and **source flows are routes not dialogs**.
+- `TfLens.Guardrails.Tests` **95/95**. Also repaired today: **6 checklist status rows carried unescaped `|` inside their Remarks** and rendered as broken table rows; all 150 rows are now well-formed.
 
 ## Deferred / future
 - GitHub SSO (BRD-94 → REQ-FN-012) — waits on an AppManager external-login endpoint
-- Playbook `/harness` columns and `/routing` repricing — not derivable today
-- `Last successful sync` KPI has **no** sparkline by design: only the latest sync per source is stored, so there is no history to plot and inventing one is barred (BRD §1). A stored sync-history table would make it real
-- **Data note:** the repro deleted and re-added `techierathore/TechieBlog` twice through the real UI. All 4 sources are connected; counts re-converge on the next poll.
+- **Sparklines on 3 of 4 Coverage tiles and 2 of 3 Three-questions tiles are deliberately NOT built.** The mockups draw them; `Newest record age`, `Sync errors` and `Last successful sync` have no stored series behind them, and a line through invented points is what BRD §1 exists to forbid. Recorded as a deviation, not a gap
+- The Coverage repo-card header runs to two rows because it carries a `Synced`/`Imported` source badge the mockup predates (REQ-UI-042 / BRD-136) — removing a required badge to match an older drawing would be the wrong fix

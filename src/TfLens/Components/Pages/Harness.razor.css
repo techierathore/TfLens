@@ -87,16 +87,64 @@
         vertical-align: middle;
     }
 
-    /* The label column shrinks to its own text so the value keeps the rest of a narrow card. */
+    /* REQ-UI-023, fixed 2026-08-29 — the column split that made every figure on this page unreadable.
+
+       Was: `td:first-child { width: 1%; white-space: nowrap }` + `td:last-child { overflow-wrap: anywhere }`.
+       The intent ("the label shrinks so the value keeps the rest") inverted in practice: `width: 1%` with
+       `nowrap` means the label claims whatever its LONGEST label needs — "Tokens per Verified REQ" on one
+       unbroken line — and in a 266px card that left the value column **71px**. `overflow-wrap: anywhere`
+       then did what it says and broke inside words, so `2,287,975,139` came out over three lines, split
+       mid-number. A figure you cannot read you cannot quote, which is the one thing this product exists
+       to do (BRD §1).
+
+       Now: the label wraps on word boundaries and the value keeps the larger share, right-aligned as the
+       mockup draws it. `break-word` replaces `anywhere` deliberately — it breaks a word only when that
+       word cannot fit a line on its own, so a formatted number stays one token while a long text value
+       ("fix-issues 31 · build-phase 29 · …") still wraps between its words. */
     .tflens-kv ::deep td:first-child {
-        width: 1%;
-        white-space: nowrap;
+        width: 42%;
         padding-right: 0.75rem;
+        overflow-wrap: break-word;
+        word-break: normal;
     }
 
     .tflens-kv ::deep td:last-child {
-        overflow-wrap: anywhere;
+        width: 58%;
+        text-align: right;
+        overflow-wrap: break-word;
+        word-break: normal;
     }
+
+/* REQ-UI-023 — `Verdict mix` as the mockup draws it: a pass-share bar and one percentage, not a text
+   dump of every verdict. The full breakdown is still reachable — it is the row's `title`. */
+.tflens-verdict {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.tflens-verdict-track {
+    flex: 0 1 5.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--muted, rgba(148, 163, 184, .25));
+    overflow: hidden;
+}
+
+.tflens-verdict-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--alert-success);
+}
+
+.tflens-verdict-pct {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
 
 /* The supplementary bar chart. `Height` is set on the chart itself; this only reserves the block.
    ApexCharts falls back to a fixed 400px canvas when it cannot resolve its container's width at init,

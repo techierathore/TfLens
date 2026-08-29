@@ -302,3 +302,81 @@ li:has(> [data-testid="nav-repo-count"]) {
     color: var(--alert-warning);
     border-color: color-mix(in oklab, var(--alert-warning) 30%, transparent);
 }
+
+/* ============================================================================
+   REQ-UI-001 .. REQ-UI-004, REQ-UI-009 — mockup parity for the anonymous screens
+   (owner UAT, 2026-08-29).
+
+   These rules live here and NOT in a scoped `.razor.css` for the same reason the rest of the `.auth-*`
+   set does: app.css is served straight from wwwroot, so the anonymous layout never depends on the
+   optional `TfLens.styles.css` bundle again (REQ-NFR-015, the 2026-08-28 UAT failure).
+
+   The field icons are keyed off the input's `name`, which is stable, semantic, and identical across all
+   four screens — so one rule dresses Login, Register, Forgot and Reset without touching four files or
+   inventing a wrapper component. The icons are inline `data:` SVGs (Lucide `mail` and `lock`) because a
+   CSS background cannot reference a Blazor component, and `currentColor` is not available to a data URI:
+   the stroke is the muted foreground of the dark surface these screens always render on.
+   ============================================================================ */
+
+.auth-panel input[name="Email"],
+.auth-panel input[name="Password"],
+.auth-panel input[name="Confirm"],
+.auth-panel input[name="CurrentPassword"] {
+    background-repeat: no-repeat;
+    background-position: 0.75rem center;
+    background-size: 1rem 1rem;
+    padding-left: 2.25rem;
+}
+
+/* Lucide `mail`, stroke #a1a1aa */
+.auth-panel input[name="Email"] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>');
+}
+
+/* Lucide `lock`, stroke #a1a1aa */
+.auth-panel input[name="Password"],
+.auth-panel input[name="Confirm"],
+.auth-panel input[name="CurrentPassword"] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+}
+
+/* The reveal control belongs INSIDE the field, as the mockup draws it — it sat outside, which both
+   shortened the input and broke the card's alignment down the right edge. */
+.auth-input-wrap {
+    position: relative;
+    display: block;
+}
+
+    .auth-input-wrap input {
+        width: 100%;
+        padding-right: 2.5rem;
+    }
+
+    .auth-input-wrap .auth-input-action {
+        position: absolute;
+        top: 50%;
+        right: 0.25rem;
+        transform: translateY(-50%);
+    }
+
+/* The mockups rule off the card footer and underline the links inside it. Without the rule the
+   "New here? Create an account" row read as part of the form rather than as a way out of it. */
+.auth-panel .auth-card-footer {
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+    padding-top: 1rem;
+}
+
+.auth-panel .auth-card-footer a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* The brand panel's footer carries the theme toggle beside the credit line, as every auth mockup
+   shows. It was absent from all four anonymous screens. */
+.auth-brand-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}

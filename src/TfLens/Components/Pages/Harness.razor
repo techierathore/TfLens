@@ -123,6 +123,19 @@
                                                             Class="tabular-nums font-medium"
                                                             TestId="@vRow.TestId" />
                                             }
+                                            else if (vRow.PassShare is { } vShare)
+                                            {
+                                                @* REQ-UI-023 — the mockup's pass-share bar. The verbatim
+                                                   verdict list stays reachable as the title, so ranking
+                                                   the figure never costs the reader the detail. *@
+                                                <span class="tflens-verdict" title="@vRow.Text" data-testid="@vRow.TestId">
+                                                    <span class="tflens-verdict-track">
+                                                        <span class="tflens-verdict-fill"
+                                                              style="width:@PercentCss(vShare)"></span>
+                                                    </span>
+                                                    <span class="tflens-verdict-pct">@PercentText(vShare) pass</span>
+                                                </span>
+                                            }
                                             else
                                             {
                                                 <span class="tabular-nums" data-testid="@vRow.TestId">@vRow.Text</span>
@@ -417,7 +430,14 @@
             new ColumnRow("Runs", CountText(vIsEmpty, aColumn.Runs), null, $"harness-{vHarness}-runs"),
             new ColumnRow("Runs by cmd (top 3)", PairsText(aColumn.RunsByCmd, 3), null, $"harness-{vHarness}-cmds"),
             new ColumnRow("Gate records", CountText(vIsEmpty, aColumn.GateRecords), null, $"harness-{vHarness}-gates"),
-            new ColumnRow("Verdict mix", PairsText(aColumn.VerdictMix, int.MaxValue), null, $"harness-{vHarness}-verdicts"),
+            // REQ-UI-023 — the mockup shows a pass-share bar and one percentage here, not every verdict.
+            // The full breakdown stays available as the cell's tooltip; nothing is hidden, it is ranked.
+            new ColumnRow(
+                "Verdict mix",
+                PairsText(aColumn.VerdictMix, int.MaxValue),
+                null,
+                $"harness-{vHarness}-verdicts",
+                PassShareOf(aColumn.VerdictMix)),
             new ColumnRow("Sessions", CountText(vIsEmpty, aColumn.Sessions), null, $"harness-{vHarness}-sessions"),
             new ColumnRow("Tokens in", CountText(vIsEmpty, aColumn.TokensIn), null, $"harness-{vHarness}-tokens-in"),
             new ColumnRow("Tokens out", CountText(vIsEmpty, aColumn.TokensOut), null, $"harness-{vHarness}-tokens-out"),
@@ -491,6 +511,48 @@
         aPairs.Count == 0
             ? Dash
             : string.Join(" · ", aPairs.Take(aTake).Select(aPair => $"{aPair.Key} {aPair.Value}"));
+
+    /// <summary>
+    /// Renders a 0..1 share as a CSS width, invariant so a comma decimal can never reach the style.
+    /// </summary>
+    /// <param name="aShare">The share, 0..1.</param>
+    /// <returns>A percentage string such as <c>78%</c>.</returns>
+    private static string PercentCss(double aShare) =>
+        (aShare * 100d).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>
+    /// Renders a 0..1 share as the whole percentage the mockup prints beside the bar.
+    /// </summary>
+    /// <param name="aShare">The share, 0..1.</param>
+    /// <returns>A percentage string such as <c>78%</c>.</returns>
+    private static string PercentText(double aShare) =>
+        Math.Round(aShare * 100d, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>
+    /// The share of a harness's gate verdicts that passed, for the <c>Verdict mix</c> bar (REQ-UI-023).
+    /// </summary>
+    /// <param name="aVerdicts">The verdict counts, as the engine produced them.</param>
+    /// <returns>
+    /// The pass share in 0..1, or <c>null</c> when there are no verdicts to take a share of — a harness
+    /// that recorded nothing must read <c>—</c>, never <c>0% pass</c>, which would be a figure derived
+    /// from an empty set (BRD §1, and the same rule <see cref="Figure"/> enforces elsewhere).
+    /// </returns>
+    private static double? PassShareOf(IReadOnlyList<KeyValuePair<string, int>> aVerdicts)
+    {
+        var vTotal = aVerdicts.Sum(aPair => aPair.Value);
+
+        if (vTotal <= 0)
+        {
+            return null;
+        }
+
+        // "Passed" is the checklist's own terminal-success vocabulary; every other verdict is not a pass.
+        var vPassed = aVerdicts
+            .Where(aPair => string.Equals(aPair.Key, "Verified", StringComparison.OrdinalIgnoreCase))
+            .Sum(aPair => aPair.Value);
+
+        return (double)vPassed / vTotal;
+    }
 
     /// <summary>
     /// Totals one harness's tokens for the supplementary chart and its text table.
@@ -577,7 +639,13 @@
     /// <param name="Text">The plain rendering of the value, also the column's sort key.</param>
     /// <param name="Value">The figure when the row carries one, so FigureText can refuse to print a number.</param>
     /// <param name="TestId">The row value's stable test id.</param>
-    private sealed record ColumnRow(string Label, string Text, Figure? Value, string TestId);
+    /// <param name="PassShare">
+    /// Set only on the <c>Verdict mix</c> row (REQ-UI-023). When present the cell renders the mockup's
+    /// pass-share bar and one percentage instead of the full verdict list; <c>null</c> everywhere else,
+    /// and <c>null</c> too when the harness recorded no gates at all, so an empty column reads
+    /// <c>—</c> rather than a confident <c>0% pass</c> drawn from nothing.
+    /// </param>
+    private sealed record ColumnRow(string Label, string Text, Figure? Value, string TestId, double? PassShare = null);
 
     /// <summary>One bar of the tokens-by-harness chart, and one row of the text table beside it.</summary>
     /// <param name="Harness">The harness name.</param>

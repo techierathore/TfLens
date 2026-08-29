@@ -5,33 +5,44 @@
     routes only), then a spacer and the right-hand cluster — Sync now with its last-sync badge, the theme
     toggle and the user menu. It wraps rather than overflows at narrow widths, so nothing overlaps or
     leaves the viewport on a phone.
+
+    REQ-UI-010, fixed 2026-08-29: at desktop widths the row must NOT wrap. It did — the six report
+    routes render the Framework switch, and trigger (28) + breadcrumb (213) + switch (268) + the
+    right-hand cluster (533) + four 12px gaps needs 1090px in the 1024px bar left by the sidebar, so
+    the whole right-hand cluster dropped to a second line and the header stood 105px tall against the
+    mockups' 64. The breadcrumb is the only genuinely elastic item here, so it is the one that gives:
+    it carries `min-width: 0` and its list wraps internally to two lines exactly as
+    `docs/mockups/coverage.html` draws it, while the header itself is `nowrap` from 64rem up. Nothing
+    is truncated and nothing shrinks below its content on a phone, where wrapping is still correct.
 *@
 @implements IDisposable
 @inject NavigationManager objNavigation
 
-<header class="flex min-h-16 flex-wrap items-center gap-3 border-b bg-background px-4 py-2" data-testid="app-header">
+<header class="tflens-header flex min-h-16 flex-wrap items-center gap-3 border-b bg-background px-4 py-2" data-testid="app-header">
     <SidebarTrigger data-testid="sidebar-trigger" />
 
-    <Breadcrumb>
-        <BreadcrumbList>
-            <BreadcrumbItem>
-                <span class="text-muted-foreground">@Section</span>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-                <BreadcrumbPage>@Page</BreadcrumbPage>
-            </BreadcrumbItem>
-        </BreadcrumbList>
-    </Breadcrumb>
+    <div class="tflens-header-crumb">
+        <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <span class="text-muted-foreground">@Section</span>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>@Page</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+        </Breadcrumb>
+    </div>
 
     @if (ShowsFrameworkSwitch)
     {
         <FrameworkSwitch />
     }
 
-    <div class="flex-1"></div>
+    <div class="tflens-header-spacer flex-1"></div>
 
-    <div class="flex items-center gap-3">
+    <div class="tflens-header-right flex items-center gap-3">
         <SyncNowButton UserId="@UserId" />
         <ThemeToggle TestId="theme-toggle" Id="header-theme-toggle" />
         <UserMenu DisplayName="@DisplayName" Email="@Email" Initials="@Initials" />

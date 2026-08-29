@@ -1,0 +1,42 @@
+/* REQ-UI-010 — the header is ONE row at desktop, as every mockup draws it.
+
+   TR-002: trblazeui.css ships no responsive variants, so `lg:flex-nowrap` does not exist at runtime
+   and the breakpoint has to be written here. Below 64rem the header keeps wrapping — that is the
+   correct phone behaviour and the reason `flex-wrap` was there in the first place. */
+
+.tflens-header-crumb {
+    /* A flex item defaults to `min-width: auto`, which is what stopped the breadcrumb giving up any
+       width and forced the right-hand cluster onto a second line. Zero lets it shrink to its wrapped
+       size instead — the same two-line breadcrumb `docs/mockups/coverage.html` draws at 1280. */
+    min-width: 0;
+}
+
+    .tflens-header-crumb ::deep ol {
+        /* Wrap the crumb's own words rather than the header's controls. Nothing is truncated: the
+           full "Reports › Coverage / health" is still readable, on two lines, inside 64px.
+
+           The row gap is separated from the column gap deliberately. The list ships `gap: 10px`, which
+           applies to BOTH axes, so wrapping to two 20px lines cost 10px of pure vertical padding and
+           stood the header at 87px — one row, but still not the mockup's 64. The columns keep their
+           spacing; the rows do not need any. */
+        flex-wrap: wrap;
+        row-gap: 0;
+    }
+
+.tflens-header-right {
+    /* The right cluster states its own size and never absorbs the shortfall. */
+    flex-shrink: 0;
+}
+
+@media (min-width: 64rem) {
+    .tflens-header {
+        flex-wrap: nowrap;
+    }
+}
+
+@media (max-width: 63.999rem) {
+    /* Wrapped layout: the spacer would otherwise claim a whole row of its own. */
+    .tflens-header-spacer {
+        display: none;
+    }
+}

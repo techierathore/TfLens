@@ -1,3 +1,40 @@
+/* TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
+   NONE of them, so anything painted with them renders with no colour of its own. Routing.razor.css and
+   Harness.razor.css each declare them on their page root as the documented workaround; this page never
+   did, which is why its KPI chips came out the wrong colours entirely (first-pass violet where the
+   mockup is green, escape green where the mockup is a warning) and why the Live / Backfilled share
+   bars rendered grey. Custom properties inherit, so declaring them here reaches every TrBlazeUI
+   control on the page. Values are the approved mockup's palette (docs/mockups/three-questions.html).
+   Added 2026-08-29 (REQ-UI-018). */
+.tflens-stack {
+    --chart-1: #60a5fa;
+    --chart-2: #34d399;
+    --chart-3: #f472b6;
+    --chart-4: #fbbf24;
+    --chart-5: #a78bfa;
+    --alert-success: #22c55e;
+    --alert-success-bg: rgba(34, 197, 94, .08);
+    --alert-info: #3b82f6;
+    --alert-info-bg: rgba(59, 130, 246, .08);
+    --alert-warning: #f59e0b;
+    --alert-warning-bg: rgba(245, 158, 11, .08);
+    --alert-danger: #ef4444;
+    --alert-danger-bg: rgba(239, 68, 68, .08);
+}
+
+/* REQ-UI-018 — the mockup paints the live shares blue and the backfilled shares violet, which is what
+   keeps the two provenances apart at a glance on a table that never pools them (SCHEMA.md §6). Both
+   rendered in the default foreground, so the one distinction the row exists to draw was invisible. */
+.tflens-bar-live ::deep [data-slot="progress-indicator"],
+.tflens-bar-live ::deep > div > div {
+    background: var(--chart-1);
+}
+
+.tflens-bar-backfilled ::deep [data-slot="progress-indicator"],
+.tflens-bar-backfilled ::deep > div > div {
+    background: var(--chart-5);
+}
+
 /* The two measurements the Three-questions page needs that the shipped trblazeui.css does not carry:
    the fixed width of a distribution share bar, and the vertical rhythm inside a tab body. */
 

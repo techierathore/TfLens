@@ -111,14 +111,18 @@
                 @* REQ-UI-011 — the mockup puts one filter input on this row at 240px, right-aligned,
                    rather than the DataTable's own toolbar (a Search box plus Filter and Columns
                    buttons on a second row). ShowToolbar is off below and the grid is filtered here. *@
-                <div class="flex w-full flex-wrap items-start justify-between gap-3">
-                    <div>
+                @* REQ-UI-011, fixed 2026-08-29: `flex-nowrap`. The row wrapped — the description is long
+                   enough to claim the full width — so the filter dropped to a line of its own and lost
+                   its right alignment, measuring x=313 y=482 against the mockup's right-aligned position
+                   on the heading row. The heading block shrinks instead; the filter states its own size. *@
+                <div class="flex w-full flex-nowrap items-start justify-between gap-3">
+                    <div class="min-w-0">
                         <CardTitle>Connected repos</CardTitle>
                         <CardDescription>
                             Per-row Sync (fetched) or Re-import (imported), and Remove · a failed sync shows its reason on hover
                         </CardDescription>
                     </div>
-                    <div class="tflens-repos-filter">
+                    <div class="tflens-repos-filter tflens-repos-filter-icon">
                         <Input Value="@objFilter"
                                ValueChanged="OnFilterChanged"
                                TValue="string"
@@ -462,10 +466,14 @@
 
         // REQ-UI-011 — the Records-synced tile states a count of records, so its sparkline plots
         // exactly that: records per day, from the stored history, on the same DailySeries the
-        // Coverage, Three-questions and Routing tiles already use. The mockup gives all three tiles
-        // a trend line; the other two do NOT get one, because "Connected repos" and "Last successful
-        // sync" have no stored history and a line drawn through invented points is precisely the
-        // plausible-looking fabrication this product exists to prevent (see DailyCount's remarks).
+        // Coverage, Three-questions and Routing tiles already use.
+        //
+        // Corrected 2026-08-29 (MISS-TfLens-20260829-21): this note used to say "Connected repos"
+        // gets no trend line because it "has no stored history". That is wrong, and the DevGuide
+        // repeated it. Every source carries a real `ConnectedTs`, so BuildConnectedSeries plots when
+        // each repo was actually connected, cumulative by day — stored history, not invented points.
+        // "Last successful sync" genuinely has none (only the latest sync per source is kept), and
+        // that tile still gets no line: THAT is the case the fabrication rule is about (BRD §1).
         // IsPlottable keeps it off screen until there is enough real history to mean something.
         objRecordSeries = await objStore.ReadDailySeriesAsync(
             objUserId.Value, objPreferences.Framework, StreamKind.Gates);

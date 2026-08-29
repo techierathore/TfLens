@@ -41,9 +41,25 @@
 
     @* REQ-UI-032 — the Export card. *@
     <Card data-testid="export-card">
+        @* REQ-UI-032, restored 2026-08-29 — docs/mockups/export.html puts a download icon button at the
+           top-right of this card header; the build shipped the header with nothing on the right at all.
+           It is the same action as the full-width button below, so it carries no separate state: it is
+           disabled with it and it is not a second, competing control. *@
         <CardHeader>
-            <CardTitle>Export</CardTitle>
-            <CardDescription>Markdown for humans, JSON for machines</CardDescription>
+            <div class="tflens-export-head">
+                <div>
+                    <CardTitle>Export</CardTitle>
+                    <CardDescription>Markdown for humans, JSON for machines</CardDescription>
+                </div>
+                <Button Variant="ButtonVariant.Secondary"
+                        Size="ButtonSize.Icon"
+                        OnClick="ExportAsync"
+                        Disabled="@(objIsExporting || UserId is null)"
+                        AriaLabel="Export snapshot"
+                        data-testid="export-now-icon">
+                    <LucideIcon Name="download" Size="16" />
+                </Button>
+            </div>
         </CardHeader>
         <CardContent Class="flex flex-col gap-4 pt-0">
             <Button OnClick="ExportAsync"
@@ -82,7 +98,24 @@
                         <DataTableColumn TData="FactRow" TValue="string"
                                          Property="@(aRow => aRow.Field)" Header="Field" />
                         <DataTableColumn TData="FactRow" TValue="string"
-                                         Property="@(aRow => aRow.Value)" Header="Value" />
+                                         Property="@(aRow => aRow.Value)" Header="Value">
+                            @* REQ-UI-033, restored 2026-08-29 — the mockup renders the parity verdict
+                               as a coloured pill (amber `not quotable` / green `quotable`). It shipped
+                               as plain text, which is the wrong treatment for the one value on this
+                               page whose whole job is to be seen before anything is quoted. *@
+                            <CellTemplate Context="vRow">
+                                @if (vRow.Field == "Parity status")
+                                {
+                                    <Badge Variant="BadgeVariant.Outline"
+                                           Class="@ParityBadgeClass"
+                                           data-testid="export-parity-status">@vRow.Value</Badge>
+                                }
+                                else
+                                {
+                                    <span>@vRow.Value</span>
+                                }
+                            </CellTemplate>
+                        </DataTableColumn>
                     </Columns>
                 </DataTable>
             </div>
@@ -368,6 +401,19 @@
         new FactRow("Parity status", objParityStamp.Status),
         new FactRow("Scope", $"{objShaRows.Count} synced repo(s) · {RecordTotal:N0} records")
     ];
+
+    /// <summary>
+    /// The tone for the parity pill (REQ-UI-033): green only when the stamp is genuinely quotable.
+    /// </summary>
+    /// <remarks>
+    /// Anything that is not an affirmative QUOTABLE reads amber, including every reason a stamp can be
+    /// stale. Defaulting the unknown case to the reassuring colour is exactly the mistake this page
+    /// exists to prevent.
+    /// </remarks>
+    private string ParityBadgeClass =>
+        string.Equals(objParityStamp.Status, ParityStatuses.Quotable, StringComparison.OrdinalIgnoreCase)
+            ? "tflens-parity-ok"
+            : "tflens-parity-warn";
 
     /// <summary>Records stored across every stream of every synced repository.</summary>
     private int RecordTotal => objShaRows.Sum(aRow => aRow.Records);

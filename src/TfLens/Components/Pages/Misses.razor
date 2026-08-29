@@ -276,11 +276,25 @@
                                         TestId="kpi-rework-tokens-value" />
                         </ValueContent>
                     </StatTile>
+                    @* REQ-UI-036, restored 2026-08-29 — docs/mockups/misses.html rings this tile and puts
+                       an `opencode · measured` badge on its face, because it is the ONLY measured dollar
+                       figure in the product and the estimate card directly below carries a number an
+                       order of magnitude larger. The mockup's own note is explicit that a reader who
+                       cannot tell the two apart at a glance "has been given a plausible wrong number";
+                       the build had dropped both the ring and the badge, which is precisely that reader.
+                       The tile also carried a green tick where the mockup uses the database glyph — the
+                       tick reads as a verdict on the figure rather than as its provenance. *@
                     <StatTile Title="Measured USD on rework"
                               Description="@MeasuredUsdDetail(vSeg)"
-                              IconName="circle-check"
-                              Accent="StatAccent.Chart2"
+                              IconName="database"
+                              Accent="StatAccent.Chart1"
+                              Class="tflens-measured"
                               data-testid="kpi-rework-usd">
+                        <TitleAdornment>
+                            <Badge Variant="BadgeVariant.Outline"
+                                   Class="tflens-measured-badge"
+                                   data-testid="kpi-rework-usd-measured-badge">opencode · measured</Badge>
+                        </TitleAdornment>
                         <ValueContent>
                             <span data-testid="kpi-rework-usd-value">@MeasuredUsdDisplay(vSeg)</span>
                         </ValueContent>

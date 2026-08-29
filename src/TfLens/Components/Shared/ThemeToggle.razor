@@ -8,15 +8,21 @@
 @implements IDisposable
 @inject ShellPreferences objPreferences
 
+@*
+    REQ-UI-009, fixed 2026-08-29 — moon + switch, which is what every mockup draws (the left panel of
+    `docs/mockups/login.html`, the sidebar footer of `coverage.html`). The build had sun + switch + moon.
+    The leading sun was not only extra: at 1280 the header needs 1090px of a 1024px bar on the six report
+    routes, and those 22px were part of why the breadcrumb had no room and the row wrapped (REQ-UI-010).
+    The switch itself still states both states to a screen reader through its label.
+*@
 <div class="flex items-center gap-2">
-    <LucideIcon Name="sun" Size="14" Class="text-muted-foreground" />
     <Label For="@Id" Class="sr-only">Dark mode</Label>
+    <LucideIcon Name="moon" Size="14" Class="text-muted-foreground" />
     <Switch Id="@Id"
             Checked="@objPreferences.IsDark"
             CheckedChanged="OnCheckedChangedAsync"
             AriaLabel="Dark mode"
             data-testid="@TestId" />
-    <LucideIcon Name="moon" Size="14" Class="text-muted-foreground" />
 </div>
 
 @code {

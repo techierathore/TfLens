@@ -58,3 +58,12 @@
 .tflens-spark.tflens-accent-4 { color: var(--chart-4); }
 .tflens-spark.tflens-accent-5 { color: var(--chart-5); }
 .tflens-spark.tflens-accent-danger { color: var(--alert-danger); }
+
+/* REQ-UI-036 — the title row now carries an optional provenance badge beside the metric name. */
+.tflens-stat-title {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+}

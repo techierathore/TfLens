@@ -148,3 +148,19 @@
     border-color: var(--alert-warning, #f59e0b);
     background: var(--alert-warning-bg, rgba(245, 158, 11, .06));
 }
+
+/* REQ-UI-036, 2026-08-29 — the measured-dollars tile is ringed, as docs/mockups/misses.html draws it.
+   It is the only MEASURED dollar figure in the product, and the estimate card directly below it shows
+   a number an order of magnitude larger. Without the ring and the badge the two tiles look alike, which
+   the mockup's own note calls out as handing the reader "a plausible wrong number". */
+.tflens-measured {
+    border-color: color-mix(in oklab, var(--alert-success) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--alert-success) 35%, transparent);
+}
+
+.tflens-measured-badge {
+    color: var(--alert-success);
+    border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
+    background: var(--alert-success-bg);
+    font-weight: 500;
+}

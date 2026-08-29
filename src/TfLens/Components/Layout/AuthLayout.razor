@@ -39,7 +39,13 @@
             </ul>
         </div>
 
-        <p class="text-xs text-muted-foreground">Free &amp; open source · identity by AppManager</p>
+        @* REQ-UI-009, added 2026-08-29: every auth mockup puts the theme toggle here, at the foot of
+           the brand panel beside the credit line. All four anonymous screens shipped without one, so a
+           visitor who preferred the light palette had no way to choose it until after signing in. *@
+        <div class="auth-brand-footer">
+            <p class="text-xs text-muted-foreground">Free &amp; open source · identity by AppManager</p>
+            <ThemeToggle TestId="theme-toggle-auth" Id="auth-theme-toggle" />
+        </div>
     </aside>
 
     <section class="auth-right">

@@ -168,6 +168,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#the-gap-stated-precisely">The gap, stated precisely</a></li>
         <li class="h3"><a href="#what-tflens-did-about-it-locally">What TfLens did about it locally</a></li>
         <li class="h3"><a href="#ask">Ask</a></li>
+        <li><a href="#tf-008-no-gate-compares-a-built-screen-to-its-approved-mockup-so-a-screen-can-lose-its-entire-design-and-every-gate-still-passes">TF-008 — no gate compares a built screen to its approved mockup, so a screen can lose its entire design and every gate still passes</a></li>
+        <li class="h3"><a href="#repro-7">Repro</a></li>
+        <li class="h3"><a href="#expected-7">Expected</a></li>
+        <li class="h3"><a href="#actual-7">Actual</a></li>
+        <li class="h3"><a href="#workaround-6">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-7">Suggested fix</a></li>
     </ol>
   </nav>
   <main>
@@ -236,6 +242,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#the-gap-stated-precisely">The gap, stated precisely</a></li>
         <li class="h3"><a href="#what-tflens-did-about-it-locally">What TfLens did about it locally</a></li>
         <li class="h3"><a href="#ask">Ask</a></li>
+        <li><a href="#tf-008-no-gate-compares-a-built-screen-to-its-approved-mockup-so-a-screen-can-lose-its-entire-design-and-every-gate-still-passes">TF-008 — no gate compares a built screen to its approved mockup, so a screen can lose its entire design and every gate still passes</a></li>
+        <li class="h3"><a href="#repro-7">Repro</a></li>
+        <li class="h3"><a href="#expected-7">Expected</a></li>
+        <li class="h3"><a href="#actual-7">Actual</a></li>
+        <li class="h3"><a href="#workaround-6">Workaround</a></li>
+        <li class="h3"><a href="#suggested-fix-7">Suggested fix</a></li>
       </ol>
     </div>
 <p>Defects found in the <strong>TechieFlow framework itself</strong> (<code>.tfcore/</code>) while building TfLens. That directory
@@ -247,9 +259,9 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 <hr>
 <h2 id="summary">Summary<a class="anchor-link" href="#summary">#</a></h2>
 <ul>
-<li><strong>2 blockers, 3 majors, 1 minor, 0 nice-to-haves</strong> — 6 entries, of which <strong>5 are resolved</strong> and <strong>1 is open</strong> (<code>TF-005</code>).
+<li><strong>4 blockers, 3 majors, 1 minor, 0 nice-to-haves</strong> — 8 entries, of which <strong>5 are resolved</strong> and <strong>3 are open</strong> (<code>TF-005</code>, <code>TF-007</code>, <strong><code>TF-008</code></strong>).
 </li>
-<li>Last consolidated: 2026-08-28
+<li>Last consolidated: 2026-08-29
 </li>
 </ul>
 <p><strong>Severity words used in the entries map to those counts as:</strong> <code>High</code> = blocker · <code>Medium</code> = major ·
@@ -258,7 +270,7 @@ wording, so no recorded severity was silently reinterpreted.</p>
 <table>
 <thead><tr><th>Band</th><th>Count</th><th>Entries</th><th>State</th></tr></thead>
 <tbody>
-<tr><td><strong>Blocker</strong> (High)</td><td>2</td><td>TF-001 · TF-003</td><td>both ✅ fixed 2026-08-27</td></tr>
+<tr><td><strong>Blocker</strong> (High)</td><td>4</td><td>TF-001 · TF-003 · <strong>TF-007</strong> · <strong>TF-008</strong></td><td>TF-001/TF-003 ✅ 2026-08-27; <strong>TF-007 open</strong> (no asset-integrity gate); <strong>TF-008 open</strong> (no mockup-parity gate, raised 2026-08-29)</td></tr>
 <tr><td><strong>Major</strong> (Medium)</td><td>3</td><td><strong>TF-005</strong> · TF-002 · TF-006</td><td><strong>TF-005 open</strong>; TF-002 ✅ 2026-08-27; TF-006 ✅ 2026-08-28</td></tr>
 <tr><td><strong>Minor</strong> (Low)</td><td>1</td><td>TF-004</td><td>✅ fixed 2026-08-28</td></tr>
 <tr><td>Nice-to-have</td><td>0</td><td>—</td><td>—</td></tr>
@@ -1025,6 +1037,14 @@ only the rendered document — so it belongs in the framework rather than in eac
 <li><strong>The scaffold writes a <code>.gitignore</code> with no section for the project's own stack.</strong> <em>Upgraded 2026-08-29 from "a check worth adding" to a located root cause, with evidence.</em>
 </li>
 </ol>
+<blockquote>
+<p><strong>Whose fault this is, stated plainly, because it was first stated wrongly.</strong> The agent that ran
+day-1 generated this file and did not read it, having just chosen the stack and written the
+solution itself. That agent is responsible. This entry asks the framework to make the mistake
+harder to make — which is worth doing precisely <em>because</em> it is easy to make — but a generator's
+omission is not a defence for the agent operating the generator, and TfLens's own record
+(<code>REQ-NFR-016</code>) names the phase, not the template.</p>
+</blockquote>
 <p>TfLens's <code>.gitignore</code> was created by the day-1 scaffold (commit <code>979265f</code>, 2026-08-26). Every
    section in it is framework-managed and labelled as such — <code>.tfcore/</code>, <code>.claude/</code>, <code>node_modules/</code>,
    <code>tests/.artifacts/</code>, <code>playwright-report/</code>, <code>logs/</code>. It is a complete, careful ignore file <strong>for
@@ -1053,6 +1073,68 @@ only the rendered document — so it belongs in the framework rather than in eac
 </ol>
 <p><strong>Verify:</strong> point the gate at a page and 404 one of its stylesheets; the run must fail with
 <code>gate:"assets"</code>. Then run it against a healthy page; it must cost well under a second.</p>
+<hr>
+<h2 id="tf-008-no-gate-compares-a-built-screen-to-its-approved-mockup-so-a-screen-can-lose-its-entire-design-and-every-gate-still-passes">TF-008 — no gate compares a built screen to its approved mockup, so a screen can lose its entire design and every gate still passes<a class="anchor-link" href="#tf-008-no-gate-compares-a-built-screen-to-its-approved-mockup-so-a-screen-can-lose-its-entire-design-and-every-gate-still-passes">#</a></h2>
+<p><strong>Severity:</strong> High (blocker)</p>
+<p><strong>Encountered in:</strong> <code>*triage-issues</code> / <code>*fix-issues</code>, TfLens, 2026-08-29. Owner UAT: <em>"it's still not
+matching the mockups present in docs/mockups/ folder"</em>.</p>
+<h3 id="repro-7">Repro<a class="anchor-link" href="#repro-7">#</a></h3>
+<ol>
+<li>Build any screen that has an approved mockup in <code>docs/mockups/</code>.
+</li>
+<li>Render a control the mockup draws as a <strong>badge</strong> as plain text instead; omit an <strong>icon</strong>; let a header <strong>wrap</strong> to two rows; size a value column narrower than its longest number.
+</li>
+<li>Run <code>*verify</code> and let the §4a data-render and §4b visual-truth gates grade it.
+</li>
+</ol>
+<h3 id="expected-7">Expected<a class="anchor-link" href="#expected-7">#</a></h3>
+<p>At least one gate fails. The screen does not match the design it was built from.</p>
+<h3 id="actual-7">Actual<a class="anchor-link" href="#actual-7">#</a></h3>
+<p><strong>Every gate passes, and the REQ reaches <code>Verified</code>.</strong> In TfLens this produced a checklist reading
+<strong>145 <code>Verified</code></strong> against a running app with structural drift on <strong>13 of 14 comparable screens</strong> — 20
+distinct findings, 15 REQs demoted in one sitting.</p>
+<p>The mechanism is not a bug in either gate; it is what they measure:</p>
+<ul>
+<li><strong>§4a data-render</strong> asks <em>does the control show data?</em> A badge rendered as plain text <strong>has text</strong>.
+</li>
+<li><strong>§4b visual-truth</strong> asks <em>do controls overlap, clip, or leave the viewport?</em> A header that wraps to two rows does not overlap. A 71px value column that splits <code>2,287,975,139</code> across three lines does not overlap. A missing icon is nothing to measure. An unstyled-but-well-spaced screen passes both.
+</li>
+</ul>
+<p>Concrete escapes from the TfLens run, all of which passed both gates:</p>
+<table>
+<thead><tr><th>Symptom</th><th>Measured</th></tr></thead>
+<tbody>
+<tr><td>Header wrapped to two rows on all six report routes</td><td>105px against the mockup's 64px</td></tr>
+<tr><td><code>/harness</code> value column starved by a <code>nowrap</code> label column</td><td><strong>71px</strong>; <code>Cache read 2,287,975,139</code> broke across 3 lines, mid-number</td></tr>
+<tr><td><code>Days since</code> column pushed out of its card</td><td>present in the DOM, clipped off the right edge</td></tr>
+<tr><td>Status pill rendered as plain text</td><td><code>/export</code> parity verdict, the one value on the page meant to be seen at a glance</td></tr>
+<tr><td>Measured-vs-estimate tile distinction dropped</td><td><code>/misses</code>, where the mockup's own note says losing it hands the reader "a plausible wrong number"</td></tr>
+</tbody>
+</table>
+<p>There is also a <strong>document-level blind spot next to §4b</strong>: on <code>/routing</code>, <code>document.scrollHeight</code> was
+<strong>2607px against a 900px viewport</strong> — the page had escaped the app shell's scroll container and rendered
+~1,700px of blank void with the shell repainted at the bottom. No gate looks at document height, so this
+passed too.</p>
+<h3 id="workaround-6">Workaround<a class="anchor-link" href="#workaround-6">#</a></h3>
+<p>None available in-repo. Detection required a human comparing 18 screenshots by hand; the repair was
+<code>*triage-issues</code> → <code>*fix-issues</code>. Logged locally as <code>REQ-NFR-020</code>.</p>
+<h3 id="suggested-fix-7">Suggested fix<a class="anchor-link" href="#suggested-fix-7">#</a></h3>
+<p>A <strong><code>mockup-parity</code> gate</strong> in <code>verify-phase</code>, run alongside §4a/§4b and reported in <code>gates_run</code>:</p>
+<ol>
+<li>For every screen with a mockup in <code>docs/mockups/</code>, capture the built page and the mockup at the same viewports (1280 and 390) and compare <strong>structurally</strong>, not pixel-wise — pixel diffing on live data is unusable and would be ignored within a week. Fail on: a control the mockup renders as a badge/pill rendered as bare text; a missing icon or icon button; a semantic colour that does not match (status green/amber/red, chart series); a header or row that wraps where the mockup is single-line; a table column clipped out of its container; <strong>a value cell narrower than its longest unbreakable token</strong> (a formatted number must never break mid-digit).
+</li>
+<li>Assert <code>document.scrollHeight &lt;= clientHeight + 2</code> on every route. This is cheap, has no false positives in a shell-scrolled app, and would have caught the <code>/routing</code> void on its own.
+</li>
+<li>Report a screen with no mockup as <strong><code>⚠ NO-MOCKUP</code></strong>, never as a silent pass — the same discipline <code>⚠ STATIC-ONLY</code> already uses.
+</li>
+</ol>
+<p><strong>Why this is worth a gate rather than a checklist item.</strong> This is the second defect class in two days
+that every gate passed and a human caught (<code>TF-007</code>, no asset-integrity gate, 2026-08-28). Both have the
+same shape: <strong>the gate set measures whether a screen is alive, not whether it is right.</strong> TfLens's own
+telemetry now says so numerically — <code>insufficient-verify-method</code> is <strong>24 of 46</strong> answered <code>why_missed</code>
+records, and the <code>app</code> escape rate is <strong>91%</strong>, with <code>escaped</code> (22) larger than every real gate catch
+combined (5). Adding acceptance criteria does not help: in every case above the acceptance existed and
+was met. The missing thing is a gate that can fail.</p>
   </main>
 </div>
 

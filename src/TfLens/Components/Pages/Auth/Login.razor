@@ -67,18 +67,22 @@
                     </Button>
                 </div>
                 <FieldContent>
-                    <div class="flex items-center gap-2">
+                    @* REQ-UI-001, fixed 2026-08-29: the reveal control sits INSIDE the field, as
+                       docs/mockups/login.html draws it. As a flex sibling it stood outside the input,
+                       which shortened the field by 45px and left the card's right edge misaligned
+                       against every other control on the screen. *@
+                    <div class="auth-input-wrap">
                         <Input Id="login-pass"
                                Type="@PasswordInputType"
                                name="Password"
                                @bind-Value="objPassword"
                                Required="true"
                                Placeholder="Your AppManager password"
-                               Class="flex-1"
                                data-testid="login-pass" />
                         <Button Type="ButtonType.Button"
                                 Variant="ButtonVariant.Ghost"
                                 Size="ButtonSize.IconSmall"
+                                Class="auth-input-action"
                                 OnClick="TogglePasswordVisibility"
                                 AriaLabel="@(objShowPassword ? "Hide password" : "Show password")"
                                 data-testid="login-pass-toggle">
@@ -120,7 +124,7 @@
         </form>
     </CardContent>
 
-    <CardFooter Class="justify-center">
+    <CardFooter Class="justify-center auth-card-footer">
         <TypographySmall Class="text-muted-foreground">New here?</TypographySmall>
         <Button Variant="ButtonVariant.Link" Size="ButtonSize.Small" Href="/register" data-testid="login-register-link">
             Create an account

@@ -12,9 +12,9 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-- **2 blockers, 3 majors, 1 minor, 0 nice-to-haves** — 6 entries, of which **5 are resolved** and
-  **1 is open** (`TF-005`).
-- Last consolidated: 2026-08-28
+- **4 blockers, 3 majors, 1 minor, 0 nice-to-haves** — 8 entries, of which **5 are resolved** and
+  **3 are open** (`TF-005`, `TF-007`, **`TF-008`**).
+- Last consolidated: 2026-08-29
 
 **Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
 `Low` = minor. Nothing here is filed nice-to-have. Entry bodies keep their original `High`/`Medium`/`Low`
@@ -22,7 +22,7 @@ wording, so no recorded severity was silently reinterpreted.
 
 | Band | Count | Entries | State |
 |---|---|---|---|
-| **Blocker** (High) | 2 | TF-001 · TF-003 | both ✅ fixed 2026-08-27 |
+| **Blocker** (High) | 4 | TF-001 · TF-003 · **TF-007** · **TF-008** | TF-001/TF-003 ✅ 2026-08-27; **TF-007 open** (no asset-integrity gate); **TF-008 open** (no mockup-parity gate, raised 2026-08-29) |
 | **Major** (Medium) | 3 | **TF-005** · TF-002 · TF-006 | **TF-005 open**; TF-002 ✅ 2026-08-27; TF-006 ✅ 2026-08-28 |
 | **Minor** (Low) | 1 | TF-004 | ✅ fixed 2026-08-28 |
 | Nice-to-have | 0 | — | — |
@@ -1048,3 +1048,80 @@ Two smaller companions, both from the same session and both currently unowned by
 
 **Verify:** point the gate at a page and 404 one of its stylesheets; the run must fail with
 `gate:"assets"`. Then run it against a healthy page; it must cost well under a second.
+
+---
+
+## TF-008 — no gate compares a built screen to its approved mockup, so a screen can lose its entire design and every gate still passes
+
+**Severity:** High (blocker)
+
+**Encountered in:** `*triage-issues` / `*fix-issues`, TfLens, 2026-08-29. Owner UAT: *"it's still not
+matching the mockups present in docs/mockups/ folder"*.
+
+### Repro
+
+1. Build any screen that has an approved mockup in `docs/mockups/`.
+2. Render a control the mockup draws as a **badge** as plain text instead; omit an **icon**; let a
+   header **wrap** to two rows; size a value column narrower than its longest number.
+3. Run `*verify` and let the §4a data-render and §4b visual-truth gates grade it.
+
+### Expected
+
+At least one gate fails. The screen does not match the design it was built from.
+
+### Actual
+
+**Every gate passes, and the REQ reaches `Verified`.** In TfLens this produced a checklist reading
+**145 `Verified`** against a running app with structural drift on **13 of 14 comparable screens** — 20
+distinct findings, 15 REQs demoted in one sitting.
+
+The mechanism is not a bug in either gate; it is what they measure:
+
+- **§4a data-render** asks *does the control show data?* A badge rendered as plain text **has text**.
+- **§4b visual-truth** asks *do controls overlap, clip, or leave the viewport?* A header that wraps to
+  two rows does not overlap. A 71px value column that splits `2,287,975,139` across three lines does
+  not overlap. A missing icon is nothing to measure. An unstyled-but-well-spaced screen passes both.
+
+Concrete escapes from the TfLens run, all of which passed both gates:
+
+| Symptom | Measured |
+|---|---|
+| Header wrapped to two rows on all six report routes | 105px against the mockup's 64px |
+| `/harness` value column starved by a `nowrap` label column | **71px**; `Cache read 2,287,975,139` broke across 3 lines, mid-number |
+| `Days since` column pushed out of its card | present in the DOM, clipped off the right edge |
+| Status pill rendered as plain text | `/export` parity verdict, the one value on the page meant to be seen at a glance |
+| Measured-vs-estimate tile distinction dropped | `/misses`, where the mockup's own note says losing it hands the reader "a plausible wrong number" |
+
+There is also a **document-level blind spot next to §4b**: on `/routing`, `document.scrollHeight` was
+**2607px against a 900px viewport** — the page had escaped the app shell's scroll container and rendered
+~1,700px of blank void with the shell repainted at the bottom. No gate looks at document height, so this
+passed too.
+
+### Workaround
+
+None available in-repo. Detection required a human comparing 18 screenshots by hand; the repair was
+`*triage-issues` → `*fix-issues`. Logged locally as `REQ-NFR-020`.
+
+### Suggested fix
+
+A **`mockup-parity` gate** in `verify-phase`, run alongside §4a/§4b and reported in `gates_run`:
+
+1. For every screen with a mockup in `docs/mockups/`, capture the built page and the mockup at the same
+   viewports (1280 and 390) and compare **structurally**, not pixel-wise — pixel diffing on live data is
+   unusable and would be ignored within a week. Fail on: a control the mockup renders as a badge/pill
+   rendered as bare text; a missing icon or icon button; a semantic colour that does not match (status
+   green/amber/red, chart series); a header or row that wraps where the mockup is single-line; a table
+   column clipped out of its container; **a value cell narrower than its longest unbreakable token** (a
+   formatted number must never break mid-digit).
+2. Assert `document.scrollHeight <= clientHeight + 2` on every route. This is cheap, has no false
+   positives in a shell-scrolled app, and would have caught the `/routing` void on its own.
+3. Report a screen with no mockup as **`⚠ NO-MOCKUP`**, never as a silent pass — the same discipline
+   `⚠ STATIC-ONLY` already uses.
+
+**Why this is worth a gate rather than a checklist item.** This is the second defect class in two days
+that every gate passed and a human caught (`TF-007`, no asset-integrity gate, 2026-08-28). Both have the
+same shape: **the gate set measures whether a screen is alive, not whether it is right.** TfLens's own
+telemetry now says so numerically — `insufficient-verify-method` is **24 of 46** answered `why_missed`
+records, and the `app` escape rate is **91%**, with `escaped` (22) larger than every real gate catch
+combined (5). Adding acceptance criteria does not help: in every case above the acceptance existed and
+was met. The missing thing is a gate that can fail.

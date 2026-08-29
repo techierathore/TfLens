@@ -140,7 +140,11 @@
                     <Card Class="h-full" data-testid="@($"repo-card-{vCard.Repo.Name}")">
                         @* CardHeader is a CSS grid in 2.0.0, so the header row is one flex child of it. *@
                         <CardHeader>
-                            <div class="flex w-full flex-wrap items-center justify-between gap-2">
+                            @* REQ-UI-014, fixed 2026-08-29: `flex-wrap` on THIS row let the status pill
+                               drop to a line of its own, so the card read as three stacked rows against
+                               the mockup's one. The inner span still wraps — that is where extra badges
+                               belong — while the pill states its size and stays right-aligned. *@
+                            <div class="flex w-full flex-nowrap items-start justify-between gap-2">
                                 <span class="flex min-w-0 flex-wrap items-center gap-2">
                                     <CardTitle Class="text-base">@vCard.Repo.Repo</CardTitle>
                                     <Badge Variant="BadgeVariant.Secondary">@vCard.Repo.Kind</Badge>
@@ -172,7 +176,9 @@
                                         </a>
                                     }
                                 </span>
-                                <Badge Variant="@vCard.StatusVariant" data-testid="@($"repo-state-{vCard.Repo.Name}")">
+                                <Badge Variant="@vCard.StatusVariant"
+                                       Class="shrink-0"
+                                       data-testid="@($"repo-state-{vCard.Repo.Name}")">
                                     @vCard.StatusText
                                 </Badge>
                             </div>
@@ -193,6 +199,12 @@
                             }
 
                             @* Wide table, narrow phone: the table scrolls inside its own box so the page never does. *@
+                            @* REQ-UI-014, fixed 2026-08-29: `Sortable="false"`. Every header carried a
+                               sort affordance, ~20px x 5 columns, which pushed the five-column table
+                               past the card and left `Days since` off the right edge with `Newest` cut
+                               mid-date — the mockup shows all five. Sorting buys nothing on a table of
+                               at most four fixed stream rows, and `docs/mockups/coverage.html` has no
+                               sort control here at all. *@
                             <div class="mt-2 w-full overflow-x-auto">
                                 @* TR-009: ShowPagination="false" only hides the pager — the grid still
                                    truncates to InitialPageSize, so it is set well above the four rows
@@ -201,6 +213,7 @@
                                            Data="@vCard.Streams"
                                            ShowToolbar="false"
                                            ShowPagination="false"
+                                           Sortable="false"
                                            InitialPageSize="16"
                                            AriaLabel="@($"{vCard.Repo.Repo} streams")"
                                            data-testid="@($"repo-streams-{vCard.Repo.Name}")">
@@ -241,7 +254,15 @@
                                         <DataTableColumn TData="StreamRow" TValue="string"
                                                          Property="@(aRow => aRow.NewestText)" Header="Newest">
                                             <CellTemplate Context="vRow">
-                                                <span class="whitespace-nowrap text-muted-foreground">@vRow.NewestText</span>
+                                                @* REQ-UI-014, fixed 2026-08-29: `whitespace-nowrap` removed.
+                                                   It held the timestamp on one 130px line, which was the
+                                                   last thing pushing the five-column table past its card —
+                                                   `Days since` fell off the right edge and `Newest` itself
+                                                   was cut mid-date. `docs/mockups/coverage.html` wraps this
+                                                   value in its narrower card and keeps the fifth column,
+                                                   which is the right trade: a date reads fine over two
+                                                   lines, a column that is not there reads as absent. *@
+                                                <span class="text-muted-foreground">@vRow.NewestText</span>
                                             </CellTemplate>
                                         </DataTableColumn>
 

@@ -86,7 +86,18 @@
                      DisplayName="@objDisplayName"
                      Email="@objEmail"
                      Initials="@objInitials" />
-        <div class="tflens-page flex-1 overflow-auto p-6">
+        @*
+            REQ-UI-006, fixed 2026-08-29: `relative` is load-bearing, not decoration. This div is the
+            app's scroll container, but it was `position: static`, so every `position: absolute`
+            descendant resolved its containing block against the nearest positioned ancestor —
+            `<main class="relative …">`, OUTSIDE the scroller — and escaped the clip entirely.
+            `/routing` is where that showed: TrBlazeUI's DataTable pagination emits `sr-only`
+            (absolutely positioned) labels that landed at y=2606, dragging `document.scrollHeight` to
+            2607px against a 900px viewport and leaving ~1,700px of blank void below the page with the
+            shell repainted at the bottom. Making the scroller itself the containing block keeps those
+            descendants inside it, where they were always meant to be.
+        *@
+        <div class="tflens-page relative flex-1 overflow-auto p-6">
             @Body
         </div>
     </SidebarInset>

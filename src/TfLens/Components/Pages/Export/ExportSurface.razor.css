@@ -44,3 +44,39 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
+
+/* REQ-UI-032 / REQ-UI-033 — mockup parity for the Export card (owner UAT, 2026-08-29). */
+
+/* The mockup's card header is a two-part row: title + description on the left, the download icon
+   button on the right. CardHeader is a CSS grid in TrBlazeUI 2.0.0, so the row is one child of it. */
+.tflens-export-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* The summary card is headerless in the mockup — the left cell IS the label, so a "Field | Value"
+   header row only repeats it. Same treatment as the Harness and Profile key/value tables. */
+.tflens-facts ::deep thead {
+    display: none;
+}
+
+.tflens-facts ::deep td:first-child {
+    width: 38%;
+    color: var(--muted-foreground);
+}
+
+/* The parity pill. Amber is the default for everything that is not an affirmative QUOTABLE. */
+.tflens-parity-ok {
+    color: var(--alert-success);
+    border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
+    background: var(--alert-success-bg);
+}
+
+.tflens-parity-warn {
+    color: var(--alert-warning);
+    border-color: color-mix(in oklab, var(--alert-warning) 45%, transparent);
+    background: var(--alert-warning-bg);
+}

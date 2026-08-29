@@ -22,14 +22,25 @@
 import { test, expect } from '@playwright/test';
 import { signIn, gotoScreen, testid, visualCheck, DESKTOP, MOBILE } from './_helpers';
 
-const REPOS = ['TechieBlog', 'TechieFlow', 'TechieRag', 'TrBlazeUI'];
 const SEEDED = process.env.TFLENS_SEEDED === '1';
 
 test('REQ-UI-014: every per-repo stream table has FIVE rows, misses last', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/');
 
-  for (const name of REPOS) {
+  // The repo list is read from the PAGE, not hard-coded. It used to be
+  // ['TechieBlog','TechieFlow','TechieRag','TrBlazeUI'], and on 2026-08-29 this test went red for
+  // `TechieRag` — not because anything regressed, but because the owner's workspace no longer
+  // connects it (TfLens is connected in its place). The assertion that matters is "EVERY connected
+  // TechieFlow repository shows five stream rows, misses last", and a literal list cannot say that:
+  // it fails when a repo is swapped and, worse, silently passes over a repo that was removed.
+  // Same failure mode as the `commitsstale` note above — the test broke while the page was correct.
+  const repos = await page.$$eval('[data-testid^="repo-card-"]',
+    cards => cards.map(c => (c.getAttribute('data-testid') || '').replace('repo-card-', '')));
+  console.log(`CONNECTED REPOS: ${JSON.stringify(repos)}`);
+  expect(repos.length, 'the workspace has at least one connected repo to assert against').toBeGreaterThan(0);
+
+  for (const name of repos) {
     // Read the stream name from its OWN element, not from the cell's text. A `stale` badge shares
     // that cell with no whitespace between them, so `textContent` reads "commitsstale" and a
     // whitespace split cannot separate it — this assertion went red on 2026-08-28 because a real

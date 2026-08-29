@@ -81,3 +81,14 @@
     padding-left: 0.625rem;
     padding-right: 0.625rem;
 }
+
+/* REQ-UI-011, 2026-08-29 — the mockup's filter carries a magnifier inside the field; the built one had
+   no icon at all. Same data-URI technique as the auth fields: a CSS background cannot reference a
+   Blazor component, so this is Lucide `search` inlined, stroked in the muted foreground. */
+.tflens-repos-filter-icon ::deep input {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>');
+    background-repeat: no-repeat;
+    background-position: 0.75rem center;
+    background-size: 1rem 1rem;
+    padding-left: 2.25rem;
+}

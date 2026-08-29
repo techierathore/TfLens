@@ -137,7 +137,7 @@
 
                             <StatTile Title="Escape rate"
                                       IconName="triangle-alert"
-                                      Accent="StatAccent.Chart3"
+                                      Accent="StatAccent.Destructive"
                                       data-testid="@($"kpi-escape-{vType}")">
                                 <ValueContent>
                                     <div class="flex flex-col gap-1">
@@ -242,7 +242,7 @@
                                                              Property="@(aRow => aRow.LiveShare)" Header="Live share">
                                                 <CellTemplate Context="vRow">
                                                     <span class="flex items-center gap-2">
-                                                        <span class="tflens-share-bar">
+                                                        <span class="tflens-share-bar tflens-bar-live">
                                                             <Progress Value="@vRow.LiveSharePercent"
                                                                       Class="h-2"
                                                                       IndicatorClass="@(vRow.IsEscaped ? "bg-destructive" : null)" />
@@ -263,7 +263,7 @@
                                                              Property="@(aRow => aRow.BackfilledShare)" Header="Backfilled share">
                                                 <CellTemplate Context="vRow">
                                                     <span class="flex items-center gap-2">
-                                                        <span class="tflens-share-bar">
+                                                        <span class="tflens-share-bar tflens-bar-backfilled">
                                                             <Progress Value="@vRow.BackfilledSharePercent"
                                                                       Class="h-2"
                                                                       IndicatorClass="@(vRow.IsEscaped ? "bg-destructive" : null)" />

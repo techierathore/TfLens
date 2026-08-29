@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 
+@using System.Globalization
 @using TfLens.Core.AppManager
 @using TrBlazeUI.Components.Typography
 
@@ -9,6 +10,7 @@
 @inject CurrentUser objCurrentUser
 @inject ToastService objToastService
 @inject ILogger<Profile> objLogger
+@inject Microsoft.Extensions.Options.IOptions<TfLens.Core.TfLensOptions> objOptions
 
 <PageTitle>Profile · TfLens</PageTitle>
 
@@ -55,9 +57,11 @@
                                 <CardDescription data-testid="profile-email">@Email</CardDescription>
                             </div>
                         </div>
-                        <Badge Variant="BadgeVariant.Secondary" data-testid="profile-role-badge">
-                            <LucideIcon Name="check" Size="12" />
-                            @ManagerRole
+                        <Badge Variant="BadgeVariant.Secondary" Class="profile-badge-role shrink-0" data-testid="profile-role-badge">
+                            <span class="profile-badge-tick">
+                                <LucideIcon Name="check" Size="12" />
+                                <span>@ManagerRole</span>
+                            </span>
                         </Badge>
                     </div>
                 }
@@ -86,7 +90,7 @@
                 }
                 else
                 {
-                    <div class="overflow-x-auto" data-testid="profile-values">
+                    <div class="profile-kv overflow-x-auto" data-testid="profile-values">
                         @* InitialPageSize is required, not cosmetic: ShowPagination="false" only hides
                            the pager — the table still renders InitialPageSize rows (default 5) and
                            drops the rest with no error. This table currently has exactly 5 rows, so a
@@ -100,7 +104,38 @@
                                 <DataTableColumn TData="ProfileRow" TValue="string"
                                                  Property="@(aRow => aRow.Field)" Header="Field" />
                                 <DataTableColumn TData="ProfileRow" TValue="string"
-                                                 Property="@(aRow => aRow.Value)" Header="Value" />
+                                                 Property="@(aRow => aRow.Value)" Header="Value">
+                                    @* REQ-UI-005, restored 2026-08-29 — `docs/mockups/profile.html`
+                                       renders Role and Identity provider as BADGES with a caption
+                                       beside them, not as bare text. Both say something a plain
+                                       string does not: the role is a fixed property of every TfLens
+                                       account (BRD-95), and the provider names the endpoint the card
+                                       was read from, which is what makes "TfLens reads it, never
+                                       stores it" checkable rather than a claim. *@
+                                    <CellTemplate Context="vRow">
+                                        @if (vRow.Field == "Role")
+                                        {
+                                            <span class="profile-badge-row">
+                                                <Badge Variant="BadgeVariant.Secondary"
+                                                       Class="profile-badge-role"
+                                                       data-testid="profile-role-value-badge">@vRow.Value</Badge>
+                                                <span class="text-muted-foreground">every TfLens account is a Manager</span>
+                                            </span>
+                                        }
+                                        else if (vRow.Field == "Identity provider")
+                                        {
+                                            <span class="profile-badge-row">
+                                                <Badge Variant="BadgeVariant.Outline"
+                                                       data-testid="profile-provider-badge">@vRow.Value</Badge>
+                                                <span class="text-muted-foreground">App Id @ApplicationId · GET /UserSvc/profile</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span>@vRow.Value</span>
+                                        }
+                                    </CellTemplate>
+                                </DataTableColumn>
                             </Columns>
                         </DataTable>
                     </div>
@@ -111,6 +146,14 @@
         <Card data-testid="password-card">
             <CardHeader>
                 <CardTitle>Change password</CardTitle>
+                @* REQ-UI-005 — "server" is deliberate and `docs/mockups/profile.html` is the one that is
+                   wrong here. The mockup says "before they leave the browser", which would be true of a
+                   client-side WebCrypto design; this app is Blazor Server and RSA-OAEP-SHA256 runs in
+                   `AppManagerClient.Encrypt` (AppManagerClient.cs:281) on the TfLens server, against
+                   AppManager's public key. The password reaches this process over the circuit and is
+                   encrypted before it leaves for AppManager. Matching the mockup's wording would have
+                   claimed a property the build does not have, so the copy stays and the MOCKUP is the
+                   artefact to correct (2026-08-29 parity run). *@
                 <CardDescription>Both passwords are RSA-encrypted before they leave the server</CardDescription>
             </CardHeader>
 
@@ -327,9 +370,44 @@
         new ProfileRow("Email", Email),
         new ProfileRow("Name", DisplayName),
         new ProfileRow("Role", ManagerRole),
-        new ProfileRow("Member since", string.IsNullOrWhiteSpace(objProfile?.MemberSince) ? "—" : objProfile!.MemberSince!),
+        new ProfileRow("Member since", MemberSinceText),
         new ProfileRow("Identity provider", string.IsNullOrWhiteSpace(objProfile?.IdentityProvider) ? "AppManager" : objProfile!.IdentityProvider)
     ];
+
+    /// <summary>
+    /// The joining date as a date (REQ-UI-005, fixed 2026-08-29).
+    /// </summary>
+    /// <remarks>
+    /// AppManager returns this field as a full ISO instant and it reached the screen verbatim —
+    /// <c>2026-08-28T10:48:58.00636Z</c> where <c>docs/mockups/profile.html</c> shows <c>2026-08-26</c>.
+    /// The sub-second precision and the zone say nothing a reader of this card wants, and they push the
+    /// value onto a second line. Parsed round-trip and rendered invariant; an instant this cannot parse
+    /// is passed through **unchanged** rather than replaced by a guess or a dash — showing the raw value
+    /// is honest, inventing a date is not.
+    /// </remarks>
+    /// <summary>The AppManager application this deployment reads, as the mockup's caption names it.</summary>
+    private int ApplicationId => objOptions.Value.AppManagerAppId;
+
+    private string MemberSinceText
+    {
+        get
+        {
+            var vRaw = objProfile?.MemberSince;
+
+            if (string.IsNullOrWhiteSpace(vRaw))
+            {
+                return "—";
+            }
+
+            return DateTimeOffset.TryParse(
+                       vRaw,
+                       CultureInfo.InvariantCulture,
+                       DateTimeStyles.RoundtripKind,
+                       out var vMoment)
+                ? vMoment.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                : vRaw;
+        }
+    }
 
     /// <summary>One line of the read-only profile card.</summary>
     /// <param name="Field">The label.</param>

@@ -1,186 +1,196 @@
-# TfLens — Development telemetry
+# TfLens — Development Telemetry
 
-**Generated:** 2026-08-29 (fourth pass, after the build-output untracking) · **Source:** `docs/metrics/*.jsonl` via `.tfcore/telemetry/tf-metrics.sh --report . --json`
-**Every figure below is the tool's.** Nothing is recomputed by hand, and nothing is pooled across a provenance boundary.
+> Generated 2026-08-29 from the append-only streams in `docs/metrics/` by
+> `bash .tfcore/telemetry/tf-metrics.sh --report . --json`. Every figure below is that script's
+> arithmetic, not this document's. Read `.tfcore/telemetry/SCHEMA.md` §6 before quoting anything here.
+>
+> **There is no "overall" number on this page, and that is deliberate.** First-pass rate, gate catch
+> distribution and escape rate are never pooled across `project_type`, and never across live and
+> backfilled records. A `docs` requirement has no screen to fail a visual gate on, so pooling it with an
+> `app` requirement would understate that gate by construction. The two columns below sit side by side
+> and are never summed.
 
-> **How to read this page.** Three separations are load-bearing and are never crossed:
-> **live vs backfilled** (this repo has **0 backfilled** gate records — everything below is live),
-> **`project_type`** (`app` and `docs` are reported side by side, never summed), and
-> **attribution/cost confidence** (a miss whose origin is not `linked` never enters a per-model
-> figure; a fix whose cost is not `sole` never enters a headline cost figure).
-> An `n` is printed beside every rate. Rates from `n < 3` are reported as *insufficient data*.
+## Stream inventory
 
----
+| Stream | Records | Note |
+|---|---:|---|
+| `gates.jsonl` | 405 | 0 backfilled — every record written at the moment of the event |
+| `runs.jsonl` | 30 | |
+| `misses.jsonl` | 47 misses + 46 fixes | 0 orphan fixes, 0 orphan amends |
+| `sessions.jsonl` | 10 | written by the SessionEnd hook, never by an agent |
+| `commits.jsonl` | 15 | `pre-commit` hook present on this clone |
 
-## 1. The headline: a human still found more than the gates did
-
-| | `app` (live) | `docs` (live) |
-|---|---|---|
-| REQs scored | 146 | 113 |
-| **First-pass rate** | **21%** (n=31) | **94%** (n=106) |
-| **Escape rate** | **67%** (n=13 attributed failures) | **0%** |
-
-**These two columns must not be averaged.** A docs REQ has no screen, so it can never fail the visual
-gate; an app REQ can. Summing them produces a number that describes nothing.
-
-**The `app` escape rate of 67% is still the finding of this report.** Two in three attributable
-app-side failures were found by a **human running the application**, not by a gate — the direct record
-of the 2026-08-28 UAT session, in which four defects were found on a build every gate had just passed.
-
-It was 75% a day ago. It fell because the gates caught three defects on 2026-08-29, **not** because
-fewer escaped: the numerator is unchanged and the denominator grew. A falling escape rate driven by
-gates finding more is the only kind worth having, and it is worth saying which kind it is.
-
-### Where app-side failures were caught
-
-| Caught by | n | Note |
-|---|---|---|
-| **escaped — no gate fired** | **6** | UAT; the whole finding |
-| acceptance | 4 | found by the gates themselves — three of them by the BRD §13 parity gate on 2026-08-29 |
-| visual | 1 | the `/repos` mockup drift |
-| unattributed | 2 | |
-
-`late_gate_coverage`: the **perf** gate (added 2026-08-10) has run **once** and caught **0**. One run
-is not evidence either way; it is printed so a low catch count is not misread as a low defect rate.
+`stale_types: ["docs"]` — the `docs` figures below are not being added to; they describe a stream that
+has stopped moving, not current practice.
 
 ---
 
-## 2. Misses — what was missed, and which practice let it through
+## 1. First-pass rate — what reaches `Verified` on attempt 1
 
-29 miss records · 29 fixes · **3 still open** · 0 `wont-fix` · 0 orphans.
+**Live records only. No backfilled records exist in this repository, so there is no reconstructed
+arithmetic anywhere on this page.**
 
-### Which practice failed (`why_missed`, n=28 of 29 eligible; 0 predate the field)
+| `project_type` | REQs scored | First-pass | Rate |
+|---|---:|---:|---:|
+| **app** | 147 | 31 | **21%** |
+| **docs** | 113 | 106 | **94%** |
 
-| Practice that failed | n | What it means |
-|---|---|---|
-| `missing-checklist-item` | 10 | **Nothing in the spec covered the behaviour at all** |
-| `insufficient-verify-method` | 8 | Acceptance existed; no gate could have caught this class |
-| `ambiguous-acceptance` | 5 | Two honest readings of the clause |
-| `dependency-not-declared` | 2 | |
-| `instruction-ignored` | 2 | A written framework rule existed and was not honoured |
-| `other` | 1 | |
+These two numbers must not be averaged. The gap is real but it is not a quality comparison: a `docs`
+REQ is graded by reading a file, an `app` REQ by driving a browser through acceptance, data-render and
+visual-truth gates, so the `app` column has three more ways to fail on attempt 1 and a far longer tail
+of re-verification. `0 REQs excluded by backfill taint` in both columns.
 
-**`missing-checklist-item` is the largest bucket, and it grew this pass.** The dominant failure mode
-on this project is not sloppy building — it is **things nobody wrote down**. Four of today's records
-are exactly that, and all four are now REQs with acceptance clauses and guardrail tests:
-`REQ-NFR-015` (fail loudly when an asset 404s), `REQ-NFR-016` (build output is not source),
-`REQ-NFR-017` (the DevGuide leads with screens), and `REQ-UI-044` (**a UI construct whose failure
-mode the harness cannot reproduce is one the harness cannot sign off**).
+## 2. Gate catch distribution — which gate caught each failure
 
-### What kind of defect
+| Gate | app | docs |
+|---|---:|---:|
+| acceptance | 4 | 4 |
+| render | — | 2 |
+| visual | 1 | — |
+| **escaped** | **22** | — |
+| unattributed | 2 | 2 |
+| **n (failures scored)** | **29** | **8** |
+
+`escaped` is not a gate. It is the record written when **no gate fired and a human found the defect**,
+and on the `app` axis it is 22 of 29 — larger than every real gate combined. That single row is the
+finding of this report.
+
+**Late-gate coverage.** `perf` entered the enum on 2026-08-10, long after this stream started, so its
+raw share is structurally understated. Its honest denominator: **ran 1, caught 0**. No share is printed
+for it, because one run cannot support one.
+
+## 3. Escape rate — defects that reached a human instead of a gate
+
+| `project_type` | Escape rate |
+|---|---:|
+| **app** | **91%** |
+| **docs** | 0% |
+
+**91% of scored `app` failures were found by a person, not by a gate.** The 2026-08-29 mockup-parity
+UAT is most of that number: 16 `escaped` records in a single sitting, every one of them on a REQ that
+already read `Verified` and had passed acceptance, data-render and visual-truth.
+
+`found_by` across all 47 misses: **owner 28 · agent-review 12 · gate 6 · self-smoke 1.** A gate is the
+fourth most common way a defect is discovered in this project.
+
+---
+
+## 4. Misses — what was missed, who let it through, what repair cost
+
+47 misses, 46 fixes, **21 still open**, 26 resolved, 0 wont-fix. 0 orphan fixes and 0 orphan amends, so
+the lifecycle joins are intact.
+
+### 4.1 Which practice failed (`why_missed`)
+
+Answered on 46 of 47 eligible records; **0 escapes are missing a reason**.
+
+| `why_missed` | n |
+|---|---:|
+| **insufficient-verify-method** | **24** |
+| missing-checklist-item | 11 |
+| ambiguous-acceptance | 6 |
+| dependency-not-declared | 2 |
+| instruction-ignored | 2 |
+| other | 1 |
+
+**This is the report's headline.** `insufficient-verify-method` means *the acceptance existed and no
+gate could have caught this class of defect* — it is more than half the stream, and more than twice
+`missing-checklist-item`. The specification is not the weak link here; the verification is. That is the
+same conclusion the escape rate reaches from the other direction, and it is now written down as
+`REQ-NFR-020` (no gate compares a built screen to its approved mockup) and raised upstream as **TF-008**.
+
+### 4.2 What kind of defect
 
 | `miss_class` | n |
-|---|---|
-| `wrong-behaviour` | 13 |
-| `unspecified-gap` (**design miss**) | 6 |
-| `partial-implementation` | 5 |
-| `standards-violation` | 4 |
+|---|---:|
+| partial-implementation | 19 |
+| wrong-behaviour | 15 |
+| **unspecified-gap** | **7** |
+| standards-violation | 4 |
+| regression | 1 |
+| spec-contradiction | 1 |
 
-**Design-miss share 21%** · **Escape share 32%**.
+**Design-miss share 15%** — 7 of 47 are things the specification itself omitted, caught by a human
+months after the phase that made them. Those are the records nothing else in the framework can produce.
 
-> The 32% escape *share* and the 67% escape *rate* in §1 measure different populations and are
-> reported side by side, never merged (SCHEMA.md §5.5.5).
+### 4.3 Attribution — and what it excludes
 
-### Who found them
-
-| Found by | n |
-|---|---|
-| `agent-review` | 12 |
-| **`owner`** | **10** |
-| `gate` | 6 |
-| `self-smoke` | 1 |
-
-**A human found ten; gates found six** — up from three, entirely because the BRD §13 parity gate
-caught all three of the 2026-08-29 defects before anyone published a number from them. That is what a
-gate is worth, and it is the argument TF-007 makes for adding the one the framework still lacks.
-
-### Attribution — 17 of 29 usable
-
-`attributed_n` **17**, `attribution_excluded` **12**. Only records whose origin run was actually found
-in `runs.jsonl` carry a model; the other twelve were written `null` by the emitter rather than guessed.
+**34 of 47 misses carry `origin_confidence: linked`. 13 are excluded** from every per-phase, per-agent
+and per-model figure below, because their origin could not be resolved to a real `runs.jsonl` record.
+The figures are computed over 34, not 47, and no attempt is made to distribute the other 13.
 
 | Origin phase | n | | Origin agent | n |
-|---|---|---|---|---|
-| `build-phase` | 13 | | `general-purpose` | 8 |
-| `fix-issues` | 1 | | `flow-master` | 6 |
-| `handoff-phase` | 1 | | `trblazeui` | 2 |
-| `split-brd` | 1 | | | |
+|---|---:|---|---|---:|
+| **build-phase** | **28** | | trblazeui | 17 |
+| fix-issues | 4 | | flow-master | 9 |
+| handoff-phase | 1 | | general-purpose | 8 |
+| split-brd | 1 | | | |
 
-`by_origin_model`: **`claude-opus-5` — 16**. Every attributed miss came from one model, so this table
-ranks phases and agents but **cannot compare models**: there is nothing to compare against.
+Per-model: `claude-opus-5` 34 — the whole attributed set. **With one model in the data there is no
+comparison to make**, and none is drawn; the column exists so that it becomes answerable once a second
+model appears, not so that a single-model figure can be read as a verdict.
 
----
+`build-phase` owning 28 of 34 is what you would expect from where code is written, and says nothing on
+its own about whether that phase is unusually error-prone — it is also by far the largest phase.
 
-## 3. Cost of rework — apportioned, not measured
+### 4.4 What repair cost
 
-| Figure | Value |
-|---|---|
-| `tokens_per_miss_measured` | **null — no fix run touched exactly one miss** |
-| `tokens_per_miss_apportioned` | 47,160 |
-| Fixes costed `sole` / `shared` / unattributable | **2** / 26 / 1 |
-| `cost_recovered_n` | **4** — windows the old derivation had written off |
-| `cost_usd` | **null — Claude Code's transcript carries no cost** |
+| | n |
+|---|---:|
+| `cost_attribution: sole` | 2 |
+| `cost_attribution: shared` | 43 |
+| `cost_unattributable` | 1 |
+| `cost_recovered` | 4 |
 
-**The 47,160 figure is apportioned and must never be quoted as measured.** Twenty-six of 28 fixes are
-`shared`: each fix run closed several misses at once, so its token window divides across them rather
-than measuring any one. No dollar figure is produced — a rate-card estimate printed beside measured
-token counts would be an estimate wearing a measurement's clothes.
-
-**`cost_recovered_n` is new, and it is 4.** These are windows the stream had stamped `none` and the
-recomputed divisor got back. Until 2026-08-29 TfLens read the stored `cost_attribution` string; the
-reference now recomputes it per fix run, because the stored value is written one record at a time (a
-run closing four misses stamps `shared:1..shared:4` and only the last is right) and pre-2026-08-28
-records carry `none` from the empty-`reqs_touched` bug. BRD §13 caught the divergence. The figure is
-reported separately so a jump in rework cost reads as a corrected derivation rather than as the work
-having become more expensive.
+- **Tokens per miss (measured, sole-attributed only): insufficient data (n=2).** No headline token
+  figure is printed. A `sole` attribution means one fix run closed exactly one miss, which is the only
+  shape where the run's token window *is* that miss's repair cost.
+- Tokens per miss (apportioned, `shared` included): **31,383** — shown here **as an adjacent figure, not
+  as the cost of a miss**. 43 of 46 fixes were batched, and dividing a batch evenly assumes every miss in
+  it cost the same, which is not something this data knows.
+- **Measured USD: none. 0 records carry `cost_usd`.** Only OpenCode reports real spend and no OpenCode
+  fix record in this project carries it yet. Every dollar figure elsewhere in the product is a rate-card
+  estimate and is labelled as one.
 
 ---
 
-## 4. Throughput
+## 5. Throughput and rework (pooled — these are exempt)
 
-| | |
-|---|---|
-| Runs | 26 — `log-miss` 5 · `fix-issues` 5 · `build-phase` 4 · `amend-docs` 2 · `mockups` 2 · `metrics-report` 2 · `verify-phase` 2 · `handoff-phase` 1 · `split-brd` 1 · `triage-issues` 1 |
+Volume and cadence are comparable across project types, so these are the only pooled figures here.
+
+| Measure | Value |
+|---|---:|
+| Runs | 30 |
 | **Rework ratio** | **150%** |
-| Throughput (median) | 20.93 REQs/hour |
+| Throughput (median) | 16.33 REQs/hour |
 | Batch size (median) | 21.5 REQs |
-| Tokens total | 3,329,747 |
-| Tokens per Verified REQ | 9,073 |
-| Sessions | 9 (2 duplicates collapsed) |
-| Commits | 12 over 3 active days — 4.0/day |
+| Sessions | 10 |
+| Tokens (total) | 3,822,984 |
+| Tokens per Verified REQ | 10,388.5 |
+| Cost USD | not measured |
+| Commits | 15 over 4 active days (3.75/day) |
 
-**Rework ratio is 150%**: there have now been half again as many rework passes as REQs — the average
-REQ has been revisited more than once, and some several times. Read it with the 21% app first-pass rate — the same fact stated twice.
-Median batch size 21.5 is part of the picture: a pass carrying twenty REQs cannot fail small.
+`runs_by_cmd`: build-phase 4 · fix-issues 6 · log-miss 6 · metrics-report 4 · triage-issues 2 ·
+verify-phase 2 · amend-docs 2 · mockups 2 · split-brd 1 · handoff-phase 1.
+
+**Rework ratio 150%** — half again as many repair runs as build runs (`fix-issues` 6 against
+`build-phase` 4). Read it beside §3: work is not reaching `Verified` on the first pass and is coming
+back through the fix door, and it is coming back because a person found it, not because a gate did.
 
 ---
 
-## 5. What is missing, and what these numbers cannot tell you
+## 6. What is missing, and what would change these numbers
 
-- **The `app` gate-distribution sample is n=13.** The escape bucket dominates it and is corroborated
-  independently by the miss stream (9 owner-found). Treat the *shape* as real, the *percentages* as
-  provisional.
-- **`docs` records are stale** (`stale_types: ["docs"]`) — the 94% first-pass rate describes a period
-  that has ended.
-- **No model comparison is possible.** One model produced every attributed miss.
-- **No measured cost per miss exists**, and none will until a fix run touches exactly one REQ. The
-  honest way to get one is smaller fix batches, which is a real trade against throughput.
-- **`why_missed` covers 24 of 25**; none predate the field. **`escapes_missing_why` is 0** — every
-  owner-found record says why nothing caught it, which is the most valuable field in the stream.
-- **Three misses remain open:** `MISS-…0828-21` (build output still tracked in git — blocked on one
-  owner-run command, `scripts/untrack-build-output.sh`), `MISS-…0828-25` (the Coverage assertion —
-  now fixed and `Verified`, awaiting its close record) and **`MISS-…0829-01`** (`REQ-NFR-019`: nothing
-  stops a row entering the store with a `source_sha` no sync ever obtained — 155 such rows were found
-  and purged on 2026-08-29, and that is the single most consequential open item on this list, because
-  `source_sha` is what a quotable figure is pinned to).
-- **A tenth owner-found miss was added on 2026-08-29 (`MISS-…0829-04`) and it is worth reading**, because
-  it is not a defect in the app: the handover script for `REQ-NFR-016` did its job correctly and
-  *reported* it in a way that read as failure. Removing 1,962 files from the index stages 1,962
-  deletions, so the editor then lists them all under "Changes to be committed" — indistinguishable from
-  "nothing happened" unless you read the change type. Nobody had run it end to end and looked at what
-  the operator would see. **A deliverable that works and cannot be seen to work has not been delivered**,
-  and this stream is the only place that fact is written down.
-- **The one number worth acting on** is still not a rate: the largest `why_missed` bucket is
-  `missing-checklist-item`, and it grew. The gates were not failing to run — they were running against
-  acceptance clauses that never mentioned the thing that broke. Every fix this session added the
-  missing clause *and* a test for it, which is the only move that changes this figure next time.
+- **No measured dollars anywhere (0 `cost_usd` records).** The cost of rework is only quotable in
+  tokens, and even then only over 2 sole-attributed fixes. Fixing one miss per fix run — or recording
+  `cost_usd` on OpenCode runs — is what would make §4.4 answerable.
+- **13 of 47 misses are unattributed.** Naming `origin_run_id` when a miss is logged is what moves a
+  record into §4.3.
+- **One model in the attributed set**, so no per-model comparison is possible yet.
+- **`perf` has run once.** Its catch rate is not knowable from one run.
+- **The `docs` stream is stale** — its 94% first-pass rate describes a stream that has stopped, and
+  should not be read as current practice.
+- **The gate set itself is the biggest gap.** 22 escaped against 5 real gate catches on the `app` axis,
+  and `insufficient-verify-method` on 24 of 46 answered records, both say the same thing: the gates
+  measure whether a screen is *alive*, not whether it is *right*. `REQ-NFR-020` is the proposed fix and
+  it is `Planned`, not built — so nothing on this page should be expected to improve until it is.
