@@ -1,7 +1,0 @@
-/* The panel's vertical rhythm. The shipped trblazeui.css carries `gap-4` but no `gap-6` (TR-002). */
-
-.tflens-stack[b-h4b9wz5br1] {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}

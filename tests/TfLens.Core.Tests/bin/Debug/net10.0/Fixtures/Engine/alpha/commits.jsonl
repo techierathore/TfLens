@@ -1,4 +1,0 @@
-{"v":1,"ts":"2026-08-01T09:00:00Z","kind":"commit","app":"AlphaApp","sha":"aaa1111","files":4,"insertions":120,"deletions":10,"subject_prefix":"feat","branch":"main"}
-{"v":1,"ts":"2026-08-01T12:00:00Z","kind":"commit","app":"AlphaApp","sha":"aaa2222","files":2,"insertions":40,"deletions":4,"subject_prefix":"fix","branch":"main"}
-{"v":1,"ts":"2026-08-02T09:00:00Z","kind":"commit","app":"AlphaApp","sha":"aaa3333","files":7,"insertions":300,"deletions":80,"subject_prefix":"feat","branch":"main"}
-{"v":1,"ts":"2026-08-01T09:00:00Z","kind":"commit","app":"AlphaApp","sha":"aaa1111","files":4,"insertions":120,"deletions":10,"subject_prefix":"feat","branch":"main"}

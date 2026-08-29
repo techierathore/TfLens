@@ -1,9 +1,0 @@
-/* The surface's vertical rhythm. The shipped trblazeui.css carries `gap-4` but no `gap-6` (TR-002),
-   and Blazor scoped CSS is scoped to ONE component, so the page's own copy of this rule cannot reach
-   this component's markup. */
-
-.tflens-stack[b-76ug73nhr3] {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}

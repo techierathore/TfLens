@@ -1,1 +1,0 @@
-{"v":1,"ts":"2026-08-03T12:00:00Z","kind":"run","app":"GammaLib","project_type":"library","cmd":"build-phase","mode":"build","started":"2026-08-03T10:00:00Z","ended":"2026-08-03T12:00:00Z","duration_s":7200,"reqs_count":6,"files_written":18,"build_result":"pass","harness":"codex"}
