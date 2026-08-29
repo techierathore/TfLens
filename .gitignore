@@ -36,3 +36,25 @@ data/
 **/data/
 !/database/
 /.vs/TfLens.slnx
+
+# ---------------------------------------------------------------------------
+# .NET build output — REQ-NFR-016 (owner UAT 2026-08-28).
+# These were TRACKED, and that is not a tidiness point. bin/Debug/net10.0/
+# TfLens.staticwebassets.runtime.json carries ABSOLUTE static-web-asset content
+# roots: a WSL build writes /mnt/c/... + /home/<user>/.nuget/..., a Windows build
+# rewrites the same file to C:\1MyCode\... + C:\Users\<user>\.nuget\...
+# (both captured on 2026-08-28). Committing that ships one machine's absolute
+# paths to another, which is how a static web asset can 404 on one developer's
+# box and not another's — the class of failure behind REQ-UI-001. It also made
+# every build dirty ~34 tracked files.
+#
+# Adding them here stops NEW build output being staged. The already-tracked
+# files must be untracked ONCE, by hand, by the owner (agents never run git):
+#     git rm -r --cached src/TfLens/bin src/TfLens/obj \
+#                        src/TfLens.Core/bin src/TfLens.Core/obj \
+#                        tests/*/bin tests/*/obj
+#     git commit -m "Untrack build output (REQ-NFR-016)"
+# ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+/docs/uatissuessc
