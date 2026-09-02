@@ -226,7 +226,12 @@ test('gate sweep: authenticated screens', async ({ page }) => {
   await sweep(page, 'harness', '/harness', {
     required: [...shell, 'framework-switch', 'harness-note', 'harness-col-claude-code', 'harness-col-opencode',
       'harness-col-codex', 'opencode-cost', 'opencode-cost-note'],
-    tables: ['tokens-table'],
+    // `tokens-table` is NOT listed: it was removed on 2026-09-01 as owner-reported drift (REQ-UI-023)
+    // because the approved design has no such table — it prints each value above its bar instead, and
+    // `ui-harness-routing-export.spec.ts` asserts the table is absent. Leaving it here made the render
+    // gate demand a control the design forbids and report a phantom RENDER-EMPTY ("table absent") on
+    // every run. The figures it used to carry are graded where they now live: `tokens-chart-values`.
+    tables: [],
     tablePrefixes: ['harness-table-'],
     conditional: ['harness-null-footnote', 'tokens-chart', 'opencode-cost-value', 'opencode-cost-basis'],
   });

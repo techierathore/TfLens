@@ -12,8 +12,16 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-- **5 blockers, 5 majors, 2 minors, 0 nice-to-haves** — 12 entries, **all 12 now fixed upstream** and
-  awaiting re-verification here.
+- **15 entries.** `TF-001`–`TF-004` closed. `TF-005` **confirmed fixed upstream and now matched by
+  TfLens** (`REQ-FN-079`, 2026-09-02). `TF-013`, `TF-014` and the new `TF-015` are open. `TF-007`–
+  `TF-012` are recorded below as fixed upstream on 2026-08-31 and **have not been re-verified here** —
+  and at least one of them is not fixed in practice: **`TF-012` still fires on every screen**, nine
+  `app-sidebar clip@1280` findings in the 2026-09-02 `mockup-parity` run, against a `.tfcore/` that
+  already carries the 2026-08-31 scripts (`tf-metrics.sh` hashes `8759f71d…`). Treat the block below as
+  the team's report, not as a verified state.
+- **`TF-015` (new 2026-09-02, High)** — `tf-emit.sh` accepts a run whose `ended` precedes its `started`;
+  the two consumers then disagree about the negative duration, so the same corpus yields two different
+  totals and neither flags the record. 14 such records exist in one repository, 13 invisible.
 - **Fixed 2026-08-31 (the last seven):** `TF-005`, `TF-007`, `TF-008`, `TF-009`, `TF-010`, `TF-011`,
   `TF-012`. See **Resolution status (TechieFlow team, 2026-08-31)** below — it carries the per-entry
   verification recipe, and it is the part of this file worth reading first.
@@ -27,8 +35,10 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
   3. **Two defects the framework found while fixing these, both plausibly present in TfLens too:** a
      miss-record enum that was never validated on write, and a `cost_attribution` recount that
      short-circuited on a stored `sole` **in the headline cost column**. Both are described at the end
-     of the 2026-08-31 block with the one-line fix.
-- Last consolidated: 2026-08-29; appended 2026-08-30 (`TF-009`–`TF-012`); resolved 2026-08-31.
+     of the 2026-08-31 block with the one-line fix. **The `sole` recount defect WAS present in TfLens** —
+     it reported `cost_sole_n` 10 against the reference's 7, putting three multi-miss windows into the
+     measured column — and was fixed on 2026-09-02 (`REQ-FN-079`). The warning was accurate.
+- Last consolidated: **2026-09-02** (handoff); appended 2026-08-30 (`TF-009`–`TF-012`), 2026-09-02 (`TF-015`).
 
 **Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
 `Low` = minor. Nothing here is filed nice-to-have. Entry bodies keep their original `High`/`Medium`/`Low`
@@ -1706,3 +1716,53 @@ two checks the walk newly makes possible:
 `MISS-TfLens-20260902-01` and `REQ-NFR-024`. TfLens has widened its own rule to `/.vs/`; the untracking
 is the owner's, and **the audit gap is not TfLens's to fix** — `.tfcore/` is framework-owned and a local
 edit would be overwritten on the next update (REQ-NFR-018).
+
+---
+
+## TF-015 — `tf-emit.sh` accepts a run whose `ended` precedes its `started`, and the two consumers then disagree about it
+
+**Severity.** High — it produces a wrong figure that looks right, in the stream the framework uses to
+measure itself.
+
+**What happens.** Nothing stops a `run` record being emitted with `ended` earlier than `started`.
+`tf-emit.sh` computes and stores the negative `duration_s` without complaint. In `TechieBlog` this
+produced `{"cmd":"fix-issues","started":"2026-08-22T11:30:00Z","ended":"2026-08-22T11:27:14Z",
+"duration_s":-166}` — a run that finished two minutes and forty-six seconds before it began.
+
+**Why it matters more than one bad row.** The two consumers of that field disagree, so the same corpus
+yields two different answers and neither flags the record:
+
+- `tf-metrics.sh` filters with `if r.get("duration_s")` — truthy — which **admits negatives**. The
+  record enters `duration_s_total`, the per-phase totals, the median, and `throughput`.
+- A strict consumer that filters `duration_s > 0` **excludes** it.
+
+On this dataset that is `phases.duration_s_total` 445854 vs 446020, `fix-issues.duration_s.n` 38 vs 37,
+and a throughput median of 6.26 REQs/hour against a true 6.52 — because `1 / -166` is a *negative*
+REQs-per-second that drags the median down. Every one of those is a plausible number that a reader
+cannot tell is wrong.
+
+**It is not one record.** The same repository holds **13 more** with `started` after `ended` which are
+completely invisible, because they store a plausible round `duration_s` (3600, 2700, 1800, 1500, 1200,
+900, 600, 420) *instead of* the negative arithmetic — e.g. `refresh-status` started `20:05:00`, ended
+`17:59:39`, stored `600`. Only the one record that happened to store the negative was ever detectable.
+A validation at emit time would have stopped all 14 at the source; nothing downstream can recover them,
+because the true start times are gone.
+
+**Expected.** `tf-emit.sh` refuses a `runs` record where `ended < started`, the same way it already
+refuses a value outside a closed vocabulary (`tf-emit: REFUSED — 'code' is not in the closed vocabulary
+for artifact`). That refusal message is exactly the right shape and already exists — it simply is not
+applied to the timestamps.
+
+**Suggested fix.** Two lines, both at emit time:
+
+1. Refuse when `ended < started`, naming both values.
+2. Refuse when a supplied `duration_s` disagrees with `ended − started` by more than a second — that is
+   what would have caught the other 13, whose stored durations bear no relation to their timestamps.
+
+Optionally, `tf-metrics.sh`'s `if r.get("duration_s")` becomes `if (r.get("duration_s") or 0) > 0`, so a
+historical negative already on a stream cannot reach a figure. That is a consumer-side guard and does
+not remove the need for the emit-time one: an impossible record should never be written.
+
+**Encountered in:** TfLens, BRD §13 parity run 2026-09-02. The diff held at 4 findings entirely because
+of this one record. Recorded locally as `REQ-FN-063` and `REQ-NFR-005`. **Not fixable from TfLens** —
+`.tfcore/` is framework-owned and the offending data belongs to another repository (`REQ-NFR-018`).

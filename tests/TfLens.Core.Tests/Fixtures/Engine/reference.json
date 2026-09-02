@@ -9,6 +9,8 @@
       "runs": 5,
       "sessions": 3,
       "commits": 3,
+      "misses": 0,
+      "stale_types": [],
       "commit_hook": null
     },
     {
@@ -20,6 +22,8 @@
       "runs": 0,
       "sessions": 0,
       "commits": 1,
+      "misses": 0,
+      "stale_types": [],
       "commit_hook": null
     },
     {
@@ -31,6 +35,8 @@
       "runs": 1,
       "sessions": 1,
       "commits": 2,
+      "misses": 0,
+      "stale_types": [],
       "commit_hook": null
     }
   ],
@@ -59,6 +65,16 @@
           "ran": 3,
           "caught": 1,
           "since": "2026-08-10"
+        },
+        "assets": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
+        },
+        "mockup-parity": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
         }
       },
       "escape_rate": "25%"
@@ -80,6 +96,16 @@
           "ran": 0,
           "caught": 0,
           "since": "2026-08-10"
+        },
+        "assets": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
+        },
+        "mockup-parity": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
         }
       },
       "escape_rate": "insufficient data (n=2)"
@@ -100,6 +126,16 @@
           "ran": 0,
           "caught": 0,
           "since": "2026-08-10"
+        },
+        "assets": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
+        },
+        "mockup-parity": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
         }
       },
       "escape_rate": "insufficient data (n=1)"
@@ -122,6 +158,16 @@
           "ran": 0,
           "caught": 0,
           "since": "2026-08-10"
+        },
+        "assets": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
+        },
+        "mockup-parity": {
+          "ran": 0,
+          "caught": 0,
+          "since": "2026-08-31"
         }
       },
       "escape_rate": "insufficient data (n=1)"
@@ -143,7 +189,213 @@
     "cost_usd": null,
     "commits": 6,
     "commit_duplicates_collapsed": 1,
+    "session_duplicates_collapsed": 0,
     "active_days": 4,
     "commits_per_active_day": 1.5
+  },
+  "misses": {
+    "misses_total": 0,
+    "miss_fixes_total": 0,
+    "orphan_fixes": 0,
+    "open_misses": 0,
+    "wont_fix": 0,
+    "resolved_misses": 0,
+    "amendments_applied": 0,
+    "orphan_amends": 0,
+    "why_missed_n": 0,
+    "why_missed_eligible": 0,
+    "why_missed_predates_field": 0,
+    "why_missed": {},
+    "escapes_missing_why": 0,
+    "class_distribution": {},
+    "found_by": {},
+    "design_miss_share": "insufficient data (n=0)",
+    "escape_share": "insufficient data (n=0)",
+    "attributed_n": 0,
+    "attribution_excluded": 0,
+    "by_origin_phase": {},
+    "by_origin_model": {},
+    "by_origin_agent": {},
+    "cost_sole_n": 0,
+    "cost_shared_n": 0,
+    "cost_unattributable_n": 0,
+    "cost_recovered_n": 0,
+    "tokens_per_miss_measured": null,
+    "tokens_per_miss_measured_n": 0,
+    "tokens_unrecorded_sole_n": 0,
+    "tokens_per_miss_apportioned": null,
+    "tokens_per_miss_apportioned_n": 0,
+    "tokens_unrecorded_shared_n": 0,
+    "cost_usd_per_miss_measured": null,
+    "cost_usd_records": 0
+  },
+  "phases": {
+    "runs_live": 6,
+    "scope_coverage": {
+      "absent": 6
+    },
+    "tokens_out_total": 0,
+    "duration_s_total": 15300,
+    "phases": {
+      "build-phase": {
+        "runs": 4,
+        "duration_s": {
+          "total": 13500,
+          "median": 2700.0,
+          "max": 7200,
+          "n": 4
+        },
+        "share_of_duration": "88%",
+        "tokens_measured_n": 0,
+        "tokens_unmeasured_n": 4,
+        "tokens": {
+          "in": 0,
+          "out": 0,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": null,
+        "share_of_tokens_out": "\u2014",
+        "tokens_out_per_run": null,
+        "models": {},
+        "harnesses": {
+          "claude-code": 3,
+          "codex": 1
+        },
+        "modes": {
+          "build": 3,
+          "fix": 1
+        },
+        "build_result": {
+          "pass": 4
+        },
+        "reqs_touched_total": 15,
+        "files_written_total": 41,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 4,
+          "unobserved_not_tree": 4,
+          "unobserved_predates_field": 0,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 4
+        },
+        "cost_usd_by_harness": {}
+      },
+      "fix-issues": {
+        "runs": 1,
+        "duration_s": {
+          "total": 1200,
+          "median": 1200,
+          "max": 1200,
+          "n": 1
+        },
+        "share_of_duration": "8%",
+        "tokens_measured_n": 0,
+        "tokens_unmeasured_n": 1,
+        "tokens": {
+          "in": 0,
+          "out": 0,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": null,
+        "share_of_tokens_out": "\u2014",
+        "tokens_out_per_run": null,
+        "models": {},
+        "harnesses": {
+          "opencode": 1
+        },
+        "modes": {
+          "fix": 1
+        },
+        "build_result": {
+          "pass": 1
+        },
+        "reqs_touched_total": 1,
+        "files_written_total": 2,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 1,
+          "unobserved_not_tree": 1,
+          "unobserved_predates_field": 0,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 1
+        },
+        "cost_usd_by_harness": {}
+      },
+      "verify-phase": {
+        "runs": 1,
+        "duration_s": {
+          "total": 600,
+          "median": 600,
+          "max": 600,
+          "n": 1
+        },
+        "share_of_duration": "4%",
+        "tokens_measured_n": 0,
+        "tokens_unmeasured_n": 1,
+        "tokens": {
+          "in": 0,
+          "out": 0,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": null,
+        "share_of_tokens_out": "\u2014",
+        "tokens_out_per_run": null,
+        "models": {},
+        "harnesses": {
+          "claude-code": 1
+        },
+        "modes": {
+          "build": 1
+        },
+        "build_result": {
+          "pass": 1
+        },
+        "reqs_touched_total": 5,
+        "files_written_total": 0,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 1,
+          "unobserved_not_tree": 1,
+          "unobserved_predates_field": 0,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 1
+        },
+        "cost_usd_by_harness": {}
+      }
+    },
+    "note": "Per-phase effort over LIVE run records, aggregated by `cmd`. Token figures exclude runs whose window could not be computed; fan-out figures use tokens_scope='tree' records ONLY, because a 'main' window never looked at the subagent transcripts and its 0 means 'not observed', not 'none ran'. The unit is the RUN, never the feature \u2014 SCHEMA.md \u00a70 non-goal, \u00a72.6."
   }
 }

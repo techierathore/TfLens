@@ -209,6 +209,100 @@ public sealed class MissCostTests
         vMoney.TokensPerMissFixed.Sole.Display().Should().Be("200", "a fourth zero would have made it 150");
     }
 
+    /// <summary>
+    /// A record stored <c>sole</c> whose run closed several misses is recomputed to <c>shared:n</c>.
+    /// </summary>
+    /// <remarks>
+    /// The 2026-09-02 defect, in the shape the live stream writes it. The emitter stamps attribution one
+    /// record at a time, so a run that closed three misses wrote <c>sole</c>, <c>shared:2</c>,
+    /// <c>shared:3</c> — the first record says <c>sole</c> only because at that instant it was the only
+    /// miss the run had closed. Honouring it put a whole three-miss window into the HEADLINE measured
+    /// column as the cost of a single repair. Here that would read 900 measured over one record; the
+    /// recount puts all three in the apportioned column at 300 each, and leaves the measured column
+    /// standing on the one run that really did close one miss.
+    /// </remarks>
+    /// <returns>The running test.</returns>
+    [Fact]
+    public async Task AStoredSoleWhoseRunClosedSeveralMissesIsRecomputedAsShared()
+    {
+        var vMoney = await MoneyAsync(
+        [
+            // One run, three misses, stamped in write order exactly as the emitter stamps them.
+            MissFixtures.Fix("M1", aCostAttribution: "sole", aTokensOut: 900, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aCostAttribution: "shared:2", aTokensOut: 900, aFixRunId: "R1"),
+            MissFixtures.Fix("M3", aCostAttribution: "shared:3", aTokensOut: 900, aFixRunId: "R1"),
+            // Three runs that genuinely closed one miss each — the only records `sole` may stand on.
+            MissFixtures.Fix("M4", aCostAttribution: "sole", aTokensOut: 100, aFixRunId: "R2"),
+            MissFixtures.Fix("M5", aCostAttribution: "sole", aTokensOut: 200, aFixRunId: "R3"),
+            MissFixtures.Fix("M6", aCostAttribution: "sole", aTokensOut: 300, aFixRunId: "R4")
+        ]);
+
+        vMoney.SoleRecords.Should().Be(3, "only three runs closed exactly one miss");
+        vMoney.SharedRecords.Should().Be(3, "the run that closed three misses contributes three records");
+        vMoney.TokensPerMissFixed.Sole.Display().Should().Be(
+            "200", "the mean of 100, 200 and 300 — the 900 window never reaches the measured column");
+        vMoney.TokensPerMissFixed.Apportioned.Display().Should().Be("300", "900 divided across three misses");
+    }
+
+    /// <summary>
+    /// An unpriced fix leaves the token divisor and is reported as unrecorded rather than as free.
+    /// </summary>
+    /// <remarks>
+    /// <c>tokens_out or 0</c> cannot tell an absent field from a recorded zero, so averaging an unpriced
+    /// repair in counts it as a FREE repair and understates rework — in the direction that flatters the
+    /// framework (SCHEMA.md §2.5, BRD-31..36). The divisor is therefore the priced records, and both the
+    /// divisor and the records it excluded leave the engine as data so the figure can be reproduced
+    /// rather than merely trusted (BRD-146/149).
+    /// </remarks>
+    /// <returns>The running test.</returns>
+    [Fact]
+    public async Task AnUnpricedFixLeavesTheDivisorAndIsCountedAsUnrecorded()
+    {
+        var vMoney = await MoneyAsync(
+        [
+            MissFixtures.Fix("M1", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aTokensOut: 300, aFixRunId: "R3"),
+            // Repaired, but nobody recorded what it cost: unmeasured work, never costless work.
+            MissFixtures.Fix("M4", aFixRunId: "R4"),
+            // One run across four misses; only three of its records carry a window.
+            MissFixtures.Fix("M5", aTokensOut: 400, aFixRunId: "R5"),
+            MissFixtures.Fix("M6", aTokensOut: 800, aFixRunId: "R5"),
+            MissFixtures.Fix("M7", aTokensOut: 1200, aFixRunId: "R5"),
+            MissFixtures.Fix("M8", aFixRunId: "R5")
+        ]);
+
+        vMoney.SoleRecords.Should().Be(4, "the record count keeps every repair, priced or not");
+        vMoney.MeasuredTokenRecords.Should().Be(3, "the divisor keeps only the repairs that were priced");
+        vMoney.SoleTokensUnrecorded.Should().Be(1);
+        vMoney.TokensPerMissFixed.Sole.Display().Should().Be(
+            "200", "a fourth record counted as zero would have made it 150");
+
+        vMoney.SharedRecords.Should().Be(4);
+        vMoney.ApportionedTokenRecords.Should().Be(3, "the unpriced fourth record is not a denominator");
+        vMoney.SharedTokensUnrecorded.Should().Be(1);
+        vMoney.TokensPerMissFixed.Apportioned.Display().Should().Be(
+            "200", "100, 200 and 300 after dividing each window four ways, meaned over the three priced records");
+    }
+
+    /// <summary>Every priced record leaves the unrecorded counts at zero rather than absent.</summary>
+    /// <returns>The running test.</returns>
+    [Fact]
+    public async Task FullyPricedRecordsReportADivisorEqualToTheRecordCount()
+    {
+        var vMoney = await MoneyAsync(
+        [
+            MissFixtures.Fix("M1", aTokensOut: 100, aFixRunId: "R1"),
+            MissFixtures.Fix("M2", aTokensOut: 200, aFixRunId: "R2"),
+            MissFixtures.Fix("M3", aTokensOut: 300, aFixRunId: "R3")
+        ]);
+
+        vMoney.MeasuredTokenRecords.Should().Be(vMoney.SoleRecords);
+        vMoney.SoleTokensUnrecorded.Should().Be(0);
+        vMoney.ApportionedTokenRecords.Should().Be(vMoney.SharedRecords);
+        vMoney.SharedTokensUnrecorded.Should().Be(0);
+    }
+
     /// <summary>Runs the engine over fix records and returns the <c>app</c> segment's money block.</summary>
     /// <param name="aFixes">The fix records to seed; a miss is seeded for each.</param>
     /// <returns>The money block.</returns>

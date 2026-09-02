@@ -382,8 +382,10 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
     /// <param name="aSha">The SHA the streams were read at.</param>
     /// <param name="aCounts">Records the parser reported, by stream wire name.</param>
     /// <param name="aSessionDuplicatesCollapsed">
-    /// The repository's running session-collapse total — what was stored before this pass plus what this
-    /// pass collapsed. The caller does the addition, because only it knows the previous row (REQ-FN-063).
+    /// Duplicate session records inside the snapshot this pass read — the dataset's own count, which
+    /// REPLACES whatever the previous pass stored rather than being added to it (REQ-FN-063). It is not a
+    /// running total: a figure that grows every time the same file is read again is a fact about how
+    /// often TfLens polled, not about the user's telemetry, and could never be quoted.
     /// </param>
     /// <returns>The row to store.</returns>
     private static SyncState BuildState(

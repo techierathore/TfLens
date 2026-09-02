@@ -90,6 +90,19 @@
     overflow-y: hidden;
 }
 
+/* REQ-UI-038 — the `miss-type` project-type tab strip is a single inline-flex row that grows with the
+   number of types, and at 390 it measured 361px inside a 342px page container: the content was cut off
+   rather than pushed out, which is exactly why the §4b visual gate (control boxes vs the viewport)
+   passed it and only `mockup-parity`'s own scrollWidth check caught it. It scrolls inside itself
+   instead — the identical treatment `GateOutcomes.razor.css` already gives the same strip. Scoped CSS
+   does not cross into a child component's markup, hence ::deep to reach TabsList. */
+::deep [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
 /* The plain cross-tab. A DataTableColumn needs a compile-time property per column and `miss_class` has
    no closed vocabulary, so the origin table's columns are built at render time from the observed
    classes. It carries the same numbers a chart would, which is also REQ-NFR-005's requirement. */

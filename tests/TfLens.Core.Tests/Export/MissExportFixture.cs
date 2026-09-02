@@ -67,17 +67,26 @@ public static class MissExportFixture
             "linked", "verify-phase", "claude-sonnet-4", "verifier")
     ];
 
-    /// <summary>Three <c>sole</c> fixes — enough to support a measured token figure, and no more.</summary>
+    /// <summary>Four fixes over three runs — three genuinely <c>sole</c>, and one stored <c>sole</c> that is not.</summary>
     /// <returns>The fix records.</returns>
     private static IReadOnlyList<MissFixRecord> AppFixes() =>
     [
         // Each fix names the run that made it, because the cost divisor is DERIVED from how many
-        // misses a run closed (2026-08-29) rather than read from the stored string. RUN-1 and RUN-2
-        // each closed one miss; RUN-3 closed two — MISS-03 here and MISS-04 in the library repo —
+        // misses a run closed (2026-08-29) rather than read from the stored string. RUN-1, RUN-2 and
+        // RUN-4 each closed one miss; RUN-3 closed two — MISS-03 here and MISS-04 in the library repo —
         // which is what makes the shared column non-empty without stamping it by hand.
+        //
+        // MISS-03 IS THE 2026-09-02 REGRESSION GUARD, and it is stamped exactly as the emitter stamps
+        // it: `sole`, because at the instant that record was written it was the only miss RUN-3 had
+        // closed. It is not sole — RUN-3 went on to close MISS-04 — and honouring the stored word here
+        // put a whole two-miss window into the HEADLINE measured column. The recount moves it to
+        // `shared:2` where it belongs, which is why three sole records need four fix rows.
         Fix("MISS-01", AppRepo, "app", "Verified", "sole", 300, "claude-code", null, "RUN-1"),
         Fix("MISS-02", AppRepo, "app", "wont-fix", "sole", 600, "claude-code", null, "RUN-2"),
-        Fix("MISS-03", AppRepo, "app", "deferred", "sole", 900, "claude-code", null, "RUN-3")
+        Fix("MISS-03", AppRepo, "app", "deferred", "sole", 900, "claude-code", null, "RUN-3"),
+        // A later, separate repair of MISS-01 under its own run: a third measured record, so the
+        // measured mean still stands on the MinN floor once MISS-03 leaves the column.
+        Fix("MISS-01", AppRepo, "app", "Verified", "sole", 900, "claude-code", null, "RUN-4")
     ];
 
     /// <summary>One apportioned fix, on the only harness that measures dollars.</summary>

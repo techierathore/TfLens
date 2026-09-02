@@ -265,17 +265,28 @@ public sealed class PostgresStoreTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// The collapse count includes duplicates spread across two archived snapshots (REQ-FN-063).
+    /// The collapse count does not grow with how many snapshots the archive holds (REQ-FN-063).
     /// </summary>
     /// <remarks>
-    /// This is the case that forces the measurement to be <i>records presented minus rows stored</i>
-    /// rather than a sum of what each parse collapsed. A session id that appears once in each of two
-    /// snapshots is not a duplicate inside either file — no parse can see it — and is collapsed only by
-    /// the store's <c>UcSessionUserRepoId</c> index. It is exactly the shape of the one duplicate the
-    /// TechieFlow dataset carries across its two archived <c>sessions.jsonl</c> fetches.
+    /// <para>
+    /// This test used to assert the opposite — <i>every record the second snapshot presented was
+    /// collapsed</i>, i.e. <c>(2 × records) − distinct</c> — and BRD §13 caught what that meant on
+    /// 2026-09-02: TechieFlow reported 81 collapsed sessions against the 7 its data holds, because the
+    /// replay had archived eleven fetches of the same file. A figure that changes with how many times
+    /// TfLens has read the data is a fact about TfLens's archive, not about the user's telemetry, and it
+    /// is not quotable. It is the identical defect the sync path was corrected for on 2026-08-29;
+    /// <c>rebuild</c> simply never got the same fix.
+    /// </para>
+    /// <para>
+    /// The property that replaces it: the figure is the newest snapshot's own within-file duplicate
+    /// count, so adding an identical second snapshot to the archive must not move it. What this
+    /// deliberately gives up — a session id repeated across two snapshots but duplicated inside neither —
+    /// is stated in <c>PostgresStore.RebuildAsync</c> and is given up on the sync path too, which is what
+    /// makes the two paths agree.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task RebuildCountsSessionDuplicatesSpreadAcrossArchivedSnapshots()
+    public async Task RebuildIgnoresHowManySnapshotsTheArchiveHolds()
     {
         var vDataRoot = Path.Combine(objDataRoot, "snapshots");
         var vStore = NewStore(vDataRoot);
@@ -285,6 +296,9 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         await ResetAsync(Fixtures.StoreTestUserId, vRepo, vStore);
         await SeedSyncStateAsync(Fixtures.StoreTestUserId, vRepo, vStore);
         await WriteRawArchiveAsync(vDataRoot, Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+
+        await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+        var vOneSnapshot = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
         // A second fetch of the same sessions stream, as the poller would archive it under a new SHA.
         var vDirectory = Path.Combine(
@@ -296,13 +310,48 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         await vStore.RebuildAsync(Fixtures.StoreTestUserId);
 
         var vStored = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
-        var vCollapsed = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        var vTwoSnapshots = await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
         vStored.Sessions.Should().Be(
             FixtureDistinctSessions, "the second snapshot carries no session id the first did not");
-        vCollapsed.Should().Be(
-            (2 * FixtureSessionRecords) - FixtureDistinctSessions,
-            "every record the second snapshot presented was collapsed by the unique index, and no parse saw it");
+        vOneSnapshot.Should().Be(
+            FixtureSessionRecords - FixtureDistinctSessions,
+            "the figure is what the snapshot's own data collapsed: records presented minus distinct ids");
+        vTwoSnapshots.Should().Be(
+            vOneSnapshot,
+            "archiving the same file twice changed nothing about the data, so it must change nothing about the figure");
+    }
+
+    /// <summary>
+    /// Replay is idempotent: the collapse figure survives repeated rebuilds unchanged (REQ-FN-063).
+    /// </summary>
+    /// <remarks>
+    /// The quotability contract in one assertion. Two TfLens instances pointed at the same repositories
+    /// have to publish the same number, which they can only do if the number depends on the data and on
+    /// nothing else — not on how many snapshots have been archived, and not on how many times replay has
+    /// been run over them.
+    /// </remarks>
+    [Fact]
+    public async Task RepeatedRebuildsLeaveTheSessionCollapseFigureIdentical()
+    {
+        var vDataRoot = Path.Combine(objDataRoot, "replays");
+        var vStore = NewStore(vDataRoot);
+        const string vRepo = "tflenstest/StoreSessionReplays";
+
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await SeedSyncStateAsync(Fixtures.StoreTestUserId, vRepo, vStore);
+        await WriteRawArchiveAsync(vDataRoot, Fixtures.StoreTestUserId, vRepo, Fixtures.TrSetupRepo);
+
+        var vFigures = new List<int>();
+        for (var vPass = 0; vPass < 3; vPass++)
+        {
+            await vStore.RebuildAsync(Fixtures.StoreTestUserId);
+            vFigures.Add(await SessionCollapsesAsync(Fixtures.StoreTestUserId, vRepo, vStore));
+        }
+
+        vFigures.Should().AllBeEquivalentTo(
+            FixtureSessionRecords - FixtureDistinctSessions,
+            "a figure that moves when the data has not is a property of the reader, not of the data");
     }
 
     /// <summary>Sync bookkeeping round-trips per user and repository (REQ-FN-025).</summary>

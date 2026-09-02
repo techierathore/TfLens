@@ -35,8 +35,9 @@ public sealed class MissExportTests : IDisposable
         "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
         "found_by", "design_miss_share", "escape_share", "attributed_n", "attribution_excluded",
         "by_origin_phase", "by_origin_model", "by_origin_agent", "cost_sole_n", "cost_shared_n",
-        "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_apportioned",
-        "cost_usd_per_miss_measured", "cost_usd_records"
+        "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_measured_n",
+        "tokens_unrecorded_sole_n", "tokens_per_miss_apportioned", "tokens_per_miss_apportioned_n",
+        "tokens_unrecorded_shared_n", "cost_usd_per_miss_measured", "cost_usd_records"
     ];
 
     private readonly string objDataRoot = ExportFixture.TemporaryDataRoot();
@@ -72,7 +73,8 @@ public sealed class MissExportTests : IDisposable
         var vMisses = (await JsonAsync()).GetProperty("misses");
 
         vMisses.GetProperty("misses_total").GetInt32().Should().Be(4);
-        vMisses.GetProperty("miss_fixes_total").GetInt32().Should().Be(4);
+        vMisses.GetProperty("miss_fixes_total").GetInt32().Should().Be(
+            5, "four app fixes over three runs, plus the library repo's one");
         vMisses.GetProperty("orphan_fixes").GetInt32().Should().Be(0);
         vMisses.GetProperty("open_misses").GetInt32().Should().Be(1, "`deferred` is outstanding work");
         vMisses.GetProperty("wont_fix").GetInt32().Should().Be(1, "a decision, never folded into open");
@@ -140,19 +142,63 @@ public sealed class MissExportTests : IDisposable
     {
         var vMisses = (await JsonAsync()).GetProperty("misses");
 
-        vMisses.GetProperty("cost_sole_n").GetInt32().Should().Be(3);
-        vMisses.GetProperty("cost_shared_n").GetInt32().Should().Be(1);
+        vMisses.GetProperty("cost_sole_n").GetInt32().Should().Be(
+            3, "RUN-1, RUN-2 and RUN-4 each closed exactly one miss");
+        vMisses.GetProperty("cost_shared_n").GetInt32().Should().Be(
+            2, "RUN-3 closed two misses, so BOTH its records are shared — including the one stored `sole`");
         vMisses.GetProperty("cost_unattributable_n").GetInt32().Should().Be(0);
 
         vMisses.GetProperty("tokens_per_miss_measured").GetDouble().Should().Be(
             600d, "(300 + 600 + 900) / 3 sole records — the measured column, over sole records only");
         vMisses.GetProperty("tokens_per_miss_apportioned").ValueKind.Should().Be(
-            JsonValueKind.Null, "one shared record is below the minimum, and a refusal is not a zero");
+            JsonValueKind.Null, "two shared records are below the minimum, and a refusal is not a zero");
 
         var vKeys = vMisses.EnumerateObject().Select(aProperty => aProperty.Name).ToList();
         vKeys.Should().NotContain(
             aKey => aKey.Contains("tokens_per_miss_total", StringComparison.Ordinal),
             "measured and apportioned tokens are never summed into one figure");
+    }
+
+    /// <summary>
+    /// A record the emitter stamped <c>sole</c> whose run closed a second miss never reaches the
+    /// measured column.
+    /// </summary>
+    /// <remarks>
+    /// The 2026-09-02 parity defect, guarded on the wire. The emitter stamps attribution one record at a
+    /// time, so the first record of a multi-miss run always reads <c>sole</c>; the fixture's MISS-03 is
+    /// exactly that record. Trusting it put RUN-3's whole two-miss window into <c>sole</c> — the HEADLINE
+    /// measured figure — as the cost of a single repair, which is wrong upward and silently.
+    /// </remarks>
+    [Fact]
+    public async Task AStoredSoleWhoseRunClosedASecondMissIsCountedAsShared()
+    {
+        var vMisses = (await JsonAsync()).GetProperty("misses");
+
+        vMisses.GetProperty("tokens_per_miss_measured").GetDouble().Should().Be(
+            600d, "900 for RUN-3's window would have made it 700 over four records");
+        vMisses.GetProperty("tokens_per_miss_measured_n").GetInt32().Should().Be(
+            3, "the stored-`sole` record left the divisor with the column");
+    }
+
+    /// <summary>
+    /// Each token figure ships with its own divisor and with the records that had to leave it.
+    /// </summary>
+    /// <remarks>
+    /// BRD-146/149 — a denominator sits beside its figure. The divisor is NOT <c>cost_sole_n</c>: a
+    /// repair whose <c>tokens_out</c> was never recorded is unmeasured work rather than free work, so it
+    /// leaves the mean, and publishing the count that results is what lets a consumer reproduce the
+    /// number instead of choosing between agreeing with the reference and being right.
+    /// </remarks>
+    [Fact]
+    public async Task EachTokenFigureCarriesItsOwnDivisor()
+    {
+        var vMisses = (await JsonAsync()).GetProperty("misses");
+
+        vMisses.GetProperty("tokens_per_miss_measured_n").GetInt32().Should().Be(3);
+        vMisses.GetProperty("tokens_unrecorded_sole_n").GetInt32().Should().Be(
+            0, "every sole record in the fixture carries a token count");
+        vMisses.GetProperty("tokens_per_miss_apportioned_n").GetInt32().Should().Be(2);
+        vMisses.GetProperty("tokens_unrecorded_shared_n").GetInt32().Should().Be(0);
     }
 
     /// <summary>

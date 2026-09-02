@@ -139,8 +139,14 @@ public static class MetricsConstants
     public const string Escaped = "escaped";
 
     /// <summary>Gate names in the reference's report order; <see cref="Unattributed"/> follows them.</summary>
+    /// <remarks>
+    /// Extended 2026-09-02 with <c>assets</c> and <c>mockup-parity</c>, in the reference's own
+    /// positions (<c>GATE_ORDER</c> in <c>tf-metrics.sh</c>): both sit beside the gate they run with —
+    /// <c>assets</c> after <c>render</c>, <c>mockup-parity</c> after <c>visual</c> — rather than being
+    /// appended at the end. Order is what the report prints in, so it is part of the parity surface.
+    /// </remarks>
     public static readonly IReadOnlyList<string> GateOrder =
-        ["build", "acceptance", "render", "visual", "perf", "standards", Escaped];
+        ["build", "acceptance", "render", "assets", "visual", "mockup-parity", "perf", "standards", Escaped];
 
     /// <summary>
     /// Gates that entered the enum after collection started, with the date they were added.
@@ -149,9 +155,24 @@ public static class MetricsConstants
     /// Their share of a raw distribution is structurally understated, so they are reported as
     /// <c>ran</c> beside <c>caught</c> rather than as a share (SCHEMA.md §3.5). Keep in sync with
     /// <c>LATE_GATES</c> in <c>tf-metrics.sh</c>.
+    /// <para>
+    /// <b>Extended 2026-09-02 with <c>assets</c> and <c>mockup-parity</c>, both at 2026-08-31</b> — the
+    /// date the reference added them. Missing this table's own maintenance rule is precisely the failure
+    /// it exists to prevent, one level up: the two gates had been running and catching real defects for
+    /// two days (<c>mockup-parity</c> is what found <c>REQ-UI-048</c> and <c>REQ-UI-038</c>), and their
+    /// share of the raw distribution was structurally understated against every record written before
+    /// they existed — while the coverage block that would have said so was not emitted at all, so a
+    /// reader could not even see that the figure was young. Caught by the §13 diff as six MISSING keys,
+    /// which is the gate working.
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyDictionary<string, string> LateGates =
-        new Dictionary<string, string> { ["perf"] = "2026-08-10" };
+        new Dictionary<string, string>
+        {
+            ["perf"] = "2026-08-10",
+            ["assets"] = "2026-08-31",
+            ["mockup-parity"] = "2026-08-31"
+        };
 
     /// <summary>
     /// Optional fields that entered a stream after collection started, with the date they were added.

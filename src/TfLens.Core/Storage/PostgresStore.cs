@@ -502,10 +502,26 @@ public sealed class PostgresStore : ITelemetryStore
         var vDuplicates = 0;
         var vInvalid = 0;
 
-        // REQ-FN-063: session records the replay presented to the store, per repository, counted before
-        // any dedupe. What the store actually kept is COUNT(*) afterwards, and the difference is exactly
-        // what ingest collapsed — including the cross-file duplicates that no single parse can see.
-        var vSessionsPresented = new Dictionary<RepoKey, int>();
+        // REQ-FN-063: the duplicate count the NEWEST archived sessions snapshot carries within itself,
+        // per repository. Not a running total over the replay.
+        //
+        // It used to be `sum(SessionsPresented over every archived file) - COUNT(*) afterwards`, which
+        // made the figure a property of TfLens's archive rather than of the user's data: replaying
+        // eleven archived snapshots of the same sessions.jsonl presented every record eleven times and
+        // kept them once, so the count grew with each snapshot ever fetched. TechieFlow reported 81
+        // against the 7 duplicates its data actually holds, and BRD §13 caught it on 2026-09-02.
+        //
+        // This is the SAME bug the sync path was corrected for on 2026-08-29 (see RepoSyncRunner) and
+        // it is fixed the same way, which is also what makes the two paths agree: a figure that changes
+        // with how many times the data has been read is not quotable, so REPLAY MUST BE IDEMPOTENT —
+        // rebuilding twice has to leave the number identical, and it has to equal what a fresh sync of
+        // the newest snapshot would have recorded. Archive order within a repository is fetch order
+        // (see EnumerateArchive), so the last sessions file replayed is the newest and its answer wins.
+        //
+        // What this deliberately gives up, exactly as the sync path does: a session id repeated across
+        // two archived snapshots, which no single parse can see. That is real, but it is a fact about
+        // TfLens's archive rather than about the user's telemetry.
+        var vSessionCollapses = new Dictionary<RepoKey, int>();
 
         foreach (var vArchive in EnumerateArchive(aUserId))
         {
@@ -516,14 +532,17 @@ public sealed class PostgresStore : ITelemetryStore
             vDuplicates += vParsed.DuplicatesCollapsed;
             vInvalid += vParsed.InvalidLines;
 
-            var vKey = new RepoKey(vArchive.UserId, vArchive.Repo);
-            vSessionsPresented[vKey] = vSessionsPresented.GetValueOrDefault(vKey) + vParsed.SessionsPresented;
+            if (vArchive.Stream == StreamKind.Sessions)
+            {
+                vSessionCollapses[new RepoKey(vArchive.UserId, vArchive.Repo)] =
+                    vParsed.SessionDuplicatesCollapsed;
+            }
 
             vRecords += await UpsertAsync(vParsed, aCancellationToken).ConfigureAwait(false);
         }
 
         await RecomputeSyncCountsAsync(aUserId, aCancellationToken).ConfigureAwait(false);
-        await SetSessionCollapsesAsync(aUserId, vSessionsPresented, aCancellationToken).ConfigureAwait(false);
+        await SetSessionCollapsesAsync(aUserId, vSessionCollapses, aCancellationToken).ConfigureAwait(false);
 
         objLogger.LogInformation(
             "Rebuild replayed {Files} raw files for user {UserId}, writing {Records} rows",
@@ -602,21 +621,24 @@ public sealed class PostgresStore : ITelemetryStore
     /// that by reading the stored row and writing the sum, not here.
     /// </para>
     /// <para>
-    /// The figure is <c>presented - stored</c>: how many session records the replay handed the store
-    /// minus how many rows survived. That is the only formulation that catches a session id repeated
-    /// across two archived snapshots, which no single parse can see and which
-    /// <c>UcSessionUserRepoId</c> collapses silently. Every row in scope is zeroed first, so a
-    /// repository whose sessions have gone from the archive does not keep a stale count, and the result
-    /// is floored at zero so a hand-edited archive can never produce a negative one.
+    /// The figure is the newest archived snapshot's <b>own</b> duplicate count — session records that
+    /// snapshot presented minus the distinct ids in it — and it is written verbatim rather than derived
+    /// from what the store ended up holding. Deriving it as <c>presented - COUNT(*)</c> over the whole
+    /// replay is what made it a property of TfLens's archive instead of the user's data: see the
+    /// remarks in <see cref="RebuildAsync"/>. Every row in scope is zeroed first, so a repository whose
+    /// sessions have gone from the archive does not keep a stale count.
     /// </para>
     /// </remarks>
     /// <param name="aUserId">One user, or <c>null</c> for every user — the scope the replay covered.</param>
-    /// <param name="aPresented">Session records presented per repository during the replay.</param>
+    /// <param name="aCollapsed">
+    /// Per repository, the duplicate count the newest replayed <c>sessions</c> snapshot carried within
+    /// itself. A repository with no sessions snapshot in the archive is absent and keeps the zero.
+    /// </param>
     /// <param name="aCancellationToken">Cancels the call.</param>
-    /// <returns>A task that completes when the collapse counts describe the replay.</returns>
+    /// <returns>A task that completes when the collapse counts describe the replayed data.</returns>
     private async Task SetSessionCollapsesAsync(
         int? aUserId,
-        IReadOnlyDictionary<RepoKey, int> aPresented,
+        IReadOnlyDictionary<RepoKey, int> aCollapsed,
         CancellationToken aCancellationToken)
     {
         const string vResetSql = """
@@ -625,10 +647,7 @@ public sealed class PostgresStore : ITelemetryStore
             """;
 
         const string vSetSql = """
-            UPDATE "SyncState" AS t SET "SessionDuplicatesCollapsed" = GREATEST(
-                0,
-                @Presented - (SELECT COUNT(*) FROM "Session" s
-                              WHERE s."UserId" = t."UserId" AND s."Repo" = t."Repo"))
+            UPDATE "SyncState" AS t SET "SessionDuplicatesCollapsed" = @Collapsed
             WHERE t."UserId" = @UserId AND t."Repo" = @Repo
             """;
 
@@ -638,7 +657,7 @@ public sealed class PostgresStore : ITelemetryStore
             new CommandDefinition(vResetSql, new { aUserId }, cancellationToken: aCancellationToken))
             .ConfigureAwait(false);
 
-        var vTallies = aPresented
+        var vTallies = aCollapsed
             .Where(aEntry => aEntry.Value > 0)
             .Select(aEntry => new SessionTally(aEntry.Key.UserId, aEntry.Key.Repo, aEntry.Value))
             .ToList();
@@ -940,8 +959,11 @@ public sealed class PostgresStore : ITelemetryStore
     /// <summary>One repository's replayed session tally, as the collapse update reads it.</summary>
     /// <param name="UserId">The user the archive belongs to.</param>
     /// <param name="Repo"><c>owner/name</c> of the repository.</param>
-    /// <param name="Presented">Session records the replay handed the store, before any dedupe.</param>
-    private sealed record SessionTally(int UserId, string Repo, int Presented);
+    /// <param name="Collapsed">
+    /// Duplicate session records inside the newest replayed snapshot — a property of that data, never of
+    /// how many snapshots the archive happens to hold.
+    /// </param>
+    private sealed record SessionTally(int UserId, string Repo, int Collapsed);
 
     /// <summary>
     /// Per-repository, per-stream row counts, backfilled counts and newest timestamp (REQ-UI-014).

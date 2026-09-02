@@ -52,12 +52,27 @@
                "A small trend line uses --chart-1 colour"). It was missing from every tile on every
                page, which is a large part of why the built screens read as flatter than the design.
                It is decoration, not a figure: no axis, no value, and it is omitted entirely rather
-               than drawn flat when there are fewer than two points to plot. *@
-            <svg class="tflens-spark @AccentClass" viewBox="0 0 100 24" preserveAspectRatio="none"
+               than drawn flat when there are fewer than two points to plot.
+
+               REQ-UI-018: the line does NOT take the tile's accent. It was first built carrying
+               @AccentClass so a tile "kept one colour for its chip and its line", which reads well
+               but is not what the contract says: UIDesign §Design system fixes the trend line at
+               --chart-1, and every mockup strokes `var(--chart-1)` regardless of its chip
+               (`docs/mockups/gate-outcomes.html:61`). The visible cost was the Failures-scored tile
+               on /gate-outcomes painting its line amber off StatAccent.Chart4 — a semantic-colour
+               drift, and the only `color` finding anywhere in the app. The chip keeps its accent;
+               the line is a constant. *@
+            <svg class="tflens-spark" viewBox="0 0 100 24" preserveAspectRatio="none"
                  role="img" aria-label="@SparklineLabel" data-testid="stat-sparkline"
                  data-points="@Sparkline.Count" focusable="false">
                 <title>@SparklineLabel</title>
-                <polyline points="@SparkPoints" fill="none" stroke="currentColor"
+                @* The stroke is set in CSS on the polyline, not here and not via `currentColor` on the
+                   svg: `docs/mockups/gate-outcomes.html:61` is `.spark polyline { stroke: var(--chart-1) }`,
+                   so the mockup's svg keeps an inherited (neutral) `color` and only the line is blue.
+                   Driving it through `color` on the svg painted the same blue line but made the SVG
+                   element itself read as a coloured control, which is a difference the parity gate can
+                   see and a reader cannot. Same pixels, same place in the cascade as the design. *@
+                <polyline points="@SparkPoints" fill="none"
                           stroke-width="1.6" vector-effect="non-scaling-stroke"
                           stroke-linecap="round" stroke-linejoin="round" />
             </svg>

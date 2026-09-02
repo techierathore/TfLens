@@ -300,6 +300,25 @@
         overflow-wrap: break-word;
     }
 
+    /* REQ-UI-048 — the phase name is an unhyphenatable identifier, and `break-word` on every span let
+       the flex row starve it: at 390 `build-phase` needed 93px, was given 45px, and rendered as
+       `build` / `-` / `phase` on three lines. The name keeps its intrinsic width; the prose summary
+       beside it is the thing that may shrink and wrap, because prose is what wrapping is for. */
+    .tflens-detail-trigger > span.font-mono {
+        flex: none;
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+
+/* At a phone width the trigger's four parts cannot all sit on one line without one of them being
+   crushed, so the row wraps instead — the same narrow-width move `docs/mockups/effort.html` makes on
+   its own header rows (`.card-h { flex-wrap: wrap }` at max-width 700). */
+@media (max-width: 43.75rem) {
+    .tflens-detail-trigger {
+        flex-wrap: wrap;
+    }
+}
+
 .tflens-spacer {
     flex: 1;
 }
@@ -376,9 +395,35 @@
         font-variant-numeric: tabular-nums;
     }
 
+    /* REQ-UI-048 — the mockup states this rule outright (`docs/mockups/effort.html:178`:
+       `.tbl td .mono, .tbl th .mono { overflow-wrap: normal; white-space: nowrap }`) and the build
+       never carried it. With `table { width: 100% }` the By-model column was starved at 390 —
+       `claude-opus-5` needed 99px in a 59px cell and broke mid-token, which is the TF-008 class: the
+       text is all present and overlaps nothing, so neither §4a nor §4b can see it. A model id is an
+       identifier, not prose; it keeps its width and the panel scrolls, which is what `.tflens-panel`
+       and `.tflens-panel-table` already have `overflow-x: auto` for. */
+    .tflens-panel-table td .font-mono,
+    .tflens-panel-table th .font-mono {
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+
 /* The fan-out band's key/value table has no header row of its own. */
 .tflens-kv-panel td:first-child {
     color: var(--muted-foreground);
+}
+
+/* REQ-UI-048 — the fan-out band's value cells hold figure PAIRS ("4.5 · 9" = median · max), so unlike
+   every other numeric cell on this page they contain spaces and can break at one. At 390 the median
+   and the max landed on separate lines, which reads as two unrelated numbers stacked in a cell rather
+   than as the one figure it is. The pair stays whole and the panel scrolls, as it already does for the
+   By-model column. Only visible once a phase actually HAS a spawn median — before the store was
+   replayed this cell read "—" and nothing could wrap.
+
+   The figure column is the MIDDLE of three (label · figure · note), so `:last-child` reaches the note
+   and not the number. It is addressed by the class that means "this cell holds a figure". */
+.tflens-kv-panel td.tflens-right {
+    white-space: nowrap;
 }
 
 /* REQ-UI-049 — the routing card is the narrower half of a 1.3fr / 1fr pair, so its first three

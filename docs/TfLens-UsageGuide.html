@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="sub">Last rendered: 2026-09-01</div>
+    <div class="sub">Last rendered: 2026-09-02</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical — use THESE for all smoke / verify / UAT)</a></li>
@@ -145,7 +145,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-UsageGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-09-02 &middot; source <code>TfLens-UsageGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -212,7 +212,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>A row removed 2026-08-28:</strong> <code>tflensrole@techierathore.com</code> (<code>userId</code> 4) existed only as the reproduction case for AppManager defect AM-001. That defect is fixed and the account no longer exists in AppManager, so the row is gone rather than left to fail the restore verb. <em>(historical note; see <code>docs/TfLens-AppManager-Feedback.md</code>)</em>
 </li>
-<li><strong>Seeding:</strong> no database seed; accounts live in AppManager. User 1's four demo repos (<code>techierathore/TechieBlog</code>, <code>TechieFlow</code>, <code>TechieRag</code>, <code>TrBlazeUI</code>, all fetched via API) were connected by hand through the Repos screen — there is no configuration seed and no repo list in configuration.
+<li><strong>Seeding:</strong> no database seed; accounts live in AppManager. User 1's five demo repos (<code>techierathore/TechieBlog</code>, <code>TechieFlow</code>, <code>TechieRag</code>, <code>TfLens</code>, <code>TrBlazeUI</code>, all fetched via API) were connected by hand through the Repos screen — there is no configuration seed and no repo list in configuration.
 </li>
 <li><strong>Secrets for tests:</strong> local development reads <strong>user secrets</strong> (REQ-NFR-011) — never <code>.env</code>, which belongs to <code>docker compose</code> and is not opened by <code>dotnet run</code> or F5, and never <code>appsettings.json</code>, where <code>ConfigurationHygieneTests</code> fails the build on a secret. The committed template is <code>src/TfLens/secrets.example.json</code>; that template now lists the <strong>complete</strong> configuration surface — all nine settings with their defaults, not just the three secrets (REQ-NFR-011, corrected 2026-08-28 after the owner's UAT report that configuration was spread across four places). <code>TfLens:DbConnection</code> need not be set in Development: <code>TfLensOptions.LocalDevelopmentConnection</code> (<code>Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev</code>) is seeded as the <strong>lowest-priority</strong> source, so user secrets and environment variables both override it, and nothing is seeded outside Development.
 <ul>
@@ -312,7 +312,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>Steps:</strong> 1) Read the sidebar order and icons → 2) click the sidebar trigger to collapse, hover an item, expand again → 3) click each item → 4) flip the header <strong>Framework switch</strong> to Playbook and back, then open <code>/repos</code> and <code>/profile</code> → 5) press <strong>Sync now</strong> → 6) open the user menu (name on the right) → 7) toggle the theme → 8) Sign out from the menu
 </li>
-<li><strong>Expected:</strong> the sidebar holds <strong>eight</strong> items in the fixed order Repos, Coverage / health, Gate outcomes, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, <strong>Phase effort</strong>, Snapshot export, each with a Lucide icon and no <code>/playbook</code> item — the framework is chosen in the header; the Framework switch renders on the <strong>six</strong> report routes (<code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) and on neither <code>/repos</code> nor <code>/profile</code>; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
+<li><strong>Expected:</strong> the sidebar holds <strong>eight</strong> items in the fixed order Repos, Coverage / health, Gate outcomes, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, <strong>Phase effort</strong>, Snapshot export, each with a Lucide icon and no <code>/playbook</code> item — the framework is chosen in the header; the Framework switch renders on the <strong>seven</strong> report routes (<code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/effort</code>, <code>/export</code>) and on neither <code>/repos</code> nor <code>/profile</code>; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
 </li>
 <li><strong>Covers:</strong> BRD-4, BRD-5, BRD-6, BRD-85, BRD-105, BRD-106, BRD-124, BRD-126 (REQ-UI-006, REQ-UI-010)
 </li>
@@ -412,9 +412,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Purpose:</strong> answer <em>what did each phase cost — in time, tokens, models and subagents?</em> A <strong>budgeting and capacity</strong> view, never a quality scoreboard: <code>*build-phase</code> costing more than <code>*log-miss</code> is a fact about what those phases <em>are</em>. Quality lives on <code>/misses</code> and Coverage.
 </li>
-<li><strong>Status:</strong> <strong>not built yet</strong> (F-EFFORT, Phase 3 — <code>REQ-UI-045</code>..<code>051</code>). Its approved design is <code>docs/mockups/effort.html</code> and <code>docs/mockups/effort-playbook.html</code>; a test plan is written here when the screen exists, so that this section never describes behaviour nobody can execute.
+<li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Covers (when built):</strong> BRD-145..BRD-163, BRD-168, BRD-169
+<li><strong>Steps:</strong> 1) Open <code>/effort</code> → 2) read the four KPI tiles and their denominators → 3) open the <strong>Per-phase detail</strong> disclosure for <code>build-phase</code> → 4) read all four bands in order → 5) narrow the period → 6) flip the Framework switch to Playbook and back → 7) repeat step 3 at a phone width (390px)
+</li>
+<li><strong>Expected:</strong> every figure carries its denominator <strong>beside it</strong>, never behind a tooltip — <code>measured on n of N runs</code> on the token band, <code>observed_n of runs</code> stated <strong>first</strong> in the fan-out band (correct at <code>1 of 13</code>, not only once the data is dense), and <code>complete</code> / <code>active_coverage</code> on the Playbook axis; the per-phase detail opens the four bands in the fixed order <strong>Time · Tokens · By model · Fan-out</strong>; the Tokens band shows the <strong>mean beside the median</strong>, never instead of it, and only <code>tokens_out</code> carries a per-run figure because the producer reports the other three as totals; the By-model band carries the standing <strong>"observational, not causal"</strong> line; wall-clock is never presented as human effort; nothing anywhere is grouped by actor (BRD-168) and there is <strong>no per-REQ effort view</strong> (BRD-169); an unmeasured value reads <code>—</code> or <code>insufficient data (n=…)</code>, never <code>0</code>; at 390px the model identifiers and the <code>median · max</code> figure pair stay on one line and the panel scrolls sideways inside its own box rather than breaking a token mid-word
+</li>
+<li><strong>Covers:</strong> BRD-145..BRD-163, BRD-168, BRD-169 (<code>REQ-UI-045</code>..<code>051</code>)
 </li>
 </ul>
 <h3 id="snapshot-export-export">Snapshot export (<code>/export</code>)<a class="anchor-link" href="#snapshot-export-export">#</a></h3>
@@ -425,7 +429,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><strong>Steps:</strong> 1) Read the banner → 2) press <strong>Export snapshot</strong> → 3) open both files from the new row → 4) copy a SHA from the dataset table
 </li>
-<li><strong>Expected:</strong> banner is NOT QUOTABLE until a parity run is recorded for the current parser version, QUOTABLE afterwards — it reads QUOTABLE today, against parser <strong>1.2.0</strong>; export creates <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code>, <code>parity</code>, and each <code>per_repo</code> entry carries <code>source_kind</code>; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
+<li><strong>Expected:</strong> banner is NOT QUOTABLE until a parity run is recorded for the current parser version — it reads <strong>NOT QUOTABLE today</strong> and correctly so (see Known limitations); QUOTABLE afterwards, against parser <strong>1.2.0</strong>; export creates <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code>, <code>parity</code>, and each <code>per_repo</code> entry carries <code>source_kind</code>; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
 </li>
 <li><strong>Covers:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 </li>
@@ -539,9 +543,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p><code>export</code> requires <code>--user</code>; with no <code>--framework</code> it writes every framework's snapshot. It always writes today's UTC date — there is no <code>--date</code>.</p>
 <h2 id="test-automated">Test (automated)<a class="anchor-link" href="#test-automated">#</a></h2>
 <pre><code class="language-bash">dotnet test TfLens.slnx -c Release -m:1</code></pre>
-<p>630 tests — Core 500, Guardrails 87, Integration 43. <code>-m:1</code> matters: the suite is not parallel-safe.</p>
+<p><strong>821 tests</strong> — Core 653, Guardrails 119, Integration 49 (2026-09-02, Release). <code>-m:1</code> matters: the suite is not parallel-safe.</p>
 <pre><code class="language-bash">npx playwright test</code></pre>
-<p>77 acceptance specs under <code>tests/verify/</code>, run serially against a running app at <code>http://localhost:5099</code> (override with <code>TFLENS_BASE_URL</code>). Boot the app first — the config starts no web server for you. Three specs skip themselves against the owner's live dataset: two need the seeded misses fixture, one needs Playbook data.</p>
+<p><strong>101 specs</strong> under <code>tests/verify/</code>, run serially against a running app at <code>http://localhost:5099</code> (override with <code>TFLENS_BASE_URL</code>). Boot the app first — the config starts no web server for you. Three specs skip themselves against the owner's live dataset: two need the seeded misses fixture, one needs Playbook data. Last run 2026-09-02: <strong>95 passed / 3 failed / 3 skipped</strong> — the three failures are the two <code>mockup-parity</code> clauses (adjudicated per checklist row: 17 findings, none of them real) and the <code>/export</code> NOT-QUOTABLE banner, which is that mechanism working (see Known limitations).</p>
 <h2 id="smoke-checklist-quick-capability-pass">Smoke checklist (quick capability pass)<a class="anchor-link" href="#smoke-checklist-quick-capability-pass">#</a></h2>
 <ul>
 <li>[ ] Sign in as user 1 and land on Coverage, in dark mode
@@ -554,39 +558,61 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li>[ ] Open <strong>Misses &amp; rework</strong>, narrow the period, and read the three-way cost-of-rework split
 </li>
-<li>[ ] Open <strong>Gate outcomes</strong> and switch <code>project_type</code> tabs
+<li>[ ] Open <strong>Gate outcomes</strong> and switch <code>project_type</code> tabs; check the catch-distribution lists all ten gates with a caveat badge on <code>assets</code>, <code>mockup-parity</code> and <code>perf</code>
+</li>
+<li>[ ] Open <strong>Phase effort</strong>, expand <code>build-phase</code>, and confirm every figure shows its denominator beside it
 </li>
 <li>[ ] Flip the Framework switch to Playbook on a report page and back
 </li>
-<li>[ ] Export a snapshot and open both files from the new row
+<li>[ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE by design (see Known limitations)
 </li>
 <li>[ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
+</li>
+<li>[ ] Re-check <strong>Phase effort</strong> and <strong>Misses &amp; rework</strong> at a phone width (390px) — nothing breaks a word mid-token, nothing is cut off inside its own box
 </li>
 <li>[ ] Sign out from the user menu
 </li>
 </ul>
 <h2 id="known-limitations">Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
-<p>140 of the 143 REQ rows in <code>docs/TfLens-Checklist.md</code> are <code>Verified</code>; there are <strong>no <code>Blocked</code> rows</strong>. The three that are not — <code>REQ-FN-012</code>, <code>REQ-FN-067</code>, <code>REQ-FN-070</code> — open this list.</p>
+<p><strong>169 of the 179 REQ rows</strong> in <code>docs/TfLens-Checklist.md</code> are <code>Verified</code>; there are still <strong>no <code>Blocked</code> rows</strong>. The ten that are not open this list. Read this section before filing a UAT bug — several of the things below look like defects and are the product working as specified.</p>
 <h3 id="this-release">This release<a class="anchor-link" href="#this-release">#</a></h3>
 <ul>
-<li><code>REQ-FN-067</code>, <code>REQ-FN-070</code> (<code>Needs re-verify</code>) — no connected repository emits <code>events.ndjson</code>, so the Playbook axis renders its (correct) empty state and the Playbook report data and snapshot cannot be verified end to end. The way in is <strong>Add source → Import metric files</strong> with a <code>verification/telemetry/</code> bundle.
+<li><strong><code>/export</code> reads NOT QUOTABLE, and that is the mechanism working — do not file it.</strong> (<code>REQ-FN-063</code>, <code>REQ-UI-033</code>.) A snapshot is quotable only while a recorded parity run postdates the last parser <em>and</em> reference-script change. The BRD §13 procedure was re-run on 2026-09-02 against a dataset fetched from the GitHub API at the pinned SHAs and returned <strong>4 findings</strong>, all traceable to a single record in <strong>another repository</strong>: <code>TechieBlog</code>'s <code>runs.jsonl</code> holds a run whose <code>ended</code> precedes its <code>started</code> (<code>duration_s: -166</code>). The comparison script sums that negative; TfLens refuses it. TfLens is right, and BRD §13 forbids changing the script — so the fix belongs to TechieBlog's own agents, not here. <strong>Thirteen further records in that repository carry the same impossible ordering</strong> behind plausible round durations and are invisible to every gate. Until they are repaired at source, no TfLens figure is quotable and the banner says so honestly.
+</li>
+<li><strong><code>/export</code>'s dataset-SHA table lists a repository that is not on <code>/repos</code>.</strong> Signed in as user 1 the table shows six rows including <code>isolation-probe/belongs-to-user-two</code>, while <code>/repos</code> shows the five repos that user actually owns. This is <strong>not</strong> a code isolation leak — <code>ReadSyncStateAsync</code> filters on <code>UserId</code> correctly — it is a leftover harness row written into the store under the wrong user id, the same pollution class as the <code>userId 9001</code> rows already recorded. It publishes a misleading dataset identity on the one surface BRD-70 says carries it. <code>REQ-NFR-019</code>'s provenance audit cannot see it because that audit checks <em>streams → SyncState</em> and never <em>SyncState → reality</em>; <code>provenance-check --user 2</code> reports <code>0 unaccounted</code>. Owner action: delete the stray <code>SyncState</code> row.
+</li>
+<li><strong>Phase-effort figures were computed from a stale store until 2026-09-02.</strong> Rows ingested before the F-EFFORT columns existed were never updated on re-sync (<code>ON CONFLICT DO NOTHING</code>), so <code>/effort</code>'s fan-out and per-model bands read off incomplete data — <code>spawns_total 0</code> against a real 6. Cleared by <code>rebuild --user &lt;id&gt;</code>; <strong>run a rebuild after any framework schema addition</strong>, because a sync alone will not backfill it.
+</li>
+<li><code>REQ-FN-067</code>, <code>REQ-FN-070</code>, <code>REQ-UI-050</code>, <code>REQ-UI-051</code> — no connected repository emits <code>events.ndjson</code>, so the Playbook axis renders its (correct) empty state and the Playbook report data and snapshot cannot be verified end to end. The way in is <strong>Add source → Import metric files</strong> with a <code>verification/telemetry/</code> bundle.
 </li>
 <li><code>REQ-FN-012</code> (<code>N/A</code>) — GitHub SSO (BRD-94) is deferred; AppManager has no external-login endpoint, so the login page shows no GitHub button.
 </li>
+<li><code>REQ-NFR-024</code> (<code>In Progress</code>) — no per-developer or machine-specific state is tracked; the remaining clause is upstream (<code>TF-014</code>).
+</li>
 <li>Harness, routing and repricing figures have no reference implementation — spot-checked by hand once (BRD-72), never parity-diffed.
 </li>
-<li><code>TfLensGitHubToken</code> is optional in the BRD and effectively required in practice: unauthenticated GitHub allows 60 requests/hour, which a four-repo sync exhausts; a PAT raises it to 5,000/hour and grants no extra repository access.
+<li><code>mockup-parity</code> reports <strong>17 findings, none of them real</strong>: nine are the <code>app-sidebar</code> clip that fires on every screen (<code>TF-012</code>, screen-reader-only text counted as overflow) and eight are the <code>/export</code> family disproved by measurement under <code>REQ-NFR-020</code>.
+</li>
+<li><code>TfLensGitHubToken</code> is optional in the BRD and effectively required in practice: unauthenticated GitHub allows 60 requests/hour, which a five-repo sync exhausts; a PAT raises it to 5,000/hour and grants no extra repository access.
 </li>
 <li>The rebuild progress bar is an estimate, not a measurement, so a long rebuild reads as stuck at 20%.
 </li>
 <li>The sidebar repo-count badge is not framework-filtered, so it can legitimately differ from the Framework switch counts and from Coverage's card count.
+</li>
+<li>Sparklines are deliberately absent from most Coverage and Gate-outcomes tiles — there is no stored series behind them, and a line through invented points is what BRD §1 forbids.
 </li>
 <li>Optional, deliberately outside the runbook: <code>dotnet user-secrets set "TfLens:DbConnection" …</code> (or <code>TfLensDbConnection</code>) to point at your own PostgreSQL, and <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code> to verify the UI without GitHub.
 </li>
 </ul>
 <h3 id="upstream-techieflow-docs-tflens-techieflow-feedback-md">Upstream — TechieFlow (<code>docs/TfLens-TechieFlow-Feedback.md</code>)<a class="anchor-link" href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">#</a></h3>
 <ul>
-<li><strong>TF-005 (open)</strong> — <code>analyse_misses</code> in <code>tf-metrics.sh</code> averages an unrecorded <code>tokens_out</code> as zero, understating rework cost. TfLens divides only by the records that carry a count and reports the rest as unmeasured (<code>DECISIONS.md</code> <strong>D-012</strong>). Latent, not live: every dataset seen so far carries the field, so parity passes today.
+<li><strong>TF-015 (open, High, new 2026-09-02)</strong> — <code>tf-emit.sh</code> accepts a run whose <code>ended</code> precedes its <code>started</code> and writes the negative <code>duration_s</code> without complaint; the two consumers then disagree about it, so the same corpus yields two different totals and neither flags the impossible record. 14 such records exist in TechieBlog, 13 of them invisible behind plausible round durations. Two lines of emit-time validation would stop them at source.
+</li>
+<li><strong>TF-011 (open, High)</strong> — <code>mockup-parity</code> reports an unqualified PASS on a screen it graded almost none of, because its depth is bounded by the mockup's <code>data-testid</code> count.
+</li>
+<li><strong>TF-012 / TF-014 / TF-013 / TF-010 / TF-009 / TF-008 / TF-007 (open)</strong> — see the feedback file; <code>TF-012</code> is the <code>app-sidebar</code> false positive listed above.
+</li>
+<li><strong>TF-005 — resolved upstream 2026-08-31.</strong> <code>analyse_misses</code> now divides only by the records that carry <code>tokens_out</code> and publishes the denominator; TfLens matches it as of 2026-09-02 (<code>REQ-FN-079</code>).
 </li>
 <li>TF-001, TF-002, TF-003, TF-004 and the first entry filed under TF-005 are fixed upstream and closed.
 </li>

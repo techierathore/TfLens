@@ -41,8 +41,20 @@
     color: var(--destructive);
 }
 
-/* The KPI trend line the mockups show under every tile. It inherits its stroke from the tile's
-   accent class via `currentColor`, so a tile keeps one colour for its chip and its line. */
+/* REQ-UI-018 — the KPI trend line the mockups show under every tile. Its colour is FIXED at
+   `--chart-1`, not inherited from the tile's accent: UIDesign §Design system says "a small trend line
+   uses --chart-1 colour" and every mockup strokes `var(--chart-1)` under a chip of any colour
+   (`docs/mockups/gate-outcomes.html:61`). Taking the accent instead — which is what shipped, via
+   `currentColor` under `@AccentClass` — painted the Failures-scored line amber off
+   `StatAccent.Chart4` and was the app's only semantic-colour parity finding. The chip is what carries
+   the tile's identity; the line is the same line on every tile, which is what makes a row of them
+   comparable at a glance.
+
+   The stroke sits on the POLYLINE, matching `.spark polyline { stroke: var(--chart-1) }` in the
+   mockups. Routing it through `color: var(--chart-1)` on the svg draws the identical line, but it also
+   makes the svg element itself report a semantic colour, and the parity gate reads the element rather
+   than the mark inside it — so the app read `blue` against the mockup's inherited `neutral` and the
+   finding survived a fix that had already worked. Same colour, same place in the cascade as the design. */
 .tflens-spark {
     display: block;
     width: 100%;
@@ -52,12 +64,9 @@
     opacity: .85;
 }
 
-.tflens-spark.tflens-accent-1 { color: var(--chart-1); }
-.tflens-spark.tflens-accent-2 { color: var(--chart-2); }
-.tflens-spark.tflens-accent-3 { color: var(--chart-3); }
-.tflens-spark.tflens-accent-4 { color: var(--chart-4); }
-.tflens-spark.tflens-accent-5 { color: var(--chart-5); }
-.tflens-spark.tflens-accent-danger { color: var(--alert-danger); }
+    .tflens-spark polyline {
+        stroke: var(--chart-1);
+    }
 
 /* REQ-UI-036 — the title row now carries an optional provenance badge beside the metric name. */
 .tflens-stat-title {

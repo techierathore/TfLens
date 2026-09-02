@@ -234,7 +234,7 @@ internal static class SnapshotJson
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Twenty-nine keys, spelled and shaped exactly as <c>analyse_misses()</c> emits them, so
+    /// Every key <c>analyse_misses()</c> emits, spelled and shaped exactly as it emits them, so
     /// <c>tools/parity-compare.py</c> walks them with no mapping layer. The counts come from
     /// <see cref="MissAnalysis"/>, which already totals them; every distribution, share and cost figure
     /// comes from <see cref="SnapshotInputs.MissParity"/>, the engine's own block computed in the one
@@ -296,8 +296,17 @@ internal static class SnapshotJson
             ["cost_shared_n"] = vBlock.Cost.SharedRecords,
             ["cost_unattributable_n"] = vBlock.Cost.TokensPerMissFixed.NoneCount,
             ["cost_recovered_n"] = vBlock.Cost.RecoveredRecords,
+            // Each token column is followed by its OWN divisor and by the records that had to be left
+            // out of it. The divisor is not `cost_sole_n`: a repair whose tokens were never recorded is
+            // unmeasured work, not free work, so it leaves the mean — and the count that results is
+            // published rather than implied, which is what lets a consumer reproduce the figure instead
+            // of choosing between agreeing with us and being right (BRD-146/149).
             ["tokens_per_miss_measured"] = Number(vBlock.Cost.TokensPerMissFixed.Sole, TokensPerMissDigits),
+            ["tokens_per_miss_measured_n"] = vBlock.Cost.MeasuredTokenRecords,
+            ["tokens_unrecorded_sole_n"] = vBlock.Cost.SoleTokensUnrecorded,
             ["tokens_per_miss_apportioned"] = Number(vBlock.Cost.TokensPerMissFixed.Apportioned, TokensPerMissDigits),
+            ["tokens_per_miss_apportioned_n"] = vBlock.Cost.ApportionedTokenRecords,
+            ["tokens_unrecorded_shared_n"] = vBlock.Cost.SharedTokensUnrecorded,
             ["cost_usd_per_miss_measured"] = vMeasured is null
                 ? null
                 : Number(vMeasured.MeasuredUsdPerMiss, MeasuredUsdDigits),

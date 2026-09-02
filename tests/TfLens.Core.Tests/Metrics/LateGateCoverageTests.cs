@@ -9,12 +9,46 @@ namespace TfLens.Core.Tests.Metrics;
 /// </summary>
 public sealed class LateGateCoverageTests
 {
-    /// <summary>The late-gate table is the reference's: <c>perf</c>, added 2026-08-10.</summary>
+    /// <summary>
+    /// The late-gate table is the reference's, entry for entry: <c>perf</c> from 2026-08-10, and
+    /// <c>assets</c> + <c>mockup-parity</c> from 2026-08-31.
+    /// </summary>
+    /// <remarks>
+    /// Asserted as the WHOLE table rather than one key, because the failure this guards against is an
+    /// omission, not a wrong value — the two 2026-08-31 gates ran and caught real defects for two days
+    /// while this table still listed one gate, and a per-key assertion cannot notice a missing key. Keep
+    /// in step with <c>LATE_GATES</c> in <c>tf-metrics.sh</c>; the §13 diff is what catches drift here.
+    /// </remarks>
     [Fact]
-    public void PerfIsTheLateGateWithItsIntroductionDate()
+    public void TheLateGateTableMatchesTheReferenceEntryForEntry()
     {
-        Assert.Equal("2026-08-10", MetricsConstants.LateGates["perf"]);
+        Assert.Equal(
+            new Dictionary<string, string>
+            {
+                ["perf"] = "2026-08-10",
+                ["assets"] = "2026-08-31",
+                ["mockup-parity"] = "2026-08-31"
+            },
+            MetricsConstants.LateGates);
     }
+
+    /// <summary>
+    /// The coverage row for one gate, by name.
+    /// </summary>
+    /// <remarks>
+    /// The calculator emits a row per late gate, so these tests name the gate they are about instead of
+    /// taking the only row. They were written when <c>perf</c> was the only late gate and <c>Single()</c>
+    /// silently encoded that; naming the gate makes them survive the next addition to the table.
+    /// </remarks>
+    /// <param name="aRecords">The gate records.</param>
+    /// <param name="aCounts">The failure distribution.</param>
+    /// <param name="aGate">The gate whose row is wanted.</param>
+    /// <returns>That gate's coverage row.</returns>
+    private static LateGateCoverage CoverageFor(
+        IReadOnlyList<GateRecord> aRecords,
+        IReadOnlyDictionary<string, int> aCounts,
+        string aGate) =>
+        LateGateCoverageCalculator.Compute(aRecords, aCounts).Single(aRow => aRow.Gate == aGate);
 
     /// <summary><c>ran</c> counts records whose <c>gates_run</c> contains the gate, not records that failed on it.</summary>
     [Fact]
@@ -30,7 +64,7 @@ public sealed class LateGateCoverageTests
         };
 
         var vFailures = vRecords.Where(aRecord => aRecord.Verdict == "FAIL").ToList();
-        var vCoverage = LateGateCoverageCalculator.Compute(vRecords, GateDistribution.Count(vFailures)).Single();
+        var vCoverage = CoverageFor(vRecords, GateDistribution.Count(vFailures), "perf");
 
         Assert.Equal("perf", vCoverage.Gate);
         Assert.Equal(3, vCoverage.Ran);
@@ -53,7 +87,7 @@ public sealed class LateGateCoverageTests
 
         var vFailures = vRecords.Where(aRecord => aRecord.Verdict == "FAIL").ToList();
         var vCounts = GateDistribution.Count(vFailures);
-        var vCoverage = LateGateCoverageCalculator.Compute(vRecords, vCounts).Single();
+        var vCoverage = CoverageFor(vRecords, vCounts, "perf");
         var vShareOfDistribution = MetricsConstants.Pct(vCounts["perf"], vFailures.Count);
 
         Assert.Equal("33%", vShareOfDistribution);
@@ -76,7 +110,7 @@ public sealed class LateGateCoverageTests
             GateFixtures.Gate(aReqId: "REQ-FN-002", aGatesRun: ["build"])
         };
 
-        var vCoverage = LateGateCoverageCalculator.Compute(vRecords, GateDistribution.Count([])).Single();
+        var vCoverage = CoverageFor(vRecords, GateDistribution.Count([]), "perf");
 
         Assert.Equal(0, vCoverage.Ran);
         Assert.Equal(0, vCoverage.Caught);
@@ -95,7 +129,7 @@ public sealed class LateGateCoverageTests
         };
 
         var vFailures = vRecords.Where(aRecord => aRecord.Verdict == "FAIL").ToList();
-        var vCoverage = LateGateCoverageCalculator.Compute(vRecords, GateDistribution.Count(vFailures)).Single();
+        var vCoverage = CoverageFor(vRecords, GateDistribution.Count(vFailures), "perf");
 
         Assert.Equal(2, vCoverage.Ran);
         Assert.Equal("insufficient data (n=2)", vCoverage.CatchRate.Display());

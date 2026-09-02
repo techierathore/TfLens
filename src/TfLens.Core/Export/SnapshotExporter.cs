@@ -453,8 +453,16 @@ public sealed class SnapshotExporter : ISnapshotExporter
     /// <para>
     /// The bound is applied the same way the segment collapse is: by feeding
     /// <see cref="MissFigures.Compute"/> the record set the reference feeds it, and reading its answer.
-    /// Nothing is recomputed here — the filter is the engine's own
-    /// <see cref="MissFigures.SoleAttribution"/> constant, and the mean is the engine's own.
+    /// Nothing is recomputed here — the filter is the engine's own <see cref="MissFigures.SoleFixes"/>,
+    /// and the mean is the engine's own.
+    /// </para>
+    /// <para>
+    /// That filter reads the RECOMPUTED attribution, never the stored <c>cost_attribution</c>. Reading
+    /// the stored string here would have drawn the boundary the emitter's write order drew rather than
+    /// the one the finished stream supports, which is the same defect
+    /// <c>MissFigures.ComputedAttribution</c> was corrected for on 2026-09-02 — and it would have drawn
+    /// it in the money column, where a dollars-per-miss figure taken from a run that repaired three
+    /// misses means nothing at all.
     /// </para>
     /// </remarks>
     /// <param name="aMisses">Every stored miss record for the framework.</param>
@@ -468,9 +476,7 @@ public sealed class SnapshotExporter : ISnapshotExporter
         IReadOnlyList<MissAmendRecord> aAmends,
         IReadOnlyList<RunRecord> aRuns)
     {
-        var vSole = aFixes
-            .Where(aFix => string.Equals(aFix.CostAttribution, MissFigures.SoleAttribution, StringComparison.Ordinal))
-            .ToList();
+        var vSole = MissFigures.SoleFixes(aFixes);
 
         return MissParityFor(aMisses, vSole, aAmends, aRuns).Cost.ByHarness
             .FirstOrDefault(aRow =>

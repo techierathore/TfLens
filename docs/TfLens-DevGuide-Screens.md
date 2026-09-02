@@ -12,7 +12,7 @@ counts in a shot will not match what you see today; the *structure* is what the 
 
 ---
 
-## Runtime-verified 2026-08-30 as `tflensdemo@techierathore.com` (userId 2, Manager)
+## Runtime-verified 2026-09-02 as `tflensdemo@techierathore.com` (userId 2, Manager)
 
 Observed, not inferred. A full `*verify all` pass drove every screen below on a **Release** build at
 `http://localhost:5099` with headless Chromium at **1280×800 and 390×844**, applying the data-render
@@ -25,7 +25,7 @@ screenshots `tests/.artifacts/gates/{screen}-{1280,390}.png`.
 built screen against its approved mockup in `docs/mockups/`, and it is the gate that matters most for
 this table, because the two gates above cannot see design drift: a badge rendered as plain text has
 text and does not overlap, and a value split mid-token is present and unclipped. Its 2026-08-29 first
-run demoted 8 screens with 44 findings. **This run: 10 PASS / 2 FAIL / 0 findings.**
+run demoted 8 screens with 44 findings. **This run (2026-09-02): 2 PASS / 11 FAIL over 921 comparisons — 22 findings, 9 waived. Two are REAL and NEW (`/effort`, `/misses`); the rest are the adjudicated TF-012 sidebar clip, the owner-reserved auth-route overflow, and nine `/export` artefacts disproved by measurement.**
 
 | Screen | Controls checked | Data render | Looks right | Mockup parity |
 |---|---|---|---|---|
@@ -37,17 +37,26 @@ run demoted 8 screens with 44 findings. **This run: 10 PASS / 2 FAIL / 0 finding
 | `/repos` | 35 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 6 wrap findings cleared |
 | `/` — Coverage / health | 58 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 4 findings cleared |
 | `/` — Coverage miss-quality card | 7 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS |
-| `/gate-outcomes` | 31 | renders ✓ (runtime-confirmed **2026-09-01**) | looks-right ✓ (runtime-confirmed **2026-09-01**, 1280 + 390) | **mockup-parity: 1 open finding** — `stat-sparkline` semantic colour (app amber via `@AccentClass` vs the design's `--chart-1`), `MISS-TfLens-20260901-03`. `late-gate-app` icon belongs to `REQ-UI-022`; `app-sidebar` clip is the TF-012 false positive |
+| `/gate-outcomes` | 31 | renders ✓ (runtime-confirmed **2026-09-01**) | looks-right ✓ (runtime-confirmed **2026-09-01**, 1280 + 390) | **mockup-parity: CLEAN (2026-09-02)** — the `stat-sparkline` semantic-colour finding is CLOSED (`MISS-TfLens-20260901-03`): the trend line strokes `--chart-1` on the polyline, matching `docs/mockups/gate-outcomes.html:61`. This was the app's only `color` finding anywhere. The gate distribution now renders the reference's ten-gate order with a caveat badge on all three late gates (`REQ-FN-052`). `late-gate-app` icon belongs to `REQ-UI-022`; `app-sidebar` clip is the TF-012 false positive |
 | `/harness` | 28 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 2 findings cleared |
 | `/routing` — drift · models · repricing · poolable | 23 · 8 · 19 · 13 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — **20 findings cleared**, the largest per-screen count |
-| `/misses` | 104 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 8 findings cleared |
-| `/export` | 30 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 2 findings cleared |
+| `/misses` | 105 | renders ✓ (runtime-confirmed **2026-09-02**) | looks-right ✓ (runtime-confirmed **2026-09-02**, 1280 + 390) | **mockup-parity: CLEAN (2026-09-02)** — `clip@390:misses-page` is CLOSED (`REQ-UI-038`, `MISS-TfLens-20260902-03`). Root cause was the `miss-type` tab strip measuring 361px inside a 342px container: content CUT OFF, not pushed out, which is why §4b passed it — that gate checks control boxes against the viewport, not a container's own scrollWidth. Now scrolls inside itself via `::deep [role="tablist"]`, the identical rule `GateOutcomes.razor.css` already carried. Only the `app-sidebar` TF-012 false positive remains |
+| `/export` | 30 | renders ✓ (runtime-confirmed **2026-09-02**) | looks-right ✓ (runtime-confirmed **2026-09-02**, 1280 + 390) | **FAIL — all 9 findings are GATE ARTEFACTS, disproved by measurement, no app change indicated.** The app's `snapshots-table` has **6** columns to the mockup's **5** (the `framework` column, BRD-108/ADR-016), and the gate pairs cells positionally; its `wrap` verdicts come from uniform row height (73 vs 48px), while `snapshot.md` measures **one** line at both widths. `badge@export-now-icon` is a 40×40 button, radius 8px, tinted background — it has chrome. Logged under `REQ-NFR-020` |
+| `/effort` — Phase effort | 40 (own spec) | renders ✓ (runtime-confirmed **2026-09-02**, via `ui-effort.spec.ts`) | looks-right ✓ (runtime-confirmed **2026-09-02**, 1280 + 390, both framework axes) | **mockup-parity: CLEAN (2026-09-02)** — the `wrap@390` + `token@390` on the per-phase detail is CLOSED (`REQ-UI-048`, `MISS-TfLens-20260902-02`). The mockup states the missing rule outright (`docs/mockups/effort.html:178`: `.tbl td .mono { overflow-wrap: normal; white-space: nowrap }`); the build never carried it, so the By-model column starved and `claude-opus-5` broke mid-token. A THIRD defect on this screen surfaced only after the store was replayed — the fan-out `4.5 · 9` pair wrapped to two lines — because that cell read `—` while the rows carrying `subagent_runs` were stale; fixing the data is what made the layout defect visible. All clear at both widths. NOTE: `/effort` is not in the shared `gates-render-visual` sweep — it carries its own render + visual gate inside `ui-effort.spec.ts`, which is why the shared 22-screen-state total does not include it |
 | Playbook axis of all six report pages | 12 each (72) | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | SKIPPED — empty state, no mockup to grade against |
 
 **Zero** render-empty controls, **zero** render errors, **zero** visual failures and **zero** console
-errors across all **22 screen-states / 485 controls** and **44 viewport checks**. Acceptance: Playwright
-80 passed / 2 failed / 3 skipped of 85 (the 2 failures are the two owner-reserved routes above, nothing
-else) and .NET **689/689** on Release.
+errors across all **22 screen-states / 487 controls** and **44 viewport checks** (2026-09-02).
+Asset-integrity: **78 assets over 13 pages, 0 did not arrive, 0 redirects**. Acceptance: Playwright
+**95 passed / 3 skipped of 101** and .NET **815/815** on Release (Core 647 / Guardrails 119 /
+Integration 49). Perf `REQ-NFR-001`: **p95 load 412.7 ms against a 1500 ms budget @ concurrency 1**,
+150 samples, 0 errors / 0 non-200 / 0 redirects.
+
+**The two gates above still cannot see the two defects `mockup-parity` caught on 2026-09-02**, and
+both are the TF-008 shape once more: on `/effort` a starved column splits `build-phase` mid-word, and
+on `/misses` the per-miss detail is cut off inside its own container. Text that has wrapped is still
+present, and a container that clips its own overflow pushes nothing off the viewport — so the
+data-render and visual-truth gates pass both, correctly, on the questions they ask.
 
 **Two rendering defects were fixed this run that no gate but `mockup-parity` could see, and both had
 the same root cause** — worth knowing because it will recur. Blazor stamps the CSS-isolation scope
@@ -1302,9 +1311,13 @@ authenticated · `MainLayout` · Framework switch **shown**
 > visual gate clean at 1280 and 390; 0 console errors. Screenshot re-captured this run — it now shows the
 > post-rename title (`Gate outcomes`), which the file did not after the `mv`.
 >
-> **Known issue (open):** the KPI `stat-sparkline` strokes `currentColor` under `@AccentClass`, so the failures
-> tile paints **amber** where `docs/mockups/gate-outcomes.html` and UIDesign §Design system specify `--chart-1`.
-> Fidelity, not function — `REQ-UI-018` is held at `Needs re-verify` for it (`MISS-TfLens-20260901-03`).
+> **Known issue — CLOSED 2026-09-02 (`REQ-UI-018`).** The KPI `stat-sparkline` used to stroke `currentColor` under `@AccentClass`, so the failures
+> tile painted **amber** where `docs/mockups/gate-outcomes.html` and UIDesign §Design system specify `--chart-1`.
+> Fixed: the stroke sits on the **polyline** as `var(--chart-1)`, matching the mockup's own cascade position
+> (`StatTile.razor.css:44`). Moving the colour onto the `<svg>` via `color:` drew the identical line but left the
+> element itself reporting a semantic colour, so the parity gate still saw a difference — same pixels, wrong place
+> in the cascade. `color@1280` and `color@390` are both gone; `REQ-UI-018` is `Verified` (`MISS-TfLens-20260901-03`
+> closed).
 
 **What it is for.** The page the product exists for: first-pass rate, escape rate and failures scored,
 read **one `project_type` at a time**. There is deliberately no "all" tab and no total row.
@@ -1418,7 +1431,7 @@ One call: `objComparison = await objExtraMetrics.CompareHarnessesAsync(userId, o
 | Row values | `FigureText` or plain span | `harness-{h}-runs`, `-cmds`, `-gates`, `-verdicts`, `-sessions`, `-tokens-in`, `-tokens-out`, `-cache-read`, `-cache-write`, `-tokens-per-verified`, `-cost` | `HarnessColumn.*` |
 | Not-detected footnote | `div.tflens-footnote` | `harness-null-footnote` | `HarnessComparison.NotDetectedRecords` |
 | Tokens chart | `ChartContainer` → `BarChart` + `ApexPointSeries` | `tokens-chart` | `objChartRows` (`HarnessTokenTotal`) |
-| Tokens table | `DataTable … InitialPageSize="50"` | `tokens-table`, `tokens-total-{harness}` | `ToTokenRow` = in + out + cache read + cache write |
+| ~~Tokens table~~ **REMOVED 2026-09-01** | — | ~~`tokens-table`~~ | The approved design has no such table: it prints each value ABOVE its bar, which is also its answer to a bar too short to see. Removed under `REQ-UI-023` as owner-reported drift; `ui-harness-routing-export.spec.ts:178` asserts its ABSENCE. The totals are graded where they now live — `tokens-chart-values` (the SVG labels plus an off-screen list that keeps them reachable without sight of the graphic). **The render gate's control list kept demanding it until 2026-09-02**, reporting a phantom `RENDER-EMPTY ("table absent")` on every run while a sibling spec asserted the opposite. |
 | OpenCode dollars | `Card` | `opencode-cost`, `opencode-cost-value`, `opencode-cost-basis`, `opencode-cost-note` | `HarnessComparison.OpenCodeCostUsd` ← `MeasuredOpenCodeCost(**sessions**)`, `Σ cost_usd` over deduped `opencode` **session** records; count in `OpenCodeCostSessions`. **Corrected 2026-08-27** — it read `runs`, which carry no `cost_usd` at all (SCHEMA.md §4 puts the measurement on the session stream), so the figure was structurally `null` and the caption named the wrong stream. |
 
 **The four rules that shape this file:**
@@ -1457,7 +1470,9 @@ One call: `objComparison = await objExtraMetrics.CompareHarnessesAsync(userId, o
 - **Cosmetic defect:** the chart's x-axis labels are doubled in the DOM
   (`"claude-codeclaude-code"`), though they paint once. If you assert on axis text, account for it.
 - The chart is **supplementary**: TrBlazeUI's chart API carries no axis or label control, so every value
-  it draws is also printed as text in `tokens-table` beside it. Never remove the table to "clean up".
+  it draws is also printed as text — since 2026-09-01 in `tokens-chart-values` (SVG labels + an off-screen
+  list), no longer in a repeated `tokens-table`. **The rule is unchanged and still binding: never leave a
+  charted figure without a text equivalent.** What changed is where the text lives, not whether it exists.
 - `HarnessTokenTotal` carries exactly two properties because TrBlazeUI 2.0.0's chart types infer the
   category and series from the item type's properties. Adding a third property to that record will
   change what the chart draws.

@@ -19,16 +19,26 @@ import {
   DESKTOP,
 } from './_helpers';
 
+// The reference's own GATE_ORDER (tf-metrics.sh), plus `unattributed`, which TfLens appends.
+// `assets` and `mockup-parity` were added upstream on 2026-08-31 and land beside the gate they run
+// with — assets after render, mockup-parity after visual — not appended at the end. Both are also
+// LATE gates (MetricsConstants.LateGates), so like `perf` they carry a caveat badge; that is asserted
+// per-gate below rather than only for `perf`.
 const GATE_ORDER = [
   'build',
   'acceptance',
   'render',
+  'assets',
   'visual',
+  'mockup-parity',
   'perf',
   'standards',
   'escaped',
   'unattributed',
 ];
+
+/** The gates whose row must carry a late-gate caveat badge — MetricsConstants.LateGates. */
+const LATE_GATES = ['assets', 'mockup-parity', 'perf'];
 
 /** Reads the `{name}` suffix off every testid carrying a given prefix, in DOM order. */
 async function suffixes(page: import('@playwright/test').Page, prefix: string): Promise<string[]> {
@@ -454,10 +464,15 @@ test('REQ-UI-020 Gate catch distribution renders the whole gate order with its c
       'no gate caught it',
     );
 
-    const perf = rows.find(r => r.gate === 'perf')!;
-    expect(perf.cell.toLowerCase(), `${id} perf row lacks its late-gate badge`).toContain(
-      'see coverage',
-    );
+    // Every late gate carries the caveat, not just perf. Asserting only `perf` is how the two gates
+    // added on 2026-08-31 went two days without one and without anything noticing.
+    for (const vGate of LATE_GATES) {
+      const vRow = rows.find(r => r.gate === vGate)!;
+      expect(vRow, `${id} has no ${vGate} row`).toBeTruthy();
+      expect(vRow.cell.toLowerCase(), `${id} ${vGate} row lacks its late-gate badge`).toContain(
+        'see coverage',
+      );
+    }
   }
 });
 

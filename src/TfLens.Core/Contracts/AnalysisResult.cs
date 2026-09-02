@@ -555,6 +555,38 @@ public sealed record MissMoney
     public required int SharedRecords { get; init; }
 
     /// <summary>
+    /// The divisor behind <see cref="MissCost.Sole"/> — parity key <c>tokens_per_miss_measured_n</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not <see cref="SoleRecords"/>.</b> A repair whose <c>tokens_out</c> was never recorded is not a
+    /// free repair, and averaging it in as a zero would understate rework in the direction that flatters
+    /// the framework (SCHEMA.md §2.5, BRD-31..36). It is therefore excluded from the mean — and the
+    /// divisor that results is published here, beside the figure, so the number can be reproduced rather
+    /// than merely trusted (BRD-146/149).
+    /// </remarks>
+    public required int MeasuredTokenRecords { get; init; }
+
+    /// <summary>
+    /// <c>sole</c> fix records that carried no <c>tokens_out</c> — parity key <c>tokens_unrecorded_sole_n</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="SoleRecords"/> minus <see cref="MeasuredTokenRecords"/>, carried explicitly so the gap
+    /// between the record count and the divisor is a stated figure rather than a subtraction a reader has
+    /// to notice. It is unmeasured work, never costless work.
+    /// </remarks>
+    public required int SoleTokensUnrecorded { get; init; }
+
+    /// <summary>
+    /// The divisor behind <see cref="MissCost.Apportioned"/> — parity key <c>tokens_per_miss_apportioned_n</c>.
+    /// </summary>
+    public required int ApportionedTokenRecords { get; init; }
+
+    /// <summary>
+    /// <c>shared:n</c> fix records that carried no <c>tokens_out</c> — parity key <c>tokens_unrecorded_shared_n</c>.
+    /// </summary>
+    public required int SharedTokensUnrecorded { get; init; }
+
+    /// <summary>
     /// Fix records whose window the stream had written off as unattributable and the recomputed
     /// divisor recovers (<c>cost_recovered_n</c>).
     /// </summary>
@@ -584,6 +616,10 @@ public sealed record MissMoney
         TokensPerMissFixed = MissCost.Empty,
         SoleRecords = 0,
         SharedRecords = 0,
+        MeasuredTokenRecords = 0,
+        SoleTokensUnrecorded = 0,
+        ApportionedTokenRecords = 0,
+        SharedTokensUnrecorded = 0,
         AttributionMissing = 0,
         ByHarness = []
     };

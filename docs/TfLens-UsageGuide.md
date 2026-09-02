@@ -26,7 +26,7 @@ TfLens has **no user table** — identity is the owner's AppManager service (App
 
   One case it cannot repair by itself: if AppManager holds the address but rejects the recorded password (it answers `DUPLICATE_EMAIL` on the re-registration attempt), the verb says so and stops. Reset the password through `/forgot-password`, or delete and re-create the account in the AppManager admin UI, then correct this table.
 - **A row removed 2026-08-28:** `tflensrole@techierathore.com` (`userId` 4) existed only as the reproduction case for AppManager defect AM-001. That defect is fixed and the account no longer exists in AppManager, so the row is gone rather than left to fail the restore verb. *(historical note; see `docs/TfLens-AppManager-Feedback.md`)*
-- **Seeding:** no database seed; accounts live in AppManager. User 1's four demo repos (`techierathore/TechieBlog`, `TechieFlow`, `TechieRag`, `TrBlazeUI`, all fetched via API) were connected by hand through the Repos screen — there is no configuration seed and no repo list in configuration.
+- **Seeding:** no database seed; accounts live in AppManager. User 1's five demo repos (`techierathore/TechieBlog`, `TechieFlow`, `TechieRag`, `TfLens`, `TrBlazeUI`, all fetched via API) were connected by hand through the Repos screen — there is no configuration seed and no repo list in configuration.
 - **Secrets for tests:** local development reads **user secrets** (REQ-NFR-011) — never `.env`, which belongs to `docker compose` and is not opened by `dotnet run` or F5, and never `appsettings.json`, where `ConfigurationHygieneTests` fails the build on a secret. The committed template is `src/TfLens/secrets.example.json`; that template now lists the **complete** configuration surface — all nine settings with their defaults, not just the three secrets (REQ-NFR-011, corrected 2026-08-28 after the owner's UAT report that configuration was spread across four places). `TfLens:DbConnection` need not be set in Development: `TfLensOptions.LocalDevelopmentConnection` (`Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=tflensdev`) is seeded as the **lowest-priority** source, so user secrets and environment variables both override it, and nothing is seeded outside Development.
   - The `TfLens:AppManagerApiKey` / `TfLens:AppManagerApiSecret` pair (env: `TfLensAppManagerApiKey` / `TfLensAppManagerApiSecret`) is **required** — *(corrected 2026-08-27; it was previously recorded as optional)*. Most endpoints do resolve the application from the `applicationId: 1` in the request body, but `/AuthSvc/forgot-password` and `/AuthSvc/reset-password` accept the app scope **only** from the header pair and answer `400 APPLICATION_ID_REQUIRED` without it, so password reset cannot work at all unconfigured. A **half-configured or wrong** pair returns `401 INVALID_API_KEY` on every call, which is why startup refuses a half pair — whole-or-not-at-all (see `DECISIONS.md` D-006).
   - *(corrected 2026-08-28)* The pair is now sent on **`/UserSvc/*` as well as `/AuthSvc/*`** — i.e. on every path the client calls. It used to be withheld from `/UserSvc/*` because `GET /UserSvc/profile` answered `403 NO_APP_ACCESS` whenever an application was resolved; that was AppManager defect **AM-002**, fixed by the owner on 2026-08-28. Measured live the same day: with the pair, `/UserSvc/profile` returns `200` with `applicationRole: "Manager"`; without it, `200` but with `applicationRole` as an **empty string**. Withholding it now costs the application scope for nothing.
@@ -85,7 +85,7 @@ flowchart LR
 - **Purpose:** make *whose data, and which framework?* answerable on every screen — the nav, the Framework switch, Sync now, the user menu.
 - **Log in as:** user 1
 - **Steps:** 1) Read the sidebar order and icons → 2) click the sidebar trigger to collapse, hover an item, expand again → 3) click each item → 4) flip the header **Framework switch** to Playbook and back, then open `/repos` and `/profile` → 5) press **Sync now** → 6) open the user menu (name on the right) → 7) toggle the theme → 8) Sign out from the menu
-- **Expected:** the sidebar holds **eight** items in the fixed order Repos, Coverage / health, Gate outcomes, Harness comparison, Routing & economics, **Misses & rework**, **Phase effort**, Snapshot export, each with a Lucide icon and no `/playbook` item — the framework is chosen in the header; the Framework switch renders on the **six** report routes (`/`, `/gate-outcomes`, `/harness`, `/routing`, `/misses`, `/export`) and on neither `/repos` nor `/profile`; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to `/login`
+- **Expected:** the sidebar holds **eight** items in the fixed order Repos, Coverage / health, Gate outcomes, Harness comparison, Routing & economics, **Misses & rework**, **Phase effort**, Snapshot export, each with a Lucide icon and no `/playbook` item — the framework is chosen in the header; the Framework switch renders on the **seven** report routes (`/`, `/gate-outcomes`, `/harness`, `/routing`, `/misses`, `/effort`, `/export`) and on neither `/repos` nor `/profile`; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to `/login`
 - **Covers:** BRD-4, BRD-5, BRD-6, BRD-85, BRD-105, BRD-106, BRD-124, BRD-126 (REQ-UI-006, REQ-UI-010)
 
 ### Repos (`/repos`)
@@ -139,14 +139,16 @@ flowchart LR
 
 ### Phase effort (`/effort`)
 - **Purpose:** answer *what did each phase cost — in time, tokens, models and subagents?* A **budgeting and capacity** view, never a quality scoreboard: `*build-phase` costing more than `*log-miss` is a fact about what those phases *are*. Quality lives on `/misses` and Coverage.
-- **Status:** **not built yet** (F-EFFORT, Phase 3 — `REQ-UI-045`..`051`). Its approved design is `docs/mockups/effort.html` and `docs/mockups/effort-playbook.html`; a test plan is written here when the screen exists, so that this section never describes behaviour nobody can execute.
-- **Covers (when built):** BRD-145..BRD-163, BRD-168, BRD-169
+- **Log in as:** user 1
+- **Steps:** 1) Open `/effort` → 2) read the four KPI tiles and their denominators → 3) open the **Per-phase detail** disclosure for `build-phase` → 4) read all four bands in order → 5) narrow the period → 6) flip the Framework switch to Playbook and back → 7) repeat step 3 at a phone width (390px)
+- **Expected:** every figure carries its denominator **beside it**, never behind a tooltip — `measured on n of N runs` on the token band, `observed_n of runs` stated **first** in the fan-out band (correct at `1 of 13`, not only once the data is dense), and `complete` / `active_coverage` on the Playbook axis; the per-phase detail opens the four bands in the fixed order **Time · Tokens · By model · Fan-out**; the Tokens band shows the **mean beside the median**, never instead of it, and only `tokens_out` carries a per-run figure because the producer reports the other three as totals; the By-model band carries the standing **"observational, not causal"** line; wall-clock is never presented as human effort; nothing anywhere is grouped by actor (BRD-168) and there is **no per-REQ effort view** (BRD-169); an unmeasured value reads `—` or `insufficient data (n=…)`, never `0`; at 390px the model identifiers and the `median · max` figure pair stay on one line and the panel scrolls sideways inside its own box rather than breaking a token mid-word
+- **Covers:** BRD-145..BRD-163, BRD-168, BRD-169 (`REQ-UI-045`..`051`)
 
 ### Snapshot export (`/export`)
 - **Purpose:** turn the figures into something quotable — marked **QUOTABLE** only while parity holds and provenance is clean.
 - **Log in as:** user 1
 - **Steps:** 1) Read the banner → 2) press **Export snapshot** → 3) open both files from the new row → 4) copy a SHA from the dataset table
-- **Expected:** banner is NOT QUOTABLE until a parity run is recorded for the current parser version, QUOTABLE afterwards — it reads QUOTABLE today, against parser **1.2.0**; export creates `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON has top-level keys `per_repo`, `tainted_reqs`, `live`, `backfilled`, `pooled`, `misses`, `extras`, `parity`, and each `per_repo` entry carries `source_kind`; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
+- **Expected:** banner is NOT QUOTABLE until a parity run is recorded for the current parser version — it reads **NOT QUOTABLE today** and correctly so (see Known limitations); QUOTABLE afterwards, against parser **1.2.0**; export creates `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON has top-level keys `per_repo`, `tainted_reqs`, `live`, `backfilled`, `pooled`, `misses`, `extras`, `parity`, and each `per_repo` entry carries `source_kind`; the markdown never shows a figure that mixes live and backfilled and labels every estimate; the row appears in the past-snapshots table with the parser version
 - **Covers:** BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 
 ### Parity procedure (terminal — no screen)
@@ -220,13 +222,13 @@ flowchart LR
 dotnet test TfLens.slnx -c Release -m:1
 ```
 
-630 tests — Core 500, Guardrails 87, Integration 43. `-m:1` matters: the suite is not parallel-safe.
+**821 tests** — Core 653, Guardrails 119, Integration 49 (2026-09-02, Release). `-m:1` matters: the suite is not parallel-safe.
 
 ```bash
 npx playwright test
 ```
 
-77 acceptance specs under `tests/verify/`, run serially against a running app at `http://localhost:5099` (override with `TFLENS_BASE_URL`). Boot the app first — the config starts no web server for you. Three specs skip themselves against the owner's live dataset: two need the seeded misses fixture, one needs Playbook data.
+**101 specs** under `tests/verify/`, run serially against a running app at `http://localhost:5099` (override with `TFLENS_BASE_URL`). Boot the app first — the config starts no web server for you. Three specs skip themselves against the owner's live dataset: two need the seeded misses fixture, one needs Playbook data. Last run 2026-09-02: **95 passed / 3 failed / 3 skipped** — the three failures are the two `mockup-parity` clauses (adjudicated per checklist row: 17 findings, none of them real) and the `/export` NOT-QUOTABLE banner, which is that mechanism working (see Known limitations).
 
 ## Smoke checklist (quick capability pass)
 - [ ] Sign in as user 1 and land on Coverage, in dark mode
@@ -234,27 +236,39 @@ npx playwright test
 - [ ] Import a `docs/metrics/` zip through **Add source → Import metric files**, reading the preview before committing it
 - [ ] Press **Sync now** and confirm the imported source's counts and timestamps do not move
 - [ ] Open **Misses & rework**, narrow the period, and read the three-way cost-of-rework split
-- [ ] Open **Gate outcomes** and switch `project_type` tabs
+- [ ] Open **Gate outcomes** and switch `project_type` tabs; check the catch-distribution lists all ten gates with a caveat badge on `assets`, `mockup-parity` and `perf`
+- [ ] Open **Phase effort**, expand `build-phase`, and confirm every figure shows its denominator beside it
 - [ ] Flip the Framework switch to Playbook on a report page and back
-- [ ] Export a snapshot and open both files from the new row
+- [ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE by design (see Known limitations)
 - [ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
+- [ ] Re-check **Phase effort** and **Misses & rework** at a phone width (390px) — nothing breaks a word mid-token, nothing is cut off inside its own box
 - [ ] Sign out from the user menu
 
 ## Known limitations
 
-140 of the 143 REQ rows in `docs/TfLens-Checklist.md` are `Verified`; there are **no `Blocked` rows**. The three that are not — `REQ-FN-012`, `REQ-FN-067`, `REQ-FN-070` — open this list.
+**169 of the 179 REQ rows** in `docs/TfLens-Checklist.md` are `Verified`; there are still **no `Blocked` rows**. The ten that are not open this list. Read this section before filing a UAT bug — several of the things below look like defects and are the product working as specified.
 
 ### This release
-- `REQ-FN-067`, `REQ-FN-070` (`Needs re-verify`) — no connected repository emits `events.ndjson`, so the Playbook axis renders its (correct) empty state and the Playbook report data and snapshot cannot be verified end to end. The way in is **Add source → Import metric files** with a `verification/telemetry/` bundle.
+
+- **`/export` reads NOT QUOTABLE, and that is the mechanism working — do not file it.** (`REQ-FN-063`, `REQ-UI-033`.) A snapshot is quotable only while a recorded parity run postdates the last parser *and* reference-script change. The BRD §13 procedure was re-run on 2026-09-02 against a dataset fetched from the GitHub API at the pinned SHAs and returned **4 findings**, all traceable to a single record in **another repository**: `TechieBlog`'s `runs.jsonl` holds a run whose `ended` precedes its `started` (`duration_s: -166`). The comparison script sums that negative; TfLens refuses it. TfLens is right, and BRD §13 forbids changing the script — so the fix belongs to TechieBlog's own agents, not here. **Thirteen further records in that repository carry the same impossible ordering** behind plausible round durations and are invisible to every gate. Until they are repaired at source, no TfLens figure is quotable and the banner says so honestly.
+- **`/export`'s dataset-SHA table lists a repository that is not on `/repos`.** Signed in as user 1 the table shows six rows including `isolation-probe/belongs-to-user-two`, while `/repos` shows the five repos that user actually owns. This is **not** a code isolation leak — `ReadSyncStateAsync` filters on `UserId` correctly — it is a leftover harness row written into the store under the wrong user id, the same pollution class as the `userId 9001` rows already recorded. It publishes a misleading dataset identity on the one surface BRD-70 says carries it. `REQ-NFR-019`'s provenance audit cannot see it because that audit checks *streams → SyncState* and never *SyncState → reality*; `provenance-check --user 2` reports `0 unaccounted`. Owner action: delete the stray `SyncState` row.
+- **Phase-effort figures were computed from a stale store until 2026-09-02.** Rows ingested before the F-EFFORT columns existed were never updated on re-sync (`ON CONFLICT DO NOTHING`), so `/effort`'s fan-out and per-model bands read off incomplete data — `spawns_total 0` against a real 6. Cleared by `rebuild --user <id>`; **run a rebuild after any framework schema addition**, because a sync alone will not backfill it.
+- `REQ-FN-067`, `REQ-FN-070`, `REQ-UI-050`, `REQ-UI-051` — no connected repository emits `events.ndjson`, so the Playbook axis renders its (correct) empty state and the Playbook report data and snapshot cannot be verified end to end. The way in is **Add source → Import metric files** with a `verification/telemetry/` bundle.
 - `REQ-FN-012` (`N/A`) — GitHub SSO (BRD-94) is deferred; AppManager has no external-login endpoint, so the login page shows no GitHub button.
+- `REQ-NFR-024` (`In Progress`) — no per-developer or machine-specific state is tracked; the remaining clause is upstream (`TF-014`).
 - Harness, routing and repricing figures have no reference implementation — spot-checked by hand once (BRD-72), never parity-diffed.
-- `TfLensGitHubToken` is optional in the BRD and effectively required in practice: unauthenticated GitHub allows 60 requests/hour, which a four-repo sync exhausts; a PAT raises it to 5,000/hour and grants no extra repository access.
+- `mockup-parity` reports **17 findings, none of them real**: nine are the `app-sidebar` clip that fires on every screen (`TF-012`, screen-reader-only text counted as overflow) and eight are the `/export` family disproved by measurement under `REQ-NFR-020`.
+- `TfLensGitHubToken` is optional in the BRD and effectively required in practice: unauthenticated GitHub allows 60 requests/hour, which a five-repo sync exhausts; a PAT raises it to 5,000/hour and grants no extra repository access.
 - The rebuild progress bar is an estimate, not a measurement, so a long rebuild reads as stuck at 20%.
 - The sidebar repo-count badge is not framework-filtered, so it can legitimately differ from the Framework switch counts and from Coverage's card count.
+- Sparklines are deliberately absent from most Coverage and Gate-outcomes tiles — there is no stored series behind them, and a line through invented points is what BRD §1 forbids.
 - Optional, deliberately outside the runbook: `dotnet user-secrets set "TfLens:DbConnection" …` (or `TfLensDbConnection`) to point at your own PostgreSQL, and `TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures` to verify the UI without GitHub.
 
 ### Upstream — TechieFlow (`docs/TfLens-TechieFlow-Feedback.md`)
-- **TF-005 (open)** — `analyse_misses` in `tf-metrics.sh` averages an unrecorded `tokens_out` as zero, understating rework cost. TfLens divides only by the records that carry a count and reports the rest as unmeasured (`DECISIONS.md` **D-012**). Latent, not live: every dataset seen so far carries the field, so parity passes today.
+- **TF-015 (open, High, new 2026-09-02)** — `tf-emit.sh` accepts a run whose `ended` precedes its `started` and writes the negative `duration_s` without complaint; the two consumers then disagree about it, so the same corpus yields two different totals and neither flags the impossible record. 14 such records exist in TechieBlog, 13 of them invisible behind plausible round durations. Two lines of emit-time validation would stop them at source.
+- **TF-011 (open, High)** — `mockup-parity` reports an unqualified PASS on a screen it graded almost none of, because its depth is bounded by the mockup's `data-testid` count.
+- **TF-012 / TF-014 / TF-013 / TF-010 / TF-009 / TF-008 / TF-007 (open)** — see the feedback file; `TF-012` is the `app-sidebar` false positive listed above.
+- **TF-005 — resolved upstream 2026-08-31.** `analyse_misses` now divides only by the records that carry `tokens_out` and publishes the denominator; TfLens matches it as of 2026-09-02 (`REQ-FN-079`).
 - TF-001, TF-002, TF-003, TF-004 and the first entry filed under TF-005 are fixed upstream and closed.
 
 ### Upstream — AppManager (`docs/TfLens-AppManager-Feedback.md`) — both resolved, neither is a limitation

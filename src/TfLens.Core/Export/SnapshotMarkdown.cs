@@ -388,22 +388,35 @@ internal static class SnapshotMarkdown
     {
         var vCost = aInputs.MissParity.Cost;
 
+        // The divisor sits BESIDE the figure it produced, not behind it (BRD-146/149). `Fix records` and
+        // `Priced records` are deliberately two columns: a repair whose tokens were never recorded is
+        // still a repair — it just cannot be averaged, and reporting only the record count would invite
+        // a reader to divide by the wrong one. `Tokens not recorded` names the gap between them so the
+        // unmeasured work is visible rather than inferred.
         aText.AppendLine("### Rework cost").AppendLine();
-        aText.AppendLine("| Attribution | Fix records | Output tokens per miss fixed |");
-        aText.AppendLine("|---|---:|---|");
+        aText.AppendLine(
+            "| Attribution | Fix records | Priced records (divisor) | Tokens not recorded "
+            + "| Output tokens per miss fixed |");
+        aText.AppendLine("|---|---:|---:|---:|---|");
         aText.Append("| `sole` — one miss, one token window (**measured**) | ").Append(vCost.SoleRecords)
+            .Append(" | ").Append(vCost.MeasuredTokenRecords)
+            .Append(" | ").Append(vCost.SoleTokensUnrecorded)
             .Append(" | ").Append(vCost.TokensPerMissFixed.Sole.Display()).AppendLine(" |");
         aText.Append("| `shared:n` — one window across n misses (**apportioned**) | ").Append(vCost.SharedRecords)
+            .Append(" | ").Append(vCost.ApportionedTokenRecords)
+            .Append(" | ").Append(vCost.SharedTokensUnrecorded)
             .Append(" | ").Append(vCost.TokensPerMissFixed.Apportioned.Display()).AppendLine(" |");
         aText.Append("| `none` — the record can carry no cost | ").Append(vCost.TokensPerMissFixed.NoneCount)
-            .AppendLine(" | — |");
-        aText.Append("| absent — nobody said | ").Append(vCost.AttributionMissing).AppendLine(" | — |");
+            .AppendLine(" | — | — | — |");
+        aText.Append("| absent — nobody said | ").Append(vCost.AttributionMissing).AppendLine(" | — | — | — |");
         aText.AppendLine();
 
         aText.AppendLine(
             "The measured column and the apportioned column are **never summed**. A run that repaired "
             + "three misses has one token window; dividing it three ways is arithmetic, not measurement, "
-            + "and `none` is a count rather than a divisor.")
+            + "and `none` is a count rather than a divisor. Each mean is taken over its **priced** "
+            + "records only: a repair whose `tokens_out` was never recorded is unmeasured work, not free "
+            + "work, and averaging it in as a zero would understate rework.")
             .AppendLine();
 
         aText.AppendLine("| Harness | Fix records | With token counts | Tokens out | Measured $ / miss | Measured $ total |");

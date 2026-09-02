@@ -281,23 +281,7 @@ public static class MissFigures
         // Counting the miss_ids actually closed against each fix_run_id recovers both cases from
         // data already on the stream, which is why RecoveredRecords is reported beside the split:
         // a jump in the cost figures should read as a fixed derivation, not as work getting dearer.
-        var vClosedPerRun = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-
-        foreach (var vFix in aFixes)
-        {
-            if (string.IsNullOrEmpty(vFix.FixRunId) || string.IsNullOrEmpty(vFix.MissId))
-            {
-                continue;
-            }
-
-            if (!vClosedPerRun.TryGetValue(vFix.FixRunId, out var vClosed))
-            {
-                vClosed = new HashSet<string>(StringComparer.Ordinal);
-                vClosedPerRun[vFix.FixRunId] = vClosed;
-            }
-
-            vClosed.Add(vFix.MissId);
-        }
+        var vClosedPerRun = ClosedPerRun(aFixes);
 
         var vSole = new List<MissFixRecord>();
         var vShared = new List<(MissFixRecord Fix, int Across)>();
@@ -330,15 +314,24 @@ public static class MissFigures
             }
         }
 
-        // KNOWN DIVERGENCE FROM THE REFERENCE — deliberate, recorded as TF-005 and DECISIONS.md D-012.
-        // `analyse_misses` in tf-metrics.sh computes `sum(tokens_out or 0) / len(sole)`, so a repair
-        // whose tokens were never recorded is averaged in as a zero and drags the mean down. TfLens
-        // divides by the records that actually carry a count, because presenting an unmeasured repair
-        // as a costless one is the exact failure this product exists to prevent (BRD-31..36: absent
-        // renders as an absence, never as 0). The two agree on every dataset where every `sole`
-        // record carries `tokens_out`, which is every dataset seen so far — the divergence is latent,
-        // not live, and BRD §13 currently passes. Do NOT "fix" this by matching the reference without
-        // reading TF-005 first; parity would go green by adopting the weaker number.
+        // THE TOKEN DIVISOR IS THE RECORDS THAT CARRY A COUNT, NEVER ALL OF THEM — and the divisor
+        // is published beside the figure.
+        //
+        // This was TfLens TF-005 / DECISIONS.md D-012, raised here as a deliberate divergence from a
+        // reference that computed `sum(tokens_out or 0) / len(sole)`. `or 0` cannot tell an absent
+        // field from a recorded zero, so averaging an unpriced repair in counts it as a FREE repair
+        // and understates rework — in the direction that flatters the framework, which is the exact
+        // failure this product exists to expose (BRD-31..36: absent renders as an absence, never
+        // as 0). The reference adopted the same divisor on 2026-08-31 and the divergence is closed.
+        //
+        // What is new here is the SECOND half of that fix, which is what made agreement possible at
+        // all: the denominator leaves the engine as data (`MeasuredTokenRecords`,
+        // `ApportionedTokenRecords`) alongside how many records had to be left out of it
+        // (`SoleTokensUnrecorded`, `SharedTokensUnrecorded`). SoleRecords/SharedRecords still carry
+        // the RECORD counts separately, so excluding an unpriced record from the divisor loses no
+        // information — and a consumer can reproduce either figure exactly rather than having to
+        // choose between agreeing with us and being right (BRD-146/149: a denominator sits beside
+        // its figure).
         var vSoleTokens = vSole
             .Where(aFix => aFix.TokensOut.HasValue)
             .Select(aFix => (double)aFix.TokensOut!.Value)
@@ -357,10 +350,62 @@ public static class MissFigures
                 vNone),
             SoleRecords = vSole.Count,
             SharedRecords = vShared.Count,
+            MeasuredTokenRecords = vSoleTokens.Count,
+            SoleTokensUnrecorded = vSole.Count - vSoleTokens.Count,
+            ApportionedTokenRecords = vApportionedTokens.Count,
+            SharedTokensUnrecorded = vShared.Count - vApportionedTokens.Count,
             RecoveredRecords = vRecovered,
             AttributionMissing = 0,
             ByHarness = ExtraMetrics.HarnessOrder.Select(aHarness => HarnessRow(aHarness, aFixes)).ToList()
         };
+    }
+
+    /// <summary>
+    /// The fix records whose run closed exactly one miss, recomputed from the stream (REQ-FN-079).
+    /// </summary>
+    /// <remarks>
+    /// Exposed because the <c>cost_usd_*</c> keys are bounded by the same <c>sole</c> set the token
+    /// columns are, and the boundary has to be drawn the same way in both places. Reading the stored
+    /// <c>cost_attribution</c> to draw it would reintroduce, in the money column, precisely the defect
+    /// <see cref="ComputedAttribution"/> exists to correct: see the remarks there.
+    /// </remarks>
+    /// <param name="aFixes">The fix records to bound.</param>
+    /// <returns>The subset whose recomputed attribution is <c>sole</c>, in input order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aFixes"/> is <c>null</c>.</exception>
+    public static IReadOnlyList<MissFixRecord> SoleFixes(IReadOnlyList<MissFixRecord> aFixes)
+    {
+        ArgumentNullException.ThrowIfNull(aFixes);
+
+        var vClosedPerRun = ClosedPerRun(aFixes);
+        return aFixes.Where(aFix => ComputedAttribution(aFix, vClosedPerRun) == 1).ToList();
+    }
+
+    /// <summary>
+    /// Indexes the distinct miss ids each fix run closed — the recomputed cost divisor's only input.
+    /// </summary>
+    /// <param name="aFixes">The fix records to index.</param>
+    /// <returns>Miss ids closed, keyed by <c>fix_run_id</c>.</returns>
+    private static Dictionary<string, HashSet<string>> ClosedPerRun(IEnumerable<MissFixRecord> aFixes)
+    {
+        var vClosedPerRun = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        foreach (var vFix in aFixes)
+        {
+            if (string.IsNullOrEmpty(vFix.FixRunId) || string.IsNullOrEmpty(vFix.MissId))
+            {
+                continue;
+            }
+
+            if (!vClosedPerRun.TryGetValue(vFix.FixRunId, out var vClosed))
+            {
+                vClosed = new HashSet<string>(StringComparer.Ordinal);
+                vClosedPerRun[vFix.FixRunId] = vClosed;
+            }
+
+            vClosed.Add(vFix.MissId);
+        }
+
+        return vClosedPerRun;
     }
 
     /// <summary>
@@ -687,11 +732,24 @@ public static class MissFigures
     /// How many ways one fix run's token window splits, recomputed from the stream.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>null</c> means genuinely unattributable — there is nothing to divide, because no run
     /// matched or the window itself could not be computed. Anything with a real window IS a share,
-    /// and how many ways it splits is countable from the miss_ids that run closed. A stored
-    /// <c>sole</c> is honoured as written: it is the one value a single record can state correctly
-    /// about itself.
+    /// and how many ways it splits is countable from the miss_ids that run closed.
+    /// </para>
+    /// <para>
+    /// <b>The recount wins over the stored value — including over a stored <c>sole</c>.</b> That
+    /// short-circuit used to sit here, and BRD §13 caught it on 2026-09-02 against this repo's own
+    /// live data. The emitter stamps attribution one record at a time, so a run that closed nine
+    /// misses wrote <c>sole, shared:2 … shared:9</c>: the FIRST record reads <c>sole</c> only
+    /// because at that instant it was the only miss the run had closed. Honouring it therefore
+    /// preserved exactly the value the recompute exists to correct, and did so in the worst
+    /// possible column — <c>sole</c> is the HEADLINE measured-cost figure, so one whole multi-miss
+    /// window was reported as the measured cost of a single repair, once per multi-miss run,
+    /// silently and upward. <c>sole</c> now means what it says: the run closed exactly one miss,
+    /// which is a fact about the finished stream rather than about the order records were written
+    /// in.
+    /// </para>
     /// </remarks>
     /// <param name="aFix">The fix record.</param>
     /// <param name="aClosedPerRun">Miss ids closed by each fix run.</param>
@@ -709,11 +767,6 @@ public static class MissFigures
         if (string.IsNullOrEmpty(aFix.FixRunId))
         {
             return null;
-        }
-
-        if (string.Equals(aFix.CostAttribution, SoleAttribution, StringComparison.Ordinal))
-        {
-            return 1;
         }
 
         return aClosedPerRun.TryGetValue(aFix.FixRunId, out var vClosed) && vClosed.Count > 0

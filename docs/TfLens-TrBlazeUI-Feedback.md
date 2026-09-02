@@ -99,12 +99,14 @@ build never stopped for a library issue.
 
 ## Summary
 
-- **5 blockers, 11 majors, 8 minors, 0 nice-to-haves** — 24 entries, **all 24 open**. None is fixed
-  upstream; every one shipped with a workaround instead.
-- Last consolidated: 2026-08-28. **Re-tallied 2026-08-30** for the four entries added during the
-  `*build-phase` mockup-parity FIX pass: `TR-023`, `TR-024` and `TR-026` are Medium (major),
-  `TR-025` is Low (minor). Counted from the 24 `## TR-` headings less the one merge stub
-  (`TR-022` → `TR-008`); `TR-006` and `TR-007` remain unallocated.
+- **28 entries, all 28 open.** None is fixed upstream; every one shipped with a workaround instead.
+- Last consolidated: **2026-09-02** (handoff). Re-tallied from the `## TR-` headings, which now number
+  **28** — the previous block said 24 and was four behind: `TR-027`, `TR-028`, `TR-029` and `TR-030`
+  were appended during the 2026-09-01 `*build-phase` and `*fix-issues` passes without the summary being
+  re-run. `TR-006` and `TR-007` remain unallocated; `TR-022` is the merge stub into `TR-008`.
+- **Newest three, all found by building against the library rather than by reading it:** `TR-028`
+  `BarChart` exposes no axis/grid/label control · `TR-029` `Badge` sets no `white-space`, so a
+  two-word status wraps mid-phrase · `TR-030` `CollapsibleTrigger` takes no `Class`.
 
 **Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
 `Low` = minor. Nothing in this file is filed nice-to-have. The entry bodies keep their original
