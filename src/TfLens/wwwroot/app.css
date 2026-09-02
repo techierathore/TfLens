@@ -40,7 +40,7 @@ h1:focus {
    TrBlazeUI design tokens that the shipped trblazeui.css does not define
    (TR-001). Without these, `var(--chart-1)` and `var(--alert-*)` resolve to
    nothing: charts paint black or transparent, alert tints vanish, and the
-   live/backfilled bars on Three questions lose the blue/purple distinction
+   live/backfilled bars on Gate outcomes lose the blue/purple distinction
    the mockups rely on to tell the two provenances apart.
 
    Each page that noticed this declared them locally, which is why some

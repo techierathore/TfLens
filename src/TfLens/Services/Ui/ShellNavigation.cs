@@ -37,22 +37,31 @@ public static class ShellNavigation
     public const string AccountSection = "Account";
 
     /// <summary>
-    /// The seven navigation items, in the fixed working order the checklist asserts.
+    /// The eight navigation items, in the fixed working order the checklist asserts.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Amended 2026-08-28 (BRD-5, BRD-124): <c>/misses</c> — "Misses &amp; rework" — sits <b>between</b>
     /// Routing &amp; economics and Snapshot export. The position is an acceptance criterion, not a
     /// preference: the reports read left to right as coverage → quality → harness → routing → rework →
     /// export, and the export item stays last because it is the only one that leaves the app.
+    /// </para>
+    /// <para>
+    /// Amended 2026-09-01 (BRD-5, BRD-151, REQ-UI-045): <c>/effort</c> — "Phase effort" — is the eighth
+    /// item, between Misses &amp; rework and Snapshot export. It reads there because effort is a
+    /// <b>budgeting</b> view and everything before it is a quality view: coverage → quality → harness →
+    /// routing → rework → effort → export. Export stays last for the same reason it always has.
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyList<ShellNavItem> Items =
     [
         new ShellNavItem("/repos", "Repos", "git-branch", WorkspaceSection, false, false),
         new ShellNavItem("/", "Coverage / health", "activity", ReportsSection, true, true),
-        new ShellNavItem("/three-questions", "Three questions", "circle-question-mark", ReportsSection, false, true),
+        new ShellNavItem("/gate-outcomes", "Gate outcomes", "shield-check", ReportsSection, false, true),
         new ShellNavItem("/harness", "Harness comparison", "git-compare", ReportsSection, false, true),
         new ShellNavItem("/routing", "Routing & economics", "route", ReportsSection, false, true),
         new ShellNavItem("/misses", "Misses & rework", "bug", ReportsSection, false, true),
+        new ShellNavItem("/effort", "Phase effort", "gauge", ReportsSection, false, true),
         new ShellNavItem("/export", "Snapshot export", "download", ReportsSection, false, true)
     ];
 

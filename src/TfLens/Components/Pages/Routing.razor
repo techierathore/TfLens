@@ -157,8 +157,17 @@
                                                AriaLabel="Routing drift"
                                                data-testid="drift-table">
                                         <Columns>
+                                            @* BRD-144 — a command name and a model id are single tokens: a reader
+                                               who sees `fix-` above `issues`, or `claude-` above `opus-5`, reads two
+                                               values where there is one. The hyphen in both is a soft-wrap
+                                               opportunity, so the table's auto layout was free to shrink these
+                                               columns below their own text and did. CellClass/HeaderClass carry the
+                                               library's own nowrap utility onto the th and every td of the column,
+                                               which raises the column's min-content to the whole token; the table
+                                               then scrolls inside the wrapper below rather than breaking the id. *@
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Cmd ?? Missing)" Header="cmd" Sortable>
+                                                             Property="@(aRow => aRow.Cmd ?? Missing)" Header="cmd" Sortable
+                                                             CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.Cmd ?? Missing)</span>
                                                 </CellTemplate>
@@ -172,14 +181,16 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.TierModel ?? Missing)" Header="tier_model" Sortable>
+                                                             Property="@(aRow => aRow.TierModel ?? Missing)" Header="tier_model" Sortable
+                                                             CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.TierModel ?? Missing)</span>
                                                 </CellTemplate>
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Model ?? Missing)" Header="observed model" Sortable>
+                                                             Property="@(aRow => aRow.Model ?? Missing)" Header="observed model" Sortable
+                                                             CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.Model ?? Missing)</span>
                                                 </CellTemplate>

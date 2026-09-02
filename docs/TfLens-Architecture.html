@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="sub">Last rendered: 2026-09-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -121,6 +121,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)</a></li>
         <li class="h3"><a href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)</a></li>
         <li class="h3"><a href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">5.8 Phase effort — two producers, one page, three denominators (added 2026-09-01)</a></li>
         <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
         <li><a href="#data-model">6. Data model</a></li>
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
@@ -134,7 +135,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-Architecture.md</code></div>
+    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -151,6 +152,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)</a></li>
         <li class="h3"><a href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)</a></li>
         <li class="h3"><a href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)</a></li>
+        <li class="h3"><a href="#phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">5.8 Phase effort — two producers, one page, three denominators (added 2026-09-01)</a></li>
         <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
         <li><a href="#data-model">6. Data model</a></li>
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
@@ -162,8 +164,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#sources-harvested">13. Sources harvested</a></li>
       </ol>
     </div>
-<p><strong>Last updated:</strong> 2026-08-28
-<strong>Status:</strong> Target (greenfield) — amended 2026-08-26: AppManager identity (no local users), per-user public-repo management, GitHub SSO deferred to Phase 2, dark-first collapsible shell; round 2 same day: PostgreSQL replaces SQLite (ADR-015), Framework as a provenance axis with the full Playbook report set in Phase 3 (ADR-016), harness columns claude-code/opencode/codex (ADR-017); <strong>amended 2026-08-28: miss telemetry and rework economics — a fifth stream carrying three record kinds on one file (ADR-018), apportioned cost as a distinct result type (ADR-019), amendments folded at read time and never at ingest (ADR-020); round 2 same day: imported telemetry for private/corporate repos, folded into the Repos screen as a second mode — origin displayed but never pooled on (ADR-021), the uploaded bundle's sha256 standing where a commit SHA does (ADR-022)</strong></p>
+<p><strong>Last updated:</strong> 2026-09-01
+<strong>Status:</strong> Target (greenfield) — <strong>amended 2026-09-01 (round 2, post-build): three clauses corrected against the shipped <code>tf-metrics.sh</code> reference script after the F-EFFORT parity run (ADR-028)</strong>; <strong>amended 2026-09-01: phase effort and efficiency from both frameworks — the Playbook's transient phase output arrives through the existing import mode rather than a second ingest path (ADR-023), Playbook misses reuse the three existing miss tables with their axes as distinct nullable columns (ADR-024), three normalized Playbook phase tables (ADR-025), the fan-out denominator is a scope predicate rather than a coalesce (ADR-026), and wall-clock / observed-active / human effort are three types rather than three names for one number (ADR-027)</strong>; prior amendments — 2026-08-26: AppManager identity (no local users), per-user public-repo management, GitHub SSO deferred to Phase 2, dark-first collapsible shell; round 2 same day: PostgreSQL replaces SQLite (ADR-015), Framework as a provenance axis with the full Playbook report set in Phase 3 (ADR-016), harness columns claude-code/opencode/codex (ADR-017); <strong>amended 2026-08-28: miss telemetry and rework economics — a fifth stream carrying three record kinds on one file (ADR-018), apportioned cost as a distinct result type (ADR-019), amendments folded at read time and never at ingest (ADR-020); round 2 same day: imported telemetry for private/corporate repos, folded into the Repos screen as a second mode — origin displayed but never pooled on (ADR-021), the uploaded bundle's sha256 standing where a commit SHA does (ADR-022)</strong></p>
 <h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
 <li><a href="#tech-stack">Tech stack</a>
@@ -238,10 +240,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       P0["Repos  /repos"]
       PA["Login · Register · Forgot · Reset · Profile"]
       P1["Coverage / health  /"]
-      P2["Three questions  /three-questions"]
+      P2["Gate outcomes  /gate-outcomes"]
       P3["Harness comparison  /harness"]
       P4["Routing &amp; economics  /routing"]
       P6["Misses &amp; rework  /misses"]
+      P7["Phase effort  /effort"]
       P5["Snapshot export  /export"]
       FW["Framework switch: TechieFlow | Playbook (header)"]
     end
@@ -259,6 +262,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     Metrics["MetricsEngine&lt;br/&gt;(port of tf-metrics.sh analyse)"]
     Extra["ExtraMetrics&lt;br/&gt;harness · routing · repricing"]
     MissM["MissMetrics&lt;br/&gt;+ MissAttributionTaint + MissCost"]
+    PhaseM["PhaseMetrics&lt;br/&gt;+ FanoutObservation + TokenWindow"]
+    PbPhase["PlaybookPhaseAdapter&lt;br/&gt;schema-2 phase-metric + quarantine"]
     Export["SnapshotExporter&lt;br/&gt;markdown + JSON"]
   end
 
@@ -295,6 +300,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   Pages --&gt; Extra
   P6 --&gt; MissM
   MissM --&gt; Store
+  P7 --&gt; PhaseM
+  PhaseM --&gt; Store
+  Imp --&gt; PbPhase
+  PbPhase --&gt; Store
+  P7 --&gt; PbPhase
   Metrics --&gt; Store
   Extra --&gt; Store
   Extra --&gt; Prices
@@ -323,7 +333,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   participant M as MetricsEngine (Core)
   participant S as PostgresStore (Dapper)
   participant DB as PostgreSQL
-  O-&gt;&gt;B: GET /three-questions
+  O-&gt;&gt;B: GET /gate-outcomes
   B-&gt;&gt;A: authenticated?
   A--&gt;&gt;B: yes (cookie) / redirect /login
   B-&gt;&gt;M: Analyse(userId, repos, filters)
@@ -347,9 +357,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td><code>src/TfLens.Core/GitHub</code></td><td><code>GitHubStreamFetcher</code> — latest-SHA-touching-path lookup, whole-file fetch, raw archive to <code>data/raw/&lt;userId&gt;/</code></td><td>HttpClient</td></tr>
 <tr><td><code>src/TfLens.Core/Parsing</code></td><td><code>StreamParser</code> — JSONL → typed records, schema-v check, overflow capture, <strong>per-<code>kind</code> dispatch inside the <code>misses</code> stream</strong>; <code>Dedupe</code> — natural-key rules per stream and per miss record kind</td><td>(none)</td></tr>
 <tr><td><code>src/TfLens.Core/Storage</code></td><td><code>PostgresStore</code> — DDL, Dapper CRUD, <code>sync_state</code>, idempotent upsert, <code>Rebuild()</code></td><td>Dapper, Npgsql</td></tr>
-<tr><td><code>src/TfLens.Core/Metrics</code></td><td><code>MetricsEngine</code> — the <code>analyse()</code> port; <code>ExtraMetrics</code> — harness comparison, routing drift, counterfactual repricing; <strong><code>MissMetrics</code> — miss figures, read-time amendment folding, the eligibility floor; <code>MissAttributionTaint</code>; <code>MissCost</code></strong>; <code>InsufficientData</code> type</td><td>Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics</code></td><td><code>MetricsEngine</code> — the <code>analyse()</code> port; <code>ExtraMetrics</code> — harness comparison, routing drift, counterfactual repricing; <strong><code>MissMetrics</code> — miss figures, read-time amendment folding, the eligibility floor; <code>MissAttributionTaint</code>; <code>MissCost</code></strong>; <strong><code>PhaseMetrics</code> — per-<code>cmd</code> effort grouping, the token-window and fan-out denominators, the per-model split (added 2026-09-01)</strong>; <code>InsufficientData</code> type</td><td>Storage</td></tr>
 <tr><td><code>src/TfLens.Core/Export</code></td><td><code>SnapshotExporter</code> — markdown + machine-readable JSON (<code>tflens.json</code>) to <code>data/reports/&lt;date&gt;/</code></td><td>Metrics</td></tr>
-<tr><td><code>src/TfLens.Core/Playbook</code></td><td><code>PlaybookAdapter</code> — <code>events.ndjson</code> → <code>PbEvent</code> table; phase totals; <code>parentID</code> split (Phase 3)</td><td>Storage</td></tr>
+<tr><td><code>src/TfLens.Core/Playbook</code></td><td><code>PlaybookAdapter</code> — <code>events.ndjson</code> → <code>PbEvent</code> table; phase totals; <code>parentID</code> split (Phase 3). <strong><code>PlaybookPhaseAdapter</code> — schema-2 <code>phase-metric</code> NDJSON → the three <code>PbPhase*</code> tables, invariant validation and quarantine, cohort gating (added 2026-09-01). <code>PlaybookMissNormalizer</code> — the Playbook's normalized miss export → the <em>existing</em> miss tables, keyed on source-line hash, axes preserved (added 2026-09-01)</strong></td><td>Storage</td></tr>
 <tr><td><code>tests/TfLens.Core.Tests</code></td><td>xUnit: parser, dedupe, engine (fixture-driven, incl. provenance-separation tests)</td><td>TfLens.Core</td></tr>
 <tr><td><code>tools/parity-compare.py</code></td><td>Key-by-key compare of <code>reference.json</code> (tf-metrics.sh) vs <code>tflens.json</code>; non-zero exit on any diff</td><td>Python 3</td></tr>
 </tbody>
@@ -365,6 +375,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p><strong><code>MetricsEngine</code>.</strong> A field-for-field port of <code>analyse()</code> in <code>tf-metrics.sh</code> (§7). Its public result type has no "total" slot: figures live under <code>Live[projectType]</code>, <code>Backfilled[projectType]</code>, and <code>Pooled</code>. Any figure with fewer than <code>MinN = 3</code> supporting records is an <code>InsufficientData(n)</code> value, which the UI renders as text, never as a number.</p>
 <p><strong><code>ExtraMetrics</code>.</strong> The metrics the reference does not compute — per-harness volumes/tokens/verdict mix (dollars only for <code>harness == "opencode"</code>), routing drift (<code>routed:false</code>, <code>tier_model</code> vs <code>model</code>), tokens by model, and counterfactual repricing from <code>data/prices.json</code> (labelled <em>estimate</em> everywhere). These have no parity oracle and are spot-checked by hand against raw JSONL once (BRD §9 F-PARITY).</p>
 <p><strong><code>MissMetrics</code> + the two provenance guards (added 2026-08-28).</strong> The miss engine reads <code>Miss</code>, <code>MissFix</code> and <code>MissAmend</code> for <code>(UserId, Framework)</code> and does four things in order. <strong>(1) Fold</strong>: apply every <code>MissAmend</code> to its parent, oldest first, filling a <code>null</code> and never overwriting a non-<code>null</code> value — the null-check is re-applied here rather than trusted, because TfLens ingests archived files from many machines and a merged stream can carry an amend and a later-written value in either order; only fields on the allowlist (<code>WhyMissed</code> today) with values inside their closed vocabulary are applied, and anything else is an orphan, counted for Coverage and never applied. <strong>(2) Floor</strong>: <code>FIELD_SINCE = { "why_missed": 2026-08-28 }</code> sits beside the existing <code>LATE_GATES</code> table and, ideally, in the same code path — a miss written before the field existed leaves that field's denominator and is reported separately. <strong>(3) Taint</strong>: <code>MissAttributionTaint</code> is a sibling of <code>TaintSet</code> and excludes <code>OriginConfidence != "linked"</code> records from every per-phase, per-model and per-agent figure; like <code>TaintSet</code> it is both <strong>applied and displayed</strong>. <strong>(4) Shape</strong>: every figure returns a <code>Figure</code>, and every token/cost figure returns <code>MissCost(Figure Sole, Figure Apportioned, int NoneCount)</code> — a page binding it cannot render one blended number because no such property exists. <code>AnalysisResult</code> gains a <code>Misses</code> section; <code>AnalysisCacheInvalidator</code> invalidates on a <code>misses</code> sync exactly as it does for the other four streams.</p>
+<p><strong><code>PhaseMetrics</code> + the two effort denominators (added 2026-09-01).</strong> The TechieFlow half of <code>/effort</code>. It groups <code>Run</code> rows by <code>Cmd</code> for <code>(UserId, Framework)</code> and computes each band behind a denominator that is <strong>returned with the figure, not computed and discarded</strong>:</p>
+<ul>
+<li><strong><code>TokenWindow</code></strong> partitions a phase's runs into <em>measured</em> (a usable <code>tokens_scope</code>) and <em>unmeasured</em> (<code>"none"</code> or absent) and returns both counts alongside every token total. A phase's <code>tokens_out_per_run</code> is <code>Figure.InsufficientData</code> below <code>MinN</code>, never <code>0</code>. The unmeasured runs are <strong>not summed as zeros</strong> — the same defect TfLens itself reported upstream as <code>TF-005</code>, where <code>or 0</code> could not distinguish an absent field from a measured zero, and where the resulting error always ran in the direction that flattered the framework.
+</li>
+<li><strong><code>FanoutObservation</code></strong> is a <em>predicate</em>, not a coalesce (ADR-026). A run qualifies only when <code>TokensScope == "tree"</code> <strong>and</strong> <code>SubagentRuns is not null</code>; everything else is excluded and classified into <code>unobserved_not_tree</code> (the window was <code>main</code>/<code>conversation</code>/<code>none</code> — <strong>we did not look</strong>) or <code>unobserved_predates_field</code> (tree-scope, written before <code>2026-08-31</code> — <strong>we could not have looked</strong>). These are two different facts and are published as two counts. Every fan-out figure is returned wrapped in its <code>ObservedN</code>, so a page cannot render a spawn count without also having the number of runs it rests on.
+</li>
+</ul>
+<p><code>FIELD_SINCE</code> grows three entries — <code>subagent_runs</code>, <code>tokens_out_subagents</code>, <code>model_tokens_out</code>, all <code>2026-08-31</code> — in the same table and the same code path as <code>why_missed</code> and <code>LATE_GATES</code> (§7). Per-model effort reads <code>ModelTokensOut</code> and never the dominant <code>Model</code> label; the declared <code>Subagents</code> list is carried beside the measured <code>SubagentRuns</code> count and the two are reported as what they are — a self-report and a measurement — rather than reconciled.</p>
+<p><strong><code>PlaybookPhaseAdapter</code> (added 2026-09-01).</strong> The Playbook half. Its input is the framework exporter's <strong>stdout</strong>, not a file in a repo: <code>events.ndjson</code> is transient and rotates, so TfLens can neither poll it nor ask the Playbook to commit it, and the normalized NDJSON arrives through <code>TelemetryImportService</code> like any other bundle (ADR-023) — one more entry in the import service's stream-name table, and no second ingest path. The adapter upserts on <code>(UserId, Repo, PhaseExecutionId)</code> because the exporter re-emits every currently readable window, so re-import is the normal case rather than the exception.</p>
+<p>Its real work is <strong>refusing to produce a number</strong>. Each row is checked against the producer's stated invariants (the two token compatibility sums, <code>spawned &gt;= contributors</code>, <code>0 &lt;= observed_active_ms &lt;= elapsed_ms</code> on a complete window, <code>complete:false ⇒ end_reason:"eof"</code> with null end and elapsed), and a row that fails any of them — or carries <code>data_quality.valid:false</code>, or has no finalized assistant turn — is <strong>quarantined</strong>: stored, displayed with its reason, and excluded from every numeric aggregate. This matters more than it sounds, because the producer may retain zero-valued compatibility totals on an invalid row, so a consumer that trusts the numbers on an invalid row gets a confident zero rather than an error. Timing is three types, not three names for one number (ADR-027): <code>ElapsedMs</code> (wall clock), <code>ObservedActiveMs</code> (the producer's <strong>union</strong> of assistant and tool intervals, overlaps counted once) and nothing at all for human effort, which neither framework captures. <code>AssistantElapsedMs</code> and <code>ToolElapsedMs</code> are stored as diagnostics and are never added — an assistant envelope can contain tool execution, which is exactly why the producer unions rather than sums.</p>
+<p><strong><code>PlaybookMissNormalizer</code> (added 2026-09-01).</strong> The Playbook's miss export lands in the <strong>existing</strong> <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> tables (ADR-024) rather than a parallel set, because the two editions record the same lifecycle and the contract asks for normalization. What differs is carried as difference: <code>ItemId</code> sits beside <code>ReqId</code> and <code>FoundPhaseGate</code> beside <code>FoundGate</code> as their own nullable columns — the first pair is one axis under two names, the second is two genuinely different measurements and never shares a column or a chart (BRD-165) — and Playbook rows key on an immutable <strong>source-line hash</strong> rather than the TechieFlow natural keys, preserving stream order. <code>UserRepo.Framework</code> already guarantees no read pools across editions (ADR-016), so no new wall is needed. The Playbook's reporting guards are <strong>stricter</strong> and are enforced as its own: attribution needs <code>linked</code> plus a complete valid source window plus a non-null observed model; headline cost needs <code>sole</code> plus a complete valid window plus <code>cost_status:"complete"</code>. They are deliberately not unified with the TechieFlow guards — unifying downward would weaken a claim the producer refuses to make.</p>
 <p><strong><code>SnapshotExporter</code>.</strong> Writes <code>data/reports/&lt;yyyy-MM-dd&gt;/snapshot.md</code> (human) and <code>tflens.json</code> (machine, same key layout as <code>tf-metrics.sh --rollup --json</code> plus an <code>extras</code> object) — the diffable numbers for the plan's Numbers table and B3, with the parity stamp (last passing run date + dataset SHAs) embedded.</p>
 <p><strong><code>PlaybookAdapter</code> (Phase 3).</strong> Separate tables (<code>PbEvent</code>, <code>PbSyncState</code>), separate page. Phase-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or chart (SCHEMA.md §11). Built as schema-discovery: the first task is to parse the real <code>events.ndjson</code> and record the observed field names in DECISIONS.md before any chart exists.</p>
 <h2 id="runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path<a class="anchor-link" href="#runtime-flows-beyond-the-primary-path">#</a></h2>
@@ -572,6 +593,58 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   end</pre>
 </div>
 <p>The source row carries <code>SourceKind = "import"</code>, so the poller skips it, its row action is <strong>Re-import</strong> rather than Sync, and Coverage reads its staleness as days-since-import. Nothing else in the system branches on it.</p>
+<h3 id="phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">5.8 Phase effort — two producers, one page, three denominators (added 2026-09-01)<a class="anchor-link" href="#phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">#</a></h3>
+<p>The two axes of <code>/effort</code> reach the page by different routes and are bounded by different predicates, but they obey one rule: <strong>a figure never leaves the engine without the count it rests on.</strong></p>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  subgraph TF["TechieFlow axis — fetched on the ordinary sync"]
+    A["Run rows for (UserId, Framework=techieflow)"] --&gt; B["Group by Cmd"]
+    B --&gt; C{"TokensScope usable?"}
+    C --&gt;|"no"| D["tokens_unmeasured_n++&lt;br/&gt;excluded, NEVER summed as zero"]
+    C --&gt;|"yes"| E["tokens_measured_n++&lt;br/&gt;tile shows 'measured on n of N runs'"]
+    B --&gt; F{"TokensScope == tree&lt;br/&gt;AND SubagentRuns not null?"}
+    F --&gt;|"scope was main / conversation / none"| G["unobserved_not_tree&lt;br/&gt;'we did not look'"]
+    F --&gt;|"tree, but written before 2026-08-31"| H["unobserved_predates_field&lt;br/&gt;'we could not have looked'"]
+    F --&gt;|"yes"| I["observed_n — the DENOMINATOR&lt;br/&gt;stated before any spawn count"]
+  end
+  subgraph PB["Playbook axis — imported exporter stdout (ADR-023)"]
+    J["phase-metric NDJSON bundle"] --&gt; K["TelemetryImportService&lt;br/&gt;archive verbatim, bundle sha256"]
+    K --&gt; L["Upsert on (UserId, Repo, PhaseExecutionId)"]
+    L --&gt; M{"data_quality.valid AND invariants hold&lt;br/&gt;AND a finalized assistant turn exists?"}
+    M --&gt;|"no"| N["QUARANTINE — stored and shown with its reason,&lt;br/&gt;excluded from every numeric aggregate"]
+    M --&gt;|"yes"| O{"complete?"}
+    O --&gt;|"false — eof"| P["no elapsed, no duration figure&lt;br/&gt;row still visible in the table"]
+    O --&gt;|"true"| Q{"active_coverage?"}
+    Q --&gt;|"partial / unavailable"| R["lower bound only&lt;br/&gt;out of every comparison"]
+    Q --&gt;|"complete"| S["eligible cohort"]
+  end
+  I --&gt; T["/effort — Framework switch selects the axis"]
+  E --&gt; T
+  G --&gt; T
+  H --&gt; T
+  S --&gt; T
+  P --&gt; T
+  R --&gt; T
+  N --&gt; T</pre>
+</div>
+<p>Three things are worth stating because a later reader will otherwise try to simplify them:</p>
+<ol>
+<li><strong><code>unobserved_not_tree</code> and <code>unobserved_predates_field</code> are not one number.</strong> <em>We did not look</em> is a property of how the window was computed and could change tomorrow; <em>we could not have looked</em> is a property of when the record was written and never will. Merging them would hide which one is shrinking.
+</li>
+<li><strong>A quarantined Playbook row keeps its zeros.</strong> The producer may leave zero-valued compatibility totals on an invalid row, so quarantine has to happen before aggregation rather than by filtering zeros afterwards — by then the zero is indistinguishable from a real one.
+</li>
+<li><strong>The two axes have different evidentiary standing.</strong> The TechieFlow axis has an oracle (<code>tf-metrics.sh --phases</code>) and is diffed key-for-key; the Playbook axis has none and is hand-checked once, like <code>extras</code>. The page says which is which rather than letting a reader assume the stronger one (BRD §13, third standing rule).
+</li>
+</ol>
 <h3 id="weekly-snapshot-export">5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
 <div class="diagram">
   <div class="dt">
@@ -593,7 +666,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   F --&gt; G</pre>
 </div>
 <h2 id="data-model">6. Data model<a class="anchor-link" href="#data-model">#</a></h2>
-<p>PostgreSQL 16 (amended 2026-08-26; three miss tables added 2026-08-28). One table per stream — except <code>misses</code>, whose three record kinds get three tables — columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc., always double-quoted in SQL; the JSON→column mapping table lives in <code>StreamParser</code>). <code>Overflow</code> is a <code>jsonb</code> column. Every stream table carries <code>UserId</code> (amended 2026-08-26 — the AppManager user who connected the repo), <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields). Identity tables: <code>UserRepo</code> (the per-user source list) and <code>AuthSession</code> (server-side AppManager tokens per cookie session). <code>UserRepo.SourceKind</code> (<code>api</code> | <code>import</code>, added 2026-08-28) is the <strong>only</strong> structural trace of how a source's data arrives; <code>BundleSha</code> and <code>LastImportTs</code> are populated for imported sources and <code>null</code> for fetched ones, and <code>LastSha</code> is the reverse. No stream table carries the distinction, because no figure segments on it (ADR-021). TfLens stores <strong>no user profile and no password</strong> — the AppManager <code>userId</code> is the only user key.</p>
+<p>PostgreSQL 16 (amended 2026-08-26; three miss tables added 2026-08-28; three Playbook phase tables and five new columns added 2026-09-01). One table per stream — except <code>misses</code>, whose three record kinds get three tables, and the Playbook's schema-2 phase metrics, whose execution / per-model / per-subagent shapes get three more — columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc., always double-quoted in SQL; the JSON→column mapping table lives in <code>StreamParser</code>). <code>Overflow</code> is a <code>jsonb</code> column. Every stream table carries <code>UserId</code> (amended 2026-08-26 — the AppManager user who connected the repo), <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields). Identity tables: <code>UserRepo</code> (the per-user source list) and <code>AuthSession</code> (server-side AppManager tokens per cookie session). <code>UserRepo.SourceKind</code> (<code>api</code> | <code>import</code>, added 2026-08-28) is the <strong>only</strong> structural trace of how a source's data arrives; <code>BundleSha</code> and <code>LastImportTs</code> are populated for imported sources and <code>null</code> for fetched ones, and <code>LastSha</code> is the reverse. No stream table carries the distinction, because no figure segments on it (ADR-021). TfLens stores <strong>no user profile and no password</strong> — the AppManager <code>userId</code> is the only user key.</p>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -675,6 +748,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     real CostUsd
     string TokensScope
     int Attempt
+    int SubagentRuns
+    int TokensOutSubagents
+    string ModelTokensOut
     string Overflow
   }
   Gate {
@@ -740,6 +816,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     string Ts
     string MissId
     string ReqId
+    string ItemId
+    string FoundPhaseGate
+    string SourceLineHash
     string ReqClass
     string MissClass
     string Artifact
@@ -802,6 +881,82 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     real CostUsd
     string Overflow
   }
+  PbPhaseExecution {
+    int UserId
+    string Repo
+    string PhaseExecutionId
+    int SourceSchema
+    string SourceHarness
+    string Phase
+    string SessionId
+    string Granularity
+    string StartedAt
+    string EndedAt
+    bigint ElapsedMs
+    bool Complete
+    string EndReason
+    string DominantModel
+    string Tier
+    bigint TokensInput
+    bigint TokensOutput
+    bigint TokensReasoning
+    bigint TokensCacheRead
+    bigint TokensCacheWrite
+    bigint TokensIn
+    bigint TokensOut
+    decimal CostUsd
+    int Turns
+    bigint AssistantElapsedMs
+    bigint ToolElapsedMs
+    bigint ObservedActiveMs
+    string ActiveCoverage
+    bool DataQualityValid
+    string DataQualityIssues
+    string TokenStatus
+    string CostStatus
+    string TokensScope
+    int SubagentsSpawned
+    int SubagentsContributors
+    int AttemptSnapshot
+    string GateVerdictSnapshot
+    string ProjectType
+    string ImportedAt
+    string Overflow
+  }
+  PbPhaseModelUsage {
+    int UserId
+    string Repo
+    string PhaseExecutionId
+    string Model
+    int Turns
+    bigint TokensInput
+    bigint TokensOutput
+    bigint TokensReasoning
+    bigint TokensCacheRead
+    bigint TokensCacheWrite
+    bigint TokensIn
+    bigint TokensOut
+    decimal CostUsd
+    string CostStatus
+    bigint ActiveMs
+  }
+  PbPhaseSubagent {
+    int UserId
+    string Repo
+    string PhaseExecutionId
+    string SessionId
+    string ParentSessionId
+    string Agent
+    string StartedAt
+    string EndedAt
+    bigint ElapsedMs
+    bool Complete
+    int Turns
+    bigint TokensIn
+    bigint TokensOut
+    decimal CostUsd
+    string CostStatus
+  }
   UserRepo ||--|| SyncState : "UserId, Repo"
   SyncState ||--o{ Run : "UserId, Repo"
   SyncState ||--o{ Gate : "UserId, Repo"
@@ -811,8 +966,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   SyncState ||--o{ MissFix : "UserId, Repo"
   SyncState ||--o{ MissAmend : "UserId, Repo"
   SyncState ||--o{ PbEvent : "UserId, Repo"
+  SyncState ||--o{ PbPhaseExecution : "UserId, Repo"
   Miss ||--o{ MissFix : "MissId"
-  Miss ||--o{ MissAmend : "MissId"</pre>
+  Miss ||--o{ MissAmend : "MissId"
+  PbPhaseExecution ||--o{ PbPhaseModelUsage : "PhaseExecutionId"
+  PbPhaseExecution ||--o{ PbPhaseSubagent : "PhaseExecutionId"</pre>
 </div>
 <p>Every stream table also carries <code>UserId</code> (omitted from the boxes above for brevity). Unique indexes implement the dedupe keys per user: <code>UcCommitUserRepoSha (UserId, Repo, Sha)</code>, <code>UcRunIdentity (UserId, Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (UserId, Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionUserRepoId (UserId, Repo, SessionId)</code>. The miss tables (added 2026-08-28) follow the same house style — every identifier double-quoted, <code>UserId</code> a real column and part of every unique index (ADR-013), <code>CREATE TABLE IF NOT EXISTS</code> so <code>database/001-schema.sql</code> stays idempotent at every startup with no migration framework:</p>
 <pre><code class="language-sql">-- unique keys (the dedupe rules, encoded)
@@ -837,6 +995,40 @@ CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissI
 </li>
 </ol>
 <p><code>ITelemetryStore</code> gains <code>ReadMissesAsync</code>, <code>ReadMissFixesAsync</code> and <code>ReadMissAmendsAsync</code> mirroring <code>ReadGatesAsync</code>'s signature; <code>UpsertAsync</code> handles the three new <code>ParseResult</code> collections; and <strong><code>DeleteRepoDataAsync</code> must purge all three</strong> — missing one leaves orphaned rows that reappear in every figure, which is the worst class of bug in a product whose promise is correct numbers. <code>SyncState</code> gains a <code>misses</code> row per repo, so Coverage's per-repo stream table goes from four rows to five. <code>AuthSession</code> token columns are encrypted at rest with ASP.NET Data Protection. <code>PbEvent</code> columns are provisional until the real file is parsed (Phase 3 schema-discovery). Nullable-vs-absent is preserved: an absent optional field is stored as <code>NULL</code>, never <code>0</code> (SCHEMA.md §2.5).</p>
+<p><em>Added 2026-09-01 — phase effort (F-EFFORT).</em> Five columns and three tables, in the same house style:</p>
+<pre><code class="language-sql">-- Run gains the three SCHEMA §2.6 fields. ALL NULLABLE BY DESIGN: null means "not captured",
+-- and a measured zero is a different fact. Collapsing them is the defect TF-005 named.
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "SubagentRuns"        integer;   -- counted from the harness store
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "TokensOutSubagents"  bigint;
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "ModelTokensOut"      jsonb;     -- {model_id: output_tokens}
+
+-- Miss gains the Playbook axes as their OWN columns, never merged with the TechieFlow ones.
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "ItemId"          text;  -- Playbook's requirement axis, beside "ReqId"
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "FoundPhaseGate"  text;  -- Playbook PROCESS gate, beside "FoundGate" (assertion)
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "SourceLineHash"  text;  -- Playbook natural key; null on TechieFlow rows
+
+-- unique keys
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseExecUserRepoId"    ON "PbPhaseExecution"  ("UserId","Repo","PhaseExecutionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseModelUserRepoIdModel" ON "PbPhaseModelUsage" ("UserId","Repo","PhaseExecutionId","Model");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseSubUserRepoIdSession"  ON "PbPhaseSubagent"   ("UserId","Repo","PhaseExecutionId","SessionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoSourceLine"   ON "Miss" ("UserId","Repo","SourceLineHash") WHERE "SourceLineHash" IS NOT NULL;
+-- read paths
+CREATE INDEX IF NOT EXISTS "IxPbPhaseExecUserRepo"  ON "PbPhaseExecution" ("UserId","Repo");
+CREATE INDEX IF NOT EXISTS "IxPbPhaseExecPhase"     ON "PbPhaseExecution" ("UserId","Phase");
+CREATE INDEX IF NOT EXISTS "IxPbPhaseSubParent"     ON "PbPhaseSubagent"  ("UserId","ParentSessionId");
+CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("UserId","Cmd");</code></pre>
+<p>Four things about that block are deliberate and would otherwise be "tidied" later:</p>
+<ol>
+<li><strong><code>ModelTokensOut</code> is <code>jsonb</code>, not a child table.</strong> It is a per-model output split read as a whole, never joined or filtered on a single model, and the run's token window is already atomic. <code>PbPhaseModelUsage</code> <em>is</em> a child table for the opposite reason — the Playbook contract requires filtering and aggregating on any <code>models[]</code> member (BRD-158), and a JSON blob cannot serve a <code>WHERE model = …</code>.
+</li>
+<li><strong><code>CostUsd</code> on the Playbook tables is <code>decimal</code>, not <code>real</code>.</strong> The contract states it explicitly: store provider cost as fixed precision, not binary float. The older <code>Run</code>/<code>Session</code>/<code>MissFix</code> columns keep <code>real</code> because changing them would alter figures already parity-stamped; new money columns start correct.
+</li>
+<li><strong><code>UcMissUserRepoSourceLine</code> is a partial index.</strong> TechieFlow rows carry no <code>SourceLineHash</code> and must not collide with each other on <code>NULL</code>; the <code>WHERE … IS NOT NULL</code> clause makes the Playbook key apply only to Playbook rows, leaving <code>UcMissUserRepoMissId</code> to govern the TechieFlow ones. Two editions, two natural keys, one table (ADR-024) — the same lesson the <code>COALESCE("FixRunId",'')</code> correction taught on 2026-08-28, applied before it bit rather than after.
+</li>
+<li><strong><code>IxRunUserCmd</code> exists only for <code>/effort</code>.</strong> Every other <code>Run</code> read is by <code>(UserId, Repo)</code>; grouping by <code>Cmd</code> across repos is a new access pattern.
+</li>
+</ol>
+<p><code>ITelemetryStore</code> gains <code>ReadPhaseExecutionsAsync</code>, <code>ReadPhaseModelUsageAsync</code> and <code>ReadPhaseSubagentsAsync</code>; <code>UpsertAsync</code> handles the three new collections; and <strong><code>DeleteRepoDataAsync</code> must purge all three</strong> — the same rule, and the same failure if missed, as the miss tables.</p>
 <h2 id="metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
 <p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>
 <table>
@@ -858,9 +1050,17 @@ CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissI
 <tr><td>misses block: <code>why_missed{}</code> / <code>why_missed_n</code></td><td><code>MissMetrics.FailedPractice</code></td><td>denominator is records carrying the field, surfaced as <code>n of N assessed</code></td></tr>
 <tr><td>misses block: <code>attributed_n</code> / <code>attribution_excluded</code></td><td><code>MissAttributionTaint</code></td><td><code>linked</code> only; applied <strong>and</strong> displayed, like <code>TaintSet</code></td></tr>
 <tr><td>misses block: <code>cost_sole_n</code> / <code>cost_shared_n</code> / <code>cost_unattributable_n</code></td><td><code>MissCost</code></td><td>three keys, never collapsed into one blended figure</td></tr>
+<tr><td><em>(2026-09-01)</em> <code>--phases</code> block: <code>phases.&lt;cmd&gt;.tokens_measured_n</code> / <code>tokens_unmeasured_n</code></td><td><code>PhaseMetrics.TokenWindow</code></td><td>the unmeasured count is the <strong>divisor's complement</strong>, never folded in as zeros</td></tr>
+<tr><td><code>phases.&lt;cmd&gt;.fanout.observed_n</code> / <code>unobserved_not_tree</code> / <code>unobserved_predates_field</code></td><td><code>FanoutObservation</code></td><td><code>tree</code> scope <strong>and</strong> non-null <code>subagent_runs</code>; the two exclusions stay two counts</td></tr>
+<tr><td><code>phases.&lt;cmd&gt;.tokens_out_per_run</code></td><td><code>Figure.InsufficientData</code></td><td>the reference script returns a real <code>null</code> below <code>MIN_N</code>; TfLens must too — <code>0</code> on either side is a mismatch</td></tr>
+<tr><td><em>(corrected 2026-09-01)</em> <code>phases.&lt;cmd&gt;.duration_s.median</code>, <code>fanout.spawns_median</code> / <code>spawns_max</code></td><td><code>double?</code> / <code>long?</code> — <strong>NOT</strong> <code>Figure</code></td><td><strong>These carry no <code>MIN_N</code> floor in the shipped script</strong>, and this row previously said they did. <code>analyse_phases</code> computes <code>median(durs)</code> and <code>median(spawns)</code> unconditionally, and <code>spawns_max</code> is <code>null</code> only on an empty set, never below <code>MIN_N</code>. A <code>Figure</code> here would <strong>refuse to print a number the script prints</strong>, which is a parity failure in the direction of false modesty rather than false confidence — still a failure. <code>tokens_out_per_run</code> above is the only genuinely floored figure in the block</td></tr>
+<tr><td><code>phases.&lt;cmd&gt;.share_of_duration</code> / <code>share_of_tokens_out</code> / <code>subagent_share_of_tokens_out</code></td><td><code>Pct</code></td><td>the oracle's own <code>"87%"</code> / <code>"—"</code> <strong>strings</strong>; diffed as strings, never reformatted first</td></tr>
+<tr><td><code>phases.&lt;cmd&gt;.models.&lt;model&gt;.tokens_out</code></td><td><code>PhaseMetrics.ByModel</code></td><td>from <code>model_tokens_out</code>, never from the dominant <code>model</code> label</td></tr>
+<tr><td><code>FIELD_SINCE = { why_missed: 2026-08-28 }</code></td><td><em>(extended 2026-09-01)</em></td><td><code>+ subagent_runs</code>, <code>tokens_out_subagents</code>, <code>model_tokens_out</code> — all <code>2026-08-31</code>, same table, same code path</td></tr>
+<tr><td><em>(no oracle)</em> Playbook schema-2 phase and miss figures</td><td><code>PlaybookPhaseAdapter</code>, <code>PlaybookMissNormalizer</code></td><td><code>tf-metrics.sh</code> knows nothing of them; they stand where <code>extras</code> stands — hand-checked once, recorded in DECISIONS.md, never quoted on a passing TechieFlow diff</td></tr>
 </tbody>
 </table>
-<p>Three guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate; (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case; and (3) <em>(2026-08-28)</em> <code>MissCost</code> exposes <code>Sole</code>, <code>Apportioned</code> and <code>NoneCount</code> and nothing else, so a page cannot render a blended measured-plus-apportioned cost — there is no property to bind. The technique is the same each time: <strong>make the wrong number unrepresentable rather than forbidden</strong> (ADR-007, ADR-019). A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
+<p>Four guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate; (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case; (3) <em>(2026-08-28)</em> <code>MissCost</code> exposes <code>Sole</code>, <code>Apportioned</code> and <code>NoneCount</code> and nothing else, so a page cannot render a blended measured-plus-apportioned cost — there is no property to bind; and (4) <em>(2026-09-01)</em> every phase-effort figure is returned <strong>wrapped in the count it rests on</strong> — a token total arrives as <code>TokenWindow(Figure Tokens, int MeasuredN, int UnmeasuredN)</code> and a fan-out figure as <code>FanoutObservation(double? Spawns, int ObservedN, int UnobservedNotTree, int UnobservedPredatesField)</code> — so a page cannot render a spawn count without also holding the number of runs that could have been observed. <em>(Corrected 2026-09-01: <code>Spawns</code> is <code>double?</code>, not <code>Figure</code>. The wrapper is what makes the denominator inescapable; the <code>MIN_N</code> refusal belongs to <code>TokenWindow.Tokens</code>, which the script does floor, and not here, which it does not.)</em> The technique is the same each time: <strong>make the wrong number unrepresentable rather than forbidden</strong> (ADR-007, ADR-019, ADR-026). A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
 <h2 id="cross-cutting-concerns">8. Cross-cutting concerns<a class="anchor-link" href="#cross-cutting-concerns">#</a></h2>
 <ul>
 <li><strong>Logging</strong> — Serilog, <code>WriteTo.File("logs/tflens-.log", rollingInterval: Day, retainedFileCountLimit: 14)</code> + console, wired before the host builds; <code>ILogger&lt;T&gt;</code> in app code; sync outcomes logged per repo (IDs and counts only — never file contents).
@@ -952,6 +1152,18 @@ CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissI
 </li>
 <li><strong>ADR-022 — An imported source's dataset identity is the bundle's sha256, standing exactly where a fetched source's commit SHA stands (2026-08-28).</strong> Reason: BRD §13 pins a parity run to a dataset, and an uploaded zip has no commit to name. A content hash is the natural substitute and is strictly stronger for the purpose: the reference script is run over the <em>identical archived bytes</em> rather than over a fresh clone the operator hopes matches. It also gives the raw archive a stable, collision-resistant filename component (<code>&lt;stream&gt;-&lt;bundleSha&gt;.jsonl</code>), so re-importing the same bundle overwrites its own file rather than accumulating copies, while re-importing a <em>changed</em> bundle lands beside it and replays in order — the same shape the SHA-named fetched files already have. <code>UserRepo</code> therefore carries <code>LastSha</code> <strong>or</strong> <code>BundleSha</code>, never both.
 </li>
+<li><strong>ADR-023 — The Playbook's schema-2 phase metrics arrive through the existing Import-metric-files mode, not a new fetch path and not a request that the Playbook commit them (2026-09-01, owner decision).</strong> Reason: the producer reads <code>verification/telemetry/events.ndjson</code>, which is <strong>transient by design and rotates</strong>, and emits normalized NDJSON on the exporter's <em>stdout</em>. That leaves three options and only one of them is honest about what TfLens is. Fetching on a schedule cannot work — there is frequently no file, and its absence is not a zero (BRD-153). Asking the Playbook to commit the exporter's output would break the standing promise that TfLens <strong>never asks a framework to change</strong> (BRD §1), for a file the framework deliberately treats as scratch. Running the exporter ourselves would give TfLens a node dependency, an execution surface, and write access to a user's repository — three things §3 rules out in one line each. Uploading it is what the import mode already exists for: the bytes are archived verbatim, the bundle sha256 becomes the dataset identity a parity run pins (ADR-022), it reaches private and corporate repos, and it adds <strong>one entry to a stream-name table</strong> rather than a second ingest code path (BRD-132). The cost is real and accepted: the series is only as continuous as the user's re-import cadence, so <code>/effort</code> shows the last successful checkpoint rather than implying continuity. Reverse this if the Playbook ever commits a durable normalized file — the fetcher would then work unchanged.
+</li>
+<li><strong>ADR-024 — Playbook misses reuse <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> with the cross-edition axes as distinct nullable columns, rather than a parallel <code>PbMiss*</code> set (2026-09-01, owner decision).</strong> Reason: ADR-010 gave the Playbook separate tables for <code>phase_gate</code> because a process gate and an assertion gate are <strong>different measurements</strong>; a Playbook miss and a TechieFlow miss are the <em>same</em> measurement, and the AIFP contract asks for "cross-edition normalization" in those words. The pair that genuinely differs is carried as difference — <code>ItemId</code> beside <code>ReqId</code> (one axis, two names) and <code>FoundPhaseGate</code> beside <code>FoundGate</code> (two axes, never one column or one chart, BRD-165) — and Playbook rows key on an immutable source-line hash via a <strong>partial</strong> unique index so the two natural keys coexist without colliding on <code>NULL</code>. <code>UserRepo.Framework</code> (ADR-016) already guarantees no read pools across editions, so a second table set would buy a wall that exists and cost a second <code>MissMetrics</code>, a second folding implementation, a second attribution guard and a second <code>MissCost</code> — four places for the two editions to drift apart on invariants that must not drift. The residual risk is a query that forgets the framework filter; that risk is already covered by making <code>Framework</code> a mandatory read parameter rather than a filter someone remembers.
+</li>
+<li><strong>ADR-025 — Schema-2 phase data occupies three tables (execution / per-model / per-subagent), not one wide row (2026-09-01).</strong> Reason: the contract requires filtering and aggregating on <strong>any</strong> <code>models[]</code> member (BRD-158) and rendering a recursive subagent tree by <code>session_id</code> / <code>parent_id</code> (BRD-159); neither is expressible over a JSON column, and a mixed-model execution flattened into its dominant model is the exact misattribution BRD-150 forbids. The contrast with <code>Run.ModelTokensOut</code> — kept as <code>jsonb</code> — is deliberate and is the rule: <strong>a per-model split that is only ever read whole stays JSON; one that must be queried becomes a table.</strong>
+</li>
+<li><strong>ADR-026 — The fan-out denominator is a scope predicate returned with the figure, not a coalesce (2026-09-01).</strong> Reason: <code>subagent_runs</code> is absent on a <code>main</code>-scope run because <strong>the window never read the subagent transcripts</strong> — the run did not report "zero subagents", it reported nothing. <code>?? 0</code> would turn "we did not look" into a measurement, and the resulting fan-out average would be confidently composed largely of runs that could not have seen a subagent. Nothing about the number would look wrong, which is the whole hazard. So the engine returns <code>FanoutObservation(double? Spawns, int ObservedN, int UnobservedNotTree, int UnobservedPredatesField)</code> and a page cannot bind the spawn count without also holding the denominator. <em>(Corrected 2026-09-01: <code>Spawns</code> is <code>double?</code>. This ADR is about the DENOMINATOR being inseparable from the figure, which is unchanged; the figure's own type is <code>double?</code> because the script applies no <code>MIN_N</code> floor to <code>spawns_median</code> / <code>spawns_max</code>.)</em> The exclusion <code>unobserved_predates_field</code> is likewise counted as <em>tree scope with a null <code>subagent_runs</code></em> and <strong>not</strong> by comparing the run's date to <code>2026-08-31</code> — <code>FIELD_SINCE</code> is why that inference is sound, not how the count is made (BRD-147, amended the same day). The two exclusions stay two counts because they are two facts with different futures: <em>we did not look</em> could change tomorrow; <em>we could not have looked</em> (written before 2026-08-31) never will. Same technique as ADR-007 and ADR-019, third application.
+</li>
+<li><strong>ADR-027 — Wall-clock elapsed, observed active time and human effort are three types, not three names for one number (2026-09-01).</strong> Reason: the producer unions overlapping assistant and tool intervals precisely because an assistant envelope can <em>contain</em> tool execution, so <code>AssistantElapsedMs + ToolElapsedMs</code> is a number with no referent — and it is the number a well-meaning contributor will compute, because both columns are right there and adding them looks like totalling. Storing them as explicitly-typed diagnostics that no aggregate accepts, alongside a single <code>ObservedActiveMs</code> that is the producer's union, makes the wrong sum a compile-time absence. Human effort gets no column at all: neither framework captures it, and a column that exists is a column something will eventually populate by inference from wall-clock time — which would relabel machine busy-time as a person's day, the single most misreadable figure this page could carry.
+</li>
+<li><strong>ADR-028 — Where an amended document and the shipped reference script disagree, the script wins and the document is amended (2026-09-01, taken during the F-EFFORT build).</strong> Reason: BRD §13 parity is zero-tolerance and is graded by diffing TfLens's own output against <code>tf-metrics.sh</code>, so a document that describes behaviour the script does not have cannot be satisfied — code written to it fails parity by construction. The F-EFFORT build's parity run (<strong>401 figures, 0 diffs</strong>) surfaced three such places, all introduced by the 2026-09-01 amendment writing what the behaviour <em>ought</em> to be rather than reading what shipped: a <code>MIN_N</code> floor on <code>duration_s.median</code> / <code>spawns_median</code> / <code>spawns_max</code> that does not exist, a date comparison for <code>unobserved_predates_field</code> that is really a null check, and an absolute ban on the dominant-model fallback that the script uses on every record written before 2026-08-31. Each was resolved toward the script and the document corrected here and in the BRD. <strong>The residual risk this ADR exists to name:</strong> a future agent reading only the uncorrected document would 'fix' working code to match it and break parity — which is precisely why the correction is an amendment and not a code comment. The reverse direction remains open: if the framework changes the script, TfLens follows it, and this ADR is the record of which way the arrow points.
+</li>
 </ul>
 <h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>
 <p>Not applicable — greenfield; §2 is the target.</p>
@@ -985,6 +1197,20 @@ CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissI
 </li>
 <li><strong>Postgres in the parity loop:</strong> <code>tf-metrics.sh</code> reads files, TfLens reads Postgres; the parity procedure pins the dataset by SHA, so the store is irrelevant to the comparison — but a <code>rebuild</code> must precede every parity run to rule out stale rows.
 </li>
+<li><strong>Fan-out coverage starts at 1 of 13</strong> (2026-09-01). <code>subagent_runs</code> only exists on runs recorded after 2026-08-31 under a harness whose window resolves to <code>tree</code> scope, and no backfill was performed — a reconstructed count would be a guess. <code>/effort</code> must therefore be designed to look <em>correct</em> at <code>observed_n = 1 of 13</code>, not merely to survive it. The failure mode is subtle: a page that looks broken or empty while coverage is thin gets distrusted early and never regains it, and the natural "fix" — coalescing the absent counts to zero — is precisely ADR-026's defect.
+</li>
+<li><strong>The Playbook axis has no oracle</strong> (2026-09-01). <code>tf-metrics.sh</code> reads TechieFlow streams and knows nothing about schema-2 <code>phase-metric</code> rows or the Playbook miss export, so those figures cannot be parity-diffed at all; they stand where <code>extras</code> stands — hand-checked once against raw NDJSON, recorded in DECISIONS.md. The hazard is that <code>/effort</code> has <strong>two halves with different evidentiary standing</strong>, and a passing TechieFlow diff will be read as validating both. The page must say which is which on its face (BRD §13, third standing rule).
+</li>
+<li><strong>The Playbook's phase series is inherently gappy.</strong> Its input file rotates and event writes are best-effort; no status the producer emits (<code>token_status</code>, <code>cost_status</code>, <code>coverage</code>) is evidence of end-to-end delivery completeness, and none should be presented as such. TfLens shows the last successful checkpoint and reports ingestion/invariant diagnostics rather than interpolating or repairing. A gap is a gap, not a quiet period.
+</li>
+<li><strong><code>data_quality.valid:false</code> rows carry plausible zeros.</strong> The producer may retain zero-valued compatibility totals on an invalid row, so quarantine has to happen <em>before</em> aggregation — filtering zeros afterwards cannot distinguish an invalid row's zero from a real one. This is the same shape as the <code>null</code>-vs-<code>0</code> rule one layer up, and it is the reason the adapter validates on ingest rather than trusting the payload.
+</li>
+<li><strong>Two miss editions now share three tables</strong> (ADR-024). The wall between them is <code>UserRepo.Framework</code> as a mandatory read parameter, not a filter. A query that omits it would pool Playbook and TechieFlow misses silently — the failure ADR-016 exists to prevent — so the isolation test that already signs in two users and asserts they cannot see each other's data should gain a sibling that connects two frameworks and asserts the same.
+</li>
+<li><strong>The Playbook's miss guards are stricter than TechieFlow's on purpose</strong> (BRD-166). A future reviewer will notice the asymmetry and try to unify them; unifying downward would weaken a claim the producer explicitly refuses to make. The standing comment belongs in the code, next to the guard, in the same style as the two deliberately-disagreeing open predicates.
+</li>
+<li><strong>No cross-phase task identity exists on either side.</strong> A whole-task figure needs a cohort supplied explicitly by ingestion; a reused <code>session_id</code> may span several tasks. The temptation to group by it will recur every time someone asks "what did this feature cost end to end", and the honest answer is that the frameworks do not measure it (BRD-157, BRD-169).
+</li>
 </ul>
 <h2 id="sources-harvested">13. Sources harvested<a class="anchor-link" href="#sources-harvested">#</a></h2>
 <ul>
@@ -1003,6 +1229,14 @@ CREATE INDEX IF NOT EXISTS "IxMissAmendMissId"   ON "MissAmend" ("UserId","MissI
 <li><code>docs/Miss-Telemetry-TfLens.md</code> + <code>docs/Miss-Telemetry-TechieFlow.md</code> (2026-08-28) — the miss stream's design record and the shipped producer's contract; source of the F-MISS amendment. Both stay in <code>docs/</code> (independently authoritative).
 </li>
 <li><code>.tfcore/telemetry/SCHEMA.md</code> §5.5 (2026-08-28) — the three miss record kinds, the <code>why_missed</code> vocabulary, the <code>cost_attribution</code> and <code>origin_confidence</code> derivation rules.
+</li>
+<li><code>docs/Phase-Effort-Telemetry-TfLens.md</code> (2026-09-01) — the TechieFlow phase-effort design record and the shipped producer's contract: SCHEMA §2.6 (<code>subagent_runs</code>, <code>tokens_out_subagents</code>, <code>model_tokens_out</code>, 2026-08-31), the <code>tf-metrics.sh --phases</code> oracle block and its parity keys, and the three denominators. Source of the F-EFFORT amendment (TechieFlow axis). Stays in <code>docs/</code> (independently authoritative).
+</li>
+<li><code>docs/Phase-Efficiency-TfLens-Contract.md</code> (2026-09-01) — the AI-First-Playbook's schema-2 <code>phase-metric</code> consumer contract: field list, required invariants, timing semantics, storage shape, aggregation rules, data-quality flags, UI specification and thirteen acceptance tests. Source of the F-EFFORT amendment (Playbook axis). Stays in <code>docs/</code>.
+</li>
+<li><code>docs/Miss-Telemetry-TfLens-From-AIFP.md</code> (2026-09-01) — the AI-First-Playbook's normalized miss export contract: lifecycle records, the stricter reporting guards, cross-edition axis preservation and the actor prohibition. Stays in <code>docs/</code>.
+</li>
+<li><code>docs/Miss-Telemetry-TfLens.md</code> — re-read 2026-09-01 during the F-EFFORT amendment and required <strong>no change</strong>: BRD-112..BRD-130 and ADR-018..ADR-020 already own every clause of it.
 </li>
 </ul>
   </main>

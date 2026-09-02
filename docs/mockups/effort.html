@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Phase effort</title>
+<script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--background:#fff;--foreground:#0a0a0a;--card:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--primary:#171717;--primary-foreground:#fafafa;--accent:#f4f4f5;--border:#e5e5e5;--input:#e5e5e5;--sidebar:#fafafa;--sidebar-border:#e5e5e5;--ring:#a1a1aa;--success:#22c55e;--warning:#f59e0b;--destructive:#ef4444;--info:#3b82f6;--chart-1:#60a5fa;--chart-2:#34d399;--chart-3:#f472b6;--chart-4:#fbbf24;--chart-5:#a78bfa;--radius:10px;--shadow:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04)}
+html.dark{--background:#0a0a0a;--foreground:#fafafa;--card:#141414;--muted:#1f1f1f;--muted-foreground:#a1a1aa;--primary:#fafafa;--primary-foreground:#0a0a0a;--accent:#1f1f1f;--border:#262626;--input:#262626;--sidebar:#0f0f0f;--sidebar-border:#262626;--ring:#52525b;--shadow:0 1px 2px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3)}
+html,body{height:100%}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--background);color:var(--foreground);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;flex:none}
+.muted{color:var(--muted-foreground)}.xs{font-size:12px}.sm{font-size:13px}.ital{font-style:italic}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.row{display:flex;align-items:center;gap:8px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.stack{display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+.shell{display:flex;height:100vh}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden}
+.sb-head{height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--sidebar-border);white-space:nowrap}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;flex:none}.mark svg{width:18px;height:18px}
+.brand b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}.brand span{display:block;font-size:11px;color:var(--muted-foreground)}
+.sb-body{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+.grp-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);padding:0 8px;margin-bottom:6px;white-space:nowrap}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:var(--foreground);font-size:14px;position:relative;white-space:nowrap}
+.nav a:hover{background:var(--accent)}.nav a.active{background:var(--accent);color:var(--primary);font-weight:500}
+.nav a.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.nav a svg{width:18px;height:18px;color:var(--muted-foreground)}.nav a.active svg{color:var(--primary)}.nav .lbl{flex:1}
+.mbadge{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--muted);font-weight:500}
+.sb-foot{border-top:1px solid var(--sidebar-border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;white-space:nowrap;font-size:12px;color:var(--muted-foreground)}
+body.sidebar-collapsed .sidebar{width:56px}body.sidebar-collapsed .sb-head{padding:0 12px}
+body.sidebar-collapsed .brand,body.sidebar-collapsed .grp-label,body.sidebar-collapsed .lbl,body.sidebar-collapsed .mbadge,body.sidebar-collapsed .sb-foot span,body.sidebar-collapsed .sb-foot .switch{display:none}
+body.sidebar-collapsed .nav a{justify-content:center;padding:0}body.sidebar-collapsed .sb-foot{justify-content:center;padding:12px 8px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.hdr{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--background)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted-foreground)}.crumb b{color:var(--foreground);font-weight:500}.crumb svg{width:14px;height:14px}
+.spacer{flex:1}
+.content{flex:1;overflow:auto;padding:32px}.content>.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}h2{font-size:16px;font-weight:600;letter-spacing:-.01em}h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--muted-foreground);font-size:14px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:500;border:1px solid transparent;cursor:pointer;background:var(--primary);color:var(--primary-foreground);white-space:nowrap}
+.btn:hover{opacity:.9}.btn.outline{background:var(--background);color:var(--foreground);border-color:var(--border)}.btn.outline:hover{background:var(--accent);opacity:1}
+.btn.ghost{background:transparent;color:var(--foreground)}.btn.ghost:hover{background:var(--accent);opacity:1}.btn.destructive{background:var(--destructive);color:#fff}
+.btn.link{background:none;color:var(--foreground);padding:0;height:auto;text-decoration:underline;text-underline-offset:3px;font-weight:400}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}.btn.icon{width:32px;height:32px;padding:0}.btn.block{width:100%}.btn[disabled]{opacity:.5;pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid transparent;white-space:nowrap;background:var(--primary);color:var(--primary-foreground)}
+.badge.outline{background:transparent;color:var(--foreground);border-color:var(--border)}.badge.secondary{background:var(--muted);color:var(--foreground)}
+.badge.success{background:rgba(34,197,94,.14);color:var(--success);border-color:rgba(34,197,94,.3)}.badge.warning{background:rgba(245,158,11,.14);color:var(--warning);border-color:rgba(245,158,11,.3)}
+.badge.destructive{background:rgba(239,68,68,.14);color:var(--destructive);border-color:rgba(239,68,68,.3)}.badge.info{background:rgba(59,130,246,.14);color:var(--info);border-color:rgba(59,130,246,.3)}
+.badge svg{width:12px;height:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card-t{font-size:16px;font-weight:600;letter-spacing:-.01em}.card-d{font-size:13px;color:var(--muted-foreground);margin-top:2px}
+.card-c{padding:20px 24px 24px}.card-c.flush{padding:0}.card-c.tight{padding-top:16px}
+.card-f{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.kpi{padding:20px 24px}.kpi .row{justify-content:space-between}.kpi .t{font-size:13px;font-weight:500;color:var(--muted-foreground)}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:10px;line-height:1.1;font-variant-numeric:tabular-nums}.kpi .n{font-size:12px;color:var(--muted-foreground);margin-top:6px}
+.kpi .insuf{font-size:15px;font-style:italic;font-weight:400;color:var(--muted-foreground)}
+.chip{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none}.chip svg{width:16px;height:16px}
+.chip.c1{background:rgba(96,165,250,.15);color:var(--chart-1)}.chip.c2{background:rgba(52,211,153,.15);color:var(--chart-2)}.chip.c3{background:rgba(244,114,182,.15);color:var(--chart-3)}.chip.c4{background:rgba(251,191,36,.15);color:var(--chart-4)}.chip.c5{background:rgba(167,139,250,.15);color:var(--chart-5)}.chip.cd{background:rgba(239,68,68,.15);color:var(--destructive)}
+.spark{width:100%;height:28px;margin-top:10px}.spark polyline{fill:none;stroke:var(--chart-1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.alert{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);font-size:14px}
+.alert svg{width:18px;height:18px;flex:none;margin-top:1px}.alert b{display:block;font-weight:600;margin-bottom:2px}.alert p{color:var(--muted-foreground);font-size:13px}
+.alert.success{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.alert.success svg{color:var(--success)}
+.alert.warning{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}.alert.warning svg{color:var(--warning)}
+.alert.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}.alert.danger svg{color:var(--destructive)}
+.alert.info{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08)}.alert.info svg{color:var(--info)}.alert.accent{border-left-width:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:var(--muted-foreground);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}.tbl tr:last-child td{border-bottom:0}.tbl tbody tr:hover td{background:var(--accent)}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}.tbl.kv td:first-child{color:var(--muted-foreground);width:40%}
+.tabs{display:inline-flex;gap:4px;padding:4px;background:var(--muted);border-radius:8px}
+.tab{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+.tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.tab .badge{height:18px;padding:0 6px;font-size:11px}
+.prog{height:8px;border-radius:999px;background:var(--muted);overflow:hidden;width:100%}.prog i{display:block;height:100%;border-radius:999px;background:var(--chart-1)}
+.bar{display:flex;align-items:center;gap:10px}.bar .prog{width:110px}
+.field{display:flex;flex-direction:column;gap:6px}.label{font-size:14px;font-weight:500}
+.input{height:36px;width:100%;padding:0 12px;border-radius:8px;border:1px solid var(--input);background:var(--background);color:var(--foreground);font-size:14px;outline:none}
+.input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(161,161,170,.25)}.input::placeholder{color:var(--muted-foreground)}
+.hint{font-size:12px;color:var(--muted-foreground)}.ferr{font-size:12px;color:var(--destructive)}
+.inwrap{position:relative}.inwrap .btn{position:absolute;right:2px;top:2px}.inwrap svg.lead{position:absolute;left:12px;top:10px;color:var(--muted-foreground)}.inwrap .input.lead{padding-left:36px}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--muted);color:var(--foreground);display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--border)}.avatar.lg{width:56px;height:56px;font-size:18px}
+.umenu{position:relative}.umenu>.btn{gap:10px;padding:0 8px 0 4px}
+.dd{position:absolute;right:0;top:44px;width:240px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:4px;z-index:20}
+.dd .lbl{padding:8px 10px;font-size:12px;color:var(--muted-foreground)}.dd a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:14px}.dd a:hover{background:var(--accent)}.dd hr{border:0;border-top:1px solid var(--border);margin:4px 0}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted-foreground);background:none;border:0}
+.switch .trk{width:36px;height:20px;border-radius:999px;background:var(--muted);border:1px solid var(--border);position:relative;transition:background .2s}
+.switch .trk::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:999px;background:var(--foreground);transition:transform .2s}
+html.dark .switch .trk{background:var(--primary)}html.dark .switch .trk::after{transform:translateX(16px);background:var(--primary-foreground)}
+.switch .moon{display:none}html.dark .switch .moon{display:block}html.dark .switch .sun{display:none}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:48px 24px;border:1px dashed var(--border);border-radius:var(--radius)}
+.empty .chip{width:48px;height:48px;border-radius:12px}.empty .chip svg{width:22px;height:22px}.empty b{font-size:16px;font-weight:600;margin-top:8px}.empty p{color:var(--muted-foreground);max-width:400px;font-size:14px}
+.panel{border:1px dashed var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-lbl{font-size:12px;font-weight:500;color:var(--muted-foreground);letter-spacing:.04em;text-transform:uppercase}
+.dialog{max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 20px 50px rgba(0,0,0,.4)}.dialog .body{padding:24px;display:flex;flex-direction:column;gap:16px}
+.vlist{display:flex;flex-direction:column;gap:6px;font-size:14px}.vlist div{display:flex;align-items:center;gap:8px}.vlist svg{width:16px;height:16px;color:var(--success)}
+.coll{border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+.coll .trg{display:flex;align-items:center;gap:8px;padding:14px 16px;font-size:14px;font-weight:500;cursor:pointer}.coll .trg svg{width:16px;height:16px;color:var(--muted-foreground)}.coll .body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:24px;height:220px;padding:16px 8px 0}.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.bars .b i{width:100%;max-width:72px;border-radius:6px 6px 2px 2px;display:block}.bars .b .v{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}.bars .b .l{font-size:12px;color:var(--muted-foreground)}
+pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow:auto;line-height:1.6}
+.sha{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.auth{display:flex;min-height:100vh}
+.brandp{width:45%;background:var(--sidebar);border-right:1px solid var(--border);padding:48px;display:flex;flex-direction:column;justify-content:space-between}
+.brandp .word{display:flex;align-items:center;gap:12px}.brandp .word .mark{width:44px;height:44px;border-radius:12px}.brandp .word .mark svg{width:24px;height:24px}.brandp .word b{font-size:32px;font-weight:700;letter-spacing:-.03em}
+.brandp .tag{font-size:18px;color:var(--muted-foreground);margin-top:16px;max-width:420px;line-height:1.5}
+.brandp ul{list-style:none;margin-top:32px;display:flex;flex-direction:column;gap:14px}.brandp li{display:flex;align-items:center;gap:10px;font-size:15px}.brandp li svg{width:18px;height:18px;color:var(--success)}
+.authr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px}.authc{width:100%;max-width:400px}
+.fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px;margin-left:8px}.fw .tab{height:28px;padding:0 10px;font-size:13px}.fw .tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.fw .tab .badge{height:18px;padding:0 6px;font-size:11px}.fw.dim{opacity:.7}
+.pws{display:flex;flex-direction:column;gap:4px;margin-top:2px}.pws .segs{display:flex;gap:4px}.pws .segs i{flex:1;height:6px;border-radius:999px;background:var(--muted);display:block}.pws .segs i.on{background:var(--success)}.pws .lbl{font-size:11px;color:var(--muted-foreground);display:flex;justify-content:space-between}
+.codeblk{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--muted)}.codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 14px;border-bottom:1px solid var(--border);background:var(--card);font-size:12px;color:var(--muted-foreground)}.codeblk pre{border:0;border-radius:0}
+/* ---- responsive (added 2026-08-28) — mockups must read true at 1280 and 390 ---- */
+@media (max-width:1100px){
+ .grid.g5,.grid.g4,.grid.g3{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+ .sidebar{width:56px}
+ .sb-head{padding:0 12px}
+ .brand,.grp-label,.nav .lbl,.mbadge,.sb-foot span,.sb-foot .switch{display:none}
+ .nav a{justify-content:center;padding:0}
+ .sb-foot{justify-content:center;padding:12px 8px}
+ .hdr{padding:0 12px;gap:8px}
+ .crumb>span,.crumb>svg{display:none}
+ .hdr>.badge.outline{display:none}
+ .fw .badge{display:none}
+ .content{padding:20px}
+ .card-c.flush{overflow-x:auto}
+ pre{overflow-x:auto}
+ .grid>*,.row,.main,.card,.stack>*{min-width:0}
+ .bars{overflow-x:auto}
+}
+@media (max-width:700px){
+ .grid.g2,.grid.g3,.grid.g4,.grid.g5{grid-template-columns:1fr}
+ .grid[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+ .hdr [data-testid="sync-now"]{font-size:0!important;gap:0;padding:0 10px}
+ .hdr [data-testid="user-menu"]{font-size:0!important;gap:0;padding:0 4px}
+ .hdr [data-testid="user-menu"] .avatar{font-size:12px!important}
+ .content{padding:16px 12px}
+ .content>.page{gap:16px}
+ h1{font-size:20px}
+ .card-h,.card-c,.card-f{padding-left:16px;padding-right:16px}
+ .card-f,.card-h{flex-wrap:wrap;gap:8px}
+ .tabs{flex-wrap:wrap}
+ .fw.tabs{flex-wrap:nowrap}
+ .tab{white-space:nowrap}
+ .bars{gap:10px;padding:8px 0 0}
+ .auth{flex-direction:column;min-height:100vh}
+ .brandp{width:100%;flex:none;padding:14px 20px;flex-direction:row;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--border)}
+ .brandp .tag,.brandp ul{display:none}
+ .brandp .word .mark{width:34px;height:34px;border-radius:9px}
+ .brandp .word .mark svg{width:18px;height:18px}
+ .brandp .word b{font-size:22px}
+ .brandp>.row{margin-left:auto}
+ .authr{padding:28px 16px;flex:1}
+ .dd{width:210px}
+}
+@media (max-width:820px){
+ .hdr>*{min-width:0}
+ .crumb{display:none}
+ .fw{margin-left:0}
+ .fw .tab{padding:0 9px;font-size:12px}
+ .hdr>.switch>svg{display:none!important}
+ .hdr>.switch{gap:0}
+}
+@media (max-width:480px){
+ .content{padding:12px 8px}
+ .fw .tab{padding:0 7px;font-size:11px}
+ [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
+ [data-testid="source-mode"] .tab svg{display:none}
+}
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-aperture" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94"/><path d="M9.69 8h11.48"/><path d="m7.38 12 5.74-9.94"/><path d="M9.69 16 3.95 6.06"/><path d="M14.31 16H2.83"/><path d="m16.62 12-5.74 9.94"/></symbol>
+<symbol id="i-git-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+<symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-panel-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-refresh-cw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-trash-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol>
+<symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+<symbol id="i-git-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></symbol>
+<symbol id="i-dollar-sign" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+</defs></svg>
+<script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
+function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
+function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
+<div class="shell">
+<aside class="sidebar" data-testid="app-sidebar">
+ <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
+ <div class="sb-body">
+  <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
+  <div><div class="grp-label">Reports</div><nav class="nav">
+   <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
+   <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
+   <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
+   <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" class="active" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
+   <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
+  </nav></div>
+ </div>
+ <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
+</aside>
+<div class="main">
+ <header class="hdr">
+  <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Phase effort</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="effort.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="effort-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <div class="spacer"></div>
+  <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
+  <span class="badge outline">synced 12 min ago</span>
+  <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
+  <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
+ </header>
+  <main class="content"><div class="page" data-testid="effort-page">
+  <div class="row between wrap" style="gap:16px">
+   <div><h1>Phase effort</h1><p class="sub">How much time and how many tokens went into each command phase — with which model, and how many subagents it actually spun up</p></div>
+   <div class="row" style="gap:8px">
+    <span class="badge outline">all history</span>
+    <select class="input" style="width:190px;height:36px" data-testid="effort-period">
+     <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
+    </select>
+   </div>
+  </div>
+
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>This is a budgeting view, not a quality scoreboard</b><p><span class="mono">*build-phase</span> costing more than <span class="mono">*log-miss</span> is a fact about what those phases <b>are</b>, not evidence that one is inefficient. Quality lives on <a href="misses.html" style="text-decoration:underline;text-underline-offset:3px">Misses &amp; rework</a> and <a href="coverage.html" style="text-decoration:underline;text-underline-offset:3px">Coverage</a>. There is no per-REQ effort view here and there never will be — a run's window divided across the REQs it touched is arithmetic dressed as measurement.</p></div></div>
+
+  <!-- BAND 1 — KPI row -->
+  <div class="grid g5" data-testid="effort-kpis">
+   <div class="card kpi" data-testid="kpi-runs"><div class="row"><span class="t">Runs recorded</span><span class="chip c1"><svg><use href="#i-activity"/></svg></span></div><div class="v">128</div><div class="n">live records in <span class="mono">runs.jsonl</span> · backfilled rows are excluded and reported separately</div></div>
+   <div class="card kpi" data-testid="kpi-wallclock"><div class="row"><span class="t">Total wall clock</span><span class="chip c5"><svg><use href="#i-clock"/></svg></span></div><div class="v">39h 22m</div><div class="n">Σ <span class="mono">duration_s</span> over 128 runs · how long the command windows stayed open, never human effort</div></div>
+   <div class="card kpi" data-testid="kpi-tokens-out"><div class="row"><span class="t">Output tokens</span><span class="chip c2"><svg><use href="#i-database"/></svg></span></div><div class="v">41.8M</div><div class="n"><b>measured on 96 of 128 runs</b> · 32 runs carry no token window and are excluded, never averaged in as zero</div></div>
+   <div class="card kpi" data-testid="kpi-heaviest"><div class="row"><span class="t">Heaviest phase</span><span class="chip c3"><svg><use href="#i-layers"/></svg></span></div><div class="v" style="font-size:22px"><span class="mono">build-phase</span></div><div class="n">58% of all output tokens · 55% of wall clock · 24 runs</div></div>
+   <div class="card kpi" data-testid="kpi-fanout-coverage" style="border-color:rgba(251,191,36,.45)"><div class="row"><span class="t">Fan-out coverage</span><span class="chip c4"><svg><use href="#i-git-fork"/></svg></span></div><div class="v">9 of 128</div><div class="n">runs whose window actually observed subagents (7%). A coverage figure, deliberately on the KPI row — every fan-out number below is bounded by it</div></div>
+  </div>
+
+  <!-- BAND 2 — the denominators -->
+  <h3>What is excluded, and why</h3>
+  <div class="grid g2" style="align-items:start" data-testid="effort-denominators">
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Token window</div><div class="card-d">A run with no token window is not a run that spent nothing</div></div><span class="badge outline">96 of 128 measured</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Bucket</th><th class="r">Runs</th><th>What it means</th></tr></thead><tbody>
+     <tr><td><span class="mono">tokens_scope: tree</span></td><td class="r">9</td><td class="sm">main thread <b>and</b> child transcripts read</td></tr>
+     <tr><td><span class="mono">tokens_scope: conversation</span></td><td class="r">54</td><td class="sm">main thread only</td></tr>
+     <tr><td><span class="mono">tokens_scope: main</span></td><td class="r">33</td><td class="sm">main thread only</td></tr>
+     <tr><td class="muted"><span class="mono">tokens_scope: none</span> / absent</td><td class="r"><b>32</b></td><td class="sm muted">no token figures exist for these runs — <span class="mono">tokens_unmeasured_n</span></td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm row"><svg class="i"><use href="#i-info"/></svg><span>Every token tile carries <b><span class="mono">measured on n of N runs</span></b> as visible text, never as a tooltip. Below <span class="mono">MIN_N = 3</span> a per-run figure renders <i>insufficient data (n=…)</i> and never <span class="mono">0</span>.</span></p></div>
+   </div>
+
+   <div class="card" data-testid="effort-fanout-exclusions">
+    <div class="card-h"><div><div class="card-t">Fan-out observation</div><div class="card-d">Two different facts, published two ways and never pooled</div></div><span class="badge warning">9 observed</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><tbody>
+     <tr><td><b>Observed</b><div class="xs muted"><span class="mono">tokens_scope == "tree"</span> and <span class="mono">subagent_runs != null</span></div></td><td style="width:130px"><span class="prog" style="display:block"><i style="width:7%;background:var(--chart-2)"></i></span></td><td class="r" style="white-space:nowrap;width:90px"><b>9</b> · 7%</td></tr>
+     <tr><td><span class="mono">unobserved_not_tree</span><div class="xs muted"><i>We did not look.</i> The window was <span class="mono">main</span>, <span class="mono">conversation</span> or <span class="mono">none</span>, so no child transcript was ever read</div></td><td><span class="prog" style="display:block"><i style="width:61%;background:var(--chart-4)"></i></span></td><td class="r" style="white-space:nowrap">78 · 61%</td></tr>
+     <tr><td><span class="mono">unobserved_predates_field</span><div class="xs muted"><i>We could not have looked.</i> Tree scope, but written before <span class="mono">subagent_runs</span> existed (2026-08-31)</div></td><td><span class="prog" style="display:block"><i style="width:32%;background:var(--chart-5)"></i></span></td><td class="r" style="white-space:nowrap">41 · 32%</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><b>Pooling these two would be the defect.</b> A <span class="mono">main</span>-scope window never read a subagent transcript at all, so coercing its absent <span class="mono">subagent_runs</span> to <span class="mono">0</span> reports <i>“this phase spawns no subagents”</i> when the truth is <i>“we did not look.”</i> The <span class="mono">FIELD_SINCE</span> floor carries <span class="mono">subagent_runs</span>, <span class="mono">tokens_out_subagents</span> and <span class="mono">model_tokens_out</span> at <span class="mono">2026-08-31</span>, in the same table and the same code path as <span class="mono">LATE_GATES</span>.</p></div>
+   </div>
+  </div>
+
+  <!-- BAND 3 — the phase table -->
+  <div class="row between wrap" style="gap:12px">
+   <div><h3>Command phase</h3><p class="muted sm" style="margin-top:4px">One row per <span class="mono">cmd</span>, sorted by share of output tokens. <b>Measured</b> is a column, not a footnote.</p></div>
+   <span class="badge outline">12 phases · 128 runs</span>
+  </div>
+  <div class="card" data-testid="effort-phases">
+   <div class="card-c flush"><table class="tbl">
+    <thead><tr><th>Command phase</th><th class="r">Runs</th><th class="r">Wall clock</th><th class="r">Median</th><th class="r">Share of time</th><th class="r">Output tokens</th><th class="r">Share of output</th><th class="r">Measured</th><th class="r">Fan-out</th></tr></thead>
+    <tbody>
+     <tr><td><span class="mono">build-phase</span></td><td class="r">24</td><td class="r">21h 40m</td><td class="r">42m</td><td class="r">55%</td><td class="r">24.2M</td><td class="r"><b>58%</b></td><td class="r">20 of 24</td><td class="r">6 observed</td></tr>
+     <tr><td><span class="mono">verify-phase</span></td><td class="r">19</td><td class="r">6h 05m</td><td class="r">17m</td><td class="r">15%</td><td class="r">7.1M</td><td class="r"><b>17%</b></td><td class="r">13 of 19</td><td class="r">2 observed</td></tr>
+     <tr><td><span class="mono">fix-issues</span></td><td class="r">11</td><td class="r">3h 48m</td><td class="r">19m</td><td class="r">10%</td><td class="r">3.6M</td><td class="r"><b>9%</b></td><td class="r">9 of 11</td><td class="r">1 observed</td></tr>
+     <tr><td><span class="mono">day1-greenfield</span></td><td class="r">3</td><td class="r">2h 12m</td><td class="r">44m</td><td class="r">6%</td><td class="r">2.1M</td><td class="r"><b>5%</b></td><td class="r">3 of 3</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">devguide</span></td><td class="r">7</td><td class="r">2h 04m</td><td class="r">16m</td><td class="r">5%</td><td class="r">1.9M</td><td class="r"><b>5%</b></td><td class="r">6 of 7</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">mockups</span></td><td class="r">5</td><td class="r">1h 26m</td><td class="r">15m</td><td class="r">4%</td><td class="r">1.4M</td><td class="r"><b>3%</b></td><td class="r">4 of 5</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">amend-docs</span></td><td class="r">6</td><td class="r">51m</td><td class="r">8m</td><td class="r">2%</td><td class="r">0.8M</td><td class="r"><b>2%</b></td><td class="r">5 of 6</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">split-brd</span></td><td class="r">4</td><td class="r">34m</td><td class="r">8m</td><td class="r">1%</td><td class="r">0.4M</td><td class="r"><b>1%</b></td><td class="r">4 of 4</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">triage-issues</span></td><td class="r">5</td><td class="r">22m</td><td class="r">4m</td><td class="r">1%</td><td class="r">0.2M</td><td class="r muted">&lt;1%</td><td class="r">3 of 5</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">log-miss</span></td><td class="r">34</td><td class="r">10m</td><td class="r">12s</td><td class="r muted">&lt;1%</td><td class="r">62k</td><td class="r muted">&lt;1%</td><td class="r">22 of 34</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">metrics</span></td><td class="r">4</td><td class="r">6m</td><td class="r">1m</td><td class="r muted">&lt;1%</td><td class="r">41k</td><td class="r muted">&lt;1%</td><td class="r">3 of 4</td><td class="r muted">not observed</td></tr>
+     <tr><td><span class="mono">refresh-status</span></td><td class="r">6</td><td class="r">4m</td><td class="r">40s</td><td class="r muted">&lt;1%</td><td class="r">18k</td><td class="r muted">&lt;1%</td><td class="r">4 of 6</td><td class="r muted">not observed</td></tr>
+    </tbody>
+   </table></div>
+   <div class="card-f" style="justify-content:flex-start"><p class="muted sm row"><svg class="i"><use href="#i-info"/></svg><span>The dimension is the <b>command phase</b> — the producer's <span class="mono">cmd</span> is a slash command, and one command can contain several lifecycle stages (<span class="mono">*build-phase</span> covers build <i>and</i> self-smoke). A window is never split between conceptual phases by token proportion, and a <b>whole-task total is unavailable</b> without an explicit cohort — a reused session is not one.</span></p></div>
+  </div>
+
+  <!-- BAND 4 — expandable per-phase detail -->
+  <h3>Per-phase detail</h3>
+  <div class="stack" data-testid="effort-phase-detail">
+
+   <div class="coll" data-testid="effort-detail-build-phase">
+    <div class="trg"><svg><use href="#i-chevron-down"/></svg><span class="mono">build-phase</span><span class="muted" style="font-weight:400">— 24 runs · 21h 40m · 24.2M output</span><span class="spacer"></span><span class="badge secondary">expanded</span></div>
+    <div class="body">
+
+     <div class="panel">
+      <div class="panel-lbl">1 · Time</div>
+      <div class="grid g4">
+       <div><div class="xs muted">Total</div><div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">21h 40m</div></div>
+       <div><div class="xs muted">Median run</div><div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">42m</div></div>
+       <div><div class="xs muted">Longest run</div><div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">2h 51m</div></div>
+       <div><div class="xs muted">Share of all wall clock</div><div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">55%</div></div>
+      </div>
+      <p class="muted xs">Wall-clock elapsed is how long the command window stayed open. It is not active time and it is <b>never</b> human effort — nobody sat watching for 21h 40m, and TfLens will not imply that they did.</p>
+     </div>
+
+     <div class="panel">
+      <div class="panel-lbl">2 · Tokens <span class="badge outline" style="height:18px;font-size:11px;margin-left:6px">measured on 20 of 24 runs</span></div>
+      <table class="tbl"><thead><tr><th>Component</th><th class="r">Total</th><th class="r">Median / run</th><th class="r">Mean / run</th></tr></thead><tbody>
+       <tr><td>Output</td><td class="r"><b>24.2M</b></td><td class="r">980k</td><td class="r">1.21M</td></tr>
+       <tr><td>Input</td><td class="r">61.4M</td><td class="r">2.4M</td><td class="r">3.07M</td></tr>
+       <tr><td>Cache read</td><td class="r">402M</td><td class="r">16.1M</td><td class="r">20.1M</td></tr>
+       <tr><td>Cache write</td><td class="r">18.9M</td><td class="r">742k</td><td class="r">945k</td></tr>
+      </tbody></table>
+      <p class="muted xs"><b>Mean sits beside median, not instead of it.</b> The mean output (1.21M) is 23% above the median (980k), which says one long run dominates this phase rather than that a typical run costs 1.21M. Four runs are excluded from every figure in this band — they carry no token window.</p>
+     </div>
+
+     <div class="panel">
+      <div class="panel-lbl">3 · By model</div>
+      <table class="tbl"><thead><tr><th>Model</th><th class="r">Runs</th><th class="r">Output tokens</th><th>Share of this phase</th></tr></thead><tbody>
+       <tr><td><span class="mono">claude-opus-5</span></td><td class="r">17</td><td class="r">17.9M</td><td><span class="bar"><span class="prog"><i style="width:74%"></i></span><span class="r">74%</span></span></td></tr>
+       <tr><td><span class="mono">claude-sonnet-5</span></td><td class="r">11</td><td class="r">5.4M</td><td><span class="bar"><span class="prog"><i style="width:22%;background:var(--chart-3)"></i></span><span class="r">22%</span></span></td></tr>
+       <tr><td><span class="mono">gpt-5-codex</span></td><td class="r">3</td><td class="r">0.9M</td><td><span class="bar"><span class="prog"><i style="width:4%;background:var(--chart-4)"></i></span><span class="r">4%</span></span></td></tr>
+      </tbody></table>
+      <p class="muted xs">Computed from <span class="mono">model_tokens_out</span> — the per-model <b>split</b>. A mixed-model run's whole window is never attributed to its dominant <span class="mono">model</span>; that is why the run counts here (17 + 11 + 3) exceed the phase's 24 runs. <b>This ranking is observational, not causal</b> — which model gets the hard phases is not random.</p>
+     </div>
+
+     <div class="panel">
+      <div class="panel-lbl">4 · Fan-out</div>
+      <div class="alert warning" style="padding:10px 14px"><svg><use href="#i-git-fork"/></svg><div><b>6 of 24 runs observed</b><p>Every number below is computed over those six runs only. The other 18 were not observed — 14 <span class="mono">unobserved_not_tree</span>, 4 <span class="mono">unobserved_predates_field</span> — and none of them contributes a zero.</p></div></div>
+      <table class="tbl"><tbody>
+       <tr><td>Spawns, total</td><td class="r"><b>27</b></td><td class="sm muted">across the 6 observed runs</td></tr>
+       <tr><td>Spawns, median / max</td><td class="r">4 · 9</td><td class="sm muted">per observed run</td></tr>
+       <tr><td>Observed runs that spawned anything</td><td class="r">6 of 6</td><td class="sm muted"><span class="mono">runs_with_fanout</span></td></tr>
+       <tr><td>Subagent output tokens</td><td class="r">8.4M</td><td class="sm muted"><span class="mono">tokens_out_subagents</span> — the main thread's own share is 15.8M</td></tr>
+       <tr><td>Subagent share of output</td><td class="r">35%</td><td class="sm muted">of this phase's measured output</td></tr>
+      </tbody></table>
+      <p class="muted xs"><b>Declared vs measured.</b> The agent typed <span class="mono">subagents: ["trblazeui","techierag"]</span> — two <i>kinds</i>. The harness counted <b>27 spawns</b>. Both are shown because they answer different questions: which kinds were invoked (only the agent knows) versus how many actually ran (only the harness knows). <b>Where they disagree the measured figure is right</b>, and the gap is itself a finding about how accurately tasks self-report — not an error to reconcile away.</p>
+     </div>
+
+    </div>
+   </div>
+
+   <div class="coll"><div class="trg"><svg><use href="#i-chevron-right"/></svg><span class="mono">verify-phase</span><span class="muted" style="font-weight:400">— 19 runs · 6h 05m · 7.1M output</span><span class="spacer"></span><span class="badge outline">2 of 19 observed</span></div></div>
+   <div class="coll"><div class="trg"><svg><use href="#i-chevron-right"/></svg><span class="mono">fix-issues</span><span class="muted" style="font-weight:400">— 11 runs · 3h 48m · 3.6M output</span><span class="spacer"></span><span class="badge outline">1 of 11 observed</span></div></div>
+   <div class="coll"><div class="trg"><svg><use href="#i-chevron-right"/></svg><span class="mono">day1-greenfield</span><span class="muted" style="font-weight:400">— 3 runs · 2h 12m · 2.1M output</span><span class="spacer"></span><span class="badge outline">not observed</span></div></div>
+   <div class="coll"><div class="trg"><svg><use href="#i-chevron-right"/></svg><span class="mono">log-miss</span><span class="muted" style="font-weight:400">— 34 runs · 10m · 62k output</span><span class="spacer"></span><span class="badge outline">not observed</span></div></div>
+  </div>
+
+  <!-- BAND 5 — routing -->
+  <h3>Routing</h3>
+  <div class="grid" style="grid-template-columns:1.3fr 1fr;align-items:start">
+   <div class="card" data-testid="effort-routing">
+    <div class="card-h"><div><div class="card-t">Declared route vs the model that ran</div><div class="card-d">Routing is <b>observed</b>, never enforced</div></div><span class="badge outline">128 runs</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Outcome</th><th class="r">Runs</th><th>Share</th><th>What it means</th></tr></thead><tbody>
+     <tr><td><span class="badge success">routed</span></td><td class="r">96</td><td><span class="bar"><span class="prog"><i style="width:75%;background:var(--chart-2)"></i></span><span class="r">75%</span></span></td><td class="sm muted">the model that ran is the one the routing table names</td></tr>
+     <tr><td><span class="badge info">drifted</span></td><td class="r">24</td><td><span class="bar"><span class="prog"><i style="width:19%"></i></span><span class="r">19%</span></span></td><td class="sm muted">a different model ran — <b>drift made visible, not a failure</b></td></tr>
+     <tr><td><span class="badge outline">unknown</span></td><td class="r">8</td><td><span class="bar"><span class="prog"><i style="width:6%;background:var(--muted-foreground)"></i></span><span class="r">6%</span></span></td><td class="sm muted">no declared route on the record</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><span class="mono">drifted</span> is styled as information, never as an error. TfLens observes which model ran; it does not enforce a routing policy, and a page that painted drift red would be asserting a rule the framework does not have.</p></div>
+   </div>
+
+   <div class="card" data-testid="effort-cost">
+    <div class="card-h"><div><div class="card-t">Measured spend by harness</div><div class="card-d">Provider-reported dollars only</div></div><span class="chip c2"><svg><use href="#i-dollar-sign"/></svg></span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Harness</th><th class="r">Records</th><th class="r">Measured USD</th></tr></thead><tbody>
+     <tr><td><span class="mono">opencode</span></td><td class="r">22</td><td class="r"><b>$8.14</b></td></tr>
+     <tr><td><span class="mono">claude-code</span></td><td class="r">94</td><td class="r muted">—</td></tr>
+     <tr><td><span class="mono">codex</span></td><td class="r">12</td><td class="r muted">—</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A dash is <b>“no provider cost recorded”</b>, never <span class="mono">$0.00</span> and never “free”. <b>There is no rate-card estimate anywhere on this page</b> — an estimated dollar beside a measured one on a budgeting screen is how a plausible wrong number gets quoted. Estimates live on <a href="routing.html" style="text-decoration:underline;text-underline-offset:3px">Routing &amp; economics</a>, on their own card, labelled as estimates.</p></div>
+   </div>
+  </div>
+
+  <p class="muted sm row" style="margin-bottom:8px"><svg class="i"><use href="#i-info"/></svg><span>No figure on this page, in the API, in the export or in parity is grouped by <span class="mono">actor</span> — there is no parameter, filter or toggle that could produce such a grouping.</span></p>
+
+ </div></main>
+</div></div>
+</body>
+</html>

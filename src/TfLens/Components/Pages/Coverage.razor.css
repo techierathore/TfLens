@@ -1,0 +1,42 @@
+/*
+    REQ-UI-014 / BRD-144 — the per-repo stream table on Coverage / health.
+
+    WHY THIS FILE EXISTS. The five-column stream table has to fit inside a half-width repo card,
+    and its widest value is an ISO timestamp. Measured on the live app at 1280 with TrBlazeUI's
+    default 16px cell padding: the table came out 432px wide inside a 420px card box, and the
+    `Newest` column was 84px of it — 52px of content once the padding was taken out, against the
+    81px an ISO `yyyy-MM-dd` needs at the table's 14px font. The browser made that fit the only
+    way it could, by wrapping the date at its own hyphens: "2026-" / "08-" / "28". A date that
+    reads as three fragments is exactly the defect BRD-144 exists to catch — it has text, it
+    overlaps nothing, so render-truth and visual-truth both wave it through.
+
+    Coverage.razor now renders the date and the time as two unbreakable boxes with a space
+    between them, so the date is a whole token and the column's min-content is honestly 81px.
+    That costs the column ~29px. This file pays for it out of the cell padding: 10px a side
+    instead of 16px gives 60px back across five columns, which is more than the date column
+    takes, so the table fits its card at 1280 INSTEAD of overflowing it as it did before.
+    `docs/mockups/coverage.html` spends the same width differently — its table is flush to the
+    card edges (`card-c flush`), which buys the room the app's card padding takes here. Same
+    end state: five columns visible, the date on one line, the time wrapping below it.
+
+    Measured after: every card's table is 420px in its 420px box at 1280, and 405px in a 290px box
+    at 390. The wrapper therefore keeps `overflow-x-auto` — at phone width the table is still wider
+    than its card and must scroll inside itself rather than scrolling the document, which it does
+    not (documentElement scrollWidth == clientWidth at both widths).
+
+    Scoped to `.coverage-streams` so it reaches the stream tables only and no other table on the
+    page; `::deep` because the markup is inside TrBlazeUI's DataTable, not this component.
+*/
+
+.coverage-streams ::deep th,
+.coverage-streams ::deep td {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/*
+    The `Newest` column's floor is NOT here. `DataTableColumn` ships a `MinWidth` parameter
+    (TR-024), so it is declared on the column in Coverage.razor where a reader will find it,
+    rather than as an `:nth-child(4)` rule here that a sixth column would silently point at the
+    wrong column.
+*/

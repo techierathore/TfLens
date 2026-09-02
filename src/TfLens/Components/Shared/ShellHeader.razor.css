@@ -28,10 +28,129 @@
     flex-shrink: 0;
 }
 
+/* REQ-UI-010 / BRD-144 — the Framework switch's segmented track.
+
+   `docs/mockups/coverage.html` line 109 is the target and it is one box, not two:
+
+       .fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px}
+       .fw .tab{height:28px;padding:0 10px;font-size:13px}
+       .fw .tab .badge{height:18px;padding:0 6px;font-size:11px}
+
+   TrBlazeUI paints its own track on `TabsList` (`h-10 rounded-md bg-muted p-1`), one level below the
+   node that carries `data-testid="framework-switch"`. Moving the testid down onto `TabsList` is not
+   available — it exposes no `AdditionalAttributes` (TR-024) — so the ground moves UP onto the `Tabs`
+   root, which carries `bg-muted` there, and `TabsList` is flattened here to a bare flex row. ONE
+   track, on the element the mockup puts it on, not a muted box inside a muted box.
+
+   These are geometry, not colour: the ground is the library's `bg-muted` token class and the active
+   pill is TrBlazeUI's own `data-[state=active]` styling, neither of which is re-painted here. They
+   are written as CSS rather than as `Class` utilities because TR-002 still stands — trblazeui.css is
+   a pre-built bundle with no arbitrary-value utilities in it, so `p-[3px]`, `h-[34px]`, `text-[13px]`
+   and `gap-0.5` are all absent at runtime and silently do nothing.
+
+   34px overall (28 + 3 + 3) also buys the header 6px of height and ~30px of width back against the
+   nowrap budget described above. */
+
+.tflens-header ::deep .tflens-framework-switch {
+    gap: 2px;
+    padding: 3px;
+    border-radius: 8px;
+}
+
+    .tflens-header ::deep .tflens-framework-switch [role="tablist"] {
+        /* Flattened: the track is the parent. Height, ground, inset and rounding all give way; the
+           library's `text-muted-foreground` ink for the inactive trigger stays. */
+        height: auto;
+        gap: 2px;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+
+    .tflens-header ::deep .tflens-framework-switch [role="tab"] {
+        height: 28px;
+        padding: 0 10px;
+        font-size: 13px;
+        border-radius: 6px;
+    }
+
+    .tflens-header ::deep .tflens-framework-switch [role="tab"] [data-testid^="framework-count-"] {
+        height: 18px;
+        padding: 0 6px;
+        font-size: 11px;
+    }
+
+/* REQ-UI-023, fixed 2026-08-30 — the crumb reads on ONE line at desktop.
+
+   The 2026-08-29 fix above bought the header its single 64px row by letting the breadcrumb wrap
+   internally, and that is what the owner then found: `Reports › Harness comparison` over two rows where
+   `docs/mockups/harness.html` keeps it on one. The row's width budget at 1280 is exact — sidebar 256,
+   header 1024, `px-4` 32 → 992 for trigger 20 + crumb + switch 233 + right cluster 524 + four 12px gaps
+   — which left the crumb 167px against the 231px it wants.
+
+   The 56px is taken back from spacing, not from content: nothing is hidden, shortened or truncated.
+   The mockup's own header metrics are the target (`.hdr{gap:12px}` → 8px here, `.crumb{gap:6px}` where
+   TrBlazeUI's list ships 10px, `.fw .tab{padding:0 10px}` → 8px), and the header's own inline padding
+   drops from 16px to 10px. `flex: none` on the crumb then makes it the one item that states its width
+   instead of absorbing the shortfall.
+
+   The last-sync badge is the safety net, and it is needed: the longest crumb is not this page's but
+   `Reports › Routing & economics`, and the badge's own text is data — `synced just now` through
+   `synced 23 hours ago` — so the row's width is not a constant anyone can tune against. The right
+   cluster may therefore shrink, but only the badge inside it can go below its content, and only after
+   every other control has been given its full width. Worst case the badge ellipsises a character;
+   the crumb stays whole and nothing leaves the viewport.
+
+   Below 64rem none of this applies and the header keeps wrapping, which is the correct phone
+   behaviour. */
 @media (min-width: 64rem) {
     .tflens-header {
         flex-wrap: nowrap;
+        gap: 0.5rem;
+        padding-left: 0.625rem;
+        padding-right: 0.625rem;
     }
+
+    .tflens-header-crumb {
+        flex: none;
+    }
+
+        .tflens-header-crumb ::deep ol {
+            flex-wrap: nowrap;
+            column-gap: 4px;
+            white-space: nowrap;
+        }
+
+    .tflens-header-right {
+        gap: 0.375rem;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+        /* The badge's own flex row, which would otherwise refuse to go below its content. */
+        .tflens-header-right ::deep div:has(> [data-testid="last-sync-badge"]) {
+            min-width: 0;
+        }
+
+        .tflens-header-right ::deep [data-testid="last-sync-badge"] {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+    .tflens-header ::deep .tflens-framework-switch {
+        padding: 2px;
+    }
+
+    .tflens-header ::deep .tflens-framework-switch [role="tab"] {
+        padding: 0 7px;
+    }
+
+        /* The tab's label/count pair ships `gap-1.5`; the mockup's own count sits closer. */
+        .tflens-header ::deep .tflens-framework-switch [role="tab"] > span {
+            gap: 3px;
+        }
 }
 
 @media (max-width: 63.999rem) {

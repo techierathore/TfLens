@@ -1,0 +1,403 @@
+/* REQ-UI-050 — the measurements docs/mockups/effort-playbook.html needs that the shipped
+   trblazeui.css does not carry (TR-002: the package ships no responsive variants at all, so every
+   breakpoint is hand-written here).
+
+   Blazor scoped CSS is scoped to ONE component, so nothing declared in a page stylesheet can reach
+   this component's markup — these are its own rules rather than references to them (REQ-NFR-021).
+
+   TR-001 — the chart and alert tokens are re-declared on this surface's root because the shipped
+   package stylesheet leaves --chart-N and --alert-* undefined, and a var() that resolves to nothing
+   paints an invisible bar. */
+
+.pb-effort {
+    --chart-1: oklch(0.646 0.222 264);
+    --chart-2: oklch(0.696 0.17 162);
+    --chart-3: oklch(0.769 0.188 70);
+    --chart-4: oklch(0.627 0.265 304);
+    --chart-5: oklch(0.645 0.246 16);
+    --alert-warning: oklch(0.769 0.188 70);
+
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+/* The design's own h3: 16px, not the browser's 18.7px, and it carries no card of its own. */
+.pb-h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.pb-section-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------------ filters */
+
+.pb-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.pb-filters-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground, #a1a1aa);
+    white-space: nowrap;
+}
+
+/* Twelve selects wrap onto as many rows as the viewport needs; at 390px each takes the full width
+   rather than squeezing to an unreadable trigger. */
+.pb-filter {
+    display: block;
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
+@media (min-width: 40rem) {
+    .pb-filter {
+        flex: 0 1 auto;
+        min-width: 11rem;
+    }
+}
+
+.pb-filters-spacer {
+    flex: 1 1 auto;
+}
+
+.pb-note {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+/* ------------------------------------------------------------------ figures */
+
+/* A refusal is never rendered at headline weight — "unavailable" is a sentence, not a number. */
+.pb-refused {
+    color: var(--muted-foreground, #a1a1aa);
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.pb-lower-bound {
+    font-style: italic;
+}
+
+.pb-value-pair {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.pb-value-second {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+/* BRD-160 — the measured tile is ringed and the estimate card is dashed, so the two can never be
+   read as the same kind of dollar even at a glance.
+
+   Both roots are rendered by StatTile and Card, which carry THEIR scope attributes and not this
+   component's, so these reach them through ::deep rather than through a class that would compile to
+   a selector matching nothing (REQ-NFR-021). */
+.pb-effort ::deep [data-testid="pb-cost-measured"] {
+    border-color: color-mix(in oklab, var(--chart-2) 45%, transparent);
+}
+
+.pb-effort ::deep [data-testid="pb-cost-estimate"] {
+    border-style: dashed;
+}
+
+/* --------------------------------------------------------------------- bars */
+
+.pb-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 0.75rem;
+    height: 190px;
+    padding-top: 0.5rem;
+    overflow-x: auto;
+}
+
+.pb-bar {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.375rem;
+    height: 100%;
+    min-width: 3.5rem;
+}
+
+.pb-bar-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground, #a1a1aa);
+    white-space: nowrap;
+}
+
+.pb-bar-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    width: 100%;
+    max-width: 3rem;
+    min-height: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pb-bar-stack i {
+    display: block;
+    width: 100%;
+    min-height: 0;
+}
+
+.pb-bar-label {
+    font-size: 0.6875rem;
+    color: var(--muted-foreground, #a1a1aa);
+    text-align: center;
+    word-break: break-word;
+}
+
+.pb-leg-1 { background: var(--chart-1); }
+.pb-leg-2 { background: var(--chart-2); }
+.pb-leg-3 { background: var(--chart-3); }
+.pb-leg-4 { background: var(--chart-4); }
+.pb-leg-5 { background: var(--chart-5); }
+
+.pb-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.875rem;
+    margin-top: 0.75rem;
+    font-size: 0.6875rem;
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+.pb-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.pb-legend-item i {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+/* ------------------------------------------------------------------- shares */
+
+.pb-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.pb-share-track {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 3.5rem;
+    max-width: 7rem;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in oklab, currentColor 15%, transparent);
+    overflow: hidden;
+}
+
+.pb-share-fill {
+    display: block;
+    height: 100%;
+    background: var(--chart-2);
+}
+
+.pb-share-turns {
+    background: var(--chart-3);
+}
+
+.pb-share-pct {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------- grids */
+
+.pb-grid-2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+@media (min-width: 64rem) {
+    .pb-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Wide tables scroll inside their own box so the page container never scrolls sideways at 390px. */
+.pb-table-scroll {
+    overflow-x: auto;
+    min-width: 0;
+}
+
+.tflens-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------------- detail */
+
+.pb-detail {
+    margin-top: 1rem;
+    border: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pb-detail-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+    background: color-mix(in oklab, currentColor 4%, transparent);
+}
+
+.pb-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.pb-panel {
+    border: 1px solid color-mix(in oklab, currentColor 10%, transparent);
+    border-radius: 8px;
+    padding: 0.875rem;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.pb-panel-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground, #a1a1aa);
+    margin-bottom: 0.625rem;
+}
+
+.pb-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: 0.625rem;
+}
+
+.pb-kv,
+.pb-tree {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.pb-kv td,
+.pb-tree td,
+.pb-tree th {
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid color-mix(in oklab, currentColor 8%, transparent);
+    vertical-align: top;
+    text-align: left;
+}
+
+.pb-tree th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+.pb-kv td:first-child {
+    width: 12rem;
+    color: var(--muted-foreground, #a1a1aa);
+    white-space: nowrap;
+}
+
+.pb-kv-value {
+    line-height: 1.5;
+}
+
+.pb-right {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.pb-muted-row {
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+.pb-small {
+    font-size: 0.8125rem;
+}
+
+/* A UTC instant is one fact and wraps to three lines in a narrow column if it is allowed to. */
+.pb-when {
+    white-space: nowrap;
+}
+
+.pb-quality {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.pb-quality-detail {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--muted-foreground, #a1a1aa);
+    word-break: break-word;
+}
+
+.pb-reasons {
+    margin: 0.625rem 0 0;
+    padding-left: 1.125rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--muted-foreground, #a1a1aa);
+}
+
+/* The expander sits in a table cell, so the library's centred Button content is pinned left. The
+   class rides on Button's own root, which carries Button's scope, so it is reached through ::deep. */
+.pb-effort ::deep .pb-row-trigger {
+    justify-content: flex-start;
+    gap: 0.375rem;
+    padding-left: 0;
+    padding-right: 0.25rem;
+}

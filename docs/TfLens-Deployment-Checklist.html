@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Deployment Checklist</h1>
-    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="sub">Last rendered: 2026-09-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of contents</a></li>
@@ -128,7 +128,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Deployment Checklist</h1>
-    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-Deployment-Checklist.md</code></div>
+    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-Deployment-Checklist.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -161,29 +161,29 @@ can be rebuilt from <code>data/</code> at any time (<code>DECISIONS.md</code> D-
 <hr>
 <h2 id="table-of-contents">Table of contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
-<li><a href="#1-prerequisites">Prerequisites</a>
+<li><a href="#prerequisites">Prerequisites</a>
 </li>
-<li><a href="#2-configuration-and-secrets">Configuration and secrets</a>
+<li><a href="#configuration-and-secrets">Configuration and secrets</a>
 </li>
-<li><a href="#3-tflensgithubtoken--create-it-first"><code>TfLensGitHubToken</code> — create it first</a>
+<li><a href="#tflensgithubtoken-create-it-first"><code>TfLensGitHubToken</code> — create it first</a>
 </li>
-<li><a href="#4-appmanager-credentials">AppManager credentials</a>
+<li><a href="#appmanager-credentials">AppManager credentials</a>
 </li>
-<li><a href="#5-deploy-with-docker-compose">Deploy with Docker Compose</a>
+<li><a href="#deploy-with-docker-compose">Deploy with Docker Compose</a>
 </li>
-<li><a href="#6-deploy-for-local-development">Deploy for local development</a>
+<li><a href="#deploy-for-local-development">Deploy for local development</a>
 </li>
-<li><a href="#7-first-run-verification">First-run verification</a>
+<li><a href="#first-run-verification">First-run verification</a>
 </li>
-<li><a href="#8-before-quoting-any-number--the-parity-run">Before quoting any number — the parity run</a>
+<li><a href="#before-quoting-any-number-the-parity-run">Before quoting any number — the parity run</a>
 </li>
-<li><a href="#9-operating-commands">Operating commands</a>
+<li><a href="#operating-commands">Operating commands</a>
 </li>
-<li><a href="#10-backup-and-restore">Backup and restore</a>
+<li><a href="#backup-and-restore">Backup and restore</a>
 </li>
-<li><a href="#11-known-constraints">Known constraints</a>
+<li><a href="#known-constraints">Known constraints</a>
 </li>
-<li><a href="#12-upgrading">Upgrading</a>
+<li><a href="#upgrading">Upgrading</a>
 </li>
 </ol>
 <hr>
@@ -339,7 +339,7 @@ those, never invented ones.</p>
 </li>
 <li><strong>Coverage (<code>/</code>)</strong> should show one card per repository with a short SHA and non-empty stream counts.
 </li>
-<li><strong>Check the reports</strong> — <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code> all render.
+<li><strong>Check the reports</strong> — <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code> all render.
 </li>
 <li><strong>Export</strong> from <code>/export</code>; confirm <code>data/reports/&lt;userId&gt;/&lt;date&gt;/&lt;framework&gt;/</code> now holds <code>snapshot.md</code> and <code>tflens.json</code>.
 </li>

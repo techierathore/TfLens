@@ -47,10 +47,14 @@ const SCREENS: Screen[] = [
   { name: 'profile', route: '/profile', mockup: 'profile.html', axis: 'techieflow' },
   { name: 'repos', route: '/repos', mockup: 'repos.html', axis: 'techieflow' },
   { name: 'coverage', route: '/', mockup: 'coverage.html', axis: 'techieflow' },
-  { name: 'three-questions', route: '/three-questions', mockup: 'three-questions.html', axis: 'techieflow' },
+  { name: 'gate-outcomes', route: '/gate-outcomes', mockup: 'gate-outcomes.html', axis: 'techieflow' },
   { name: 'harness', route: '/harness', mockup: 'harness.html', axis: 'techieflow' },
   { name: 'routing', route: '/routing', mockup: 'routing.html', axis: 'techieflow' },
   { name: 'misses', route: '/misses', mockup: 'misses.html', axis: 'techieflow' },
+  // Added 2026-09-01 with F-EFFORT (REQ-UI-045..049). A new screen absent from this list is not
+  // reported as NO-MOCKUP — it is not reported at all, which is the one outcome this gate exists
+  // to refuse. Adding the row is part of shipping the screen.
+  { name: 'effort', route: '/effort', mockup: 'effort.html', axis: 'techieflow' },
   { name: 'export', route: '/export', mockup: 'export.html', axis: 'techieflow' },
 
   // Playbook axis. Comparability is DECIDED AT RUN TIME from the repo count the header reports,
@@ -59,10 +63,11 @@ const SCREENS: Screen[] = [
   // Playbook repo is connected the skip must lift by itself. A permanent skip list would quietly
   // become a permanent blind spot.
   { name: 'pb-coverage', route: '/', mockup: 'playbook.html', axis: 'playbook' },
-  { name: 'pb-three-questions', route: '/three-questions', mockup: 'three-questions-playbook.html', axis: 'playbook' },
+  { name: 'pb-gate-outcomes', route: '/gate-outcomes', mockup: 'gate-outcomes-playbook.html', axis: 'playbook' },
   { name: 'pb-harness', route: '/harness', mockup: 'harness-playbook.html', axis: 'playbook' },
   { name: 'pb-routing', route: '/routing', mockup: 'routing-playbook.html', axis: 'playbook' },
   { name: 'pb-misses', route: '/misses', mockup: 'misses-playbook.html', axis: 'playbook' },
+  { name: 'pb-effort', route: '/effort', mockup: 'effort-playbook.html', axis: 'playbook' },
   { name: 'pb-export', route: '/export', mockup: 'export-playbook.html', axis: 'playbook' },
 
   // Routes the app serves that no mockup covers. Reported as NO-MOCKUP, never as a silent pass.
@@ -409,7 +414,7 @@ test('mockup-parity catch proof: an injected structural difference makes the gat
     { screen: 'coverage', route: '/', mockup: 'coverage.html' },
     { screen: 'repos', route: '/repos', mockup: 'repos.html' },
     { screen: 'profile', route: '/profile', mockup: 'profile.html' },
-    { screen: 'three-questions', route: '/three-questions', mockup: 'three-questions.html' },
+    { screen: 'gate-outcomes', route: '/gate-outcomes', mockup: 'gate-outcomes.html' },
     { screen: 'harness', route: '/harness', mockup: 'harness.html' },
     { screen: 'export', route: '/export', mockup: 'export.html' },
   ];

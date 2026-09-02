@@ -420,6 +420,171 @@ CREATE INDEX IF NOT EXISTS "IxPbEventUserRepo" ON "PbEvent" ("UserId", "Repo");
 
 CREATE INDEX IF NOT EXISTS "IxPbEventPhaseGate" ON "PbEvent" ("UserId", "Repo", "PhaseGate");
 
+-- ------------------------------------------- phase effort (F-EFFORT, added 2026-09-01)
+
+-- "Run" gains the three SCHEMA §2.6 fields the producer started emitting on 2026-08-31 (REQ-FN-088,
+-- BRD-145). ALL NULLABLE BY DESIGN: null means "NOT CAPTURED", and a measured zero is a different
+-- fact. A main-scope window never read the subagent transcripts, so its absent "SubagentRuns" is not
+-- a report of zero subagents — coalescing it would turn "we did not look" into a measurement, which
+-- is precisely the defect ADR-026 exists to prevent.
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "SubagentRuns"       integer NULL;
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "TokensOutSubagents" bigint  NULL;
+
+-- {model_id: output_tokens} over the window — the per-model SPLIT, not just the winner. jsonb rather
+-- than a child table because it is only ever read WHOLE: never joined, never filtered on one model,
+-- and the run's token window is already atomic. "PbPhaseModelUsage" below is a child table for the
+-- opposite reason — the Playbook contract must filter and aggregate on any models[] member (BRD-158),
+-- and a JSON blob cannot serve a WHERE model = … (ADR-025).
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "ModelTokensOut"     jsonb   NULL;
+
+-- Exists only for /effort: every other "Run" read is by (UserId, Repo), and grouping by "Cmd" across
+-- repositories is a new access pattern.
+CREATE INDEX IF NOT EXISTS "IxRunUserCmd" ON "Run" ("UserId", "Cmd");
+
+-- The Playbook's misses land in the EXISTING miss tables (ADR-024) rather than a parallel PbMiss* set,
+-- because a Playbook miss and a TechieFlow miss are the SAME measurement. What genuinely differs is
+-- carried as difference, in its OWN column (REQ-FN-104, BRD-165):
+--   "ItemId"         — the Playbook's requirement axis. One axis under two names, beside "ReqId".
+--   "FoundPhaseGate" — the Playbook PROCESS gate. "FoundGate" is a TechieFlow ASSERTION gate; these are
+--                      two genuinely different measurements and must NEVER share a column or a chart.
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "ItemId"         text NULL;
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "FoundPhaseGate" text NULL;
+
+-- The Playbook's natural key: an immutable hash of the exported source line, preserving stream order
+-- (REQ-FN-103, BRD-164, ADR-024). NULL on every TechieFlow row, which is what the partial index below
+-- depends on. The normalizer that COMPUTES the hash is REQ-FN-103's other half and lives with the
+-- ingest cluster; these columns and that index are the schema half.
+ALTER TABLE "Miss"      ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
+ALTER TABLE "MissFix"   ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
+ALTER TABLE "MissAmend" ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
+
+-- PARTIAL, and the WHERE clause is the whole point. TechieFlow rows carry no "SourceLineHash", and in
+-- PostgreSQL a NULL never collides with another NULL in a unique index — but stating the rule without
+-- the predicate would still index every TechieFlow row for nothing and would break the moment anyone
+-- COALESCEd it. Restricting the key to the rows that actually have one leaves
+-- "UcMissUserRepoMissId" to govern the TechieFlow edition: two editions, two natural keys, one table.
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoSourceLine"
+    ON "Miss" ("UserId", "Repo", "SourceLineHash")
+    WHERE "SourceLineHash" IS NOT NULL;
+
+-- Schema-2 phase data occupies THREE tables, not one wide row (ADR-025, REQ-FN-095, BRD-154). The
+-- contract requires filtering and aggregating on any models[] member (BRD-158) and rendering a
+-- recursive subagent tree by session_id / parent_id (BRD-159); neither is expressible over a JSON
+-- column, and a mixed-model execution flattened onto its dominant model is the exact misattribution
+-- BRD-150 forbids.
+--
+-- Three things here are deliberate:
+--   1. Token and turn counters are 64-bit. A phase tree's cumulative output is not an int32 quantity.
+--   2. "CostUsd" is numeric(20,10) — FIXED PRECISION, never `real` or `double precision`. The contract
+--      states it outright: provider cost is money, and money is not a binary float.
+--   3. Every column the producer may leave null IS nullable. "Not captured" and "zero" stay different
+--      facts at the column level, exactly as they do on the stream tables (SCHEMA.md §2.5).
+--
+-- Timing is three types, not three names for one number (ADR-027). "AssistantElapsedMs" and
+-- "ToolElapsedMs" are DIAGNOSTICS and must never be added together: an assistant envelope can CONTAIN
+-- tool execution, which is why the producer publishes a single unioned "ObservedActiveMs". There is
+-- deliberately no human-effort column — neither framework captures it, and a column that exists is a
+-- column something eventually populates by inference from wall-clock time.
+CREATE TABLE IF NOT EXISTS "PbPhaseExecution" (
+    "UserId"                integer       NOT NULL,
+    "Repo"                  text          NOT NULL,
+    "PhaseExecutionId"      text          NOT NULL,  -- the producer's stable id for one phase execution
+    "SourceSchema"          integer       NULL,      -- the phase-metric schema version the row came from
+    "SourceHarness"         text          NULL,
+    "Phase"                 text          NULL,
+    "SessionId"             text          NULL,
+    "Granularity"           text          NULL,
+    "StartedAt"             text          NULL,
+    "EndedAt"               text          NULL,      -- null on an incomplete window; never back-filled
+    "ElapsedMs"             bigint        NULL,      -- WALL CLOCK. Not active time, not human effort.
+    "Complete"              boolean       NULL,
+    "EndReason"             text          NULL,      -- complete:false implies end_reason 'eof'
+    "DominantModel"         text          NULL,      -- a LABEL; per-model effort reads PbPhaseModelUsage
+    "Tier"                  text          NULL,
+    "TokensInput"           bigint        NULL,
+    "TokensOutput"          bigint        NULL,
+    "TokensReasoning"       bigint        NULL,
+    "TokensCacheRead"       bigint        NULL,
+    "TokensCacheWrite"      bigint        NULL,
+    "TokensIn"              bigint        NULL,      -- the producer's compatibility total
+    "TokensOut"             bigint        NULL,      -- the producer's compatibility total
+    "CostUsd"               numeric(20,10) NULL,     -- fixed precision; NEVER real/double precision
+    "Turns"                 integer       NULL,
+    "AssistantElapsedMs"    bigint        NULL,      -- diagnostic only — never summed with the next
+    "ToolElapsedMs"         bigint        NULL,      -- diagnostic only — never summed with the previous
+    "ObservedActiveMs"      bigint        NULL,      -- the producer's UNION, overlaps counted once
+    "ActiveCoverage"        text          NULL,
+    -- A row that fails an invariant, or carries data_quality.valid false, is QUARANTINED: stored,
+    -- displayed with its reason, excluded from every numeric aggregate. This matters more than it
+    -- sounds, because the producer may retain zero-valued compatibility totals on an invalid row, so a
+    -- consumer that trusts the numbers gets a confident zero rather than an error.
+    "DataQualityValid"      boolean       NULL,
+    "DataQualityIssues"     text          NULL,
+    "TokenStatus"           text          NULL,
+    "CostStatus"            text          NULL,      -- headline cost needs 'complete'; nothing weaker
+    "TokensScope"           text          NULL,      -- governs whether a fan-out claim may be made
+    "SubagentsSpawned"      integer       NULL,
+    "SubagentsContributors" integer       NULL,      -- spawned >= contributors is a producer invariant
+    "AttemptSnapshot"       integer       NULL,
+    "GateVerdictSnapshot"   text          NULL,
+    "ProjectType"           text          NULL,
+    "ImportedAt"            text          NULL,
+    "Overflow"              jsonb         NULL
+);
+
+-- Per-model usage inside one phase execution. A CHILD TABLE, not JSON, because BRD-158 requires
+-- WHERE "Model" = … and a blob cannot serve one (ADR-025). Money stays fixed precision here too.
+CREATE TABLE IF NOT EXISTS "PbPhaseModelUsage" (
+    "UserId"           integer       NOT NULL,
+    "Repo"             text          NOT NULL,
+    "PhaseExecutionId" text          NOT NULL,
+    "Model"            text          NOT NULL,
+    "Turns"            integer       NULL,
+    "TokensInput"      bigint        NULL,
+    "TokensOutput"     bigint        NULL,
+    "TokensReasoning"  bigint        NULL,
+    "TokensCacheRead"  bigint        NULL,
+    "TokensCacheWrite" bigint        NULL,
+    "TokensIn"         bigint        NULL,
+    "TokensOut"        bigint        NULL,
+    "CostUsd"          numeric(20,10) NULL,
+    "CostStatus"       text          NULL,
+    "ActiveMs"         bigint        NULL
+);
+
+-- One row per subagent session inside a phase execution; "ParentSessionId" is what the recursive
+-- subagent tree (BRD-159) is walked over, which is why it carries its own read index below.
+CREATE TABLE IF NOT EXISTS "PbPhaseSubagent" (
+    "UserId"           integer       NOT NULL,
+    "Repo"             text          NOT NULL,
+    "PhaseExecutionId" text          NOT NULL,
+    "SessionId"        text          NOT NULL,
+    "ParentSessionId"  text          NULL,
+    "Agent"            text          NULL,
+    "StartedAt"        text          NULL,
+    "EndedAt"          text          NULL,
+    "ElapsedMs"        bigint        NULL,
+    "Complete"         boolean       NULL,
+    "Turns"            integer       NULL,
+    "TokensIn"         bigint        NULL,
+    "TokensOut"        bigint        NULL,
+    "CostUsd"          numeric(20,10) NULL,
+    "CostStatus"       text          NULL
+);
+
+-- unique keys — "UserId" is part of every one of them (ADR-013)
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseExecUserRepoId"
+    ON "PbPhaseExecution"  ("UserId", "Repo", "PhaseExecutionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseModelUserRepoIdModel"
+    ON "PbPhaseModelUsage" ("UserId", "Repo", "PhaseExecutionId", "Model");
+CREATE UNIQUE INDEX IF NOT EXISTS "UcPbPhaseSubUserRepoIdSession"
+    ON "PbPhaseSubagent"   ("UserId", "Repo", "PhaseExecutionId", "SessionId");
+
+-- read paths
+CREATE INDEX IF NOT EXISTS "IxPbPhaseExecUserRepo" ON "PbPhaseExecution" ("UserId", "Repo");
+CREATE INDEX IF NOT EXISTS "IxPbPhaseExecPhase"    ON "PbPhaseExecution" ("UserId", "Phase");
+CREATE INDEX IF NOT EXISTS "IxPbPhaseSubParent"    ON "PbPhaseSubagent"  ("UserId", "ParentSessionId");
+
 -- ---------------------------------------------------------------- provenance (REQ-NFR-019 / BRD-143)
 
 -- The ledger of dataset identities an ingest path states it ACTUALLY OBTAINED.

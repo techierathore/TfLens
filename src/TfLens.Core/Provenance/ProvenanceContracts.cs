@@ -105,9 +105,20 @@ public sealed record ProvenanceOrphan(
 /// <remarks>
 /// <para>
 /// <see cref="IsSupported"/> is carried rather than assumed because the audit is a property of the
-/// <b>real</b> store: it compares stream rows against a ledger, a sync state and a raw archive, none of
-/// which an in-memory fixture has. A fixture store answers <see cref="Unsupported"/>, which makes no
-/// claim in either direction; only <see cref="Orphans"/> being non-empty is ever read as pollution.
+/// <b>real</b> store: it compares stream rows against a ledger, a sync state and a raw archive. A store
+/// that holds none of those answers <see cref="Unsupported"/>.
+/// </para>
+/// <para>
+/// <b>Three answers, never two</b> (widened 2026-08-30, REQ-NFR-019 gap b). The report deliberately
+/// distinguishes <i>audited and clean</i> (<see cref="Clean"/>), <i>audited and polluted</i>
+/// (<see cref="HasOrphans"/>) and <i>could not audit</i> (<see cref="Unsupported"/>), and every consumer
+/// has to keep them apart. <see cref="Unsupported"/> used to be described as making "no claim in either
+/// direction", and every consumer that had nothing to do with a no-claim answer therefore did nothing —
+/// which is indistinguishable, downstream, from a clean bill of health. It is not a neutral answer: a
+/// store that cannot be audited cannot support a published figure, so
+/// <c>ParityRecord.EvaluateWithProvenance</c> refuses <c>QUOTABLE</c> on it with its own reason, and
+/// <c>provenance-check</c> exits non-zero on it. BRD-89 permits integrity rules no relaxation, and
+/// "we never evaluated the rule" is the quietest relaxation there is.
 /// </para>
 /// <para>
 /// There is deliberately no "ignore" list, no severity threshold and no configuration: one orphan row
@@ -124,7 +135,15 @@ public sealed record ProvenanceAuditReport(
     int SourcesAudited,
     bool IsSupported)
 {
-    /// <summary>The answer a store that cannot audit gives — no claim, and no orphans asserted.</summary>
+    /// <summary>
+    /// The answer a store that cannot audit gives — and, since 2026-08-30, a refusal rather than a shrug.
+    /// </summary>
+    /// <remarks>
+    /// Its <see cref="Orphans"/> list is empty because no finding was made, <b>not</b> because the store
+    /// is clean, and the two must never be conflated: read <see cref="IsSupported"/> before reading
+    /// <see cref="HasOrphans"/>. A consumer that only asks <see cref="HasOrphans"/> is asking whether the
+    /// audit found anything, which an audit that never ran never does.
+    /// </remarks>
     public static readonly ProvenanceAuditReport Unsupported = new([], 0, 0, false);
 
     /// <summary>An audited store with nothing to report.</summary>

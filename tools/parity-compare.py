@@ -16,8 +16,9 @@ formatting are presentation and never produce a finding. What does produce a fin
     DIFF      both have the key, and the values differ
     LENGTH    a list is a different length on the two sides
     TYPE      the same key holds a different kind of thing on the two sides
-    UNCOVERED a figure BRD-129 names is absent from one or both `misses` blocks, so the compare
-              above never actually diffed it. "Absent on both sides" is not agreement.
+    UNCOVERED a figure BRD-129 names is absent from one or both `misses` blocks, or a figure
+              BRD-152 names is absent from one or both `phases` blocks, so the compare above never
+              actually diffed it. "Absent on both sides" is not agreement.
 
 Exit code is 0 only when there are no findings. A figure the reference refuses to print
 ("insufficient data (n=4)", null) must be refused by TfLens in the same words, or it is a DIFF.
@@ -83,6 +84,55 @@ MISSES_KEYS = (
     "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_apportioned",
     "cost_usd_per_miss_measured", "cost_usd_records",
 )
+
+# PHASES_* -- the phase-effort figures BRD-152 requires this script to diff key for key, spelled
+# exactly as `docs/Phase-Effort-Telemetry-TfLens.md` §1.1 lists them. Same job as MISSES_KEYS: the
+# walk would compare them anyway, and this list turns that coverage into a CHECKED FACT. The block
+# rides inside `--report --json` / `--rollup --json` under the top-level key `phases`, so nothing
+# here needs a second oracle invocation.
+#
+# Two of these are worth reading twice, because they are the two ways this block goes quietly wrong:
+#
+#   tokens_unmeasured_n        runs excluded from every token figure because their window could not
+#                              be computed. It is the divisor's COMPLEMENT, never part of it, and a
+#                              document carrying only tokens_measured_n would let a reader take the
+#                              token totals for figures over every run (BRD-146, TF-005).
+#   unobserved_not_tree and    two exclusions, kept as two counts because they are two facts with
+#   unobserved_predates_field  different futures -- "we did not look" can change tomorrow, "we could
+#                              not have looked" (written before 2026-08-31) never will (BRD-147,
+#                              ADR-026). Diffing their sum alone would hide either one moving.
+#
+PHASES_TOP_KEYS = ("runs_live", "tokens_out_total", "duration_s_total", "scope_coverage", "phases")
+PHASES_PHASE_KEYS = (
+    "runs", "duration_s", "share_of_duration", "tokens", "tokens_measured_n", "tokens_unmeasured_n",
+    "tokens_out_median", "tokens_out_per_run", "share_of_tokens_out", "models", "fanout", "routing",
+    "cost_usd_by_harness",
+)
+PHASES_NESTED_KEYS = {
+    "duration_s": ("total", "median", "max", "n"),
+    "tokens": ("in", "out", "cache_read", "cache_write"),
+    "routing": ("routed", "drifted", "unknown"),
+    "fanout": (
+        "observed_n", "unobserved_n", "unobserved_not_tree", "unobserved_predates_field",
+        "spawns_total", "spawns_median", "spawns_max", "runs_with_fanout", "tokens_out_subagents",
+        "subagent_share_of_tokens_out",
+    ),
+}
+# Maps of {name: {...}} whose every entry must carry these keys -- models.<model> and
+# cost_usd_by_harness.<harness>.
+PHASES_MAP_KEYS = {"models": ("runs", "tokens_out"), "cost_usd_by_harness": ("usd", "records")}
+
+# PROSE_KEYS -- keys whose value is a sentence each tool writes in its own words. They are never
+# figures, and a wording difference is not a disagreement about the data, so a value difference on
+# exactly these paths is INFO and both values are always printed. Absence is still a finding: the
+# walk reports MISSING/ADDED as usual. Nothing that carries a number may ever be added here.
+#
+PROSE_KEYS = {
+    "phases.note":
+        "the standing caveat each implementation writes about its own denominators (which runs are "
+        "excluded from the token figures, what the fan-out predicate is, why dollars are per "
+        "harness). It is prose, not a figure -- every figure it describes is diffed on its own key.",
+}
 
 # ENVIRONMENT_KEYS -- keys whose VALUE describes where the tool ran rather than what the data
 # says. They are compared strictly by default; --allow-environment-keys downgrades a value
@@ -222,6 +272,12 @@ class Compare(object):
             return
 
         detail = "reference=%s  tflens=%s" % (render(reference), render(actual))
+
+        prose = PROSE_KEYS.get(canonical(path))
+        if prose:
+            self.note("PROSE-OK", path, "%s  --  %s" % (detail, prose))
+            return
+
         reason = ENVIRONMENT_KEYS.get(canonical(path))
 
         if reason and self.allow_environment:
@@ -272,6 +328,126 @@ def check_misses_coverage(compare, reference, actual):
     compare.note("COVERED", "misses",
                  "all %d figures BRD-129 names were present on both documents and compared: %s"
                  % (len(MISSES_KEYS), ", ".join(MISSES_KEYS)))
+
+
+def check_phases_coverage(compare, reference, actual):
+    """Assert that every phase-effort figure BRD-152 names was actually on both documents.
+
+    Same reasoning as check_misses_coverage: the walk compares what it finds, and a key that
+    vanished from BOTH sides -- an oracle predating the `phases` block, or a TfLens regression that
+    dropped a band -- would produce no diff at all and the run would pass having verified none of it.
+    BRD-152 says every TechieFlow /effort figure ships UNVERIFIED until this compare is green, so
+    absence is a finding rather than a silence.
+    """
+    if not isinstance(reference, dict) or not isinstance(actual, dict):
+        return
+
+    reference_block = reference.get("phases")
+    actual_block = actual.get("phases")
+
+    if not isinstance(reference_block, dict):
+        compare.fail("UNCOVERED", "phases",
+                     "BRD-152 requires the whole phases block to be diffed, but the reference emits "
+                     "no `phases` object. The oracle predates the requirement; re-run against one "
+                     "that carries --phases (it rides inside --report --json and --rollup --json) "
+                     "before recording a pass.")
+        return
+
+    if not isinstance(actual_block, dict):
+        compare.fail("UNCOVERED", "phases",
+                     "the reference emits a `phases` object and tflens.json does not, so no "
+                     "phase-effort figure was verified (BRD-152).")
+        return
+
+    checked = 0
+
+    for key in PHASES_TOP_KEYS:
+        missing_on = [side for side, block in (("reference", reference_block), ("tflens", actual_block))
+                      if key not in block]
+        if missing_on:
+            compare.fail("UNCOVERED", "phases." + key,
+                         "BRD-152 names this figure, and it is absent from: %s. Absent on both sides "
+                         "is not agreement." % ", ".join(missing_on))
+        else:
+            checked += 1
+
+    reference_rows = reference_block.get("phases")
+    actual_rows = actual_block.get("phases")
+
+    if not isinstance(reference_rows, dict) or not isinstance(actual_rows, dict):
+        return
+
+    for cmd in sorted(set(reference_rows) | set(actual_rows)):
+        checked += check_phase_row(compare, cmd, reference_rows.get(cmd), actual_rows.get(cmd))
+
+    compare.note("COVERED", "phases",
+                 "%d phase-effort figure(s) BRD-152 names were present on both documents and "
+                 "compared, over %d phase(s). tokens_unmeasured_n, unobserved_not_tree and "
+                 "unobserved_predates_field are each diffed on their own key, because a token "
+                 "figure without its exclusion count and a fan-out figure without its two are the "
+                 "two ways this block goes quietly wrong (BRD-146, BRD-147)."
+                 % (checked, len(set(reference_rows) | set(actual_rows))))
+
+
+def check_phase_row(compare, cmd, reference_row, actual_row):
+    """Check one `phases.phases.<cmd>` row on both sides. Returns how many keys were compared."""
+    path = "phases.phases.%s" % cmd
+
+    if not isinstance(reference_row, dict) or not isinstance(actual_row, dict):
+        compare.fail("UNCOVERED", path,
+                     "BRD-152 requires every phase row to be diffed, and this one is an object on "
+                     "only one side, so none of its figures was compared.")
+        return 0
+
+    checked = 0
+
+    for key in PHASES_PHASE_KEYS:
+        missing_on = [side for side, row in (("reference", reference_row), ("tflens", actual_row))
+                      if key not in row]
+        if missing_on:
+            compare.fail("UNCOVERED", "%s.%s" % (path, key),
+                         "BRD-152 names this figure, and it is absent from: %s. Absent on both "
+                         "sides is not agreement." % ", ".join(missing_on))
+            continue
+
+        checked += 1
+
+        if key in PHASES_NESTED_KEYS:
+            checked += check_phase_keys(compare, "%s.%s" % (path, key), reference_row[key],
+                                        actual_row[key], PHASES_NESTED_KEYS[key])
+        elif key in PHASES_MAP_KEYS:
+            reference_map, actual_map = reference_row[key], actual_row[key]
+            if not isinstance(reference_map, dict) or not isinstance(actual_map, dict):
+                continue
+            for name in sorted(set(reference_map) | set(actual_map)):
+                checked += check_phase_keys(compare, "%s.%s.%s" % (path, key, name),
+                                            reference_map.get(name), actual_map.get(name),
+                                            PHASES_MAP_KEYS[key])
+
+    return checked
+
+
+def check_phase_keys(compare, path, reference_block, actual_block, keys):
+    """Check that one nested block carries every key on both sides. Returns how many were compared."""
+    if not isinstance(reference_block, dict) or not isinstance(actual_block, dict):
+        compare.fail("UNCOVERED", path,
+                     "BRD-152 names the figures in this block and it is an object on only one side, "
+                     "so none of them was compared.")
+        return 0
+
+    checked = 0
+
+    for key in keys:
+        missing_on = [side for side, block in (("reference", reference_block), ("tflens", actual_block))
+                      if key not in block]
+        if missing_on:
+            compare.fail("UNCOVERED", "%s.%s" % (path, key),
+                         "BRD-152 names this figure, and it is absent from: %s. Absent on both "
+                         "sides is not agreement." % ", ".join(missing_on))
+        else:
+            checked += 1
+
+    return checked
 
 
 def kind_of(value):
@@ -413,6 +589,7 @@ def main(argv):
     reference, actual = load(args.reference), load(args.tflens)
     compare.walk(reference, actual)
     check_misses_coverage(compare, reference, actual)
+    check_phases_coverage(compare, reference, actual)
 
     import io
     buffer = io.StringIO()

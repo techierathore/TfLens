@@ -1,3 +1,11 @@
+/* The reconnection states are toggled on `#components-reconnect-modal` by `blazor.web.js` itself as the
+   circuit drops, retries and gives up — this component authors the dialog, never the state class. They
+   therefore appear in no markup in this repository, which is correct and not the dead-rule defect
+   REQ-NFR-021 exists to catch, so they are declared to the guardrail rather than left to look like one.
+
+   REQ-NFR-021 external: components-reconnect-show, components-reconnect-paused,
+   components-reconnect-resume-failed, components-reconnect-retrying, components-reconnect-failed */
+
 .components-reconnect-first-attempt-visible,
 .components-reconnect-repeated-attempt-visible,
 .components-reconnect-failed-visible,

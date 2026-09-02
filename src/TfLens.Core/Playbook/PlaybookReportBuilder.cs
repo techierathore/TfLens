@@ -40,6 +40,20 @@ public sealed class PlaybookReportBuilder : IPlaybookReportBuilder
         return Build(aUserId, vEvents);
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// A one-line delegation on purpose. <see cref="PlaybookPhaseEffort"/> is static because it is pure
+    /// over the rows it is handed — three reads and a fold — and that is exactly the shape a unit test
+    /// wants. What it is not is something a Razor page may call: the page would then hold the store, the
+    /// repository scope and the harness hint, and would own a read path it has no business owning. This
+    /// method is the seam, and it is thin because the work genuinely lives elsewhere.
+    /// </remarks>
+    public Task<PlaybookPhaseReport> BuildPhaseReportAsync(
+        int aUserId,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        PlaybookPhaseEffort.ReadAsync(objStore, aUserId, aRepo, null, aCancellationToken);
+
     /// <summary>
     /// Computes the report set from an in-memory event set.
     /// </summary>
@@ -130,7 +144,7 @@ public sealed class PlaybookReportBuilder : IPlaybookReportBuilder
             .ToList();
 
     /// <summary>
-    /// Builds the three-questions rows, one per process gate.
+    /// Builds the gate-outcomes rows, one per process gate.
     /// </summary>
     /// <remarks>
     /// While <see cref="PlaybookSchemaState.IsVerdictMapRecorded"/> is <c>false</c> every figure is

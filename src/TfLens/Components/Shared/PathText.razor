@@ -1,0 +1,90 @@
+@*
+    REQ-UI-032 / REQ-UI-033 (BRD-144 clause 6) — a path, a command or a hash rendered with a break
+    opportunity at every separator, and nowhere else.
+
+    The defect this exists for: `overflow-wrap: anywhere` on a narrow cell breaks INSIDE a token, so
+    `data/reports/2/2026-08-30/techieflow/snapshot.md` came apart mid-segment and
+    `.tfcore/telemetry/tf-metrics.sh` split mid-word at 390. A reader cannot re-type either, and this
+    product's entire claim is that its figures are reproducible from the identity it publishes.
+
+    `<wbr>` is the browser's own answer: it marks a place a line MAY break and adds nothing to the text.
+    The copied string is byte-identical to the original — `wbr` contributes no character to the
+    selection — so the value stays quotable while the cell stays inside its container.
+*@
+
+@if (Segments.Count == 0)
+{
+    <span class="tflens-path">@Value</span>
+}
+else
+{
+    <span class="tflens-path" title="@Value">@foreach (var vSegment in Segments)
+        {
+            @vSegment<wbr />
+        }</span>
+}
+
+@code {
+    /// <summary>The characters after which a line may break — path, URL, namespace and flag boundaries.</summary>
+    /// <remarks>
+    /// Deliberately short. Every one of these is a separator a reader already reads as a joint, so a wrap
+    /// landing on it costs nothing. A digit group, a hash and a word are not on this list, which is the
+    /// whole point: those must never be split.
+    /// </remarks>
+    private static readonly char[] BreakAfter = ['/', '\\', '.', '_', '-', ':', '=', '&', '?', '@', '+', ','];
+
+    /// <summary>The text to render.</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>
+    /// The value cut into runs, each ending at a separator, so a <c>&lt;wbr&gt;</c> can follow it.
+    /// </summary>
+    /// <remarks>
+    /// Empty when the value carries no separator at all — a short token is rendered whole, without the
+    /// per-character overhead and without a <c>title</c> that would only repeat what is already visible.
+    /// </remarks>
+    private IReadOnlyList<string> Segments
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Value))
+            {
+                return [];
+            }
+
+            var vSegments = new List<string>();
+            var vStart = 0;
+
+            for (var vIndex = 0; vIndex < Value.Length; vIndex++)
+            {
+                if (!BreakAfter.Contains(Value[vIndex]))
+                {
+                    continue;
+                }
+
+                // Run separators (`://`, `...`) travel together — a break between two of them reads as a
+                // typo rather than as a wrap.
+                while (vIndex + 1 < Value.Length && BreakAfter.Contains(Value[vIndex + 1]))
+                {
+                    vIndex++;
+                }
+
+                vSegments.Add(Value[vStart..(vIndex + 1)]);
+                vStart = vIndex + 1;
+            }
+
+            if (vSegments.Count == 0)
+            {
+                return [];
+            }
+
+            if (vStart < Value.Length)
+            {
+                vSegments.Add(Value[vStart..]);
+            }
+
+            return vSegments;
+        }
+    }
+}

@@ -1,0 +1,10 @@
+/* REQ-UI-032 / REQ-UI-033 — the wrap policy that goes with the break opportunities the markup offers.
+
+   `break-word` breaks a word only when that word cannot fit a line on its own; `anywhere`, which this
+   replaced elsewhere on the export screen, breaks at the first character that will not fit. With the
+   `<wbr>` marks in place the browser has a legitimate boundary to take on every real path, so the
+   last-resort break is now genuinely a last resort rather than the normal case. */
+.tflens-path {
+    overflow-wrap: break-word;
+    word-break: normal;
+}

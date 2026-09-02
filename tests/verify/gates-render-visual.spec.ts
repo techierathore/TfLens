@@ -167,7 +167,7 @@ test('gate sweep: authenticated screens', async ({ page }) => {
   // Export. It is asserted on every authenticated screen, not only on /misses, because a nav item
   // that renders on one page and not another is exactly the kind of shell defect a per-page spec
   // cannot see.
-  const shell = ['app-sidebar', 'nav-repos', 'nav-coverage', 'nav-three-questions', 'nav-harness',
+  const shell = ['app-sidebar', 'nav-repos', 'nav-coverage', 'nav-gate-outcomes', 'nav-harness',
     'nav-routing', 'nav-misses', 'nav-export', 'nav-repo-count', 'sync-now', 'last-sync-badge',
     'theme-toggle', 'user-menu'];
 
@@ -203,7 +203,7 @@ test('gate sweep: authenticated screens', async ({ page }) => {
     conditional: ['misses-without-fixes', 'reclassified-summary'],
   });
 
-  await sweep(page, 'three-questions', '/three-questions', {
+  await sweep(page, 'gate-outcomes', '/gate-outcomes', {
     required: [...shell, 'framework-switch', 'schema-note', 'type-tabs', 'taint-list'],
     // `gate-dist-note-*` / `gate-dist-unlisted-*` share the `gate-dist-` prefix but are notes,
     // not tables — they are graded as controls (see NOT_A_TABLE below).
@@ -346,7 +346,7 @@ test('gate sweep: playbook axis of the six report pages', async ({ page }) => {
   // too. The Playbook axis emits no misses.jsonl at all, so the page's honest state there is the
   // Phase-3 plan note rather than a table of zeros — which is why those two ids are conditional and
   // `playbook-empty` is what proves the state was reached.
-  for (const [name, route] of [['pb-coverage', '/'], ['pb-three-questions', '/three-questions'],
+  for (const [name, route] of [['pb-coverage', '/'], ['pb-gate-outcomes', '/gate-outcomes'],
     ['pb-harness', '/harness'], ['pb-routing', '/routing'], ['pb-misses', '/misses'],
     ['pb-export', '/export']] as [string, string][]) {
     await sweep(page, name, route, {

@@ -59,6 +59,42 @@
     }
 }
 
+/* REQ-UI-023, fixed 2026-08-30 — the card-header chips, which had silently stopped existing.
+
+   `docs/mockups/harness.html` draws each harness icon inside a filled rounded chip — `.chip.c1` blue,
+   `.c2` green, `.c3` pink — and this page asks for exactly that with `tflens-stat-chip tflens-accent-N`.
+   Those classes are declared in `StatTile.razor.css`, and Blazor rewrites every rule in a scoped sheet
+   to `…[b-<StatTile's id>]`. An element written HERE carries this page's scope attribute instead, so not
+   one of those rules ever matched: the chip had no size, no ground and no colour, and the icon rendered
+   as a bare monochrome glyph on the card. Scoped CSS is per-file, so the chip is declared again in this
+   file's own scope.
+
+   Colour comes from the same `--chart-N` tokens the bars are painted with (declared on `.tflens-stack`
+   above), never from a literal, so a column's chip and its bar cannot drift apart. */
+.tflens-stat-chip {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}
+
+.tflens-accent-1 {
+    background: color-mix(in oklab, var(--chart-1) 15%, transparent);
+    color: var(--chart-1);
+}
+
+.tflens-accent-2 {
+    background: color-mix(in oklab, var(--chart-2) 15%, transparent);
+    color: var(--chart-2);
+}
+
+.tflens-accent-3 {
+    background: color-mix(in oklab, var(--chart-3) 15%, transparent);
+    color: var(--chart-3);
+}
+
 /* REQ-UI-026 — the not-detected footnote sits under the columns as one muted line. */
 .tflens-footnote {
     display: flex;
@@ -72,6 +108,12 @@
    the header is declared for the component's own metadata and hidden here. */
 .tflens-kv {
     min-width: 0;
+    /* REQ-UI-024 — the mockup puts this table in a `card-c flush` (zero padding), so the rows run edge
+       to edge and their separators reach the card's borders. `CardContent` carries `p-6`, which inset
+       the table by 24px a side and cost the value column 42px against the design measured at the same
+       1280 viewport (142px here against 184px there) — the width that decides whether
+       `insufficient data (n=0)` fits. The cell padding below restores the mockup's own 16px. */
+    margin-inline: -1.5rem;
 }
 
     .tflens-kv ::deep thead {
@@ -82,8 +124,11 @@
         width: 100%;
     }
 
+    /* The mockup's own cell padding (`.tbl td{padding:12px 16px}`), now that the table runs edge to
+       edge. Vertical is kept at 8px: this table carries eleven rows to the mockup's ten and the card
+       has to stay the same height as the two beside it. */
     .tflens-kv ::deep td {
-        padding: 0.5rem 0.5rem;
+        padding: 0.5rem 1rem;
         vertical-align: middle;
     }
 
@@ -100,20 +145,60 @@
        Now: the label wraps on word boundaries and the value keeps the larger share, right-aligned as the
        mockup draws it. `break-word` replaces `anywhere` deliberately — it breaks a word only when that
        word cannot fit a line on its own, so a formatted number stays one token while a long text value
-       ("fix-issues 31 · build-phase 29 · …") still wraps between its words. */
+       ("fix-issues 31 · build-phase 29 · …") still wraps between its words.
+
+       Widened 2026-08-30 (REQ-UI-023): 42% left the label cell 108px of content at 1280 — two pixels
+       short of the 90px `Gate records` needs once the 8px + 12px cell padding is taken off — so that one
+       label wrapped to two lines where the mockup holds it on one. It is now 45% with a 0.5rem right
+       padding, which leaves ~100px of content: ten pixels of headroom on the widest single-line label,
+       and the smallest widening that buys it, because every percent taken here is a percent the value
+       column loses. `width` on a `td` is a hint rather than a floor in any case — the table algorithm
+       will still grow a cell whose label cannot fit — so this sets the split, not a limit.
+
+       CORRECTION 2026-09-01 (REQ-UI-023 / REQ-NFR-021): the 2026-08-30 note above was pasted AFTER the
+       close marker that ended this comment, and before a second close marker that nothing had opened.
+       CSS comments do not nest, so ten lines of English prose stood in the stylesheet as CSS, and the
+       browser consumed them as the start of a selector — swallowing `.tflens-kv ::deep td:first-child`
+       into a compound that matched nothing. The widening described above was therefore never applied in
+       any browser, in any environment, for two days: no build error, no console warning, no failing test,
+       and a checklist row that read `fixed`. The label column simply kept whatever the table algorithm
+       gave it, which is the wrapping the note claims to have cured. The comment is balanced now, and
+       `ScopedCssTests.EveryScopedStylesheetParses` fails the build on the next unbalanced one. (Which is
+       why no comment in this repository writes a comment-close marker as prose — it ends the comment.)
+
+       These are the mockup's own proportions: `.tbl.kv td:first-child{width:40%}` on a card whose cells
+       carry 16px of padding a side against this table's 8px. */
     .tflens-kv ::deep td:first-child {
-        width: 42%;
-        padding-right: 0.75rem;
+        /* 40%, which is `.tbl.kv td:first-child{width:40%}` — the mockup's own number — restored
+           2026-09-01 now that this table runs edge to edge and carries the mockup's 16px cell
+           padding. The 45% above was arithmetic done against the OLD 8px padding, and under the new
+           one it left the value column 168px against the design's 184px: sixteen pixels, and the
+           three that decided whether `insufficient data (n=0)` held one line at 1280. */
+        width: 40%;
         overflow-wrap: break-word;
         word-break: normal;
     }
 
     .tflens-kv ::deep td:last-child {
-        width: 58%;
+        width: 60%;
         text-align: right;
         overflow-wrap: break-word;
         word-break: normal;
     }
+
+/* REQ-UI-023 — the mockup's `sm` cell.
+
+   `docs/mockups/harness.html` writes every value cell as `<td class="r">` and adds `sm` to exactly one
+   of them: `Runs by cmd (top 3)`, whose value is a three-command list and the longest text on the page.
+   `.sm{font-size:13px}` against the table's own `.tbl{font-size:14px}` is the design's own answer to
+   that cell being long, and it is the reason the mockup draws the list on two lines rather than three.
+
+   TR-002 still stands — trblazeui.css is a pre-built bundle with no arbitrary-value utilities — so this
+   is 13px written out rather than a `text-[13px]` that would not exist at runtime. */
+.tflens-kv-small {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
 
 /* REQ-UI-023 — `Verdict mix` as the mockup draws it: a pass-share bar and one percentage, not a text
    dump of every verdict. The full breakdown is still reachable — it is the row's `title`. */
@@ -155,6 +240,35 @@
     max-width: 100%;
     overflow: hidden;
     margin-bottom: 0.5rem;
+}
+
+    /* REQ-UI-023 — the card inside the card. TrBlazeUI's `ChartContainer` renders its own
+       `rounded-lg border bg-card shadow-sm p-6` surface, so the bars sat in a second bordered panel
+       inside the one that already holds them; the design draws the bars straight onto the card. The
+       container is kept — it is the component the mockup's own annotation names, and it is what sizes
+       the chart — with its decoration removed. TR-028. */
+    .tflens-chart ::deep > div {
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    /* REQ-UI-023 — the plot frame the design does not draw. `Grid { Show = false }` removes the
+       gridlines but ApexCharts still paints `.apexcharts-grid-borders`, so the bars sat inside a rounded
+       rectangle the mockup has no trace of. Hidden here rather than fought in options, because the
+       options object has no switch for it. */
+    .tflens-chart ::deep .apexcharts-grid-borders,
+    .tflens-chart ::deep .apexcharts-grid line,
+    .tflens-chart ::deep .apexcharts-grid-borders line {
+        display: none;
+    }
+
+/* REQ-UI-023 — the unit chip on the chart header. The mockup's `.badge` is `white-space:nowrap`;
+   TrBlazeUI's is not, so as a flex item it shrank and broke "tokens, not dollars" over two lines. */
+.tflens-unit-badge {
+    white-space: nowrap;
+    flex: none;
 }
 
 /* REQ-UI-025 — the one dollar figure on the page. */

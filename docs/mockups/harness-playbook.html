@@ -168,6 +168,28 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
  [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
  [data-testid="source-mode"] .tab svg{display:none}
 }
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -202,21 +224,24 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-<aside class="sidebar" data-testid="sidebar">
+<aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
   <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
-   <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
    <a href="harness.html" class="active" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
    <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
    <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>

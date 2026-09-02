@@ -224,8 +224,13 @@ public sealed class ProvenanceAuditTests
         ProvenanceAuditReport.Unsupported.HasOrphans.Should().BeFalse();
         ProvenanceAuditReport.Clean.IsSupported.Should().BeTrue();
 
-        string.Join('\n', ProvenanceAudit.Describe(ProvenanceAuditReport.Unsupported))
-            .Should().Contain("cannot be audited");
+        var vDescription = string.Join('\n', ProvenanceAudit.Describe(ProvenanceAuditReport.Unsupported));
+
+        vDescription.Should().Contain("cannot be audited");
+        vDescription.Should().Contain(
+            "may be quoted",
+            "the description has to state the consequence, not just the absence: since 2026-08-30 an "
+            + "unauditable store is a refusal rather than a shrug (REQ-NFR-019 gap b, BRD-89)");
     }
 
     /// <summary>Builds a ledger entry a sync would have written.</summary>

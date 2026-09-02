@@ -1,0 +1,1752 @@
+@*
+    REQ-UI-045 / REQ-UI-046 / REQ-UI-047 / REQ-UI-048 / REQ-UI-049 — Phase effort, the seventh report
+    page and the TechieFlow branch of `/effort`.
+
+    Everything here binds `AnalysisResult.Phases` — a `PhaseEffortAnalysis` — and the ADR-026 wrapper
+    types are the point of the screen rather than an inconvenience it works around:
+
+      1. `TokenWindow` carries `MeasuredN` and `UnmeasuredN` beside the figure, so every token surface
+         prints `measured on n of N runs` as VISIBLE TEXT and never as a tooltip (BRD-146).
+      2. `FanoutObservation` carries `ObservedN`, `UnobservedNotTree` and `UnobservedPredatesField`.
+         The two exclusions are published two ways and are never pooled, because they have different
+         futures — "we did not look" can change tomorrow, "we could not have looked" never will
+         (BRD-147). A phase with no observed run reads `not observed`; it NEVER reads `0 subagents`,
+         which would turn an absence of observation into a measurement (TF-005, ADR-026).
+      3. `share_of_duration` and `share_of_tokens_out` are the oracle's own strings (`"87%"` / `"—"`)
+         and reach the screen unaltered — BRD-152 diffs them as strings (BRD §13).
+      4. Dollars are measured per harness and never pooled across harnesses. There is no rate-card
+         estimate anywhere on this page, deliberately: an estimated dollar beside a measured one on a
+         budgeting screen is how a plausible wrong number gets quoted (BRD-160, BRD-169).
+      5. `drifted` is Badge INFO, never destructive. TfLens observes which model ran; it does not
+         enforce a routing policy, and a red pill would assert a rule the framework does not have.
+
+    The screen is built to look correct at thin coverage, not merely to survive it: on today's data the
+    fan-out coverage tile reads `1 of 13`, and the exclusion card beside it says why. A page that only
+    reads well once the data is dense is a page nobody trusts in the meantime.
+*@
+@page "/effort"
+@using System.Globalization
+@using TfLens.Core.Metrics
+@* Empty and Typography are absent from Components/_Imports.razor's suggested list; a component whose
+   namespace is missing degrades to a literal unknown tag with only a warning, so they are named here
+   the way Misses.razor and Routing.razor name them. *@
+@using TrBlazeUI.Components.Empty
+@using TrBlazeUI.Components.Typography
+@using TfLens.Components.Shared.Playbook
+@implements IDisposable
+@inject ITelemetryStore objStore
+@inject ShellPreferences objPreferences
+@inject ShellState objShellState
+
+<PageTitle>Phase effort · TfLens</PageTitle>
+
+<div class="tflens-stack tflens-effort" data-testid="effort-page">
+
+    @* REQ-UI-045 — the page header and the period filter. *@
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <TypographyH2>Phase effort</TypographyH2>
+            <TypographyMuted>@Subtitle</TypographyMuted>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <Badge Variant="BadgeVariant.Outline" data-testid="effort-period-label">@PeriodLabel</Badge>
+            <div class="tflens-period">
+                @* TR-020: SelectValue renders the raw bound value until SelectContent has rendered once,
+                   so the closed trigger read "all" rather than "All history (default)".
+                   DisplayTextSelector is the library's own hook and resolves it without the popover. *@
+                <Select TValue="string"
+                        Value="@objPeriod"
+                        ValueChanged="OnPeriodChangedAsync"
+                        DisplayTextSelector="@PeriodTextOf"
+                        Class="w-full">
+                    <SelectTrigger data-testid="effort-period">
+                        <SelectValue Placeholder="All history (default)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        @foreach (var vOption in PeriodOptions)
+                        {
+                            <SelectItem TValue="string" Value="@vOption.Key" Text="@vOption.Label">@vOption.Label</SelectItem>
+                        }
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+    </div>
+
+    @* REQ-UI-045 / BRD-169 — the standing budgeting note. It is page copy, never a tooltip, and it is
+       not conditional on the data: the framing has to be true of an empty page too. *@
+    <Alert Variant="AlertVariant.Info" AccentBorder="true" data-testid="effort-budget-note">
+        <LucideIcon Name="info" Size="16" />
+        <AlertTitle>This is a budgeting view, not a quality scoreboard</AlertTitle>
+        <AlertDescription>
+            <span class="font-mono">*build-phase</span> costing more than
+            <span class="font-mono">*log-miss</span> is a fact about what those phases <b>are</b>, not
+            evidence that one is inefficient. Quality lives on
+            <a class="tflens-link" href="/misses">Misses &amp; rework</a> and
+            <a class="tflens-link" href="/coverage">Coverage</a>. There is no per-REQ effort view here and
+            there never will be — a run's window divided across the REQs it touched is arithmetic dressed
+            as measurement.
+        </AlertDescription>
+    </Alert>
+
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-050 — the Playbook axis of /effort is "Phase efficiency" (BRD-162), a different
+           component map with its own filters, summary tiles and execution table.
+
+           It is NOT wrapped in PlaybookState. That wrapper decides "is there any Playbook data yet"
+           from `PbEvent`, and phase effort is read from the three normalized `PbPhase*` tables the
+           schema-2 exporter writes — a workspace can have every phase row and no `PbEvent` at all.
+           Gating this surface on the event count would hide a populated screen, and worse, would hide
+           the BRD-163 unsupported banner behind an empty state that names the wrong cause. The
+           standing axis note is rendered directly instead, and the surface reads its own report. *@
+        <PlaybookAxisNote />
+        <PlaybookEffortSurface UserId="@objUserId" />
+    }
+    else if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" AccentBorder="true" data-testid="effort-error">
+            @* TR-008: 2.0.0 ships only the post-rename Lucide names — `alert-triangle` renders nothing. *@
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>Couldn't build the effort view</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objPhases.RunsLive == 0)
+    {
+        <Empty Title="No runs recorded yet"
+               Description="@EmptyDescription"
+               data-testid="effort-empty">
+            <Icon>
+                <LucideIcon Name="gauge" Size="32" />
+            </Icon>
+        </Empty>
+    }
+    else
+    {
+        @* ---- BAND 1 — the KPI row (REQ-UI-046) -------------------------------------------------
+
+           StatGroup is not used here and the reason is arithmetic: its shim spans tiles on TrBlazeUI's
+           own 12-column grid, and twelve does not divide by five, so a five-tile row lands 4 + 1. The
+           approved design puts five equal tiles across at 1280 and one per row at 390, so this row is
+           the page's own grid and the tiles stand alone inside it (TR-002 — the library ships no
+           responsive grid utilities, so the breakpoints are real media queries in the scoped sheet). *@
+        <div class="tflens-effort-kpis" data-testid="effort-kpis">
+
+            <StatTile Title="Runs recorded"
+                      Value="@CountText(objPhases.RunsLive)"
+                      IconName="activity"
+                      Accent="StatAccent.Chart1"
+                      data-testid="kpi-runs">
+                <DescriptionContent>
+                    live records in <span class="font-mono">runs.jsonl</span> · backfilled rows are
+                    excluded and reported separately
+                </DescriptionContent>
+            </StatTile>
+
+            @* REQ-UI-046 — the wall-clock sub-line says in words that this is never human effort. *@
+            <StatTile Title="Total wall clock"
+                      Value="@DurationText(objPhases.DurationSecondsTotal)"
+                      IconName="clock"
+                      Accent="StatAccent.Chart5"
+                      data-testid="kpi-wallclock">
+                <DescriptionContent>
+                    Σ <span class="font-mono">duration_s</span> over @CountText(TimedRuns) timed runs · how
+                    long the command windows stayed open, <b>never human effort</b>
+                </DescriptionContent>
+            </StatTile>
+
+            @* REQ-UI-046 / BRD-146 — `measured on n of N runs` as visible text, never a tooltip. *@
+            <StatTile Title="Output tokens"
+                      Value="@TokenText(objPhases.TokensOutTotal)"
+                      IconName="database"
+                      Accent="StatAccent.Chart2"
+                      data-testid="kpi-tokens-out">
+                <DescriptionContent>
+                    <b data-testid="kpi-tokens-measured">measured on @TokensMeasuredRuns of @objPhases.RunsLive runs</b>
+                    · @CountText(TokensUnmeasuredRuns) runs carry no token window and are excluded, never
+                    averaged in as zero
+                </DescriptionContent>
+            </StatTile>
+
+            <StatTile Title="Heaviest phase"
+                      IconName="layers"
+                      Accent="StatAccent.Chart3"
+                      data-testid="kpi-heaviest">
+                <ValueContent>
+                    <span class="tflens-kpi-cmd font-mono">@HeaviestCmd</span>
+                </ValueContent>
+                <DescriptionContent>
+                    @HeaviestSummary
+                </DescriptionContent>
+            </StatTile>
+
+            @* REQ-UI-046 / BRD-151 — fan-out coverage is a COVERAGE figure and it sits on the KPI row
+               rather than being buried, because every fan-out number further down is bounded by it. *@
+            <StatTile Title="Fan-out coverage"
+                      Value="@($"{objPhases.FanoutObservedN} of {objPhases.RunsLive}")"
+                      IconName="git-fork"
+                      Accent="StatAccent.Chart4"
+                      Class="tflens-kpi-accent"
+                      data-testid="kpi-fanout-coverage">
+                <DescriptionContent>
+                    runs whose window actually observed subagents (@PercentText(objPhases.FanoutObservedN, objPhases.RunsLive)).
+                    A coverage figure, deliberately on the KPI row — every fan-out number below is bounded by it
+                </DescriptionContent>
+            </StatTile>
+        </div>
+
+        @* ---- BAND 2 — the denominators (BRD-146, BRD-147, BRD-148) ------------------------------ *@
+        <h3 class="tflens-band-heading">What is excluded, and why</h3>
+        <div class="tflens-effort-denominators" data-testid="effort-denominators">
+
+            <Card Class="h-full" data-testid="effort-token-window">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <CardTitle Class="text-base">Token window</CardTitle>
+                            <CardDescription>A run with no token window is not a run that spent nothing</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">
+                            @TokensMeasuredRuns of @objPhases.RunsLive measured
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-table">
+                        @* TR-009: ShowPagination="false" hides the pager but still truncates to
+                           InitialPageSize, so the page size has to cover every row or rows vanish. *@
+                        <DataTable TData="ScopeRow"
+                                   Data="@ScopeRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="50"
+                                   AriaLabel="Runs by token scope"
+                                   data-testid="effort-scope-table">
+                            <Columns>
+                                <DataTableColumn TData="ScopeRow" TValue="string"
+                                                 Property="@(aRow => aRow.Scope)" Header="Bucket">
+                                    <CellTemplate Context="vRow">
+                                        <span class="font-mono @(vRow.IsUnmeasured ? "text-muted-foreground" : string.Empty)">@vRow.Scope</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="ScopeRow" TValue="int"
+                                                 Property="@(aRow => aRow.Runs)" Header="Runs"
+                                                 CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tabular-nums @(vRow.IsUnmeasured ? "font-semibold" : string.Empty)"
+                                              data-testid="@($"scope-{vRow.TestKey}")">@CountText(vRow.Runs)</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="ScopeRow" TValue="string"
+                                                 Property="@(aRow => aRow.Meaning)" Header="What it means">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tflens-small @(vRow.IsUnmeasured ? "text-muted-foreground" : string.Empty)">@vRow.Meaning</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+                </CardContent>
+                <CardFooter Class="tflens-card-note">
+                    <p class="text-sm text-muted-foreground">
+                        <LucideIcon Name="info" Size="16" />
+                        Every token tile carries
+                        <b><span class="font-mono">measured on n of N runs</span></b> as visible text, never
+                        as a tooltip. Below <span class="font-mono">MIN_N = @MetricsConstants.MinN</span> a
+                        per-run figure renders <i>insufficient data (n=…)</i> and never
+                        <span class="font-mono">0</span>.
+                    </p>
+                </CardFooter>
+            </Card>
+
+            @* BRD-147 — the two exclusions, published two ways and never pooled. *@
+            <Card Class="h-full" data-testid="effort-fanout-exclusions">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <CardTitle Class="text-base">Fan-out observation</CardTitle>
+                            <CardDescription>Two different facts, published two ways and never pooled</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline"
+                               Class="tflens-badge-warning tflens-nowrap-badge"
+                               data-testid="effort-observed-badge">@objPhases.FanoutObservedN observed</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-table tflens-kv-table">
+                        <DataTable TData="ExclusionRow"
+                                   Data="@ExclusionRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="50"
+                                   AriaLabel="Fan-out observation and its two exclusions"
+                                   data-testid="effort-fanout-table">
+                            <Columns>
+                                <DataTableColumn TData="ExclusionRow" TValue="string"
+                                                 Property="@(aRow => aRow.Label)" Header="Bucket">
+                                    <CellTemplate Context="vRow">
+                                        <div>
+                                            @if (vRow.IsObservedRow)
+                                            {
+                                                <b>@vRow.Label</b>
+                                            }
+                                            else
+                                            {
+                                                <span class="font-mono">@vRow.Label</span>
+                                            }
+                                            <div class="tflens-xs text-muted-foreground">@vRow.Meaning</div>
+                                        </div>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="ExclusionRow" TValue="int"
+                                                 Property="@(aRow => aRow.Runs)" Header="Share">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tflens-bar">
+                                            <Progress Value="@vRow.Percent" Class="h-2" IndicatorClass="@vRow.FillClass" />
+                                        </span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="ExclusionRow" TValue="string"
+                                                 Property="@(aRow => aRow.Text)" Header="Runs"
+                                                 CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tabular-nums tflens-nowrap" data-testid="@($"fanout-{vRow.TestKey}")">
+                                            @if (vRow.IsObservedRow)
+                                            {
+                                                <b>@CountText(vRow.Runs)</b>
+                                            }
+                                            else
+                                            {
+                                                @CountText(vRow.Runs)
+                                            }
+                                            · @PercentText(vRow.Runs, objPhases.RunsLive)
+                                        </span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+                </CardContent>
+                <CardFooter Class="tflens-card-note">
+                    <p class="text-sm text-muted-foreground">
+                        <b>Pooling these two would be the defect.</b> A <span class="font-mono">main</span>-scope
+                        window never read a subagent transcript at all, so coercing its absent
+                        <span class="font-mono">subagent_runs</span> to <span class="font-mono">0</span> reports
+                        <i>“this phase spawns no subagents”</i> when the truth is <i>“we did not look.”</i> The
+                        <span class="font-mono">FIELD_SINCE</span> floor carries
+                        <span class="font-mono">subagent_runs</span>,
+                        <span class="font-mono">tokens_out_subagents</span> and
+                        <span class="font-mono">model_tokens_out</span> at
+                        <span class="font-mono">@FieldSince</span>, in the same table and the same code path as
+                        <span class="font-mono">LATE_GATES</span>.
+                    </p>
+                </CardFooter>
+            </Card>
+        </div>
+
+        @* ---- BAND 3 — the phase table (REQ-UI-047) --------------------------------------------- *@
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="tflens-band-heading">Command phase</h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    One row per <span class="font-mono">cmd</span>, sorted by share of output tokens.
+                    <b>Measured</b> is a column, not a footnote.
+                </p>
+            </div>
+            <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">
+                @objPhases.Phases.Count phases · @objPhases.RunsLive runs
+            </Badge>
+        </div>
+
+        <Card data-testid="effort-phases">
+            <CardContent Class="pt-6">
+                <div class="tflens-table">
+                    <DataTable TData="PhaseTableRow"
+                               Data="@PhaseTableRows"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="200"
+                               AriaLabel="Effort by command phase"
+                               data-testid="effort-phase-table">
+                        <Columns>
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.Cmd)" Header="Command phase">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono" data-testid="@($"phase-cmd-{vRow.Key}")">@vRow.Cmd</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="PhaseTableRow" TValue="int"
+                                             Property="@(aRow => aRow.Runs)" Header="Runs" CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@CountText(vRow.Runs)</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.WallClock)" Header="Wall clock" CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums tflens-nowrap">@vRow.WallClock</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.Median)" Header="Median" CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums tflens-nowrap">@vRow.Median</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            @* BRD-152 — the oracle's own share string, rendered and never reformatted. *@
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.ShareOfDuration)" Header="Share of time"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums">@vRow.ShareOfDuration</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.TokensOut)" Header="Output tokens"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums tflens-nowrap" title="@vRow.TokensOutExact">@vRow.TokensOut</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.ShareOfTokensOut)" Header="Share of output"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <b class="tabular-nums" data-testid="@($"phase-share-{vRow.Key}")">@vRow.ShareOfTokensOut</b>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            @* REQ-UI-047 / BRD-151 — Measured is a COLUMN. *@
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.Measured)" Header="Measured"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums tflens-nowrap" data-testid="@($"phase-measured-{vRow.Key}")">@vRow.Measured</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            @* ADR-026 — `not observed`, never `0 subagents`. *@
+                            <DataTableColumn TData="PhaseTableRow" TValue="string"
+                                             Property="@(aRow => aRow.Fanout)" Header="Fan-out"
+                                             CellClass="text-right">
+                                <CellTemplate Context="vRow">
+                                    <span class="tabular-nums tflens-nowrap @(vRow.IsFanoutObserved ? string.Empty : "text-muted-foreground")"
+                                          data-testid="@($"phase-fanout-{vRow.Key}")">@vRow.Fanout</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                </div>
+            </CardContent>
+            <CardFooter Class="tflens-card-note">
+                <p class="text-sm text-muted-foreground">
+                    <LucideIcon Name="info" Size="16" />
+                    The dimension is the <b>command phase</b> — the producer's
+                    <span class="font-mono">cmd</span> is a slash command, and one command can contain
+                    several lifecycle stages (<span class="font-mono">*build-phase</span> covers build
+                    <i>and</i> self-smoke). A window is never split between conceptual phases by token
+                    proportion, and a <b>whole-task total is unavailable</b> without an explicit cohort — a
+                    reused session is not one.
+                </p>
+            </CardFooter>
+        </Card>
+
+        @* ---- BAND 4 — per-phase detail (REQ-UI-048) -------------------------------------------- *@
+        <h3 class="tflens-band-heading">Per-phase detail</h3>
+        <div class="tflens-detail-stack" data-testid="effort-phase-detail">
+            @foreach (var vRow in objPhases.Phases)
+            {
+                var vKey = KeyOf(vRow.Cmd);
+                var vIsOpen = objOpenPhases.Contains(vRow.Cmd);
+
+                <Card Class="tflens-detail" data-testid="@($"effort-detail-{vKey}")">
+                    <Collapsible Open="@vIsOpen" OpenChanged="@(aOpen => OnPhaseToggled(vRow.Cmd, aOpen))">
+                        <CollapsibleTrigger>
+                            <span class="tflens-detail-trigger" data-testid="@($"effort-detail-trigger-{vKey}")">
+                                <LucideIcon Name="@(vIsOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                                <span class="font-mono">@vRow.Cmd</span>
+                                <span class="text-muted-foreground">— @TriggerSummary(vRow)</span>
+                                <span class="tflens-spacer"></span>
+                                <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@ObservationBadge(vRow)</Badge>
+                            </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            @* TR-018: a closed CollapsibleContent still lays its children out and overlaps
+                               what follows, so the subtree is guarded rather than merely hidden. *@
+                            @if (vIsOpen)
+                            {
+                                <div class="tflens-detail-body">
+
+                                    @* --- 1 · Time --- *@
+                                    <div class="tflens-panel">
+                                        <div class="tflens-panel-label">1 · Time</div>
+                                        <div class="tflens-quad">
+                                            <div>
+                                                <div class="tflens-xs text-muted-foreground">Total</div>
+                                                <div class="tflens-figure" data-testid="@($"time-total-{vKey}")">@PhaseTotalText(vRow)</div>
+                                            </div>
+                                            <div>
+                                                <div class="tflens-xs text-muted-foreground">Median run</div>
+                                                <div class="tflens-figure">@SecondsText(vRow.Duration.MedianSeconds)</div>
+                                            </div>
+                                            <div>
+                                                <div class="tflens-xs text-muted-foreground">Longest run</div>
+                                                <div class="tflens-figure">@SecondsText(vRow.Duration.MaxSeconds)</div>
+                                            </div>
+                                            <div>
+                                                <div class="tflens-xs text-muted-foreground">Share of all wall clock</div>
+                                                <div class="tflens-figure">@vRow.ShareOfDuration</div>
+                                            </div>
+                                        </div>
+                                        <p class="tflens-xs text-muted-foreground">
+                                            Wall-clock elapsed is how long the command window stayed open. It is
+                                            not active time and it is <b>never</b> human effort — nobody sat
+                                            watching for @PhaseTotalText(vRow), and TfLens will not imply that
+                                            they did. @TimedRunsNote(vRow)
+                                        </p>
+                                    </div>
+
+                                    @* --- 2 · Tokens --- BRD-146: the band label carries its own denominator. *@
+                                    <div class="tflens-panel">
+                                        <div class="tflens-panel-label">
+                                            2 · Tokens
+                                            <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge tflens-panel-badge"
+                                                   data-testid="@($"tokens-measured-{vKey}")">
+                                                measured on @vRow.TokensMeasuredN of @vRow.Runs runs
+                                            </Badge>
+                                        </div>
+                                        <div class="tflens-panel-table">
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Component</th>
+                                                        <th class="tflens-right">Total</th>
+                                                        <th class="tflens-right">Median / run</th>
+                                                        <th class="tflens-right">Mean / run</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>Output</td>
+                                                        <td class="tflens-right"><b>@TokenTotalText(vRow, vRow.Tokens.Out)</b></td>
+                                                        <td class="tflens-right">@TokenFromDouble(vRow.TokensOutMedian)</td>
+                                                        @* ADR-007 — the one Figure on this page; below MIN_N it
+                                                           refuses to be a number and FigureText prints the refusal. *@
+                                                        <td class="tflens-right">
+                                                            <FigureText Value="@vRow.TokensOutPerRun.Tokens"
+                                                                        Class="tabular-nums"
+                                                                        TestId="@($"tokens-mean-{vKey}")" />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Input</td>
+                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.In)</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Cache read</td>
+                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheRead)</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Cache write</td>
+                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheWrite)</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="tflens-xs text-muted-foreground">
+                                            <b>Mean sits beside median, not instead of it.</b> @MeanVersusMedian(vRow)
+                                            Only <span class="font-mono">tokens_out</span> carries a per-run figure —
+                                            the producer reports the other three as totals over the measured runs, so
+                                            a median or a mean for them would be invented here rather than measured.
+                                            @UnmeasuredNote(vRow)
+                                        </p>
+                                    </div>
+
+                                    @* --- 3 · By model --- BRD-150. *@
+                                    <div class="tflens-panel">
+                                        <div class="tflens-panel-label">3 · By model</div>
+                                        @if (vRow.Models.Count == 0)
+                                        {
+                                            <p class="tflens-xs text-muted-foreground" data-testid="@($"models-none-{vKey}")">
+                                                No run in this phase carried a model attribution — neither a
+                                                <span class="font-mono">model_tokens_out</span> split nor a dominant
+                                                <span class="font-mono">model</span> label. Not observed, rather than
+                                                a phase that ran on no model.
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <div class="tflens-panel-table">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Model</th>
+                                                            <th class="tflens-right">Runs</th>
+                                                            <th class="tflens-right">Output tokens</th>
+                                                            <th>Share of this phase</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var vModel in vRow.Models)
+                                                        {
+                                                            <tr>
+                                                                <td><span class="font-mono">@vModel.Model</span></td>
+                                                                <td class="tflens-right tabular-nums">@CountText(vModel.Runs)</td>
+                                                                <td class="tflens-right tabular-nums">@TokenText(vModel.TokensOut)</td>
+                                                                <td>
+                                                                    <span class="tflens-bar-row">
+                                                                        <span class="tflens-bar">
+                                                                            <Progress Value="@Percent(vModel.TokensOut, vRow.Tokens.Out)"
+                                                                                      Class="h-2"
+                                                                                      IndicatorClass="tflens-fill-1" />
+                                                                        </span>
+                                                                        <span class="tabular-nums tflens-nowrap">@PercentText(vModel.TokensOut, vRow.Tokens.Out)</span>
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <p class="tflens-xs text-muted-foreground">
+                                                Computed from <span class="font-mono">model_tokens_out</span> — the
+                                                per-model <b>split</b>. A mixed-model run's whole window is never
+                                                attributed to its dominant <span class="font-mono">model</span>, which
+                                                is why the run counts here can exceed the phase's own.
+                                                @ModelSourceNote(vRow) <b>This ranking is observational, not
+                                                causal</b> — which model gets the hard phases is not random.
+                                            </p>
+                                        }
+                                    </div>
+
+                                    @* --- 4 · Fan-out --- BRD-149: observed_n of runs FIRST, then the numbers. *@
+                                    <div class="tflens-panel">
+                                        <div class="tflens-panel-label">4 · Fan-out</div>
+                                        <Alert Variant="AlertVariant.Warning" Class="tflens-panel-alert"
+                                               data-testid="@($"fanout-alert-{vKey}")">
+                                            <LucideIcon Name="git-fork" Size="18" />
+                                            <AlertTitle>@vRow.Fanout.ObservedN of @vRow.Runs runs observed</AlertTitle>
+                                            <AlertDescription>@FanoutCoverageSentence(vRow)</AlertDescription>
+                                        </Alert>
+
+                                        @if (vRow.Fanout.IsObserved)
+                                        {
+                                            <div class="tflens-panel-table tflens-kv-panel">
+                                                <table>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>Spawns, total</td>
+                                                            <td class="tflens-right tabular-nums"><b data-testid="@($"spawns-total-{vKey}")">@CountText(vRow.Fanout.SpawnsTotal)</b></td>
+                                                            <td class="tflens-small text-muted-foreground">across the @vRow.Fanout.ObservedN observed runs</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Spawns, median / max</td>
+                                                            <td class="tflens-right tabular-nums">@SpawnsMedianAndMax(vRow.Fanout)</td>
+                                                            <td class="tflens-small text-muted-foreground">per observed run</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Observed runs that spawned anything</td>
+                                                            <td class="tflens-right tabular-nums">@vRow.Fanout.RunsWithFanout of @vRow.Fanout.ObservedN</td>
+                                                            <td class="tflens-small text-muted-foreground"><span class="font-mono">runs_with_fanout</span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Subagent output tokens</td>
+                                                            <td class="tflens-right tabular-nums">@TokenText(vRow.Fanout.TokensOutSubagents)</td>
+                                                            <td class="tflens-small text-muted-foreground"><span class="font-mono">tokens_out_subagents</span> — a count, never a divisor</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Subagent share of output</td>
+                                                            <td class="tflens-right tabular-nums">@vRow.Fanout.SubagentShareOfTokensOut</td>
+                                                            <td class="tflens-small text-muted-foreground">of the observed runs' measured output</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="tflens-xs text-muted-foreground" data-testid="@($"fanout-none-{vKey}")">
+                                                <b>Not observed.</b> No run in this phase satisfied
+                                                <span class="font-mono">tokens_scope == "tree"</span> and
+                                                <span class="font-mono">subagent_runs != null</span>, so there is no
+                                                spawn count, no subagent token total and no share to report. The
+                                                figure is absent, not zero.
+                                            </p>
+                                        }
+
+                                        <p class="tflens-xs text-muted-foreground">
+                                            <b>Declared vs measured.</b> @DeclaredVersusMeasured(vRow) Both are shown
+                                            because they answer different questions: which <i>kinds</i> were invoked
+                                            (only the agent knows) versus how many actually ran (only the harness
+                                            knows). <b>Where they disagree the measured figure is authoritative</b>,
+                                            and the gap is itself a finding about how accurately tasks self-report —
+                                            not an error to reconcile away.
+                                        </p>
+                                    </div>
+                                </div>
+                            }
+                        </CollapsibleContent>
+                    </Collapsible>
+                </Card>
+            }
+        </div>
+
+        @* ---- BAND 5 — routing and measured spend (REQ-UI-049, BRD-148, BRD-160) ------------------ *@
+        <h3 class="tflens-band-heading">Routing</h3>
+        <div class="tflens-effort-lower">
+
+            <Card Class="h-full" data-testid="effort-routing">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <CardTitle Class="text-base">Declared route vs the model that ran</CardTitle>
+                            <CardDescription>Routing is <b>observed</b>, never enforced</CardDescription>
+                        </div>
+                        <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@objPhases.RunsLive runs</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-table tflens-routing-table">
+                        <DataTable TData="RoutingRow"
+                                   Data="@RoutingRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="10"
+                                   AriaLabel="Routing outcomes"
+                                   data-testid="effort-routing-table">
+                            <Columns>
+                                <DataTableColumn TData="RoutingRow" TValue="string"
+                                                 Property="@(aRow => aRow.Outcome)" Header="Outcome">
+                                    <CellTemplate Context="vRow">
+                                        @* REQ-UI-049 — `drifted` is INFO. Drift is made visible, never styled as a
+                                           failure: a red pill would assert a routing rule the framework does not
+                                           have. TR-016 — BadgeVariant ships no Info/Success member, so the tone
+                                           rides on the shared `--alert-*` class from app.css. *@
+                                        <Badge Variant="BadgeVariant.Outline"
+                                               Class="@($"{vRow.ToneClass} tflens-nowrap-badge")"
+                                               data-testid="@($"routing-{vRow.Outcome}")">@vRow.Outcome</Badge>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="RoutingRow" TValue="int"
+                                                 Property="@(aRow => aRow.Runs)" Header="Runs" CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tabular-nums" data-testid="@($"routing-count-{vRow.Outcome}")">@CountText(vRow.Runs)</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="RoutingRow" TValue="int"
+                                                 Property="@(aRow => aRow.Runs)" Header="Share">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tflens-bar-row">
+                                            <span class="tflens-bar">
+                                                <Progress Value="@Percent(vRow.Runs, RoutingTotal)" Class="h-2"
+                                                          IndicatorClass="@vRow.FillClass" />
+                                            </span>
+                                            <span class="tabular-nums tflens-nowrap">@PercentText(vRow.Runs, RoutingTotal)</span>
+                                        </span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="RoutingRow" TValue="string"
+                                                 Property="@(aRow => aRow.Meaning)" Header="What it means">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tflens-small text-muted-foreground">@vRow.Meaning</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+
+                    @* REQ-UI-049 — the same three counts per phase, which is where the engine holds them.
+                       Closed by default so the card face is the design's own three-row summary. *@
+                    <div class="tflens-routing-byphase">
+                        <Collapsible @bind-Open="objIsRoutingByPhaseOpen">
+                            <CollapsibleTrigger>
+                                <span class="tflens-detail-trigger" data-testid="effort-routing-byphase-trigger">
+                                    <LucideIcon Name="@(objIsRoutingByPhaseOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                                    <span class="text-sm font-medium">By command phase</span>
+                                </span>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                @* TR-018 — guarded, not merely hidden. *@
+                                @if (objIsRoutingByPhaseOpen)
+                                {
+                                    <div class="tflens-panel-table tflens-byphase" data-testid="effort-routing-byphase">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Command phase</th>
+                                                    <th class="tflens-right">routed</th>
+                                                    <th class="tflens-right">drifted</th>
+                                                    <th class="tflens-right">unknown</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var vRow in objPhases.Phases)
+                                                {
+                                                    <tr>
+                                                        <td><span class="font-mono">@vRow.Cmd</span></td>
+                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Routed)</td>
+                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Drifted)</td>
+                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Unknown)</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+                </CardContent>
+                <CardFooter Class="tflens-card-note">
+                    <p class="text-sm text-muted-foreground">
+                        <span class="font-mono">drifted</span> is styled as information, never as an error.
+                        TfLens observes which model ran; it does not enforce a routing policy, and a page
+                        that painted drift red would be asserting a rule the framework does not have.
+                        <span class="font-mono">unknown</span> is its own count rather than being folded
+                        into either side: a run carrying no <span class="font-mono">routed</span> flag did
+                        not route correctly and did not drift — it said nothing.
+                    </p>
+                </CardFooter>
+            </Card>
+
+            @* BRD-148 / BRD-160 — measured dollars only. No rate card reaches this page. *@
+            <Card Class="h-full" data-testid="effort-cost">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <CardTitle Class="text-base">Measured spend by harness</CardTitle>
+                            <CardDescription>Provider-reported dollars only</CardDescription>
+                        </div>
+                        <span class="tflens-stat-chip tflens-accent-2 shrink-0">
+                            <LucideIcon Name="dollar-sign" Size="16" />
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    <div class="tflens-table">
+                        <DataTable TData="CostRow"
+                                   Data="@CostRows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   InitialPageSize="20"
+                                   AriaLabel="Measured spend by harness"
+                                   data-testid="effort-cost-table">
+                            <Columns>
+                                <DataTableColumn TData="CostRow" TValue="string"
+                                                 Property="@(aRow => aRow.Harness)" Header="Harness">
+                                    <CellTemplate Context="vRow">
+                                        @* `?` is the engine's own key for a run whose harness was not
+                                           detected. It keeps its row rather than being folded into
+                                           another harness's — a dollar figure attributed to the wrong
+                                           harness is worse than one attributed to none. *@
+                                        <span class="font-mono @(vRow.IsDetected ? string.Empty : "text-muted-foreground")">@vRow.Label</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="CostRow" TValue="int"
+                                                 Property="@(aRow => aRow.Records)" Header="Records"
+                                                 CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        <span class="tabular-nums" title="runs detected on this harness">@CountText(vRow.Records)</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="CostRow" TValue="string"
+                                                 Property="@(aRow => aRow.Usd)" Header="Measured USD"
+                                                 CellClass="text-right">
+                                    <CellTemplate Context="vRow">
+                                        @if (vRow.HasMeasurement)
+                                        {
+                                            <b class="tabular-nums" title="@vRow.Basis"
+                                               data-testid="@($"cost-{vRow.Harness}")">@vRow.Usd</b>
+                                        }
+                                        else
+                                        {
+                                            <span class="tabular-nums text-muted-foreground"
+                                                  title="no provider cost recorded"
+                                                  data-testid="@($"cost-{vRow.Harness}")">@vRow.Usd</span>
+                                        }
+                                    </CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    </div>
+                </CardContent>
+                <CardFooter Class="tflens-card-note">
+                    <p class="text-sm text-muted-foreground">
+                        A dash is <b>“no provider cost recorded”</b>, never
+                        <span class="font-mono">$0.00</span> and never “free”. <b>There is no rate-card
+                        estimate anywhere on this page</b> — an estimated dollar beside a measured one on a
+                        budgeting screen is how a plausible wrong number gets quoted. Estimates live on
+                        <a class="tflens-link" href="/routing">Routing &amp; economics</a>, on their own
+                        card, labelled as estimates. Dollars are never summed across harnesses.
+                    </p>
+                </CardFooter>
+            </Card>
+        </div>
+
+        @* BRD-168 — the standing actor note. *@
+        <p class="tflens-actor-note text-sm text-muted-foreground" data-testid="effort-actor-note">
+            <LucideIcon Name="info" Size="16" />
+            <span>
+                No figure on this page, in the API, in the export or in parity is grouped by
+                <span class="font-mono">actor</span> — there is no parameter, filter or toggle that could
+                produce such a grouping.
+            </span>
+        </p>
+    }
+</div>
+
+@code {
+    /// <summary>What a value reads when there is nothing to measure at all.</summary>
+    private const string Dash = "—";
+
+    /// <summary>The period key meaning the whole history; this page's default (BRD-125's rule again).</summary>
+    private const string AllHistory = "all";
+
+    /// <summary>
+    /// The day <c>subagent_runs</c>, <c>tokens_out_subagents</c> and <c>model_tokens_out</c> began to
+    /// exist. A run written before it could not have been fan-out observed, permanently (SCHEMA.md §2.6).
+    /// </summary>
+    private const string FieldSince = "2026-08-31";
+
+    /// <summary>The <c>tokens_scope</c> a run declared when it computed no window.</summary>
+    private const string NoneScope = "none";
+
+    /// <summary>
+    /// The engine's key for a run that carried no <c>tokens_scope</c> field at all.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PhaseMetrics.AbsentScope"/> is kept apart from <see cref="NoneScope"/> by the engine
+    /// rather than folded into it, so this card keeps them apart too. Both are excluded from every token
+    /// figure — that is one fact — but "the run said none" and "the run said nothing" are two different
+    /// records, and collapsing them here would put a spelling of the exclusion on screen that the data
+    /// does not have.
+    /// </remarks>
+    private const string AbsentScope = "absent";
+
+    /// <summary>The period choices, all history first because it is the default.</summary>
+    private static readonly IReadOnlyList<PeriodOption> PeriodOptions =
+    [
+        new PeriodOption(AllHistory, "All history (default)", null, "all history"),
+        new PeriodOption("7", "Last 7 days", 7, "last 7 days"),
+        new PeriodOption("30", "Last 30 days", 30, "last 30 days"),
+        new PeriodOption("90", "Last 90 days", 90, "last 90 days")
+    ];
+
+    /// <summary>The token scopes in the order the approved design lists them.</summary>
+    private static readonly IReadOnlyList<string> ScopeOrder =
+        ["tree", "conversation", "main", NoneScope, AbsentScope];
+
+    /// <summary>What each <c>tokens_scope</c> bucket means, in the design's own words.</summary>
+    private static readonly IReadOnlyDictionary<string, string> ScopeMeanings =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["tree"] = "main thread and child transcripts read",
+            ["conversation"] = "main thread only",
+            ["main"] = "main thread only",
+            [NoneScope] = "declared none — no token figures exist for these runs (tokens_unmeasured_n)",
+            [AbsentScope] = "carried no tokens_scope at all — no token figures exist for these runs (tokens_unmeasured_n)"
+        };
+
+    private IReadOnlyList<RunRecord> objAllRuns = [];
+    private PhaseEffortAnalysis objPhases = PhaseEffortAnalysis.Empty;
+    private readonly HashSet<string> objOpenPhases = new(StringComparer.Ordinal);
+
+    private bool objIsLoaded;
+    private bool objIsRoutingByPhaseOpen;
+    private string? objLoadError;
+    private int? objUserId;
+    private string? objLoadedFramework;
+    private string objPeriod = AllHistory;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-010, ADR-016).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The one line under the heading, which says which framework state the reader is looking at.</summary>
+    private string Subtitle =>
+        IsPlaybook
+            ? "Playbook axis — phase efficiency, read from the imported execution events rather than from runs.jsonl"
+            : "How much time and how many tokens went into each command phase — with which model, and how many "
+              + "subagents it actually spun up";
+
+    /// <summary>What the empty state says, which depends on the window the reader chose.</summary>
+    private string EmptyDescription =>
+        Period.Days is null
+            ? "No live run records have been imported for this framework yet. Backfilled rows are excluded "
+              + "from every figure on this page by design."
+            : $"No live run record falls inside the {Period.Badge}. Widen the window, or switch back to all history.";
+
+    /// <summary>The selected period, resolved back to its option.</summary>
+    private PeriodOption Period =>
+        PeriodOptions.FirstOrDefault(aOption => aOption.Key == objPeriod) ?? PeriodOptions[0];
+
+    /// <summary>The badge beside the period select, so the window is stated even when the select is closed.</summary>
+    private string PeriodLabel => Period.Badge;
+
+    /// <summary>The label the closed select trigger shows for a period key (TR-020).</summary>
+    /// <param name="aKey">The period key currently bound.</param>
+    /// <returns>The option's label, or the key itself when it names no option.</returns>
+    private static string PeriodTextOf(string aKey) =>
+        PeriodOptions.FirstOrDefault(aOption => aOption.Key == aKey)?.Label ?? aKey;
+
+    /// <summary>Runs carrying a usable token window — the divisor of every token figure (BRD-146).</summary>
+    private int TokensMeasuredRuns => objPhases.Phases.Sum(aRow => aRow.TokensMeasuredN);
+
+    /// <summary>Runs excluded from every token figure; displayed, never added into one.</summary>
+    private int TokensUnmeasuredRuns => objPhases.Phases.Sum(aRow => aRow.TokensUnmeasuredN);
+
+    /// <summary>Runs carrying a non-zero <c>duration_s</c> — the wall-clock block's own denominator.</summary>
+    private int TimedRuns => objPhases.Phases.Sum(aRow => aRow.Duration.TimedN);
+
+    /// <summary>The phase with the largest measured output; the engine already orders by it.</summary>
+    private PhaseEffortRow? Heaviest => objPhases.Phases.Count == 0 ? null : objPhases.Phases[0];
+
+    /// <summary>The heaviest phase's command, or the dash when there is no phase at all.</summary>
+    private string HeaviestCmd => Heaviest?.Cmd ?? Dash;
+
+    /// <summary>The heaviest phase's sub-line — its two shares and its run count.</summary>
+    private string HeaviestSummary =>
+        Heaviest is { } vRow
+            ? $"{vRow.ShareOfTokensOut} of all output tokens · {vRow.ShareOfDuration} of wall clock · "
+              + $"{CountText(vRow.Runs)} runs"
+            : "no phase has recorded a run in this window";
+
+    /// <summary>Every run that carried a routing outcome of any kind, including none at all.</summary>
+    private int RoutingTotal =>
+        objPhases.Phases.Sum(aRow => aRow.Routing.Routed + aRow.Routing.Drifted + aRow.Routing.Unknown);
+
+    /// <summary>
+    /// The token-window buckets, in the design's order, with any producer scope the design did not
+    /// anticipate appended rather than dropped.
+    /// </summary>
+    private IReadOnlyList<ScopeRow> ScopeRows
+    {
+        get
+        {
+            var vCounts = objPhases.ScopeCoverage
+                .ToDictionary(aPair => aPair.Key, aPair => aPair.Value, StringComparer.Ordinal);
+
+            var vRows = ScopeOrder
+                .Select(aScope => new ScopeRow(
+                    aScope == AbsentScope ? "tokens_scope: (absent)" : $"tokens_scope: {aScope}",
+                    vCounts.TryGetValue(aScope, out var vCount) ? vCount : 0,
+                    ScopeMeanings[aScope],
+                    aScope is NoneScope or AbsentScope,
+                    aScope))
+                .ToList();
+
+            // A scope the approved design has no row for is shown rather than silently discarded: an
+            // exclusion the reader cannot see is indistinguishable from a bug (BRD-121's rule again).
+            vRows.AddRange(vCounts
+                .Where(aPair => !ScopeOrder.Contains(aPair.Key, StringComparer.Ordinal))
+                .OrderByDescending(aPair => aPair.Value)
+                .Select(aPair => new ScopeRow(
+                    $"tokens_scope: {aPair.Key}",
+                    aPair.Value,
+                    "a scope this screen has no standing description for",
+                    false,
+                    aPair.Key)));
+
+            return vRows;
+        }
+    }
+
+    /// <summary>
+    /// Fan-out observation and its two exclusions — three rows that are never pooled into two (BRD-147).
+    /// </summary>
+    private IReadOnlyList<ExclusionRow> ExclusionRows
+    {
+        get
+        {
+            var vNotTree = objPhases.Phases.Sum(aRow => aRow.Fanout.UnobservedNotTree);
+            var vPredatesField = objPhases.Phases.Sum(aRow => aRow.Fanout.UnobservedPredatesField);
+
+            return
+            [
+                new ExclusionRow(
+                    "Observed",
+                    "tokens_scope == \"tree\" and subagent_runs != null",
+                    objPhases.FanoutObservedN,
+                    Percent(objPhases.FanoutObservedN, objPhases.RunsLive),
+                    "tflens-fill-2",
+                    true,
+                    "observed"),
+                new ExclusionRow(
+                    "unobserved_not_tree",
+                    "We did not look. The window was main, conversation or none, so no child transcript was ever read",
+                    vNotTree,
+                    Percent(vNotTree, objPhases.RunsLive),
+                    "tflens-fill-4",
+                    false,
+                    "not-tree"),
+                new ExclusionRow(
+                    "unobserved_predates_field",
+                    $"We could not have looked. Tree scope, but written before subagent_runs existed ({FieldSince})",
+                    vPredatesField,
+                    Percent(vPredatesField, objPhases.RunsLive),
+                    "tflens-fill-5",
+                    false,
+                    "predates-field")
+            ];
+        }
+    }
+
+    /// <summary>The phase table's rows, in the engine's own heaviest-output-first order (REQ-UI-047).</summary>
+    private IReadOnlyList<PhaseTableRow> PhaseTableRows =>
+        objPhases.Phases.Select(aRow => new PhaseTableRow(
+            aRow.Cmd,
+            KeyOf(aRow.Cmd),
+            aRow.Runs,
+            PhaseTotalText(aRow),
+            SecondsText(aRow.Duration.MedianSeconds),
+            aRow.ShareOfDuration,
+            TokenTotalText(aRow, aRow.Tokens.Out),
+            aRow.TokensMeasuredN == 0 ? "no token window on any run in this phase" : ExactTokenText(aRow.Tokens.Out),
+            aRow.ShareOfTokensOut,
+            $"{aRow.TokensMeasuredN} of {aRow.Runs}",
+            FanoutCell(aRow.Fanout),
+            aRow.Fanout.IsObserved)).ToList();
+
+    /// <summary>The three routing outcomes, in the design's order (REQ-UI-049).</summary>
+    private IReadOnlyList<RoutingRow> RoutingRows =>
+    [
+        new RoutingRow(
+            "routed",
+            objPhases.Phases.Sum(aRow => aRow.Routing.Routed),
+            "the model that ran is the one the routing table names",
+            "tflens-badge-success",
+            "tflens-fill-2"),
+        new RoutingRow(
+            "drifted",
+            objPhases.Phases.Sum(aRow => aRow.Routing.Drifted),
+            "a different model ran — drift made visible, not a failure",
+            "tflens-badge-info",
+            "tflens-fill-1"),
+        new RoutingRow(
+            "unknown",
+            objPhases.Phases.Sum(aRow => aRow.Routing.Unknown),
+            "no declared route on the record",
+            string.Empty,
+            "tflens-fill-muted")
+    ];
+
+    /// <summary>
+    /// Measured dollars per harness — never pooled across harnesses, never priced from a rate card.
+    /// </summary>
+    /// <remarks>
+    /// BRD-148 / BRD-160. A harness that measured nothing keeps its row and reads <c>—</c>: dropping it
+    /// would make an unmeasured harness indistinguishable from an absent one, and a <c>$0.00</c> would
+    /// state that it ran for free. Claude Code and Codex carry <c>cost_usd: null</c> permanently.
+    /// </remarks>
+    private IReadOnlyList<CostRow> CostRows
+    {
+        get
+        {
+            var vRuns = objPhases.Phases
+                .SelectMany(aRow => aRow.Harnesses)
+                .GroupBy(aPair => aPair.Key, StringComparer.Ordinal)
+                .ToDictionary(aGroup => aGroup.Key, aGroup => aGroup.Sum(aPair => aPair.Value), StringComparer.Ordinal);
+
+            var vCosts = objPhases.Phases
+                .SelectMany(aRow => aRow.CostUsdByHarness)
+                .GroupBy(aCost => aCost.Harness, StringComparer.Ordinal)
+                .ToDictionary(
+                    aGroup => aGroup.Key,
+                    aGroup => (Usd: aGroup.Sum(aCost => aCost.Usd), Records: aGroup.Sum(aCost => aCost.Records)),
+                    StringComparer.Ordinal);
+
+            var vHarnesses = vRuns.Keys.Union(vCosts.Keys, StringComparer.Ordinal);
+
+            return vHarnesses
+                .Select(aHarness =>
+                {
+                    var vHasCost = vCosts.TryGetValue(aHarness, out var vCost);
+
+                    return new CostRow(
+                        aHarness,
+                        vRuns.TryGetValue(aHarness, out var vCount) ? vCount : 0,
+                        vHasCost ? vCost.Usd.ToString("C2", CultureInfo.GetCultureInfo("en-US")) : Dash,
+                        vHasCost,
+                        vHasCost
+                            ? $"Σ cost_usd over {vCost.Records} measured records on {aHarness}"
+                            : "no provider cost recorded");
+                })
+                .OrderByDescending(aRow => aRow.HasMeasurement)
+                .ThenByDescending(aRow => aRow.Records)
+                .ThenBy(aRow => aRow.Harness, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
+
+    /// <summary>Subscribes to the shell so a sync or a framework change re-queries this page.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnShellChanged;
+    }
+
+    /// <summary>
+    /// Resolves the signed-in user and loads the run records for the selected framework.
+    /// </summary>
+    /// <remarks>
+    /// ADR-016 — the framework is a query, never a display filter, so a change of axis re-reads the
+    /// store rather than filtering figures already on screen.
+    /// </remarks>
+    /// <returns>A task that completes when the page has its figures or its error.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        if (objUserId is null)
+        {
+            var vState = await AuthenticationStateTask;
+            objUserId = ShellIdentity.UserId(vState.User);
+
+            if (objUserId is null)
+            {
+                objIsLoaded = true;
+                return;
+            }
+        }
+
+        if (objLoadedFramework != objPreferences.Framework)
+        {
+            await LoadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Reads every run record for the signed-in user on the selected framework.
+    /// </summary>
+    /// <returns>A task that completes when the records are in hand and the block is computed.</returns>
+    private async Task LoadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        objIsLoaded = false;
+        objLoadedFramework = objPreferences.Framework;
+
+        try
+        {
+            objAllRuns = await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework);
+            objLoadError = null;
+        }
+        catch (Exception vEx)
+        {
+            objAllRuns = [];
+            objLoadError = vEx.Message;
+        }
+
+        Recompute();
+        objIsLoaded = true;
+    }
+
+    /// <summary>
+    /// Re-runs the phase-effort engine over the records inside the selected period.
+    /// </summary>
+    /// <remarks>
+    /// The period narrows the <b>record set</b> and hands it to <see cref="PhaseMetrics.Compute"/>, so
+    /// every guard — the live-only filter, the token-window predicate, the fan-out observation predicate,
+    /// the MIN_N floor — is applied by the same code that computes the unfiltered view rather than by a
+    /// second copy of the rules living in a Razor file (REQ-NFR-013).
+    /// </remarks>
+    private void Recompute()
+    {
+        var vCutoff = Period.Days is { } vDays
+            ? DateTimeOffset.UtcNow.AddDays(-vDays)
+            : (DateTimeOffset?)null;
+
+        var vRuns = objAllRuns.Where(aRun => IsInPeriod(aRun.Ts, vCutoff)).ToList();
+
+        objPhases = PhaseMetrics.Compute(vRuns);
+
+        // REQ-UI-048 — one phase open by default, and it is the heaviest, because that is the row a
+        // reader opened this page to look at. A phase that leaves the window keeps no stale open state.
+        objOpenPhases.RemoveWhere(aCmd => !objPhases.Phases.Any(aRow => aRow.Cmd == aCmd));
+
+        if (objOpenPhases.Count == 0 && objPhases.Phases.Count > 0)
+        {
+            objOpenPhases.Add(objPhases.Phases[0].Cmd);
+        }
+    }
+
+    /// <summary>
+    /// Decides whether a record's timestamp falls inside the selected window.
+    /// </summary>
+    /// <param name="aTs">The record's ISO-8601 timestamp.</param>
+    /// <param name="aCutoff">The oldest instant the window admits, or <c>null</c> for all history.</param>
+    /// <returns><c>true</c> when the record is in the window; an unparseable timestamp is kept.</returns>
+    private static bool IsInPeriod(string? aTs, DateTimeOffset? aCutoff)
+    {
+        if (aCutoff is null)
+        {
+            return true;
+        }
+
+        // A timestamp TfLens cannot parse is kept rather than dropped: silently removing a record from a
+        // count because its own clock string is odd would understate every figure with no visible reason.
+        return !DateTimeOffset.TryParse(
+                   aTs,
+                   CultureInfo.InvariantCulture,
+                   DateTimeStyles.RoundtripKind,
+                   out var vWhen)
+               || vWhen >= aCutoff.Value;
+    }
+
+    /// <summary>Re-computes the page for the new window (REQ-UI-045).</summary>
+    /// <param name="aPeriod">The period key the reader chose.</param>
+    /// <returns>A completed task; the recompute is synchronous over already-loaded records.</returns>
+    private Task OnPeriodChangedAsync(string aPeriod)
+    {
+        objPeriod = aPeriod;
+        Recompute();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Opens or closes one phase's detail (REQ-UI-048).</summary>
+    /// <param name="aCmd">The phase's command.</param>
+    /// <param name="aIsOpen">Whether the disclosure is now open.</param>
+    private void OnPhaseToggled(string aCmd, bool aIsOpen)
+    {
+        if (aIsOpen)
+        {
+            objOpenPhases.Add(aCmd);
+        }
+        else
+        {
+            objOpenPhases.Remove(aCmd);
+        }
+    }
+
+    /// <summary>A stable, id-safe key for a command, used for this page's test ids.</summary>
+    /// <param name="aCmd">The framework command.</param>
+    /// <returns>The command with anything but a letter, digit or dash replaced by a dash.</returns>
+    private static string KeyOf(string aCmd) =>
+        string.Concat(aCmd.Select(aChar => char.IsLetterOrDigit(aChar) || aChar == '-' ? aChar : '-'));
+
+    /// <summary>The trigger line's one-line summary of a phase.</summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>Runs, wall clock and measured output, as the design writes it.</returns>
+    private static string TriggerSummary(PhaseEffortRow aRow) =>
+        $"{CountText(aRow.Runs)} runs · {PhaseTotalText(aRow)} · {TokenTotalText(aRow, aRow.Tokens.Out)} output";
+
+    /// <summary>
+    /// Renders one of a phase's four token totals, or the dash when no run in it carried a window.
+    /// </summary>
+    /// <remarks>
+    /// The engine reports <see cref="PhaseTokens.Zero"/> for a phase nothing could be measured in,
+    /// because a sum over no records is arithmetically zero — but on screen a bare <c>0</c> reads as
+    /// "this phase produced no output" when the truth is "no run here carried a token window". The
+    /// phase keeps its row, as the UI design requires, and its token cells read <c>—</c>. The
+    /// <c>Measured</c> column beside it says <c>0 of N</c>, which is the fact.
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <param name="aTotal">The total to render.</param>
+    /// <returns>The compact count, or the dash.</returns>
+    private static string TokenTotalText(PhaseEffortRow aRow, long aTotal) =>
+        aRow.TokensMeasuredN == 0 ? Dash : TokenText(aTotal);
+
+    /// <summary>
+    /// The observation badge on a phase's trigger.
+    /// </summary>
+    /// <remarks>
+    /// ADR-026 — a phase nothing could be observed in reads <c>not observed</c>. It never reads
+    /// <c>0 observed</c>, which invites the reader to hear "we looked and found none".
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The badge text.</returns>
+    private static string ObservationBadge(PhaseEffortRow aRow) =>
+        aRow.Fanout.IsObserved ? $"{aRow.Fanout.ObservedN} of {aRow.Runs} observed" : "not observed";
+
+    /// <summary>The phase table's fan-out cell.</summary>
+    /// <param name="aFanout">The phase's observation.</param>
+    /// <returns><c>n observed</c>, or the literal <c>not observed</c> — never a zero.</returns>
+    private static string FanoutCell(FanoutObservation aFanout) =>
+        aFanout.IsObserved ? $"{aFanout.ObservedN} observed" : "not observed";
+
+    /// <summary>
+    /// The sentence under the fan-out band's heading, which states the coverage before any number.
+    /// </summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The coverage sentence, naming both exclusions separately (BRD-147, BRD-149).</returns>
+    private static string FanoutCoverageSentence(PhaseEffortRow aRow)
+    {
+        var vExclusions = $"{aRow.Fanout.UnobservedNotTree} unobserved_not_tree, "
+            + $"{aRow.Fanout.UnobservedPredatesField} unobserved_predates_field";
+
+        return aRow.Fanout.IsObserved
+            ? $"Every number below is computed over those {aRow.Fanout.ObservedN} runs only. The rest were "
+              + $"not observed — {vExclusions} — and none of them contributes a zero."
+            : $"No run here could be observed — {vExclusions} — so this phase reports no fan-out at all. "
+              + "That is an absence of observation, not a measurement of zero.";
+    }
+
+    /// <summary>The declared-vs-measured sentence, which never reconciles the two (BRD-149).</summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>What the agents declared and what the harness counted.</returns>
+    private static string DeclaredVersusMeasured(PhaseEffortRow aRow)
+    {
+        var vDeclared = aRow.SubagentsDeclared.Count == 0
+            ? "The runs declared no subagent kinds at all."
+            : "The agents typed subagents: ["
+              + string.Join(", ", aRow.SubagentsDeclared.Select(aKind => $"\"{aKind.Key}\""))
+              + $"] — {aRow.SubagentsDeclared.Count} kinds.";
+
+        var vMeasured = aRow.Fanout.IsObserved
+            ? $"The harness counted {aRow.Fanout.SpawnsTotal} spawns over the runs it could observe."
+            : "The harness observed no run here, so it counted nothing — which is not the same as counting none.";
+
+        return $"{vDeclared} {vMeasured}";
+    }
+
+    /// <summary>
+    /// The mean-beside-median sentence, which says what the pair means rather than repeating it.
+    /// </summary>
+    /// <remarks>
+    /// A mean far above the median means one long run dominates the phase, which is the most
+    /// decision-relevant thing on the token band — and the reason the two sit side by side.
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The sentence.</returns>
+    private static string MeanVersusMedian(PhaseEffortRow aRow)
+    {
+        // ADR-007 — the number is read through TryGetValue, the only accessor a Figure has. Below the
+        // MIN_N floor it carries none at all, and this sentence says so rather than inventing a gap.
+        if (aRow.TokensOutMedian is not { } vMedian
+            || vMedian <= 0
+            || !aRow.TokensOutPerRun.Tokens.TryGetValue(out var vMean))
+        {
+            return "A mean far above the median would say one long run dominates the phase rather than "
+                + "that a typical run costs the mean; this phase has no pair to compare yet.";
+        }
+
+        var vGap = Math.Round(((vMean - vMedian) / vMedian) * 100d, MidpointRounding.AwayFromZero);
+
+        if (Math.Abs(vGap) < 1d)
+        {
+            return $"The mean output ({TokenFromDouble(vMean)}) sits on the median "
+                + $"({TokenFromDouble(vMedian)}), so no single run dominates this phase.";
+        }
+
+        var vDirection = vGap > 0 ? "above" : "below";
+
+        return $"The mean output ({TokenFromDouble(vMean)}) is {Math.Abs(vGap).ToString("0", CultureInfo.InvariantCulture)}% "
+            + $"{vDirection} the median ({TokenFromDouble(vMedian)}), which says one long run dominates this "
+            + "phase rather than that a typical run costs the mean.";
+    }
+
+    /// <summary>The excluded-runs sentence under the token band.</summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>How many runs carry no window, or a line saying every run did.</returns>
+    private static string UnmeasuredNote(PhaseEffortRow aRow) =>
+        aRow.TokensUnmeasuredN == 0
+            ? "Every run in this phase carried a token window."
+            : $"{aRow.TokensUnmeasuredN} runs are excluded from every figure in this band — they carry no "
+              + "token window.";
+
+    /// <summary>The timed-runs sentence under the time band.</summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>How many of the phase's runs were actually timed.</returns>
+    private static string TimedRunsNote(PhaseEffortRow aRow) =>
+        aRow.Duration.TimedN == aRow.Runs
+            ? $"All {aRow.Runs} runs were timed."
+            : $"Timed on {aRow.Duration.TimedN} of {aRow.Runs} runs; the rest carry no duration_s.";
+
+    /// <summary>
+    /// Says how much of a phase's per-model weight rests on measured splits rather than on labels.
+    /// </summary>
+    /// <remarks>
+    /// BRD-150 — a row resting largely on dominant-model labels is a weaker observation than one resting
+    /// on <c>model_tokens_out</c> splits, so the two counts are shown rather than blended invisibly.
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The sentence.</returns>
+    private static string ModelSourceNote(PhaseEffortRow aRow)
+    {
+        var vFromSplit = aRow.Models.Sum(aModel => aModel.RunsFromSplit);
+        var vFromLabel = aRow.Models.Sum(aModel => aModel.RunsFromLabel);
+
+        if (vFromLabel == 0)
+        {
+            return $"All {vFromSplit} contributions here come from a measured split.";
+        }
+
+        if (vFromSplit == 0)
+        {
+            return $"None of these {vFromLabel} contributions comes from a measured split — every one is "
+                + "read off the dominant model label on a run that carried none, which is the weaker "
+                + "observation and is counted as such.";
+        }
+
+        return $"{vFromSplit} contributions come from a measured split and {vFromLabel} from a dominant "
+            + "model label on a run that carried no split — counted apart, because they are not equally "
+            + "strong observations.";
+    }
+
+    /// <summary>The spawn median and max, or the dash when nothing was observed.</summary>
+    /// <param name="aFanout">The phase's observation.</param>
+    /// <returns><c>4 · 9</c>, or the dash on either half that has no value.</returns>
+    private static string SpawnsMedianAndMax(FanoutObservation aFanout)
+    {
+        var vMedian = aFanout.Spawns is { } vValue
+            ? vValue.ToString("0.##", CultureInfo.InvariantCulture)
+            : Dash;
+
+        var vMax = aFanout.SpawnsMax is { } vPeak
+            ? vPeak.ToString("N0", CultureInfo.InvariantCulture)
+            : Dash;
+
+        return $"{vMedian} · {vMax}";
+    }
+
+    /// <summary>A phase's total wall clock, or the dash when no run in it was timed.</summary>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The formatted total, or the dash.</returns>
+    private static string PhaseTotalText(PhaseEffortRow aRow) =>
+        aRow.Duration.TimedN == 0 ? Dash : DurationText(aRow.Duration.TotalSeconds);
+
+    /// <summary>Formats an optional second count, which is <c>null</c> when nothing was timed.</summary>
+    /// <param name="aSeconds">The seconds, or <c>null</c>.</param>
+    /// <returns>The formatted duration, or the dash — never a zero.</returns>
+    private static string SecondsText(double? aSeconds) =>
+        aSeconds is { } vValue ? DurationText((long)Math.Round(vValue, MidpointRounding.AwayFromZero)) : Dash;
+
+    /// <summary>Formats an optional second count, which is <c>null</c> when nothing was timed.</summary>
+    /// <param name="aSeconds">The seconds, or <c>null</c>.</param>
+    /// <returns>The formatted duration, or the dash — never a zero.</returns>
+    private static string SecondsText(long? aSeconds) =>
+        aSeconds is { } vValue ? DurationText(vValue) : Dash;
+
+    /// <summary>
+    /// Formats a wall-clock total in the approved design's notation — <c>21h 40m</c>, <c>42m</c>, <c>12s</c>.
+    /// </summary>
+    /// <param name="aSeconds">The duration in seconds.</param>
+    /// <returns>The formatted duration.</returns>
+    private static string DurationText(long aSeconds)
+    {
+        if (aSeconds <= 0L)
+        {
+            return "0s";
+        }
+
+        var vHours = aSeconds / 3600L;
+        var vMinutes = (aSeconds % 3600L) / 60L;
+
+        if (vHours > 0L)
+        {
+            return $"{vHours.ToString("N0", CultureInfo.InvariantCulture)}h "
+                + $"{vMinutes.ToString("00", CultureInfo.InvariantCulture)}m";
+        }
+
+        return vMinutes > 0L
+            ? $"{vMinutes.ToString("0", CultureInfo.InvariantCulture)}m"
+            : $"{aSeconds.ToString("0", CultureInfo.InvariantCulture)}s";
+    }
+
+    /// <summary>Renders a whole count in the grouped form every table on this page uses.</summary>
+    /// <param name="aValue">The count.</param>
+    /// <returns>The grouped number.</returns>
+    private static string CountText(long aValue) => aValue.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Renders a token count in the approved design's compact notation — <c>24.2M</c>, <c>62k</c>.
+    /// </summary>
+    /// <remarks>
+    /// Abbreviating is a presentation choice and never the only rendering: the phase table carries the
+    /// exact count as the cell's <c>title</c>, and the export path never passes through here at all, so
+    /// key-for-key parity is untouched.
+    /// </remarks>
+    /// <param name="aValue">The token count.</param>
+    /// <returns>The compact count.</returns>
+    private static string TokenText(long aValue)
+    {
+        var vMagnitude = Math.Abs(aValue);
+
+        if (vMagnitude >= 1_000_000_000L)
+        {
+            return (aValue / 1_000_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "B";
+        }
+
+        if (vMagnitude >= 1_000_000L)
+        {
+            return (aValue / 1_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "M";
+        }
+
+        if (vMagnitude >= 1_000L)
+        {
+            return (aValue / 1_000d).ToString("0", CultureInfo.InvariantCulture) + "k";
+        }
+
+        return aValue.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>The exact token count an abbreviated cell keeps as its native tooltip.</summary>
+    /// <param name="aValue">The token count.</param>
+    /// <returns>The grouped count with its noun.</returns>
+    private static string ExactTokenText(long aValue) =>
+        aValue.ToString("N0", CultureInfo.InvariantCulture) + " tokens";
+
+    /// <summary>Renders an optional per-run token figure, which is <c>null</c> when nothing was measured.</summary>
+    /// <param name="aValue">The figure, or <c>null</c>.</param>
+    /// <returns>The compact count, or the dash — never a zero.</returns>
+    private static string TokenFromDouble(double? aValue) =>
+        aValue is { } vValue
+            ? TokenText((long)Math.Round(vValue, MidpointRounding.AwayFromZero))
+            : Dash;
+
+    /// <summary>
+    /// A share as a 0..100 progress value.
+    /// </summary>
+    /// <param name="aPart">The numerator.</param>
+    /// <param name="aWhole">The denominator.</param>
+    /// <returns>The percentage, or zero width when there is no denominator to take a share of.</returns>
+    private static double Percent(long aPart, long aWhole) =>
+        aWhole <= 0L ? 0d : (aPart / (double)aWhole) * 100d;
+
+    /// <summary>
+    /// A share as the whole percentage the design prints beside a bar.
+    /// </summary>
+    /// <param name="aPart">The numerator.</param>
+    /// <param name="aWhole">The denominator.</param>
+    /// <returns>
+    /// A percentage such as <c>7%</c>, or the dash when the denominator is zero — a share taken from
+    /// nothing is not <c>0%</c>, it is a figure that does not exist.
+    /// </returns>
+    private static string PercentText(long aPart, long aWhole) =>
+        aWhole <= 0L
+            ? Dash
+            : Math.Round((aPart / (double)aWhole) * 100d, MidpointRounding.AwayFromZero)
+                .ToString("0", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>Re-queries when the workspace or the chosen provenance axis changes under the page.</summary>
+    private void OnShellChanged() => InvokeAsync(async () =>
+    {
+        objLoadedFramework = null;
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnShellChanged;
+    }
+
+    /// <summary>One period choice in the header filter.</summary>
+    /// <param name="Key">The bound value.</param>
+    /// <param name="Label">What the option reads in the list and on the closed trigger.</param>
+    /// <param name="Days">How many days back the window reaches, or <c>null</c> for all history.</param>
+    /// <param name="Badge">The short form shown on the badge beside the select.</param>
+    private sealed record PeriodOption(string Key, string Label, int? Days, string Badge);
+
+    /// <summary>One <c>tokens_scope</c> bucket on the token-window denominator card.</summary>
+    /// <param name="Scope">The bucket's label, as the producer spells the scope.</param>
+    /// <param name="Runs">Live runs in the bucket.</param>
+    /// <param name="Meaning">What the bucket means, in one line.</param>
+    /// <param name="IsUnmeasured">True on the <c>none</c>/absent row, which no token figure includes.</param>
+    /// <param name="TestKey">The stable test id fragment for the row's count.</param>
+    private sealed record ScopeRow(string Scope, int Runs, string Meaning, bool IsUnmeasured, string TestKey);
+
+    /// <summary>One row of the fan-out observation card — the observed set, or one of its two exclusions.</summary>
+    /// <param name="Label">The row's name.</param>
+    /// <param name="Meaning">What the row means, in the design's own words.</param>
+    /// <param name="Runs">Live runs in the row.</param>
+    /// <param name="Percent">The row's share of live runs, as a 0..100 bar value.</param>
+    /// <param name="FillClass">Which chart colour the bar is painted with.</param>
+    /// <param name="IsObservedRow">True on the observed row, which is the only measured one.</param>
+    /// <param name="TestKey">The stable test id fragment for the row's count.</param>
+    private sealed record ExclusionRow(
+        string Label,
+        string Meaning,
+        int Runs,
+        double Percent,
+        string FillClass,
+        bool IsObservedRow,
+        string TestKey)
+    {
+        /// <summary>The row's count as text, which is also the column's sort key.</summary>
+        public string Text => Runs.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>One row of the command-phase table.</summary>
+    /// <param name="Cmd">The framework command.</param>
+    /// <param name="Key">The id-safe form of <paramref name="Cmd"/>, for test ids.</param>
+    /// <param name="Runs">Live runs in the phase.</param>
+    /// <param name="WallClock">Summed duration over the timed runs, or the dash.</param>
+    /// <param name="Median">The median timed run, or the dash.</param>
+    /// <param name="ShareOfDuration">The oracle's own share string, rendered unaltered.</param>
+    /// <param name="TokensOut">Measured output tokens, compactly.</param>
+    /// <param name="TokensOutExact">The same total, exactly, as the cell's tooltip.</param>
+    /// <param name="ShareOfTokensOut">The oracle's own share string, rendered unaltered.</param>
+    /// <param name="Measured">
+    /// <c>n of N</c> — the column BRD-151 requires, never a footnote.
+    /// </param>
+    /// <param name="Fanout"><c>n observed</c>, or the literal <c>not observed</c>.</param>
+    /// <param name="IsFanoutObserved">Whether any run in the phase could be observed at all.</param>
+    private sealed record PhaseTableRow(
+        string Cmd,
+        string Key,
+        int Runs,
+        string WallClock,
+        string Median,
+        string ShareOfDuration,
+        string TokensOut,
+        string TokensOutExact,
+        string ShareOfTokensOut,
+        string Measured,
+        string Fanout,
+        bool IsFanoutObserved);
+
+    /// <summary>One routing outcome.</summary>
+    /// <param name="Outcome"><c>routed</c>, <c>drifted</c> or <c>unknown</c>.</param>
+    /// <param name="Runs">Runs with that outcome.</param>
+    /// <param name="Meaning">What the outcome means, in one line.</param>
+    /// <param name="ToneClass">
+    /// The badge tone. <c>drifted</c> is <b>info</b> and never destructive: drift is observed, never
+    /// enforced (REQ-UI-049).
+    /// </param>
+    /// <param name="FillClass">Which chart colour the share bar is painted with.</param>
+    private sealed record RoutingRow(string Outcome, int Runs, string Meaning, string ToneClass, string FillClass);
+
+    /// <summary>One harness's measured spend.</summary>
+    /// <param name="Harness">The detected harness.</param>
+    /// <param name="Records">Runs detected on it.</param>
+    /// <param name="Usd">The measured total, or the dash — never <c>$0.00</c> and never "free".</param>
+    /// <param name="HasMeasurement">Whether any record on this harness reported a provider cost.</param>
+    /// <param name="Basis">What the figure was summed over, kept as the cell's tooltip.</param>
+    private sealed record CostRow(string Harness, int Records, string Usd, bool HasMeasurement, string Basis)
+    {
+        /// <summary>True unless this is the engine's <c>?</c> bucket for an undetected harness.</summary>
+        public bool IsDetected => !string.Equals(Harness, PhaseMetrics.Unknown, StringComparison.Ordinal);
+
+        /// <summary>How the harness cell reads; the undetected bucket says so in words.</summary>
+        public string Label => IsDetected ? Harness : "harness not detected";
+    }
+}

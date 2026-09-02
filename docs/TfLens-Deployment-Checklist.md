@@ -15,18 +15,18 @@ can be rebuilt from `data/` at any time (`DECISIONS.md` D-002).
 
 ## Table of contents
 
-1. [Prerequisites](#1-prerequisites)
-2. [Configuration and secrets](#2-configuration-and-secrets)
-3. [`TfLensGitHubToken` — create it first](#3-tflensgithubtoken--create-it-first)
-4. [AppManager credentials](#4-appmanager-credentials)
-5. [Deploy with Docker Compose](#5-deploy-with-docker-compose)
-6. [Deploy for local development](#6-deploy-for-local-development)
-7. [First-run verification](#7-first-run-verification)
-8. [Before quoting any number — the parity run](#8-before-quoting-any-number--the-parity-run)
-9. [Operating commands](#9-operating-commands)
-10. [Backup and restore](#10-backup-and-restore)
-11. [Known constraints](#11-known-constraints)
-12. [Upgrading](#12-upgrading)
+1. [Prerequisites](#prerequisites)
+2. [Configuration and secrets](#configuration-and-secrets)
+3. [`TfLensGitHubToken` — create it first](#tflensgithubtoken-create-it-first)
+4. [AppManager credentials](#appmanager-credentials)
+5. [Deploy with Docker Compose](#deploy-with-docker-compose)
+6. [Deploy for local development](#deploy-for-local-development)
+7. [First-run verification](#first-run-verification)
+8. [Before quoting any number — the parity run](#before-quoting-any-number-the-parity-run)
+9. [Operating commands](#operating-commands)
+10. [Backup and restore](#backup-and-restore)
+11. [Known constraints](#known-constraints)
+12. [Upgrading](#upgrading)
 
 ---
 
@@ -214,7 +214,7 @@ those, never invented ones.
    `verification/telemetry` → **playbook**.
 3. **Sync** with the header's **Sync now**.
 4. **Coverage (`/`)** should show one card per repository with a short SHA and non-empty stream counts.
-5. **Check the reports** — `/three-questions`, `/harness`, `/routing` all render.
+5. **Check the reports** — `/gate-outcomes`, `/harness`, `/routing` all render.
 6. **Export** from `/export`; confirm `data/reports/<userId>/<date>/<framework>/` now holds
    `snapshot.md` and `tflens.json`.
 

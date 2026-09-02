@@ -142,6 +142,7 @@ public sealed class StoredProvenanceIsRealTests
     public void TheRefusalExtendsTheReasonVocabularyAndNotTheKeySet()
     {
         ParityReasons.ProvenanceOrphan.Should().Be("provenance-orphan");
+        ParityReasons.ProvenanceUnknown.Should().Be("provenance-unknown");
 
         var vJsonSource = File.ReadAllText(
             Path.Combine(RepoTree.Root.FullName, "src", "TfLens.Core", "Export", "SnapshotJson.cs"));
@@ -180,7 +181,63 @@ public sealed class StoredProvenanceIsRealTests
         vPage.Should().Contain("EvaluateWithProvenance");
         vPage.Should().Contain(
             nameof(ParityReasons.ProvenanceOrphan), "the banner has a case for the reason it refuses");
+        vPage.Should().Contain(
+            nameof(ParityReasons.ProvenanceUnknown),
+            "and a case for the other refusal, so 'we could not check' never renders as the fallback "
+            + "'no parity run has ever been recorded' — a false statement about the evidence");
     }
+
+    /// <summary>
+    /// An integrity rule that cannot be evaluated does not read as passed: no audit answer reaches
+    /// QUOTABLE except an audit that ran and found nothing (REQ-NFR-019 gap b, BRD-89).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Asserted here rather than only in the Core tests because it is the shape of the rule, not one
+    /// behaviour of it. Until 2026-08-30 the method's fourth parameter was nullable and an unsupported
+    /// report fell through to the plain parity stamp, so <b>every</b> store that had not been taught to
+    /// audit — including ones nobody has written — published figures by omission. The parameter is now
+    /// required and the three answers it can carry are each stated.
+    /// </para>
+    /// <para>
+    /// The reflection check on the signature is deliberate: a later hand that restores the nullable
+    /// parameter re-opens the fail-open silently, because the behavioural assertions below would still
+    /// pass with a <c>null</c>-means-skip branch beside them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void OnlyAnAuditThatRanAndFoundNothingReachesQuotable()
+    {
+        var vAudit = typeof(ParityRecord)
+            .GetMethod(nameof(ParityRecord.EvaluateWithProvenance))!
+            .GetParameters()[3];
+
+        vAudit.ParameterType.Should().Be(typeof(ProvenanceAuditReport));
+        vAudit.HasDefaultValue.Should().BeFalse("an optional audit is an audit a caller can decline");
+
+        // No parity record at all, so the ONLY thing that could produce a QUOTABLE here is the audit
+        // being wrongly treated as permission — which is what the assertions guard.
+        foreach (var vReport in new[] { ProvenanceAuditReport.Unsupported, Polluted() })
+        {
+            ParityRecord.EvaluateWithProvenance(null, "1.0.0", null, vReport)
+                .Status.Should().Be(ParityStatuses.NotQuotable);
+        }
+
+        ParityRecord.EvaluateWithProvenance(null, "1.0.0", null, ProvenanceAuditReport.Unsupported)
+            .Reason.Should().Be(
+                ParityReasons.ProvenanceUnknown,
+                "and it says which of the two provenance refusals it is, so a reader can tell 'we could "
+                + "not check' from 'we checked and found fabricated rows'");
+    }
+
+    /// <summary>One unaccounted source SHA, standing in for the 2026-08-29 pollution.</summary>
+    /// <returns>An audited report carrying a finding.</returns>
+    private static ProvenanceAuditReport Polluted() =>
+        new(
+            [new ProvenanceOrphan(2, "techierathore/TechieFlow", "a91f3c2e", ["Gate"], 77)],
+            77,
+            1,
+            true);
 
     /// <summary>
     /// The reserved harness band is defined once and the export refuses it, so a seeded user id has no

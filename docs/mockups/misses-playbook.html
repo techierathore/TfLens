@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Misses & rework (Playbook)</title>
+<title>TfLens — Misses &amp; rework (Playbook)</title>
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -168,6 +168,28 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
  [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
  [data-testid="source-mode"] .tab svg{display:none}
 }
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -202,21 +224,24 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-<aside class="sidebar" data-testid="sidebar">
+<aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
   <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
-   <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
    <a href="misses.html" class="active" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
    <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
@@ -229,52 +254,177 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab" href="misses.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab active" href="misses-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
   <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
-  <span class="badge outline">synced 12 min ago</span>
+  <span class="badge outline">synced 34 min ago</span>
   <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
   <main class="content"><div class="page" data-testid="misses-page">
   <div class="row between wrap" style="gap:16px">
-   <div><h1>Misses &amp; rework</h1><p class="sub">Playbook axis — the layout is identical to the TechieFlow state; only the data and a few labels change</p></div>
+   <div><h1>Misses &amp; rework</h1><p class="sub">Playbook axis — same four bands, same guards, different stream. The switch changes the data, never the layout or the rules</p></div>
    <div class="row" style="gap:8px">
     <span class="badge outline">all history</span>
-    <select class="input" style="width:190px;height:36px" data-testid="misses-period" disabled>
+    <select class="input" style="width:190px;height:36px" data-testid="misses-period">
      <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
     </select>
    </div>
   </div>
 
-  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Framework is a provenance axis, and it never pools</b><p>Playbook process-gates (<span class="mono">phase_gate</span>) and TechieFlow assertion-gates (<span class="mono">gate</span>) are different axes and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks. The Framework switch is <b>rendered, not hidden</b>, for a surface one framework has and the other does not — that is the established pattern.</p></div></div>
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Framework is a provenance axis, and it never pools</b><p>These figures come from the Playbook's committed <span class="mono">verification/telemetry/misses.ndjson</span>, normalized by its own exporter and imported through <b>Import metric files</b> — into the <b>same</b> <span class="mono">Miss</span> / <span class="mono">MissFix</span> / <span class="mono">MissAmend</span> tables, with no second ingest path. Nothing here shares a figure, a series or a total with the TechieFlow axis. Records upsert on the <b>immutable source-line hash</b>, not on the TechieFlow natural keys, because re-export is expected and stream order is part of the record.</p></div></div>
 
-  <div class="empty" data-testid="playbook-empty">
-   <span class="chip c5"><svg><use href="#i-bug"/></svg></span>
-   <b>No Playbook miss data yet</b>
-   <p>The miss stream is a TechieFlow surface today. The Playbook emits <span class="mono">verification/telemetry/events.ndjson</span>, which carries no miss records — its Phase&nbsp;9 <span class="mono">/analyze-fix</span> produces the same judgement in prose and discards it. When a Playbook repo emits miss telemetry, this page fills in with the identical four bands and the identical guards.</p>
-   <div class="row" style="gap:8px;margin-top:8px">
-    <a class="btn" href="repos.html"><svg class="i"><use href="#i-plus"/></svg>Connect a Playbook repo</a>
-    <a class="btn outline" href="misses.html">View the TechieFlow axis</a>
+  <!-- BAND 1 — KPI row -->
+  <div class="grid g4" data-testid="miss-kpis">
+   <div class="card kpi" data-testid="kpi-open"><div class="row"><span class="t">Backlog (open now)</span><span class="chip cd"><svg><use href="#i-bug"/></svg></span></div><div class="v">19</div><div class="n">latest lifecycle state is <span class="mono">opened</span> or <span class="mono">reopened</span> · 4 <span class="mono">deferred</span> are counted here</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Closed</span><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div><div class="v">44</div><div class="n">of 63 recorded misses · lifecycle from the producer, never inferred from a fix</div></div>
+   <div class="card kpi" data-testid="kpi-reopened"><div class="row"><span class="t">Reopened</span><span class="chip c4"><svg><use href="#i-refresh-cw"/></svg></span></div><div class="v">6</div><div class="n">closed then reopened at least once — its own count, never folded into open or closed</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Time to close — median / p90</span><span class="chip c5"><svg><use href="#i-clock"/></svg></span></div><div class="v" style="font-size:24px">3h 05m <span class="muted" style="font-size:16px;font-weight:500">/ 22h 40m</span></div><div class="n">over 44 closed misses · exact fix windows joined by the producer</div></div>
+  </div>
+
+  <div class="grid g4">
+   <div class="card kpi" data-testid="kpi-design-share"><div class="row"><span class="t">Design-miss share</span><span class="chip c3"><svg><use href="#i-book-open"/></svg></span></div><div class="v">41%</div><div class="n"><span class="mono">unspecified-gap</span> 26 ÷ 63 — the spec itself omitted it</div></div>
+   <div class="card kpi" data-testid="kpi-escape-share"><div class="row"><span class="t">Escape share (misses)</span><span class="chip c2"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v">27%</div><div class="n">found_by owner or production · 17 ÷ 63 — <b>not</b> a gate escape rate</div></div>
+   <div class="card kpi" data-testid="kpi-rework-incidence"><div class="row"><span class="t">Rework incidence</span><span class="chip c1"><svg><use href="#i-activity"/></svg></span></div><div class="v">70%</div><div class="n">44 of 63 misses drew at least one repair · <b>intensity</b> median 1 fix, max 4</div></div>
+   <div class="card kpi" data-testid="kpi-rework-tokens" style="border-color:rgba(52,211,153,.45)"><div class="row"><span class="t">Measured repair tokens</span><span class="badge success">sole · complete</span></div><div class="v">1.42M</div><div class="n">21 fixes that are <span class="mono">sole</span> <b>and</b> from a complete valid window <b>and</b> <span class="mono">cost_status: complete</span></div></div>
+  </div>
+
+  <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>The Playbook's reporting guards are stricter than the TechieFlow stream's, and they are not relaxed to match it</b><p>A model or tier attribution requires <span class="mono">origin_confidence: "linked"</span> <b>and</b> a complete valid source window <b>and</b> a non-null observed model. A headline repair token or cost figure additionally requires <span class="mono">cost_attribution: "sole"</span> and <span class="mono">cost_status: "complete"</span>. An <b>inferred or unknown origin is never placed in an “unknown model” bucket</b> — a bucket named for a model is a claim about a model, and these records do not support one.</p></div></div>
+
+  <!-- BAND 2 — where misses come from -->
+  <h3>Where misses come from</h3>
+  <div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start">
+   <div class="card" data-testid="miss-origin">
+    <div class="card-h"><div><div class="card-t">Origin command phase × miss class</div><div class="card-d">Did we specify badly, or build badly?</div></div><span class="badge outline">linked only</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Origin phase</th><th class="r">unspecified-gap</th><th class="r">partial-impl</th><th class="r">wrong-behaviour</th><th class="r">regression</th><th class="r">Total</th></tr></thead><tbody>
+     <tr><td><span class="mono">/plan</span></td><td class="r">11</td><td class="r">0</td><td class="r">1</td><td class="r">0</td><td class="r"><b>12</b></td></tr>
+     <tr><td><span class="mono">/research</span></td><td class="r">5</td><td class="r">0</td><td class="r">0</td><td class="r">0</td><td class="r"><b>5</b></td></tr>
+     <tr><td><span class="mono">/implement</span></td><td class="r">3</td><td class="r">10</td><td class="r">4</td><td class="r">3</td><td class="r"><b>20</b></td></tr>
+     <tr><td><span class="mono">/verify</span></td><td class="r">0</td><td class="r">2</td><td class="r">2</td><td class="r">0</td><td class="r"><b>4</b></td></tr>
+     <tr><td class="muted">excluded from attribution</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r"><b>22</b></td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm row" data-testid="miss-taint-count"><svg class="i"><use href="#i-info"/></svg><span><b>22 of 63 misses excluded</b> from every per-origin figure — 14 <span class="mono">inferred</span>, 8 <span class="mono">unknown</span>. A further <b>5 of the 41 linked</b> records are excluded from the model band only, because their source window is incomplete or invalid or carries no observed model. Both exclusions are stated: an exclusion the reader cannot see is indistinguishable from a bug.</span></p></div>
+   </div>
+
+   <div class="card" data-testid="miss-whymissed">
+    <div class="card-h"><div><div class="card-t">Which practice failed</div><div class="card-d">Is our <b>specification</b> weak, or our <b>verification</b>?</div></div><span class="badge warning">39 of 63 misses assessed</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><tbody>
+     <tr><td><span class="mono">missing-checklist-item</span></td><td style="width:130px"><span class="prog"><i style="width:36%"></i></span></td><td class="r">14 · 36%</td></tr>
+     <tr><td><span class="mono">ambiguous-acceptance</span></td><td><span class="prog"><i style="width:26%;background:var(--chart-3)"></i></span></td><td class="r">10 · 26%</td></tr>
+     <tr><td><span class="mono">insufficient-verify-method</span></td><td><span class="prog"><i style="width:18%;background:var(--chart-4)"></i></span></td><td class="r">7 · 18%</td></tr>
+     <tr><td><span class="mono">instruction-ignored</span></td><td><span class="prog"><i style="width:13%;background:var(--chart-5)"></i></span></td><td class="r">5 · 13%</td></tr>
+     <tr><td><span class="mono">dependency-not-declared</span></td><td><span class="prog"><i style="width:5%;background:var(--chart-2)"></i></span></td><td class="r">2 · 5%</td></tr>
+     <tr><td><span class="mono">code-audit-limitation</span></td><td><span class="prog"><i style="width:3%"></i></span></td><td class="r">1 · 3%</td></tr>
+     <tr><td><span class="mono">other</span></td><td><span class="prog"><i style="width:0%"></i></span></td><td class="r">0 · —</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><b>Denominator is 39, not 63.</b> <span class="mono">why_missed</span> is optional and <span class="mono">null</span> means <i>not assessed</i> — never a zero in some category. 24 misses carry no assessment. The badge sits on the card face, never in a tooltip.</p></div>
    </div>
   </div>
 
+  <!-- BAND 2b — the two cross-edition axes -->
   <div class="grid g2" style="align-items:start">
-   <div class="card">
-    <div class="card-h"><div><div class="card-t">What this page will show</div><div class="card-d">The same four bands, unchanged — the switch changes the data, never the layout or the rules</div></div><span class="badge outline">Phase 3</span></div>
-    <div class="card-c flush" style="padding-top:8px"><table class="tbl kv"><tbody>
-     <tr><td>Band 1 — KPI row</td><td class="sm">open · declined · this period · design-miss share · escape share · tokens on rework · measured USD</td></tr>
-     <tr><td>Band 2 — Where misses come from</td><td class="sm">origin phase × miss class, with the excluded-attribution count beneath, beside the failed-practice distribution and its <span class="mono">n of N assessed</span> denominator</td></tr>
-     <tr><td>Band 3 — Who was running</td><td class="sm">origin model and origin agent, <span class="mono">linked</span> records only, taint count visible, labelled observational</td></tr>
-     <tr><td>Band 4 — Cost of rework</td><td class="sm">measured · apportioned · unattributable, rendered as three columns and never as one</td></tr>
-     <tr><td>Detail table</td><td class="sm">every miss, with the raw record behind a disclosure</td></tr>
+   <div class="card" data-testid="miss-found-axes">
+    <div class="card-h"><div><div class="card-t">Where it was caught — two axes, never one</div><div class="card-d">A <b>process</b> gate and an <b>assertion</b> gate are different measurements</div></div><span class="badge outline">63 records</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th><span class="mono">found_phase_gate</span> <span class="badge secondary" style="height:18px;font-size:11px">process</span></th><th class="r">Misses</th><th><span class="mono">found_gate</span> <span class="badge secondary" style="height:18px;font-size:11px">assertion</span></th><th class="r">Misses</th></tr></thead><tbody>
+     <tr><td><span class="mono">phase-4-review</span></td><td class="r">13</td><td><span class="mono">build</span></td><td class="r">9</td></tr>
+     <tr><td><span class="mono">phase-7-verify</span></td><td class="r">11</td><td><span class="mono">test</span></td><td class="r">8</td></tr>
+     <tr><td><span class="mono">phase-9-analyze-fix</span></td><td class="r">6</td><td><span class="mono">visual</span></td><td class="r">5</td></tr>
+     <tr><td class="muted">not gated (owner / production)</td><td class="r">17</td><td class="muted">no assertion gate on the record</td><td class="r">41</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">These two columns are <b>side by side and never summed, merged or charted together</b> — the same rule, and the same reason, as <span class="mono">phase_gate</span> versus <span class="mono">gate</span>. A process gate says <i>which stage of the method caught it</i>; an assertion gate says <i>which check fired</i>. Adding them would count one miss twice and mean nothing.</p></div>
+   </div>
+
+   <div class="card" data-testid="miss-id-axes">
+    <div class="card-h"><div><div class="card-t">Item identity across editions</div><div class="card-d">One axis under two names — two columns on one table</div></div><span class="badge outline">normalized</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th><span class="mono">item_id</span> <span class="xs muted">(Playbook)</span></th><th><span class="mono">req_id</span> <span class="xs muted">(TechieFlow)</span></th><th class="r">Misses</th></tr></thead><tbody>
+     <tr><td><span class="mono">ITEM-0142</span></td><td class="muted">—</td><td class="r">4</td></tr>
+     <tr><td><span class="mono">ITEM-0117</span></td><td class="muted">—</td><td class="r">3</td></tr>
+     <tr><td><span class="mono">ITEM-0088</span></td><td class="muted">—</td><td class="r">2</td></tr>
+     <tr><td class="muted">no item recorded</td><td class="muted">—</td><td class="r">19</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><span class="mono">req_id</span> stays empty on Playbook records and <span class="mono">item_id</span> stays empty on TechieFlow ones. Two columns, one table — collapsing them into a single “ID” column would erase which edition the identifier belongs to.</p></div>
+   </div>
+  </div>
+
+  <!-- BAND 3 — who was running -->
+  <h3>Who was running</h3>
+  <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>Observational only — this band does not show causation</b><p>Miss counts per model are confounded by <i>which model gets the hard work</i>. Read these as a description of what ran, not as a ranking. Computed from the <b>36 records</b> that clear all three conditions: <span class="mono">origin_confidence: "linked"</span>, a complete valid source window, and a non-null observed model.</p></div></div>
+  <div class="grid g2" style="align-items:start">
+   <div class="card" data-testid="miss-origin-model">
+    <div class="card-h"><div><div class="card-t">By origin model</div><div class="card-d">Miss rate per linked origin model</div></div><span class="badge outline">36 eligible</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Model</th><th class="r">Misses</th><th class="r">Executions</th><th class="r">Per 100 executions</th></tr></thead><tbody>
+     <tr><td><span class="mono">claude-sonnet-5</span></td><td class="r">19</td><td class="r">248</td><td class="r">7.7</td></tr>
+     <tr><td><span class="mono">claude-opus-5</span></td><td class="r">13</td><td class="r">196</td><td class="r">6.6</td></tr>
+     <tr><td><span class="mono">gpt-5-codex</span></td><td class="r">4</td><td class="r">37</td><td class="r ital muted">insufficient data (n=4)</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">There is <b>no “unknown model” row</b> on this table and there never will be. The 27 records that do not clear the guard are counted in the exclusion line above, not bucketed under a name that would read as a model's score.</p></div>
+   </div>
+   <div class="card" data-testid="miss-origin-tier">
+    <div class="card-h"><div><div class="card-t">By origin tier</div><div class="card-d">Same guard, same exclusions</div></div><span class="badge outline">36 eligible</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Tier</th><th class="r">Misses</th><th class="r">Share</th><th>Dominant class</th></tr></thead><tbody>
+     <tr><td><span class="mono">standard</span></td><td class="r">22</td><td class="r">61%</td><td class="sm"><span class="mono">unspecified-gap</span></td></tr>
+     <tr><td><span class="mono">heavy</span></td><td class="r">12</td><td class="r">33%</td><td class="sm"><span class="mono">partial-implementation</span></td></tr>
+     <tr><td class="muted">tier missing on the record</td><td class="r">2</td><td class="r ital muted">insufficient data (n=2)</td><td class="muted">—</td></tr>
     </tbody></table></div>
    </div>
-   <div class="card">
+  </div>
+
+  <!-- BAND 4 — cost of rework -->
+  <h3>Cost of rework</h3>
+  <div class="grid g3" data-testid="miss-cost" style="align-items:start">
+   <div class="card"><div class="card-h"><div><div class="card-t">Measured</div><div class="card-d"><span class="mono">sole</span> + complete window + <span class="mono">cost_status: complete</span></div></div><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">67,600</div><div class="n">tokens per miss repaired · 21 fixes whose window covered exactly this item and whose provider cost is complete. <b>This is a measurement.</b></div></div>
+     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0"><div class="row between"><span class="muted sm">Measured USD (opencode)</span><b>$9.36</b></div></div></div>
+   <div class="card"><div class="card-h"><div><div class="card-t">Apportioned</div><div class="card-d"><span class="mono">cost_attribution: shared:n</span></div></div><span class="chip c4"><svg><use href="#i-alert-triangle"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">31,200</div><div class="n">tokens per miss, divided equally across 14 fixes covering 2.6 items on average. One window over several misses — <b>arithmetic, not measurement</b>, and never summed into the column beside it.</div></div>
+     <hr style="border:0;border-top:1px solid var(--border);margin:16px 0"><div class="row between"><span class="muted sm">Apportioned USD — <b>separately labelled</b></span><span class="badge warning">$4.10 apportioned</span></div></div></div>
+   <div class="card"><div class="card-h"><div><div class="card-t">Unattributable</div><div class="card-d"><span class="mono">cost_attribution: none</span></div></div><span class="chip cd"><svg><use href="#i-x"/></svg></span></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0">9</div><div class="n">fixes with <b>no numbers at all</b> — no distinct repair window, or a window whose cost status is not complete. A count, never a divisor. Missing beats invented.</div></div></div></div>
+  </div>
+  <p class="muted sm row"><svg class="i"><use href="#i-info"/></svg><span>There is no blended figure on this page, in the export, or in parity — measured and apportioned repair cost never share a series, a total or an aggregate, and <span class="mono">none</span> is excluded rather than divided into.</span></p>
+
+  <!-- Diagnostics -->
+  <div class="grid g2" style="align-items:start">
+   <div class="card" data-testid="miss-amend-diagnostics">
+    <div class="card-h"><div><div class="card-t">Amendment &amp; orphan diagnostics</div><div class="card-d">Surfaced here and on Coverage — never applied or discarded silently</div></div><span class="badge outline">re-folded at read time</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><tbody>
+     <tr><td>Valid amendments folded</td><td class="r"><b>12</b></td><td class="sm muted">re-folded on every read, exactly as the TechieFlow stream is — the stored row is never edited</td></tr>
+     <tr><td>Orphan amendments</td><td class="r"><b>2</b></td><td class="sm muted">no matching miss in the stream — listed, not applied</td></tr>
+     <tr><td>Overwrite conflicts</td><td class="r"><b>1</b></td><td class="sm muted">two amendments touching one field — both shown, neither silently wins</td></tr>
+     <tr><td>Duplicate source lines skipped</td><td class="r"><b>38</b></td><td class="sm muted">re-import of an unchanged line, matched by source-line hash — expected, not an error</td></tr>
+    </tbody></table></div>
+   </div>
+   <div class="card" data-testid="pb-stream-health">
     <div class="card-h"><div><div class="card-t">Playbook stream health</div><div class="card-d">From Coverage — nothing here is a quality figure</div></div><span class="chip c5"><svg><use href="#i-activity"/></svg></span></div>
     <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Stream</th><th class="r">Records</th><th class="r">Newest</th><th>State</th></tr></thead><tbody>
-     <tr><td><span class="mono">events</span></td><td class="r">0</td><td class="r muted">—</td><td><span class="badge outline">no repo emits it yet</span></td></tr>
-     <tr><td><span class="mono">misses</span></td><td class="r">0</td><td class="r muted">—</td><td><span class="badge outline">not a Playbook surface</span></td></tr>
+     <tr><td><span class="mono">miss</span></td><td class="r">63</td><td class="r sm">2026-08-31</td><td><span class="badge success">imported</span></td></tr>
+     <tr><td><span class="mono">miss-fix</span></td><td class="r">44</td><td class="r sm">2026-08-31</td><td><span class="badge success">imported</span></td></tr>
+     <tr><td><span class="mono">miss-amend</span></td><td class="r">15</td><td class="r sm">2026-08-30</td><td><span class="badge success">imported</span></td></tr>
+     <tr><td><span class="mono">events</span></td><td class="r muted">—</td><td class="r muted">—</td><td><span class="badge outline">transient · best-effort, absence is not an error</span></td></tr>
     </tbody></table></div>
-    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A zero here is <b>absence, not a good score</b>. Nothing on this page is rendered as a figure until there are records to render, and no figure below the minimum n is ever printed as a number.</p></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A zero or a dash here is <b>absence, not a good score</b>. When no Playbook miss records have been imported at all, this page shows the <span class="mono">PlaybookEmpty</span> state instead — that state is now a condition, not the permanent shape of this axis.</p></div>
    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div class="card" data-testid="miss-detail">
+   <div class="card-h"><div><div class="card-t">Every miss</div><div class="card-d">63 records · the raw record is behind the disclosure on each row</div></div><div class="row" style="gap:8px"><div class="inwrap"><svg class="i lead"><use href="#i-search"/></svg><input class="input lead sm" style="width:220px;height:32px" placeholder="Filter by item or class"></div></div></div>
+   <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Miss</th><th><span class="mono">item_id</span></th><th><span class="mono">req_id</span></th><th>Class</th><th>Severity</th><th>Origin</th><th>Found by</th><th><span class="mono">found_phase_gate</span></th><th>Lifecycle</th><th class="r">Repair tokens</th></tr></thead><tbody>
+    <tr><td><span class="mono">PB-MISS-20260831-07</span></td><td><span class="mono">ITEM-0142</span></td><td class="muted">—</td><td><span class="badge outline">unspecified-gap</span></td><td><span class="badge destructive">blocker</span></td><td class="sm"><span class="mono">/plan</span> <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>owner</td><td class="muted sm">not gated</td><td><span class="badge warning">opened</span></td><td class="r muted">—</td></tr>
+    <tr><td><span class="mono">PB-MISS-20260831-04</span></td><td><span class="mono">ITEM-0117</span></td><td class="muted">—</td><td><span class="badge outline">partial-implementation</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">/implement</span> <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>gate</td><td class="sm"><span class="mono">phase-7-verify</span></td><td><span class="badge success">closed</span></td><td class="r">81,400 <span class="badge secondary" style="height:18px;font-size:11px">sole</span></td></tr>
+    <tr><td><span class="mono">PB-MISS-20260830-11</span></td><td><span class="mono">ITEM-0088</span></td><td class="muted">—</td><td><span class="badge outline">wrong-behaviour</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">/implement</span> <span class="badge success" style="height:18px;font-size:11px">linked</span></td><td>gate</td><td class="sm"><span class="mono">phase-4-review</span></td><td><span class="badge warning">reopened</span></td><td class="r">44,900 <span class="badge secondary" style="height:18px;font-size:11px">shared:3</span></td></tr>
+    <tr><td><span class="mono">PB-MISS-20260830-02</span></td><td class="muted">—</td><td class="muted">—</td><td><span class="badge outline">regression</span></td><td><span class="badge secondary">minor</span></td><td class="sm muted">not named <span class="badge outline" style="height:18px;font-size:11px">unknown</span></td><td>production</td><td class="muted sm">not gated</td><td><span class="badge success">closed</span></td><td class="r muted">—</td></tr>
+    <tr><td><span class="mono">PB-MISS-20260829-06</span></td><td><span class="mono">ITEM-0071</span></td><td class="muted">—</td><td><span class="badge outline">unspecified-gap</span></td><td><span class="badge warning">major</span></td><td class="sm"><span class="mono">/research</span> <span class="badge warning" style="height:18px;font-size:11px">inferred</span></td><td>agent-review</td><td class="sm"><span class="mono">phase-9-analyze-fix</span></td><td><span class="badge success">closed</span></td><td class="r muted">—</td></tr>
+   </tbody></table></div>
+   <div class="coll" style="margin:0 24px 20px;border-radius:8px"><div class="trg"><svg><use href="#i-chevron-right"/></svg>Raw record — <span class="mono">PB-MISS-20260831-04</span></div>
+    <div class="body"><pre>{"schema":2,"kind":"miss","ts":"2026-08-31T07:41:22Z",
+ "source_harness":"opencode","source_line_sha":"9f2c…a71b",
+ "miss_id":"PB-MISS-20260831-04","item_id":"ITEM-0117","req_id":null,
+ "miss_class":"partial-implementation","severity":"major",
+ "why_missed":"ambiguous-acceptance",
+ "origin_phase":"/implement","origin_confidence":"linked",
+ "origin_model":"claude-sonnet-5","origin_tier":"standard",
+ "found_by":"gate","found_phase_gate":"phase-7-verify","found_gate":null,
+ "lifecycle":"closed","closed_ts":"2026-08-31T09:02:10Z",
+ "cost_attribution":"sole","data_quality":{"valid":true,"cost_status":"complete"}}</pre>
+    <p class="muted xs">Identity is the <b>source-line hash</b>, not the miss id — a re-exported line that has not changed upserts onto the same row and stream order is preserved. <span class="mono">found_gate</span> is <span class="mono">null</span> here and <span class="mono">found_phase_gate</span> is not; the two never fill in for one another.</p></div></div>
   </div>
  </div></main>
 </div></div>

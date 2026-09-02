@@ -168,6 +168,28 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
  [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
  [data-testid="source-mode"] .tab svg{display:none}
 }
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -202,21 +224,24 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-<aside class="sidebar" data-testid="sidebar">
+<aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
   <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
-   <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
    <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
    <a href="export.html" class="active" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
@@ -234,14 +259,14 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div class="row between"><div><h1>Snapshot export</h1><p class="sub">Freeze the figures you're about to quote, with the dataset SHAs they came from</p></div><span class="badge outline">parser v3</span></div>
+  <div class="row between"><div><h1>Snapshot export</h1><p class="sub">Freeze the figures you're about to quote, with the dataset SHAs they came from</p></div><span class="badge outline" data-testid="export-parser-version">parser v3</span></div>
   <div class="alert warning" data-testid="quotable-banner"><svg><use href="#i-alert-triangle"/></svg><div><b>NOT QUOTABLE</b><p>parser v3 changed after the last parity run (2026-08-30, parser v2); re-run the parity procedure</p></div></div>
   <div class="grid" style="grid-template-columns:1fr 2fr;align-items:start">
-   <div class="card"><div class="card-h"><div><div class="card-t">Export</div><div class="card-d">Markdown for humans, JSON for machines</div></div><span class="chip c1"><svg><use href="#i-download"/></svg></span></div>
-    <div class="card-c stack"><button class="btn block" data-testid="export-now"><svg class="i"><use href="#i-download"/></svg>Export snapshot</button><p class="muted xs" data-testid="export-framework-note">one snapshot per framework — currently: <b>TechieFlow</b></p><p class="muted xs">writes <span class="mono">data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md</span> + <span class="mono">tflens.json</span></p>
-     <hr class="sep"><table class="tbl kv" style="margin:0 -24px;width:calc(100% + 48px)"><tbody><tr><td>Parser</td><td>v3</td></tr><tr><td>Parity status</td><td><span class="badge warning">not quotable</span></td></tr><tr><td>Scope</td><td>5 repos · 12,480 records</td></tr></tbody></table></div></div>
+   <div class="card" data-testid="export-card"><div class="card-h"><div><div class="card-t">Export</div><div class="card-d">Markdown for humans, JSON for machines</div></div><span class="chip c1" data-testid="export-now-icon"><svg><use href="#i-download"/></svg></span></div>
+    <div class="card-c stack"><button class="btn block" data-testid="export-now"><svg class="i"><use href="#i-download"/></svg>Export snapshot</button><p class="muted xs" data-testid="export-framework-note">one snapshot per framework — currently: <b>TechieFlow</b></p><p class="muted xs" data-testid="export-target">writes <span class="mono">data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md</span> + <span class="mono">tflens.json</span></p>
+     <hr class="sep"><table class="tbl kv" style="margin:0 -24px;width:calc(100% + 48px)" data-testid="export-facts"><tbody><tr><td>Parser</td><td>v3</td></tr><tr><td>Parity status</td><td><span class="badge warning">not quotable</span></td></tr><tr><td>Scope</td><td>5 repos · 12,480 records</td></tr></tbody></table></div></div>
    <div class="card"><div class="card-h"><div><div class="card-t">Dataset SHAs</div><div class="card-d">The exact commit each stream was read at — copied into every snapshot</div></div></div>
-    <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="dataset-shas"><thead><tr><th>repo</th><th>branch</th><th>SHA</th><th>synced</th><th class="r"></th></tr></thead><tbody>
+    <div class="card-c flush" style="padding-top:16px" data-testid="dataset-shas"><table class="tbl" data-testid="dataset-shas-table"><thead><tr><th>repo</th><th>branch</th><th>SHA</th><th>synced</th><th class="r"></th></tr></thead><tbody>
      <tr><td>techierathore/TechieFlow</td><td class="mono">main</td><td class="mono">a91f3c2e7d</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
      <tr><td>techierathore/TechieRag</td><td class="mono">main</td><td class="mono">7c04e1b09a</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
      <tr><td>techierathore/TrBlazeUI</td><td class="mono">main</td><td class="mono">e3b9d40c11</td><td class="muted">12 min ago</td><td class="r"><button class="btn ghost icon" title="Copy SHA"><svg class="i"><use href="#i-external-link"/></svg></button></td></tr>
@@ -250,13 +275,13 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
     </tbody></table></div></div>
   </div>
   <div class="card"><div class="card-h"><div><div class="card-t">Past snapshots</div><div class="card-d">Your folders under data/reports — each row links to both files</div></div><span class="badge outline">2</span></div>
-   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="snapshots"><thead><tr><th>date</th><th>parser version</th><th>parity status</th><th>snapshot.md</th><th>tflens.json</th></tr></thead><tbody>
+   <div class="card-c flush" style="padding-top:16px" data-testid="snapshots"><table class="tbl" data-testid="snapshots-table"><thead><tr><th>date</th><th>parser version</th><th>parity status</th><th>snapshot.md</th><th>tflens.json</th></tr></thead><tbody>
     <tr><td>2026-08-30</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
     <tr><td>2026-08-18</td><td>v2</td><td><span class="badge success">quotable</span></td><td><a class="btn link" href="#">snapshot.md</a></td><td><a class="btn link" href="#">tflens.json</a></td></tr>
    </tbody></table></div></div>
   <div class="card" data-testid="parity-record"><div class="card-h"><div><div class="card-t">Last parity run</div><div class="card-d">data/parity-last.json — the independent script agreed with the engine</div></div><span class="badge success"><svg><use href="#i-check"/></svg>0 differences</span></div>
    <div class="card-c grid g2" style="align-items:start">
-    <table class="tbl kv"><tbody><tr><td>Date</td><td>2026-08-30 11:22 UTC</td></tr><tr><td>Parser version</td><td>v2 <span class="badge warning" style="margin-left:6px">current is v3</span></td></tr><tr><td>Script hash</td><td class="mono">sha256:4b1e…9c07</td></tr><tr><td>Dataset SHAs</td><td class="mono xs">a91f3c2 · 7c04e1b · e3b9d40 · 51aa0f9 · 0d7e6a3</td></tr></tbody></table>
+    <table class="tbl kv" data-testid="parity-facts"><tbody><tr><td>Date</td><td>2026-08-30 11:22 UTC</td></tr><tr><td>Parser version</td><td>v2 <span class="badge warning" style="margin-left:6px">current is v3</span></td></tr><tr><td>Script hash</td><td class="mono">sha256:4b1e…9c07</td></tr><tr><td>Dataset SHAs</td><td class="mono xs">a91f3c2 · 7c04e1b · e3b9d40 · 51aa0f9 · 0d7e6a3</td></tr></tbody></table>
     <div class="codeblk" data-testid="parity-output"><div class="cb-h"><span class="mono">parity-compare output</span><button class="btn ghost icon" title="Copy"><svg class="i"><use href="#i-copy"/></svg></button></div><pre>parity-compare: 0 differences across 214 keys
 engine    : TfLens.Analysis 0.1.0 (parser v2)
 script    : scripts/parity.py @ 4b1e…9c07

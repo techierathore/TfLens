@@ -196,7 +196,7 @@
     /// Builds the stable test id for a navigation item.
     /// </summary>
     /// <param name="aItem">The navigation item.</param>
-    /// <returns>A test id such as <c>nav-repos</c> or <c>nav-three-questions</c>.</returns>
+    /// <returns>A test id such as <c>nav-repos</c> or <c>nav-gate-outcomes</c>.</returns>
     private static string TestIdOf(ShellNavItem aItem) =>
         aItem.IsExact ? "nav-coverage" : $"nav-{aItem.Href.Trim('/')}";
 

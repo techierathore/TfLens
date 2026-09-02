@@ -40,20 +40,171 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly Dictionary<(int UserId, string Repo), int> objSessionCollapses = [];
 
     /// <summary>
+    /// The provenance ledger this store's own ingest doors wrote as they took rows in.
+    /// </summary>
+    /// <remarks>
+    /// The fixture equivalent of <c>"SourceProvenance"</c>. <see cref="Load"/>, <see cref="Seed"/>,
+    /// <see cref="SeedPbEvents"/> and <see cref="SeedMisses"/> are this store's ingest paths, and each
+    /// records the identity it obtained <b>as it writes</b>, exactly as the sync and the import do
+    /// (REQ-NFR-019 clause 1). That is what makes <see cref="AuditProvenanceAsync"/> a real comparison
+    /// rather than a rubber stamp: it reads the SHAs off the rows and asks this list about them, so a row
+    /// that reached the tables without passing a door — the production failure of 2026-08-29 — has
+    /// nothing behind it and is reported.
+    /// </remarks>
+    private readonly List<SourceProvenanceRecord> objObtained = [];
+
+    private ProvenanceAuditReport? objProvenanceOverride;
+
+    /// <summary>
     /// What this store answers when the export asks whether its rows have real provenance.
     /// </summary>
     /// <remarks>
-    /// Defaults to <see cref="ProvenanceAuditReport.Unsupported"/>, which is the honest answer for a
-    /// store served out of fixture files: it has no ledger, no sync state and no raw archive, so it is
-    /// not in a position to declare itself clean. A test that wants the export to see pollution sets a
-    /// report with orphans in it (REQ-NFR-019 clause 4).
+    /// <para>
+    /// Reading it runs the store's own audit over every user it holds; setting it <b>overrides</b> that
+    /// audit, which is how a test stands in for the one thing an in-memory store has no way to do to
+    /// itself — a write that bypassed the ingest door (REQ-NFR-019 clause 4).
+    /// </para>
+    /// <para>
+    /// It used to default to <see cref="ProvenanceAuditReport.Unsupported"/> on the grounds that a
+    /// fixture "is not in a position to declare itself clean". That was true of the first cut, which had
+    /// no ledger — but the conclusion drawn from it was a fail-open, because an unauditable store then
+    /// reached <c>QUOTABLE</c> unimpeded. Both halves are fixed together (2026-08-30): the refusal is now
+    /// unconditional in <c>ParityRecord.EvaluateWithProvenance</c>, and this store earns a real answer
+    /// instead of being exempted from the question. An <see cref="ProvenanceAuditReport.Unsupported"/>
+    /// answer is now reached only by a store that genuinely has no audit — the
+    /// <c>ITelemetryStore</c> default — which is exactly the case that must not publish a figure.
+    /// </para>
     /// </remarks>
-    public ProvenanceAuditReport Provenance { get; set; } = ProvenanceAuditReport.Unsupported;
+    public ProvenanceAuditReport Provenance
+    {
+        get => objProvenanceOverride ?? AuditOwnRows(null);
+        set => objProvenanceOverride = value;
+    }
 
     /// <inheritdoc />
     public Task<ProvenanceAuditReport> AuditProvenanceAsync(
         int? aUserId = null, CancellationToken aCancellationToken = default) =>
-        Task.FromResult(Provenance);
+        Task.FromResult(objProvenanceOverride ?? AuditOwnRows(aUserId));
+
+    /// <inheritdoc />
+    public Task RecordSourceProvenanceAsync(
+        SourceProvenanceRecord aRecord, CancellationToken aCancellationToken = default)
+    {
+        RecordObtained(aRecord);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Compares the SHAs this store's rows carry against the ledger its ingest doors wrote.
+    /// </summary>
+    /// <param name="aUserId">One user, or <c>null</c> for every user the store holds.</param>
+    /// <returns>The findings — supported, because this store really can answer the question.</returns>
+    private ProvenanceAuditReport AuditOwnRows(int? aUserId)
+    {
+        var vStored = new List<StoredProvenance>();
+
+        Collect(vStored, aUserId, "Gate", objGates.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "Run", objRuns.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "Session", objSessions.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "Commit", objCommits.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "PbEvent", objPbEvents.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "Miss", objMisses.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "MissFix", objMissFixes.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "MissAmend", objMissAmends.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+
+        var vObtained = aUserId is null
+            ? objObtained
+            : objObtained.Where(aEntry => aEntry.UserId == aUserId).ToList();
+
+        return ProvenanceAudit.Compare(vStored, vObtained);
+    }
+
+    /// <summary>Groups one stream's rows into the <c>(user, repo, SHA, table)</c> shape the audit reads.</summary>
+    /// <param name="aInto">The list being built.</param>
+    /// <param name="aUserId">One user, or <c>null</c> for every user.</param>
+    /// <param name="aTable">The stream table's name.</param>
+    /// <param name="aRows">Each row's user, repository and stored SHA.</param>
+    private static void Collect(
+        List<StoredProvenance> aInto,
+        int? aUserId,
+        string aTable,
+        IEnumerable<(int UserId, string Repo, string SourceSha)> aRows)
+    {
+        var vGroups = aRows
+            .Where(aRow => aUserId is null || aRow.UserId == aUserId)
+            .GroupBy(aRow => (aRow.UserId, aRow.Repo, aRow.SourceSha));
+
+        foreach (var vGroup in vGroups)
+        {
+            aInto.Add(new StoredProvenance(
+                vGroup.Key.UserId, vGroup.Key.Repo, vGroup.Key.SourceSha, aTable, vGroup.Count()));
+        }
+    }
+
+    /// <summary>Records that an ingest door obtained one identity, ignoring a repeat.</summary>
+    /// <param name="aRecord">What was obtained.</param>
+    private void RecordObtained(SourceProvenanceRecord aRecord)
+    {
+        if (string.IsNullOrWhiteSpace(aRecord.SourceSha))
+        {
+            return;
+        }
+
+        var vAlready = objObtained.Any(aEntry =>
+            aEntry.UserId == aRecord.UserId
+            && string.Equals(aEntry.Repo, aRecord.Repo, StringComparison.Ordinal)
+            && string.Equals(aEntry.SourceSha, aRecord.SourceSha, StringComparison.OrdinalIgnoreCase));
+
+        if (!vAlready)
+        {
+            objObtained.Add(aRecord);
+        }
+    }
+
+    /// <summary>
+    /// Takes records in through an ingest door, recording the provenance each one arrived with.
+    /// </summary>
+    /// <typeparam name="T">The stream record type.</typeparam>
+    /// <param name="aRecords">The records handed to the door, or <c>null</c>.</param>
+    /// <param name="aEntry">Reads the ledger entry a record's own fields state.</param>
+    /// <returns>The materialised records, for the caller to store.</returns>
+    private List<T> Ingest<T>(IEnumerable<T>? aRecords, Func<T, SourceProvenanceRecord> aEntry)
+    {
+        var vRecords = aRecords?.ToList() ?? [];
+
+        foreach (var vRecord in vRecords)
+        {
+            RecordObtained(aEntry(vRecord));
+        }
+
+        return vRecords;
+    }
+
+    /// <summary>
+    /// Puts one gate row into the tables <b>without</b> passing an ingest door, so no ledger entry
+    /// stands behind it.
+    /// </summary>
+    /// <remarks>
+    /// The in-memory stand-in for what actually happened on 2026-08-29: rows written straight into the
+    /// store by raw SQL, bypassing the sync path entirely. Nothing else in the fixture can do this, and
+    /// it exists only so <see cref="AuditProvenanceAsync"/> can be shown reporting a real finding rather
+    /// than returning a report a test handed it.
+    /// </remarks>
+    /// <param name="aGate">The row to smuggle in.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SmuggleGate(GateRecord aGate)
+    {
+        objGates.Add(aGate);
+        return this;
+    }
+
+    /// <summary>Builds a ledger entry for one obtained identity.</summary>
+    /// <param name="aUserId">The user the rows belong to.</param>
+    /// <param name="aRepo">The <c>owner/name</c>.</param>
+    /// <param name="aSourceSha">The identity the door obtained.</param>
+    /// <returns>The entry.</returns>
+    private static SourceProvenanceRecord Entry(int aUserId, string aRepo, string aSourceSha) =>
+        new(aUserId, aRepo, aSourceSha, ProvenanceKinds.Import, "2026-08-01T00:00:00Z");
 
     /// <summary>
     /// Records how many session records ingest collapsed for one repository.
@@ -112,6 +263,10 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
 
         RegisterRepo(aUserId, aRepo, aFramework);
 
+        // This door stamps FixtureSha onto every row it maps, so this is the identity it obtained —
+        // recorded here, before the rows exist, exactly as the sync records the SHA it fetched at.
+        RecordObtained(Entry(aUserId, aRepo, FixtureSha));
+
         foreach (var vLine in Lines(aDirectory, StreamNames.Gates))
         {
             objGates.Add(ToGate(aUserId, aRepo, vLine));
@@ -156,10 +311,10 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         IEnumerable<CommitRecord>? aCommits = null)
     {
         RegisterRepo(aUserId, aRepo, aFramework);
-        objGates.AddRange(aGates ?? []);
-        objRuns.AddRange(aRuns ?? []);
-        objSessions.AddRange(aSessions ?? []);
-        objCommits.AddRange(aCommits ?? []);
+        objGates.AddRange(Ingest(aGates, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        objRuns.AddRange(Ingest(aRuns, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        objSessions.AddRange(Ingest(aSessions, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        objCommits.AddRange(Ingest(aCommits, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
         return this;
     }
 
@@ -178,7 +333,7 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     public FixtureTelemetryStore SeedPbEvents(int aUserId, string aRepo, IEnumerable<PbEventRecord> aEvents)
     {
         RegisterRepo(aUserId, aRepo, FrameworkNames.Playbook);
-        objPbEvents.AddRange(aEvents);
+        objPbEvents.AddRange(Ingest(aEvents, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
         return this;
     }
 
@@ -205,9 +360,9 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         IEnumerable<MissAmendRecord>? aAmends = null)
     {
         RegisterRepo(aUserId, aRepo, aFramework);
-        objMisses.AddRange(aMisses ?? []);
-        objMissFixes.AddRange(aFixes ?? []);
-        objMissAmends.AddRange(aAmends ?? []);
+        objMisses.AddRange(Ingest(aMisses, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        objMissFixes.AddRange(Ingest(aFixes, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        objMissAmends.AddRange(Ingest(aAmends, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
         return this;
     }
 

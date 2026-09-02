@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TfLens — Harness comparison</title>
+<!-- AMENDED 2026-09-01 (*fix-issues, REQ-UI-025). Each harness column gains an ELEVENTH row,
+     `Measured dollars`. The owner's 2026-08-30 UAT flagged the app's 11th row as drift from this
+     file's ten, and the conflict was between this design and REQ-UI-025's own acceptance (BRD-53:
+     Claude Code and Codex must SAY they are not measured rather than show a zero, and OpenCode must
+     point at the card rather than repeat the figure). A requirement outranks a design artefact, so the
+     design moved. Flagged to the owner in PROJECT-STATUS: reverse this and amend BRD-53 if the ten-row
+     column was the deliberate call. -->
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -168,6 +175,28 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
  [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
  [data-testid="source-mode"] .tab svg{display:none}
 }
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -202,21 +231,24 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-<aside class="sidebar" data-testid="sidebar">
+<aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
   <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
-   <a href="three-questions.html" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
    <a href="harness.html" class="active" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
    <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
    <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
@@ -235,31 +267,31 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
  </header>
  <main class="content"><div class="page">
   <div><h1>Harness comparison</h1><p class="sub">claude-code · opencode · codex, side by side — same rows, no total</p></div>
-  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Compare tokens, not dollars</b><p>Tokens may be compared across harness; dollars may not. Claude Code and Codex cost is null by design.</p></div></div>
-  <div class="grid g3" style="align-items:start">
+  <div class="alert info" data-testid="harness-note"><svg><use href="#i-info"/></svg><div><b>Compare tokens, not dollars</b><p>Tokens may be compared across harness; dollars may not. Claude Code and Codex cost is null by design.</p></div></div>
+  <div class="grid g3" style="align-items:start" data-testid="harness-columns">
    <div class="card" data-testid="harness-col-claude-code">
     <div class="card-h"><div class="row"><span class="chip c1"><svg><use href="#i-git-compare"/></svg></span><div><div class="card-t">claude-code</div><div class="card-d">Claude Code CLI · 3 repos</div></div></div></div>
-    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv"><tbody>
-     <tr><td>Runs</td><td class="r"><b>2,214</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm">*build 1,102 · *verify 804 · *plan 210</td></tr><tr><td>Gate records</td><td class="r">2,608</td></tr>
-     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end"><span class="prog" style="width:90px"><i style="width:78%;background:var(--success)"></i></span><span class="xs">78% pass</span></span></td></tr>
-     <tr><td>Sessions</td><td class="r">1,846</td></tr><tr><td>Tokens in</td><td class="r">18.4M</td></tr><tr><td>Tokens out</td><td class="r">2.9M</td></tr><tr><td>Cache read</td><td class="r">41.2M</td></tr><tr><td>Cache write</td><td class="r">6.1M</td></tr>
-     <tr><td>Tokens per Verified REQ</td><td class="r"><b>51,300</b></td></tr></tbody></table></div>
+    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv" data-testid="harness-table-claude-code"><tbody>
+     <tr><td>Runs</td><td class="r"><b data-testid="harness-claude-code-runs">2,214</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm" data-testid="harness-claude-code-cmds">*build 1,102 · *verify 804 · *plan 210</td></tr><tr><td>Gate records</td><td class="r" data-testid="harness-claude-code-gates">2,608</td></tr>
+     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end" data-testid="harness-claude-code-verdicts"><span class="prog" style="width:90px"><i style="width:78%;background:var(--success)"></i></span><span class="xs">78% pass</span></span></td></tr>
+     <tr><td>Sessions</td><td class="r" data-testid="harness-claude-code-sessions">1,846</td></tr><tr><td>Tokens in</td><td class="r" data-testid="harness-claude-code-tokens-in">18.4M</td></tr><tr><td>Tokens out</td><td class="r" data-testid="harness-claude-code-tokens-out">2.9M</td></tr><tr><td>Cache read</td><td class="r" data-testid="harness-claude-code-cache-read">41.2M</td></tr><tr><td>Cache write</td><td class="r" data-testid="harness-claude-code-cache-write">6.1M</td></tr>
+     <tr><td>Tokens per Verified REQ</td><td class="r"><b data-testid="harness-claude-code-tokens-per-verified">51,300</b></td></tr><tr><td>Measured dollars</td><td class="r sm muted" data-testid="harness-claude-code-cost">not measured (null by design)</td></tr></tbody></table></div>
    </div>
    <div class="card" data-testid="harness-col-opencode">
     <div class="card-h"><div class="row"><span class="chip c2"><svg><use href="#i-git-compare"/></svg></span><div><div class="card-t">opencode</div><div class="card-d">OpenCode · 2 repos</div></div></div></div>
-    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv"><tbody>
-     <tr><td>Runs</td><td class="r"><b>722</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm">*build 340 · *verify 298 · *plan 61</td></tr><tr><td>Gate records</td><td class="r">776</td></tr>
-     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end"><span class="prog" style="width:90px"><i style="width:71%;background:var(--success)"></i></span><span class="xs">71% pass</span></span></td></tr>
-     <tr><td>Sessions</td><td class="r">454</td></tr><tr><td>Tokens in</td><td class="r">6.8M</td></tr><tr><td>Tokens out</td><td class="r">1.1M</td></tr><tr><td>Cache read</td><td class="r">9.7M</td></tr><tr><td>Cache write</td><td class="r">1.4M</td></tr>
-     <tr><td>Tokens per Verified REQ</td><td class="r"><b>38,900</b></td></tr></tbody></table></div>
+    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv" data-testid="harness-table-opencode"><tbody>
+     <tr><td>Runs</td><td class="r"><b data-testid="harness-opencode-runs">722</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm" data-testid="harness-opencode-cmds">*build 340 · *verify 298 · *plan 61</td></tr><tr><td>Gate records</td><td class="r" data-testid="harness-opencode-gates">776</td></tr>
+     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end" data-testid="harness-opencode-verdicts"><span class="prog" style="width:90px"><i style="width:71%;background:var(--success)"></i></span><span class="xs">71% pass</span></span></td></tr>
+     <tr><td>Sessions</td><td class="r" data-testid="harness-opencode-sessions">454</td></tr><tr><td>Tokens in</td><td class="r" data-testid="harness-opencode-tokens-in">6.8M</td></tr><tr><td>Tokens out</td><td class="r" data-testid="harness-opencode-tokens-out">1.1M</td></tr><tr><td>Cache read</td><td class="r" data-testid="harness-opencode-cache-read">9.7M</td></tr><tr><td>Cache write</td><td class="r" data-testid="harness-opencode-cache-write">1.4M</td></tr>
+     <tr><td>Tokens per Verified REQ</td><td class="r"><b data-testid="harness-opencode-tokens-per-verified">38,900</b></td></tr><tr><td>Measured dollars</td><td class="r sm muted" data-testid="harness-opencode-cost">measured — see the card below</td></tr></tbody></table></div>
    </div>
    <div class="card" data-testid="harness-col-codex">
     <div class="card-h"><div class="row"><span class="chip c3"><svg><use href="#i-git-compare"/></svg></span><div><div class="card-t">codex</div><div class="card-d">Codex CLI · 1 repo</div></div></div></div>
-    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv"><tbody>
-     <tr><td>Runs</td><td class="r"><b>9</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm">*build 5 · *verify 3 · *plan 1</td></tr><tr><td>Gate records</td><td class="r">21</td></tr>
-     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end"><span class="prog" style="width:90px"><i style="width:67%;background:var(--success)"></i></span><span class="xs">67% pass</span></span></td></tr>
-     <tr><td>Sessions</td><td class="r">6</td></tr><tr><td>Tokens in</td><td class="r">212k</td></tr><tr><td>Tokens out</td><td class="r">48k</td></tr><tr><td>Cache read</td><td class="r">318k</td></tr><tr><td>Cache write</td><td class="r">32k</td></tr>
-     <tr><td>Tokens per Verified REQ</td><td class="r ital muted">insufficient data (n=2)</td></tr></tbody></table></div>
+    <div class="card-c flush" style="padding-top:12px"><table class="tbl kv" data-testid="harness-table-codex"><tbody>
+     <tr><td>Runs</td><td class="r"><b data-testid="harness-codex-runs">9</b></td></tr><tr><td>Runs by cmd (top 3)</td><td class="r sm" data-testid="harness-codex-cmds">*build 5 · *verify 3 · *plan 1</td></tr><tr><td>Gate records</td><td class="r" data-testid="harness-codex-gates">21</td></tr>
+     <tr><td>Verdict mix</td><td class="r"><span class="bar" style="justify-content:flex-end" data-testid="harness-codex-verdicts"><span class="prog" style="width:90px"><i style="width:67%;background:var(--success)"></i></span><span class="xs">67% pass</span></span></td></tr>
+     <tr><td>Sessions</td><td class="r" data-testid="harness-codex-sessions">6</td></tr><tr><td>Tokens in</td><td class="r" data-testid="harness-codex-tokens-in">212k</td></tr><tr><td>Tokens out</td><td class="r" data-testid="harness-codex-tokens-out">48k</td></tr><tr><td>Cache read</td><td class="r" data-testid="harness-codex-cache-read">318k</td></tr><tr><td>Cache write</td><td class="r" data-testid="harness-codex-cache-write">32k</td></tr>
+     <tr><td>Tokens per Verified REQ</td><td class="r ital muted" data-testid="harness-codex-tokens-per-verified">insufficient data (n=2)</td></tr><tr><td>Measured dollars</td><td class="r sm muted" data-testid="harness-codex-cost">not measured (null by design)</td></tr></tbody></table></div>
    </div>
   </div>
   <p class="muted sm row" data-testid="harness-null-footnote"><svg class="i"><use href="#i-info"/></svg>7 records with harness not detected — excluded from the columns above</p>
@@ -271,7 +303,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
      <div class="b"><span class="v">0.61M</span><i style="height:3%;background:var(--chart-3)"></i><span class="l">codex</span></div>
     </div></div></div>
    <div class="card" data-testid="opencode-cost"><div class="card-h"><div><div class="card-t">Measured dollars (OpenCode only)</div><div class="card-d"><span class="badge secondary">the only measured dollars in the system</span></div></div><span class="chip c2"><svg><use href="#i-database"/></svg></span></div>
-    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$14.82</div><div class="n">Σ cost_usd over 722 opencode runs</div></div><hr class="sep" style="margin:16px 0"><p class="muted sm">Claude Code and Codex: not measured (null by design)</p></div></div>
+    <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px" data-testid="opencode-cost-value">$14.82</div><div class="n" data-testid="opencode-cost-basis">Σ cost_usd over 722 opencode runs</div></div><hr class="sep" style="margin:16px 0"><p class="muted sm" data-testid="opencode-cost-note">Claude Code and Codex: not measured (null by design)</p></div></div>
   </div>
  </div></main>
 </div></div>

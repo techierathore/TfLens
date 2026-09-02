@@ -1,6 +1,6 @@
 @*
-    REQ-UI-034 — the Playbook state of the Three questions page
-    (docs/mockups/three-questions-playbook.html).
+    REQ-UI-034 — the Playbook state of the Gate outcomes page
+    (docs/mockups/gate-outcomes-playbook.html).
 
     The TechieFlow state is keyed by `project_type`; this one is keyed by `phase_gate`, because a
     Playbook event carries a process gate and nothing else that segments the work. The layout is
@@ -115,7 +115,7 @@
                                    AccentBorder="true"
                                    data-testid="@($"pb-unavailable-{vGate}")">
                                 <LucideIcon Name="triangle-alert" Size="16" />
-                                <AlertTitle>The three questions are not computable for this gate</AlertTitle>
+                                <AlertTitle>First-pass, catch and escape are not computable for this gate</AlertTitle>
                                 <AlertDescription>@vReason</AlertDescription>
                             </Alert>
                         }

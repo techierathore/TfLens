@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Phase efficiency (Playbook)</title>
+<script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--background:#fff;--foreground:#0a0a0a;--card:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--primary:#171717;--primary-foreground:#fafafa;--accent:#f4f4f5;--border:#e5e5e5;--input:#e5e5e5;--sidebar:#fafafa;--sidebar-border:#e5e5e5;--ring:#a1a1aa;--success:#22c55e;--warning:#f59e0b;--destructive:#ef4444;--info:#3b82f6;--chart-1:#60a5fa;--chart-2:#34d399;--chart-3:#f472b6;--chart-4:#fbbf24;--chart-5:#a78bfa;--radius:10px;--shadow:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04)}
+html.dark{--background:#0a0a0a;--foreground:#fafafa;--card:#141414;--muted:#1f1f1f;--muted-foreground:#a1a1aa;--primary:#fafafa;--primary-foreground:#0a0a0a;--accent:#1f1f1f;--border:#262626;--input:#262626;--sidebar:#0f0f0f;--sidebar-border:#262626;--ring:#52525b;--shadow:0 1px 2px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3)}
+html,body{height:100%}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--background);color:var(--foreground);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;flex:none}
+.muted{color:var(--muted-foreground)}.xs{font-size:12px}.sm{font-size:13px}.ital{font-style:italic}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.row{display:flex;align-items:center;gap:8px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.stack{display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+.shell{display:flex;height:100vh}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden}
+.sb-head{height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--sidebar-border);white-space:nowrap}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;flex:none}.mark svg{width:18px;height:18px}
+.brand b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}.brand span{display:block;font-size:11px;color:var(--muted-foreground)}
+.sb-body{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+.grp-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);padding:0 8px;margin-bottom:6px;white-space:nowrap}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:var(--foreground);font-size:14px;position:relative;white-space:nowrap}
+.nav a:hover{background:var(--accent)}.nav a.active{background:var(--accent);color:var(--primary);font-weight:500}
+.nav a.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--primary)}
+.nav a svg{width:18px;height:18px;color:var(--muted-foreground)}.nav a.active svg{color:var(--primary)}.nav .lbl{flex:1}
+.mbadge{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--muted);font-weight:500}
+.sb-foot{border-top:1px solid var(--sidebar-border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;white-space:nowrap;font-size:12px;color:var(--muted-foreground)}
+body.sidebar-collapsed .sidebar{width:56px}body.sidebar-collapsed .sb-head{padding:0 12px}
+body.sidebar-collapsed .brand,body.sidebar-collapsed .grp-label,body.sidebar-collapsed .lbl,body.sidebar-collapsed .mbadge,body.sidebar-collapsed .sb-foot span,body.sidebar-collapsed .sb-foot .switch{display:none}
+body.sidebar-collapsed .nav a{justify-content:center;padding:0}body.sidebar-collapsed .sb-foot{justify-content:center;padding:12px 8px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.hdr{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--background)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted-foreground)}.crumb b{color:var(--foreground);font-weight:500}.crumb svg{width:14px;height:14px}
+.spacer{flex:1}
+.content{flex:1;overflow:auto;padding:32px}.content>.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}h2{font-size:16px;font-weight:600;letter-spacing:-.01em}h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--muted-foreground);font-size:14px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:500;border:1px solid transparent;cursor:pointer;background:var(--primary);color:var(--primary-foreground);white-space:nowrap}
+.btn:hover{opacity:.9}.btn.outline{background:var(--background);color:var(--foreground);border-color:var(--border)}.btn.outline:hover{background:var(--accent);opacity:1}
+.btn.ghost{background:transparent;color:var(--foreground)}.btn.ghost:hover{background:var(--accent);opacity:1}.btn.destructive{background:var(--destructive);color:#fff}
+.btn.link{background:none;color:var(--foreground);padding:0;height:auto;text-decoration:underline;text-underline-offset:3px;font-weight:400}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}.btn.icon{width:32px;height:32px;padding:0}.btn.block{width:100%}.btn[disabled]{opacity:.5;pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid transparent;white-space:nowrap;background:var(--primary);color:var(--primary-foreground)}
+.badge.outline{background:transparent;color:var(--foreground);border-color:var(--border)}.badge.secondary{background:var(--muted);color:var(--foreground)}
+.badge.success{background:rgba(34,197,94,.14);color:var(--success);border-color:rgba(34,197,94,.3)}.badge.warning{background:rgba(245,158,11,.14);color:var(--warning);border-color:rgba(245,158,11,.3)}
+.badge.destructive{background:rgba(239,68,68,.14);color:var(--destructive);border-color:rgba(239,68,68,.3)}.badge.info{background:rgba(59,130,246,.14);color:var(--info);border-color:rgba(59,130,246,.3)}
+.badge svg{width:12px;height:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card-t{font-size:16px;font-weight:600;letter-spacing:-.01em}.card-d{font-size:13px;color:var(--muted-foreground);margin-top:2px}
+.card-c{padding:20px 24px 24px}.card-c.flush{padding:0}.card-c.tight{padding-top:16px}
+.card-f{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.kpi{padding:20px 24px}.kpi .row{justify-content:space-between}.kpi .t{font-size:13px;font-weight:500;color:var(--muted-foreground)}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:10px;line-height:1.1;font-variant-numeric:tabular-nums}.kpi .n{font-size:12px;color:var(--muted-foreground);margin-top:6px}
+.kpi .insuf{font-size:15px;font-style:italic;font-weight:400;color:var(--muted-foreground)}
+.chip{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none}.chip svg{width:16px;height:16px}
+.chip.c1{background:rgba(96,165,250,.15);color:var(--chart-1)}.chip.c2{background:rgba(52,211,153,.15);color:var(--chart-2)}.chip.c3{background:rgba(244,114,182,.15);color:var(--chart-3)}.chip.c4{background:rgba(251,191,36,.15);color:var(--chart-4)}.chip.c5{background:rgba(167,139,250,.15);color:var(--chart-5)}.chip.cd{background:rgba(239,68,68,.15);color:var(--destructive)}
+.spark{width:100%;height:28px;margin-top:10px}.spark polyline{fill:none;stroke:var(--chart-1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.alert{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);font-size:14px}
+.alert svg{width:18px;height:18px;flex:none;margin-top:1px}.alert b{display:block;font-weight:600;margin-bottom:2px}.alert p{color:var(--muted-foreground);font-size:13px}
+.alert.success{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.alert.success svg{color:var(--success)}
+.alert.warning{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}.alert.warning svg{color:var(--warning)}
+.alert.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}.alert.danger svg{color:var(--destructive)}
+.alert.info{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08)}.alert.info svg{color:var(--info)}.alert.accent{border-left-width:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:var(--muted-foreground);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}.tbl tr:last-child td{border-bottom:0}.tbl tbody tr:hover td{background:var(--accent)}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}.tbl.kv td:first-child{color:var(--muted-foreground);width:40%}
+.tabs{display:inline-flex;gap:4px;padding:4px;background:var(--muted);border-radius:8px}
+.tab{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+.tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.tab .badge{height:18px;padding:0 6px;font-size:11px}
+.prog{height:8px;border-radius:999px;background:var(--muted);overflow:hidden;width:100%}.prog i{display:block;height:100%;border-radius:999px;background:var(--chart-1)}
+.bar{display:flex;align-items:center;gap:10px}.bar .prog{width:110px}
+.field{display:flex;flex-direction:column;gap:6px}.label{font-size:14px;font-weight:500}
+.input{height:36px;width:100%;padding:0 12px;border-radius:8px;border:1px solid var(--input);background:var(--background);color:var(--foreground);font-size:14px;outline:none}
+.input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(161,161,170,.25)}.input::placeholder{color:var(--muted-foreground)}
+.hint{font-size:12px;color:var(--muted-foreground)}.ferr{font-size:12px;color:var(--destructive)}
+.inwrap{position:relative}.inwrap .btn{position:absolute;right:2px;top:2px}.inwrap svg.lead{position:absolute;left:12px;top:10px;color:var(--muted-foreground)}.inwrap .input.lead{padding-left:36px}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--muted);color:var(--foreground);display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--border)}.avatar.lg{width:56px;height:56px;font-size:18px}
+.umenu{position:relative}.umenu>.btn{gap:10px;padding:0 8px 0 4px}
+.dd{position:absolute;right:0;top:44px;width:240px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:4px;z-index:20}
+.dd .lbl{padding:8px 10px;font-size:12px;color:var(--muted-foreground)}.dd a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:14px}.dd a:hover{background:var(--accent)}.dd hr{border:0;border-top:1px solid var(--border);margin:4px 0}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted-foreground);background:none;border:0}
+.switch .trk{width:36px;height:20px;border-radius:999px;background:var(--muted);border:1px solid var(--border);position:relative;transition:background .2s}
+.switch .trk::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:999px;background:var(--foreground);transition:transform .2s}
+html.dark .switch .trk{background:var(--primary)}html.dark .switch .trk::after{transform:translateX(16px);background:var(--primary-foreground)}
+.switch .moon{display:none}html.dark .switch .moon{display:block}html.dark .switch .sun{display:none}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:48px 24px;border:1px dashed var(--border);border-radius:var(--radius)}
+.empty .chip{width:48px;height:48px;border-radius:12px}.empty .chip svg{width:22px;height:22px}.empty b{font-size:16px;font-weight:600;margin-top:8px}.empty p{color:var(--muted-foreground);max-width:400px;font-size:14px}
+.panel{border:1px dashed var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-lbl{font-size:12px;font-weight:500;color:var(--muted-foreground);letter-spacing:.04em;text-transform:uppercase}
+.dialog{max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 20px 50px rgba(0,0,0,.4)}.dialog .body{padding:24px;display:flex;flex-direction:column;gap:16px}
+.vlist{display:flex;flex-direction:column;gap:6px;font-size:14px}.vlist div{display:flex;align-items:center;gap:8px}.vlist svg{width:16px;height:16px;color:var(--success)}
+.coll{border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+.coll .trg{display:flex;align-items:center;gap:8px;padding:14px 16px;font-size:14px;font-weight:500;cursor:pointer}.coll .trg svg{width:16px;height:16px;color:var(--muted-foreground)}.coll .body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:24px;height:220px;padding:16px 8px 0}.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.bars .b i{width:100%;max-width:72px;border-radius:6px 6px 2px 2px;display:block}.bars .b .v{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}.bars .b .l{font-size:12px;color:var(--muted-foreground)}
+pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow:auto;line-height:1.6}
+.sha{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.auth{display:flex;min-height:100vh}
+.brandp{width:45%;background:var(--sidebar);border-right:1px solid var(--border);padding:48px;display:flex;flex-direction:column;justify-content:space-between}
+.brandp .word{display:flex;align-items:center;gap:12px}.brandp .word .mark{width:44px;height:44px;border-radius:12px}.brandp .word .mark svg{width:24px;height:24px}.brandp .word b{font-size:32px;font-weight:700;letter-spacing:-.03em}
+.brandp .tag{font-size:18px;color:var(--muted-foreground);margin-top:16px;max-width:420px;line-height:1.5}
+.brandp ul{list-style:none;margin-top:32px;display:flex;flex-direction:column;gap:14px}.brandp li{display:flex;align-items:center;gap:10px;font-size:15px}.brandp li svg{width:18px;height:18px;color:var(--success)}
+.authr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px}.authc{width:100%;max-width:400px}
+.fw{display:inline-flex;gap:2px;padding:3px;background:var(--muted);border-radius:8px;margin-left:8px}.fw .tab{height:28px;padding:0 10px;font-size:13px}.fw .tab.active{background:var(--card);color:var(--foreground);box-shadow:var(--shadow)}.fw .tab .badge{height:18px;padding:0 6px;font-size:11px}.fw.dim{opacity:.7}
+.pws{display:flex;flex-direction:column;gap:4px;margin-top:2px}.pws .segs{display:flex;gap:4px}.pws .segs i{flex:1;height:6px;border-radius:999px;background:var(--muted);display:block}.pws .segs i.on{background:var(--success)}.pws .lbl{font-size:11px;color:var(--muted-foreground);display:flex;justify-content:space-between}
+.codeblk{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--muted)}.codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 14px;border-bottom:1px solid var(--border);background:var(--card);font-size:12px;color:var(--muted-foreground)}.codeblk pre{border:0;border-radius:0}
+/* ---- responsive (added 2026-08-28) — mockups must read true at 1280 and 390 ---- */
+@media (max-width:1100px){
+ .grid.g5,.grid.g4,.grid.g3{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+ .sidebar{width:56px}
+ .sb-head{padding:0 12px}
+ .brand,.grp-label,.nav .lbl,.mbadge,.sb-foot span,.sb-foot .switch{display:none}
+ .nav a{justify-content:center;padding:0}
+ .sb-foot{justify-content:center;padding:12px 8px}
+ .hdr{padding:0 12px;gap:8px}
+ .crumb>span,.crumb>svg{display:none}
+ .hdr>.badge.outline{display:none}
+ .fw .badge{display:none}
+ .content{padding:20px}
+ .card-c.flush{overflow-x:auto}
+ pre{overflow-x:auto}
+ .grid>*,.row,.main,.card,.stack>*{min-width:0}
+ .bars{overflow-x:auto}
+}
+@media (max-width:700px){
+ .grid.g2,.grid.g3,.grid.g4,.grid.g5{grid-template-columns:1fr}
+ .grid[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+ .hdr [data-testid="sync-now"]{font-size:0!important;gap:0;padding:0 10px}
+ .hdr [data-testid="user-menu"]{font-size:0!important;gap:0;padding:0 4px}
+ .hdr [data-testid="user-menu"] .avatar{font-size:12px!important}
+ .content{padding:16px 12px}
+ .content>.page{gap:16px}
+ h1{font-size:20px}
+ .card-h,.card-c,.card-f{padding-left:16px;padding-right:16px}
+ .card-f,.card-h{flex-wrap:wrap;gap:8px}
+ .tabs{flex-wrap:wrap}
+ .fw.tabs{flex-wrap:nowrap}
+ .tab{white-space:nowrap}
+ .bars{gap:10px;padding:8px 0 0}
+ .auth{flex-direction:column;min-height:100vh}
+ .brandp{width:100%;flex:none;padding:14px 20px;flex-direction:row;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--border)}
+ .brandp .tag,.brandp ul{display:none}
+ .brandp .word .mark{width:34px;height:34px;border-radius:9px}
+ .brandp .word .mark svg{width:18px;height:18px}
+ .brandp .word b{font-size:22px}
+ .brandp>.row{margin-left:auto}
+ .authr{padding:28px 16px;flex:1}
+ .dd{width:210px}
+}
+@media (max-width:820px){
+ .hdr>*{min-width:0}
+ .crumb{display:none}
+ .fw{margin-left:0}
+ .fw .tab{padding:0 9px;font-size:12px}
+ .hdr>.switch>svg{display:none!important}
+ .hdr>.switch{gap:0}
+}
+@media (max-width:480px){
+ .content{padding:12px 8px}
+ .fw .tab{padding:0 7px;font-size:11px}
+ [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
+ [data-testid="source-mode"] .tab svg{display:none}
+}
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-aperture" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94"/><path d="M9.69 8h11.48"/><path d="m7.38 12 5.74-9.94"/><path d="M9.69 16 3.95 6.06"/><path d="M14.31 16H2.83"/><path d="m16.62 12-5.74 9.94"/></symbol>
+<symbol id="i-git-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-help-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+<symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-panel-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-refresh-cw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-trash-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol>
+<symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+<symbol id="i-git-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></symbol>
+<symbol id="i-dollar-sign" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+</defs></svg>
+<script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
+function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
+function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
+<div class="shell">
+<aside class="sidebar" data-testid="app-sidebar">
+ <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
+ <div class="sb-body">
+  <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
+  <div><div class="grp-label">Reports</div><nav class="nav">
+   <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
+   <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
+   <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
+   <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
+   <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" class="active" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
+   <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
+  </nav></div>
+ </div>
+ <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
+</aside>
+<div class="main">
+ <header class="hdr">
+  <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Phase efficiency</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab" href="effort.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab active" href="effort-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <div class="spacer"></div>
+  <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
+  <span class="badge outline">imported 2h ago</span>
+  <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
+  <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
+ </header>
+  <main class="content"><div class="page" data-testid="effort-page">
+  <div class="row between wrap" style="gap:16px">
+   <div><h1>Phase efficiency</h1><p class="sub">Playbook axis of <span class="mono">/effort</span> — normalized schema-2 phase metrics, imported through <b>Import metric files</b></p></div>
+   <div class="row" style="gap:8px">
+    <span class="badge secondary">schema 2 · <span class="mono">opencode</span></span>
+    <span class="badge outline">bundle <span class="sha">a91f4c7</span></span>
+   </div>
+  </div>
+
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Framework is a provenance axis, and it never pools</b><p>Nothing on this page shares a figure, a series or a total with the TechieFlow axis. The producer here is the Playbook's own exporter (schema&nbsp;2), whose input event file is <b>transient and rotates by design</b> — so TfLens never fetches it on a schedule and never runs the exporter; its stdout is uploaded like any other bundle, and re-import is expected.</p></div></div>
+
+  <!-- FILTERS -->
+  <div class="card" data-testid="pb-effort-filters">
+   <div class="card-c row wrap" style="gap:10px;align-items:center">
+    <span class="row muted sm" style="gap:6px"><svg class="i"><use href="#i-filter"/></svg>Filters</span>
+    <select class="input sm" style="width:auto;height:32px"><option>All repositories</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>All history</option><option>Last 30 days</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>All command phases</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>All models</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>All tiers</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Harness: opencode</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>All project types</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Complete + incomplete</option><option>Complete only</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Any active coverage</option><option>Complete coverage only</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Any tokens scope</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Any verdict snapshot</option></select>
+    <select class="input sm" style="width:auto;height:32px"><option>Any fan-out</option><option>Has subagents</option></select>
+    <span class="spacer"></span><button class="btn ghost sm">Reset</button>
+   </div>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="grid g4" data-testid="pb-effort-summary">
+   <div class="card kpi"><div class="row"><span class="t">Completed phases</span><span class="chip c1"><svg><use href="#i-check-circle"/></svg></span></div><div class="v">61</div><div class="n">of 74 executions · 13 windows ended <span class="mono">eof</span> and carry no elapsed</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Wall clock — median / p90</span><span class="chip c5"><svg><use href="#i-clock"/></svg></span></div><div class="v" style="font-size:24px">11m 20s <span class="muted" style="font-size:16px;font-weight:500">/ 47m 05s</span></div><div class="n"><b>61 of 74 eligible</b> · <span class="mono">complete:true</span> only</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Observed active time</span><span class="chip c2"><svg><use href="#i-activity"/></svg></span></div><div class="v">6m 12s</div><div class="n"><b>42 of 74 eligible</b> · median, <span class="mono">complete:true</span> + <span class="mono">active_coverage: complete</span> only</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Subagents — contributors / spawned</span><span class="chip c3"><svg><use href="#i-git-fork"/></svg></span></div><div class="v">88 / 103</div><div class="n">15 spawned children produced no tokens — a <b>zero-token child</b>, not an inferred failure</div></div>
+  </div>
+
+  <div class="grid g4">
+   <div class="card kpi"><div class="row"><span class="t">Token components</span><span class="chip c1"><svg><use href="#i-database"/></svg></span></div><div class="v" style="font-size:22px">676.3M</div><div class="n">in 663.4M + out 12.9M · <b>51 of 74 eligible</b> (valid + <span class="mono">token_status: complete</span>)</div></div>
+   <div class="card kpi" data-testid="pb-cost-measured" style="border-color:rgba(52,211,153,.45)"><div class="row"><span class="t">Measured provider cost</span><span class="badge success">measured</span></div><div class="v">$46.82</div><div class="n">51 executions with <span class="mono">cost_status: complete</span> · 9 <span class="mono">zero-unverified</span> excluded, 14 partial</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Incomplete windows</span><span class="chip c4"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v">13</div><div class="n"><span class="mono">complete:false</span> · <span class="mono">end_reason: eof</span> — visible in the table, absent from every duration figure</div></div>
+   <div class="card kpi"><div class="row"><span class="t">Quarantined</span><span class="chip cd"><svg><use href="#i-x"/></svg></span></div><div class="v">5</div><div class="n"><span class="mono">data_quality.valid: false</span> or a failed invariant · out of every numeric aggregate, still listed with its reason</div></div>
+  </div>
+
+  <div class="card" style="border-style:dashed" data-testid="pb-cost-estimate">
+   <div class="card-c row between wrap" style="gap:16px">
+    <div class="row" style="gap:12px"><span class="chip c4"><svg><use href="#i-dollar-sign"/></svg></span>
+     <div><div class="card-t">Rate-card estimate — <span class="mono">$61.20</span> <span class="badge outline">estimate — tokens × rate card</span></div>
+     <div class="card-d">Its <b>own card</b>, its own row, its own styling — a measured dollar and an estimated dollar never share a series, a total or an aggregate, in the page, the API or the export. Nobody was billed this amount. The measured figure beside it is $46.82 over a different, smaller cohort; the two are not comparable and are never subtracted.</div></div></div>
+   </div>
+  </div>
+
+  <div class="alert warning"><svg><use href="#i-alert-triangle"/></svg><div><b>Three timing concepts, and they never substitute for one another</b><p><b>Wall-clock elapsed</b> is how long the window stayed open. <b>Observed active time</b> is the producer's <i>union</i> of assistant and tool intervals across main and child sessions, with overlapping and nested work counted once — <span class="mono">assistant_elapsed_ms</span> and <span class="mono">tool_elapsed_ms</span> legitimately overlap and are <b>never added</b>. <b>Human effort</b> is never captured and never inferred. Active time is busy wall time; it is not human effort, not CPU time, not utilization and not additive compute.</p></div></div>
+
+  <!-- CHARTS -->
+  <h3>Trends</h3>
+  <div class="grid g2" style="align-items:start" data-testid="pb-effort-charts">
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Output tokens by command phase</div><div class="card-d">Stacked by week · valid rows with <span class="mono">token_status: complete</span></div></div><span class="badge outline">51 of 74</span></div>
+    <div class="card-c">
+     <div class="bars">
+      <div class="b"><span class="v">2.1M</span><i style="height:44%;background:linear-gradient(var(--chart-1) 52%,var(--chart-3) 52% 78%,var(--chart-2) 78%)"></i><span class="l">Aug 04</span></div>
+      <div class="b"><span class="v">3.4M</span><i style="height:71%;background:linear-gradient(var(--chart-1) 48%,var(--chart-3) 48% 74%,var(--chart-2) 74%)"></i><span class="l">Aug 11</span></div>
+      <div class="b"><span class="v">2.8M</span><i style="height:58%;background:linear-gradient(var(--chart-1) 55%,var(--chart-3) 55% 80%,var(--chart-2) 80%)"></i><span class="l">Aug 18</span></div>
+      <div class="b"><span class="v">4.8M</span><i style="height:100%;background:linear-gradient(var(--chart-1) 50%,var(--chart-3) 50% 76%,var(--chart-2) 76%)"></i><span class="l">Aug 25</span></div>
+     </div>
+     <div class="row wrap xs muted" style="gap:14px;margin-top:12px;justify-content:center">
+      <span class="row" style="gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:var(--chart-1);display:block"></i><span class="mono">/implement</span></span>
+      <span class="row" style="gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:var(--chart-3);display:block"></i><span class="mono">/verify</span></span>
+      <span class="row" style="gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:var(--chart-2);display:block"></i><span class="mono">other phases</span></span>
+     </div>
+    </div>
+   </div>
+
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Duration distribution</div><div class="card-d">Complete windows only</div></div><span class="badge warning">13 incomplete excluded</span></div>
+    <div class="card-c">
+     <div class="bars">
+      <div class="b"><span class="v">18</span><i style="height:75%;background:var(--chart-5)"></i><span class="l">&lt; 5m</span></div>
+      <div class="b"><span class="v">24</span><i style="height:100%;background:var(--chart-5)"></i><span class="l">5–15m</span></div>
+      <div class="b"><span class="v">12</span><i style="height:50%;background:var(--chart-5)"></i><span class="l">15–45m</span></div>
+      <div class="b"><span class="v">7</span><i style="height:29%;background:var(--chart-5)"></i><span class="l">&gt; 45m</span></div>
+     </div>
+     <p class="muted xs" style="margin-top:12px">The excluded count is on the card face. An <span class="mono">eof</span> window has no end timestamp and no elapsed — it is not a fast run, and dropping it silently would make this distribution look tighter than it is.</p>
+    </div>
+   </div>
+
+  </div>
+
+  <div class="stack" data-testid="pb-effort-tables">
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Active vs wall clock</div><div class="card-d">Eligible executions only — never a productivity ratio</div></div><span class="badge outline">42 of 74 eligible</span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Command phase</th><th class="r">Median wall</th><th class="r">Median active</th><th>Active share</th></tr></thead><tbody>
+     <tr><td><span class="mono">/implement</span></td><td class="r">24m 40s</td><td class="r">14m 02s</td><td><span class="bar"><span class="prog"><i style="width:57%;background:var(--chart-2)"></i></span><span class="r">57%</span></span></td></tr>
+     <tr><td><span class="mono">/verify</span></td><td class="r">9m 15s</td><td class="r">5m 30s</td><td><span class="bar"><span class="prog"><i style="width:59%;background:var(--chart-2)"></i></span><span class="r">59%</span></span></td></tr>
+     <tr><td><span class="mono">/analyze-fix</span></td><td class="r">12m 48s</td><td class="r">6m 05s</td><td><span class="bar"><span class="prog"><i style="width:48%;background:var(--chart-2)"></i></span><span class="r">48%</span></span></td></tr>
+     <tr><td><span class="mono">/plan</span></td><td class="r">7m 02s</td><td class="r muted ital">lower bound 3m 10s</td><td class="muted sm"><span class="mono">coverage: partial</span></td></tr>
+     <tr><td><span class="mono">/research</span></td><td class="r">6m 30s</td><td class="r muted">—</td><td class="muted sm"><span class="mono">coverage: unavailable</span></td></tr>
+     <tr><td><span class="mono">/document</span></td><td class="r">4m 12s</td><td class="r ital muted">insufficient data (n=2)</td><td class="muted sm">below <span class="mono">MIN_N = 3</span></td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><span class="mono">partial</span> renders as an explicit <b>lower bound</b>; <span class="mono">unavailable</span> renders as no figure at all. Neither is ever completed with an estimate, and neither joins a comparison.</p></div>
+   </div>
+
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Model mix</div><div class="card-d">Token share and turn share — two different rankings</div></div><span class="badge outline">from <span class="mono">phase_model_usage</span></span></div>
+    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Model</th><th>Token share</th><th>Turn share</th><th class="r">Executions</th></tr></thead><tbody>
+     <tr><td><span class="mono">claude-sonnet-5</span></td><td><span class="bar"><span class="prog"><i style="width:56%"></i></span><span class="r">56%</span></span></td><td><span class="bar"><span class="prog"><i style="width:64%;background:var(--chart-3)"></i></span><span class="r">64%</span></span></td><td class="r">48</td></tr>
+     <tr><td><span class="mono">claude-opus-5</span></td><td><span class="bar"><span class="prog"><i style="width:31%"></i></span><span class="r">31%</span></span></td><td><span class="bar"><span class="prog"><i style="width:22%;background:var(--chart-3)"></i></span><span class="r">22%</span></span></td><td class="r">27</td></tr>
+     <tr><td><span class="mono">gpt-5-codex</span></td><td><span class="bar"><span class="prog"><i style="width:13%"></i></span><span class="r">13%</span></span></td><td><span class="bar"><span class="prog"><i style="width:14%;background:var(--chart-3)"></i></span><span class="r">14%</span></span></td><td class="r">11</td></tr>
+    </tbody></table></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">Executions sum past 74 because <b>a mixed-model execution is counted under every model that ran in it</b>, never under its dominant one alone. A model filter matches <b>any</b> member of <span class="mono">models[]</span>. This ranking describes what ran; it is not a causal claim about which model is better.</p></div>
+   </div>
+  </div>
+
+  <!-- EXECUTION TABLE -->
+  <div class="row between wrap" style="gap:12px">
+   <div><h3>Executions</h3><p class="muted sm" style="margin-top:4px">One row per phase execution. The dimension is the <b>command phase</b> — one command can contain several lifecycle stages, and a window is never split between them by token proportion.</p></div>
+   <span class="badge outline">74 executions · whole-task total <b>unavailable</b></span>
+  </div>
+  <div class="card" data-testid="pb-effort-executions">
+   <div class="card-h"><div><div class="card-t">Phase executions</div><div class="card-d">Upserted on <span class="mono">(user, repo, phase_execution_id)</span> — re-import is expected</div></div><div class="row" style="gap:8px"><div class="inwrap"><svg class="i lead"><use href="#i-search"/></svg><input class="input lead sm" style="width:220px;height:32px" placeholder="Filter by phase or session"></div></div></div>
+   <div class="card-c flush" style="padding-top:8px"><table class="tbl">
+    <thead><tr><th>Command phase</th><th>Started (UTC)</th><th class="r">Elapsed</th><th class="r">Active</th><th class="r">Out tokens</th><th class="r">Cost</th><th class="r">Subagents</th><th>Data quality</th></tr></thead>
+    <tbody>
+     <tr><td><span class="mono">/implement</span></td><td class="sm">2026-08-27 09:14</td><td class="r">38m 41s</td><td class="r">21m 08s</td><td class="r">412k</td><td class="r">$2.18</td><td class="r">7 / 9</td><td><span class="badge success">complete</span></td></tr>
+     <tr><td><span class="mono">/verify</span></td><td class="sm">2026-08-27 10:06</td><td class="r">9m 12s</td><td class="r">5m 44s</td><td class="r">96k</td><td class="r">$0.41</td><td class="r">0 / 0</td><td><span class="badge success">complete</span></td></tr>
+     <tr><td><span class="mono">/analyze-fix</span></td><td class="sm">2026-08-27 11:32</td><td class="r">14m 20s</td><td class="r muted ital">lower bound 4m 50s</td><td class="r">128k</td><td class="r">$0.62</td><td class="r">2 / 3</td><td><span class="badge warning">active coverage: partial</span></td></tr>
+     <tr><td><span class="mono">/implement</span></td><td class="sm">2026-08-26 16:41</td><td class="r muted">—</td><td class="r muted">—</td><td class="r">301k</td><td class="r muted">—</td><td class="r">4 / 5</td><td><span class="badge warning">incomplete · <span class="mono">eof</span></span></td></tr>
+     <tr><td><span class="mono">/plan</span></td><td class="sm">2026-08-26 09:03</td><td class="r">6m 55s</td><td class="r">3m 01s</td><td class="r">54k</td><td class="r muted">$0.00 <span class="badge warning" style="height:18px;font-size:11px">zero-unverified</span></td><td class="r">0 / 0</td><td><span class="badge warning">cost excluded</span></td></tr>
+     <tr><td><span class="mono">/research</span></td><td class="sm">2026-08-25 14:20</td><td class="r">6m 30s</td><td class="r muted">—</td><td class="r">38k</td><td class="r">$0.19</td><td class="r">1 / 1</td><td><span class="badge outline">active coverage: unavailable</span></td></tr>
+     <tr><td class="muted"><span class="mono">/verify</span></td><td class="sm muted">2026-08-24 08:11</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td><td><span class="badge destructive">quarantined · invariant</span></td></tr>
+    </tbody>
+   </table></div>
+
+   <div class="coll" style="margin:0 24px 20px;border-radius:8px" data-testid="pb-execution-detail">
+    <div class="trg"><svg><use href="#i-chevron-down"/></svg><span class="mono">/implement</span> — 2026-08-27 09:14 <span class="spacer"></span><span class="badge secondary">expanded</span></div>
+    <div class="body">
+
+     <div class="panel">
+      <div class="panel-lbl">Per-model usage</div>
+      <table class="tbl"><thead><tr><th>Model</th><th class="r">Turns</th><th class="r">Input</th><th class="r">Cache read</th><th class="r">Cache write</th><th class="r">Output</th><th class="r">Reasoning</th><th class="r">Active</th><th class="r">Cost</th></tr></thead><tbody>
+       <tr><td><span class="mono">claude-sonnet-5</span></td><td class="r">41</td><td class="r">2.9M</td><td class="r">18.4M</td><td class="r">0.7M</td><td class="r">288k</td><td class="r">61k</td><td class="r">14m 22s</td><td class="r">$1.44</td></tr>
+       <tr><td><span class="mono">claude-opus-5</span></td><td class="r">12</td><td class="r">1.1M</td><td class="r">6.2M</td><td class="r">0.3M</td><td class="r">124k</td><td class="r">33k</td><td class="r">6m 46s</td><td class="r">$0.74</td></tr>
+      </tbody></table>
+      <p class="muted xs">Invariants checked at ingest: <span class="mono">tokens_in = input + cache_read + cache_write</span> and <span class="mono">tokens_out = output + reasoning</span>. A row that fails either is quarantined with its reason, never repaired.</p>
+     </div>
+
+     <div class="panel">
+      <div class="panel-lbl">Subagent tree — <span class="mono">7 contributors / 9 spawned</span></div>
+      <table class="tbl"><thead><tr><th>Session</th><th>Agent type</th><th class="r">Turns</th><th class="r">Out tokens</th><th class="r">Cost</th></tr></thead><tbody>
+       <tr><td><span class="mono">sess-4f1a</span> <span class="badge outline" style="height:18px;font-size:11px">root</span></td><td class="sm">—</td><td class="r">53</td><td class="r">412k</td><td class="r">$2.18</td></tr>
+       <tr><td style="padding-left:34px"><span class="mono">↳ sess-8b02</span></td><td class="sm"><span class="mono">implementer</span></td><td class="r">18</td><td class="r">147k</td><td class="r">$0.71</td></tr>
+       <tr><td style="padding-left:34px"><span class="mono">↳ sess-8b03</span></td><td class="sm"><span class="mono">implementer</span></td><td class="r">16</td><td class="r">121k</td><td class="r">$0.58</td></tr>
+       <tr><td style="padding-left:62px"><span class="mono">↳ sess-9c11</span></td><td class="sm"><span class="mono">reviewer</span></td><td class="r">7</td><td class="r">44k</td><td class="r">$0.21</td></tr>
+       <tr><td style="padding-left:34px"><span class="mono">↳ sess-8b04</span></td><td class="sm muted">unavailable</td><td class="r">4</td><td class="r">19k</td><td class="r">$0.09</td></tr>
+       <tr><td style="padding-left:34px" class="muted"><span class="mono">↳ sess-8b05</span></td><td class="sm muted">unavailable</td><td class="r muted">0</td><td class="r muted">0</td><td class="r muted">—</td></tr>
+       <tr><td style="padding-left:34px" class="muted"><span class="mono">↳ sess-8b06</span></td><td class="sm muted">unavailable</td><td class="r muted">0</td><td class="r muted">0</td><td class="r muted">—</td></tr>
+      </tbody></table>
+      <p class="muted xs">Child usage is <b>already inside</b> the phase totals and is never summed onto them again; a grandchild renders beneath its parent and counts <b>exactly once</b>. The two zero-token children are the <span class="mono">spawned − contributors</span> gap — <b>non-contributing children, not inferred failures</b>. An absent child agent type shows <b>unavailable</b>; it is never guessed as <span class="mono">"unknown"</span> from a title or a model name.</p>
+     </div>
+
+     <div class="panel">
+      <div class="panel-lbl">Data quality</div>
+      <table class="tbl kv"><tbody>
+       <tr><td>Window completion</td><td><span class="badge success">complete</span> <span class="sm muted">— a <span class="mono">complete:false</span> row would carry <span class="mono">end_reason: eof</span>, a null end and no elapsed</span></td></tr>
+       <tr><td>Active timestamps</td><td><span class="badge success">complete</span> <span class="sm muted">— missing timestamps downgrade coverage to <span class="mono">partial</span> (lower bound) or <span class="mono">unavailable</span> (no figure)</span></td></tr>
+       <tr><td>Unpaired tools</td><td><span class="sm">2 tool calls with no matching result — excluded from the active-interval union, never estimated</span></td></tr>
+       <tr><td>Tier</td><td><span class="badge outline">missing</span> <span class="sm muted">— shown as missing; this execution leaves every per-tier cohort rather than joining a default one</span></td></tr>
+       <tr><td>Provider cost</td><td><span class="badge success"><span class="mono">cost_status: complete</span></span> <span class="sm muted">— provider-reported, stored as fixed-precision decimal. A <span class="mono">zero-unverified</span> cost is excluded from measured totals and never shown as “free”</span></td></tr>
+       <tr><td>Tokens scope</td><td><span class="mono">tree</span> <span class="sm muted">· <span class="mono">source_schema</span> 2 · <span class="mono">source_harness</span> opencode · importer v1.0 · bundle <span class="sha">a91f4c7</span> · imported 2026-09-01 02:10 UTC</span></td></tr>
+      </tbody></table>
+     </div>
+
+    </div>
+   </div>
+  </div>
+
+  <!-- UNSUPPORTED HARNESS -->
+  <h3>Harnesses with no normalized producer</h3>
+  <div class="alert warning" data-testid="pb-effort-unsupported"><svg><use href="#i-alert-triangle"/></svg><div><b>Phase effort telemetry unsupported for this harness — <span class="mono">claude-code</span></b><p>No Claude adapter emits the normalized schema yet, so there is <b>nothing to render</b> for Claude Code phase executions on this axis. This is a <b>data gap</b>, which is a different fact from a harness that ran and spent nothing — it is never rendered as <span class="mono">0</span> and never as an empty measured figure. Two of the connected repositories are affected.</p></div></div>
+
+  <!-- STATES -->
+  <div class="card">
+   <div class="card-h"><div><div class="card-t">Empty and unsupported states</div><div class="card-d">Five distinct conditions — each says which one it is, because “nothing here” has five different causes</div></div><span class="badge outline">reference</span></div>
+   <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>State</th><th>What is shown</th></tr></thead><tbody>
+    <tr><td><span class="mono">NoPlaybookRepo</span></td><td class="sm"><span class="mono">Empty</span> — “No Playbook repository connected” with a <b>Connect a repo</b> action</td></tr>
+    <tr><td><span class="mono">NoBundleImported</span></td><td class="sm"><span class="mono">Empty</span> — “No phase-metric bundle imported yet”, pointing at <b>Repos → Add source → Import metric files</b>. The exporter's input event file is transient; TfLens cannot fetch it</td></tr>
+    <tr><td><span class="mono">HarnessUnsupported</span></td><td class="sm">The banner above — never a zero, never an empty measured figure</td></tr>
+    <tr><td><span class="mono">LegacySchemaOnly</span></td><td class="sm">Schema-1 <span class="mono">legacy-unverified</span> rows are available for drill-down and are <b>excluded from every schema-2 comparison</b>; the page says so rather than mixing them in</td></tr>
+    <tr><td><span class="mono">NoEligibleRows</span></td><td class="sm">Every row filtered out or quarantined — the count and the reason are shown, and no aggregate is printed from zero rows</td></tr>
+   </tbody></table></div>
+   <div class="card-f" style="justify-content:flex-start"><p class="muted sm">Storage and filtering are UTC; only display is localized. Any comparative cohort below three records renders <i>insufficient data (n=…)</i>. No figure on this page is grouped by <span class="mono">actor</span>.</p></div>
+  </div>
+
+ </div></main>
+</div></div>
+</body>
+</html>

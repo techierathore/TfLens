@@ -197,7 +197,6 @@ try
         vApp.UseHsts();
     }
 
-    vApp.UseStaticFiles();
     vApp.UseAuthentication();
     vApp.UseAuthorization();
 
@@ -218,6 +217,32 @@ try
     // The Import-metric-files mode of the Add-source dialog. Both routes require authentication and
     // take no user id, so the only archive either can write into is the caller's own (REQ-NFR-014).
     vApp.MapImportEndpoints();
+
+    // REQ-NFR-015, 2026-09-01 — this replaces `UseStaticFiles()`, and the replacement is the fix for a
+    // defect the owner hit twice.
+    //
+    // `UseStaticFiles` answers a stylesheet with `ETag` + `Last-Modified` and NO `Cache-Control` at all.
+    // A browser handed no directive falls back to heuristic caching and reuses its copy without asking,
+    // so after a rebuild the owner's browser kept serving itself the PREVIOUS `TfLens.styles.css`: on
+    // 2026-08-28 `/login` collapsed to an unstyled column, and on 2026-08-30 `/harness` rendered as three
+    // full-width stacked tables with the raw `Metric | Value` headers the scoped CSS hides. Both times the
+    // server was correct, every asset answered 200, and `asset-integrity.spec.ts` — which fetches in a
+    // fresh context — passed while the screen in front of the owner was broken. A guard that cannot see
+    // the client's cache cannot certify the client's render.
+    //
+    // `MapStaticAssets` closes it at the source rather than by testing harder: `@Assets[...]` resolves to
+    // a CONTENT-FINGERPRINTED url, so a rebuilt file is a different url and the old entry can never be
+    // matched; and the unfingerprinted path (the colocated `*.razor.js` modules import theirs by name)
+    // is answered `Cache-Control: no-cache`, which forces revalidation instead of silent reuse. It also
+    // pre-compresses, which `UseStaticFiles` did not.
+    // `.AllowAnonymous()` is not optional here and the smoke found out why. `UseStaticFiles` was
+    // MIDDLEWARE, running before authorization, so a stylesheet was always served anonymously.
+    // `MapStaticAssets` registers ENDPOINTS, and endpoints inherit BRD-2's fallback policy — so the very
+    // first run of this change answered `AuthForms.<hash>.razor.js` with a 302 to /login for an anonymous
+    // visitor, and the sign-in form's own JS module failed to import. Nothing under wwwroot or in a
+    // colocated asset is user data or a secret (REQ-FN-040 keeps secrets out of files entirely), so
+    // anonymous is what these endpoints are for; BRD-2's protection belongs to the routes, which keep it.
+    vApp.MapStaticAssets().AllowAnonymous();
 
     vApp.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 

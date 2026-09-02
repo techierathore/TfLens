@@ -205,7 +205,7 @@
                                mid-date — the mockup shows all five. Sorting buys nothing on a table of
                                at most four fixed stream rows, and `docs/mockups/coverage.html` has no
                                sort control here at all. *@
-                            <div class="mt-2 w-full overflow-x-auto">
+                            <div class="mt-2 w-full overflow-x-auto coverage-streams">
                                 @* TR-009: ShowPagination="false" only hides the pager — the grid still
                                    truncates to InitialPageSize, so it is set well above the four rows
                                    a framework can have. *@
@@ -221,7 +221,16 @@
                                         <DataTableColumn TData="StreamRow" TValue="string"
                                                          Property="@(aRow => aRow.Stream)" Header="Stream">
                                             <CellTemplate Context="vRow">
-                                                <span class="flex items-center gap-2">
+                                                @* REQ-UI-014 / BRD-144, 2026-08-30: `flex-wrap`. Held on one
+                                                   line, "commits" + the `stale` badge made this column's
+                                                   min-content 143px — 63px more than the other cards' 80px —
+                                                   and that alone pushed the five-column table 49px past its
+                                                   card, so `Days since` sat outside the box on exactly the
+                                                   card a reader most needs to read (the stale one). Wrapping
+                                                   is conditional: the badge stays beside the name whenever
+                                                   the table has the room, and only drops beneath it when the
+                                                   alternative is a column nobody can see. *@
+                                                <span class="flex flex-wrap items-center gap-2">
                                                     @* The stale badge sits in this same cell with no
                                                        whitespace between them, so the cell's textContent
                                                        reads "commitsstale". A test that parsed the cell
@@ -251,18 +260,31 @@
                                             </CellTemplate>
                                         </DataTableColumn>
 
+                                        @* `MinWidth` is a real `DataTableColumn` parameter (TR-024) and
+                                           says the intent where it belongs, on the column: this one is
+                                           never narrower than a whole `yyyy-MM-dd`. An ISO date measures
+                                           ~5.8em at the table's size and the cells carry ~1.4em of
+                                           padding, so 7.5em is that with a little to spare, in `em` so it
+                                           tracks the font rather than pinning a pixel count to it. *@
                                         <DataTableColumn TData="StreamRow" TValue="string"
-                                                         Property="@(aRow => aRow.NewestText)" Header="Newest">
+                                                         Property="@(aRow => aRow.NewestText)" Header="Newest"
+                                                         MinWidth="7.5em">
                                             <CellTemplate Context="vRow">
-                                                @* REQ-UI-014, fixed 2026-08-29: `whitespace-nowrap` removed.
-                                                   It held the timestamp on one 130px line, which was the
-                                                   last thing pushing the five-column table past its card —
-                                                   `Days since` fell off the right edge and `Newest` itself
-                                                   was cut mid-date. `docs/mockups/coverage.html` wraps this
-                                                   value in its narrower card and keeps the fifth column,
-                                                   which is the right trade: a date reads fine over two
-                                                   lines, a column that is not there reads as absent. *@
-                                                <span class="text-muted-foreground">@vRow.NewestText</span>
+                                                @* REQ-UI-014 / BRD-144, fixed 2026-08-30. History, so nobody
+                                                   swings back a third time: `whitespace-nowrap` on the WHOLE
+                                                   value held "2026-08-28 17:05" on one ~130px line and pushed
+                                                   the five-column table well past its card; removing it fixed
+                                                   that but let the browser wrap the date at its OWN hyphens —
+                                                   "2026-" / "08-" / "28", three lines, a date no longer
+                                                   readable as a date. Both are wrong. The mockup wraps this
+                                                   value at the SPACE and nowhere else, so that is what this
+                                                   renders: two unbreakable boxes, date and time, with a real
+                                                   space between them. The cell's textContent is unchanged
+                                                   ("yyyy-MM-dd HH:mm"), so nothing that reads the text moves.
+                                                   The date's box is now the column's min-content, which is
+                                                   what buys the column its width; the padding trim in
+                                                   Coverage.razor.css pays for it. *@
+                                                <span class="text-muted-foreground"><span class="whitespace-nowrap">@vRow.NewestDatePart</span>@vRow.NewestSeparator<span class="whitespace-nowrap">@vRow.NewestTimePart</span></span>
                                             </CellTemplate>
                                         </DataTableColumn>
 
@@ -1405,6 +1427,43 @@
 
         /// <summary>The newest record's timestamp, to the minute, or an em dash.</summary>
         public string NewestText => NewestTs?.UtcDateTime.ToString("yyyy-MM-dd HH:mm") ?? "—";
+
+        /// <summary>
+        /// The calendar-date half of <see cref="NewestText"/> — the whole value when it carries no
+        /// clock time (the em dash). Rendered in its own unbreakable box so a browser cannot wrap
+        /// an ISO date at its hyphens (REQ-UI-014 / BRD-144).
+        /// </summary>
+        public string NewestDatePart
+        {
+            get
+            {
+                var vSpace = NewestText.IndexOf(' ');
+                return vSpace < 0 ? NewestText : NewestText[..vSpace];
+            }
+        }
+
+        /// <summary>
+        /// The clock-time half of <see cref="NewestText"/>, or an empty string when the value
+        /// carries none. It may fall to a second line; the date above it may not break.
+        /// </summary>
+        public string NewestTimePart
+        {
+            get
+            {
+                var vSpace = NewestText.IndexOf(' ');
+                return vSpace < 0 ? string.Empty : NewestText[(vSpace + 1)..];
+            }
+        }
+
+        /// <summary>
+        /// The single space that goes between <see cref="NewestDatePart"/> and
+        /// <see cref="NewestTimePart"/>, empty when there is no time to separate. It is a property
+        /// and not literal markup because Blazor strips whitespace-only literals out of the render
+        /// tree, which silently ran the date and the time together into "2026-08-2817:05"; the
+        /// output of an expression is never stripped. It is also the ONLY place the browser is
+        /// allowed to wrap this value, which is the point of the split.
+        /// </summary>
+        public string NewestSeparator => NewestTimePart.Length > 0 ? " " : string.Empty;
 
         /// <summary>Whole days since the newest record, or an em dash.</summary>
         public string DaysSinceText => DaysSince?.ToString("N0") ?? "—";

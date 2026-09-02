@@ -40,6 +40,59 @@ async function assertAllArrive(page: import('@playwright/test').Page, label: str
   expect(broken, `${label}: declared assets that did not arrive:\n  ${broken.join('\n  ')}`).toEqual([]);
 }
 
+// THE CLAUSE ADDED 2026-09-01, after the same user-visible failure recurred.
+//
+// On 2026-08-30 the owner found /harness rendered as three full-width stacked tables showing the raw
+// `Metric | Value` headers the scoped CSS hides — the 2026-08-28 defect wearing a different hat. The
+// gate above passed throughout, and it was right to: the server answered every asset correctly. The
+// browser never asked. In Development the document linked the bundle UNFINGERPRINTED, and the response
+// carried ETag + Last-Modified but no Cache-Control at all, so the browser fell back to heuristic
+// caching and reused its copy across a rebuild. The trigger was this project's own edit to
+// Harness.razor.css: before it, the owner's cached bundle matched the server's; after it, it did not.
+//
+// A gate that fetches in a fresh context can never see that, which is why the fix is structural rather
+// than a cleverer fetch: MapStaticAssets fingerprints every asset `Assets[...]` resolves, so a rebuilt
+// file has a NEW url that no cache entry can answer, and serves the unfingerprinted path `no-cache` so
+// the browser must revalidate. This asserts that property, not the symptom — the symptom needs a real
+// browser profile carrying a stale entry across a rebuild, which no headless run has.
+function cacheSafety(url: string, cacheControl: string | undefined) {
+  const fingerprinted = /[?&]v=[A-Za-z0-9_\-]{6,}/.test(url) || /\.[A-Za-z0-9]{8,}\.(css|js)$/.test(url);
+  const cc = (cacheControl ?? '').toLowerCase();
+  const revalidates = cc.includes('no-cache') || cc.includes('no-store') || cc.includes('must-revalidate')
+    || /max-age\s*=\s*0\b/.test(cc);
+  return { fingerprinted, revalidates, ok: fingerprinted || revalidates };
+}
+
+async function assertNoAssetCanGoStale(page: import('@playwright/test').Page, label: string) {
+  const urls = await declaredAssets(page);
+  const stale: string[] = [];
+
+  for (const url of urls) {
+    const res = await page.request.get(url);
+    const cc = res.headers()['cache-control'];
+    const verdict = cacheSafety(url, cc);
+    if (!verdict.ok) {
+      stale.push(`${url}\n      cache-control: ${cc ?? '(none)'} — not fingerprinted and not revalidated, `
+        + `so a browser may reuse a pre-rebuild copy of this file with no way for the app to know`);
+    }
+  }
+
+  expect(stale, `${label}: assets a browser can silently serve from a stale cache:\n  ${stale.join('\n  ')}`)
+    .toEqual([]);
+}
+
+test('REQ-NFR-015 no asset /login declares can be served from a stale cache', async ({ page }) => {
+  await page.goto('/login');
+  await page.waitForSelector('[data-testid="login-email"]');
+  await assertNoAssetCanGoStale(page, '/login');
+});
+
+test('REQ-NFR-015 no asset the authenticated shell declares can be served from a stale cache', async ({ page }) => {
+  await signIn(page);
+  await gotoScreen(page, '/harness');
+  await assertNoAssetCanGoStale(page, '/harness');
+});
+
 test('REQ-NFR-015 every asset /login declares actually arrives', async ({ page }) => {
   await page.goto('/login');
   await page.waitForSelector('[data-testid="login-email"]');

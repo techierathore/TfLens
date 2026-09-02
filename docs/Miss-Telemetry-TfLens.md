@@ -3,13 +3,13 @@
 **Status:** DESIGN — nothing in TfLens is implemented yet. **The producing side is now real:** TechieFlow shipped `misses.jsonl` on 2026-08-28, so the stream this document consumes is no longer hypothetical — it is emitting, and its final field list is `.tfcore/telemetry/SCHEMA.md` §5.5, not the design sketch.
 **Target repo:** `/mnt/c/1MyCode/TfLens` (`TfLens.slnx`, .NET 9 / Blazor Server / PostgreSQL 16).
 **Siblings:** `docs/Miss-Telemetry-TechieFlow.md` (the stream this consumes — **read it first**, especially its §0 implementation status) · `docs/Miss-Telemetry-AI-First-Playbook.md`.
-**Feedback loop:** §0.65 exists because TfLens reported **TF-006** (`docs/TfLens-TechieFlow-Feedback.md`) rather than deciding alone. That is the intended path when a framework rule has no legal move.
+**Feedback loop:** §0.65 exists because TfLens reported **TF-006** (`docs/TfLens-TechieFlow-Feedback.md`; filed as `TF-005` and renumbered on 2026-08-28 after a numbering collision — `TF-005` now means the unrelated `analyse_misses` entry) rather than deciding alone. That is the intended path when a framework rule has no legal move.
 
 ---
 
 ## 0. Requirement updates from the shipped producer (2026-08-28)
 
-Eight changes to what is specified below. They come from the framework implementation, from the first repo refreshed against it — **which was TfLens itself** — and from TfLens's own TF-006 report (§0.65).
+Eight changes to what is specified below. They come from the framework implementation, from the first repo refreshed against it — **which was TfLens itself** — and from TfLens's own **TF-006** report (§0.65).
 
 **0.1 — `why_missed` is a real column, and its denominator is not the miss count.** The stream carries a `why_missed` field (SCHEMA §5.5.6) saying *which practice failed*, where `miss_class` says *what was missed*. Seven values: `missing-checklist-item` · `insufficient-verify-method` · `code-audit-limitation` · `ambiguous-acceptance` · `dependency-not-declared` · `instruction-ignored` · `other`. `MissRecord` gains `WhyMissed`, and the page gains a failed-practice distribution — arguably the most decision-changing band on it, because it answers *"is our specification weak or our verification weak?"*.
 
@@ -51,7 +51,7 @@ cost_usd_per_miss_measured · cost_usd_records
 
 Note `by_origin_agent` — the producer reports per-agent alongside per-model (they answer different questions: which model to route to vs. which persona's instructions to tighten). §3.4's table lists only phase and model; add the agent figure, under the same `linked`-only constraint and inside the same observational-labelling band.
 
-**0.65 — There is a THIRD record kind: `miss-amend`.** Added the same day, from TfLens's own TF-006 report. §3.2's parser change is therefore a three-way dispatch on `kind` within `StreamKind.Misses`, not two:
+**0.65 — There is a THIRD record kind: `miss-amend`.** Added the same day, from TfLens's own **TF-006** report (filed as `TF-005`; renumbered 2026-08-28). §3.2's parser change is therefore a three-way dispatch on `kind` within `StreamKind.Misses`, not two:
 
 | `kind` | Handling |
 |---|---|

@@ -51,6 +51,40 @@
     white-space: nowrap;
 }
 
+/* REQ-UI-011, 2026-08-30 (BRD-144 mockup parity) — the Last sync / import column must read on ONE
+   line.
+
+   The cell holds a relative time ("3 min ago", "12 days ago") in a single inline span, so it is a
+   phrase, not a sentence: broken across two lines it reads as two facts, and it made the row taller
+   than every other row in the grid. The mockup's `<td class="muted">12 min ago</td>` sits in a table
+   with no width control at all and simply never wraps, because nine columns of short content fit its
+   card; ours are squeezed harder (an extra Source column, wider badges), so the browser was pulling
+   the narrowest column below the width of its own text.
+
+   `white-space: nowrap` is the whole fix: with `table-layout` left at `auto` (TrBlazeUI ships no
+   `table-layout` rule for DataTable — checked in trblazeui.css 2.0.0) a nowrap cell raises the
+   column's min-content width to its text width, so the column takes the room it needs instead of
+   breaking the phrase. Where that leaves the grid wider than its card — phone widths — the
+   `overflow-x: auto` box below scrolls it, which is why this cannot push the PAGE sideways.
+   Measured live at 1280 and 390: the column goes 90px → 170px and the table 997px → 1077px, all of
+   it absorbed by that scroll box; `documentElement.scrollWidth` is unchanged at both widths, and
+   both row actions still reach the viewport once the box is scrolled to its end.
+
+   The HEADER carries the rule too, not just the body cells, and that is where 58 of those 80 pixels
+   go. It is worth them: `Last sync / import` was stacking onto THREE lines in a header row where
+   every other column sits on one, and the mockup's own table sheet nowraps every `th`
+   (`.tbl th{white-space:nowrap}`). The gate never saw that one — the sortable header wraps its text
+   in a flex div, so `inlineOnly` disqualifies it and the wrap clause skips it — which is exactly
+   why it is fixed here on the evidence of the screenshot rather than on the evidence of the gate.
+
+   Counted from the RIGHT, as the Records rule below is: the two trailing columns are Records and
+   Actions, so Last sync / import is the third from the end. A column inserted at the LEFT of the
+   grid then leaves both rules pointing at the same columns they do today. */
+.tflens-stack ::deep [data-testid="repos-table"] th:nth-last-child(3),
+.tflens-stack ::deep [data-testid="repos-table"] td:nth-last-child(3) {
+    white-space: nowrap;
+}
+
 /* The mockup's filter sits on the card-header row at 240px, not in the table's own toolbar. */
 .tflens-repos-filter {
     width: 100%;

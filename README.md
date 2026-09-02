@@ -5,7 +5,7 @@ A free, multi-user, **read-only** Blazor Server lens over the telemetry that
 
 You sign in through AppManager, connect your own **public** GitHub repos, and TfLens pulls the JSONL
 streams those repos publish, archives them byte-for-byte, parses them into PostgreSQL scoped to your
-user id, and renders five report pages — Coverage, Three questions, Harness comparison, Routing &
+user id, and renders five report pages — Coverage, Gate outcomes, Harness comparison, Routing &
 economics, Snapshot export — each with a Framework switch (TechieFlow | Playbook).
 
 TfLens never writes to a repository, never accepts an inbound event, and never pools a figure across
@@ -47,6 +47,9 @@ The following are **explicitly out of scope** for this release. Reproduced verba
 - Any estimate presented as a measurement: no rate-card dollars anywhere except the explicitly labelled repricing and rework-estimate figures.
 - **Any blended rework-cost figure** (amended 2026-08-28): measured (`cost_attribution: sole`) and apportioned (`shared:n`) miss cost are never summed into one number, in the page, the export or parity — see BRD-122, BRD-130.
 - **Writing to any telemetry stream**, including `misses.jsonl`: TfLens consumes the miss stream and never emits into it. Recording a miss is TechieFlow's `*log-miss`, not TfLens's job.
+- **Any per-REQ or per-feature effort figure** (added 2026-09-01): the unit of work is **the run**, not the ticket. A `*build-phase` run touching eight REQs has one duration and one token window; dividing it eight ways is arithmetic dressed as measurement — the same distinction `cost_attribution` already draws for misses. Both producers state this as a standing non-goal and neither emits a per-REQ timing field. See BRD-169.
+- **Any actor-grouped figure** (added 2026-09-01): the Playbook's records carry an `actor`, and no TfLens surface — page, API, export or parity — groups quality, rework, miss, effort, token, time or cost by it. Both AIFP contracts state this as a hard rule; see BRD-168.
+- **Running a framework's exporter.** TfLens does not execute `playbook-telemetry.mjs`, `tf-metrics.sh`, or any framework tooling against a user's repository. It reads what the frameworks have already written, and where that output is transient rather than committed it is **uploaded** through the existing import mode (BRD-153) — no node dependency, no execution surface, no change asked of either framework.
 
 ---
 

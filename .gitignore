@@ -35,7 +35,16 @@ logs/
 data/
 **/data/
 !/database/
-/.vs/TfLens.slnx
+
+# Visual Studio's per-developer IDE state. Widened 2026-09-02 (owner-found) from `/.vs/TfLens.slnx`,
+# which ignored only the solution-named subfolder and left `.vs/ProjectEvaluation/` unignored — where
+# `tflens.strings.v10.bin` carries **246 absolute paths**, including this machine's
+# `C:\Program Files\Microsoft Visual Studio\18\Community\...` MSBuild import chain.
+#
+# That is REQ-NFR-016's defect exactly (see the block below), on a directory that fix did not cover:
+# one developer's absolute paths committed and handed to another. Nothing in `.vs/` is source, none of
+# it is portable, and all of it is rewritten on every solution load.
+/.vs/
 
 # ---------------------------------------------------------------------------
 # .NET build output — REQ-NFR-016 (owner UAT 2026-08-28).
@@ -77,3 +86,9 @@ data/
 [Bb]in/
 [Oo]bj/
 /docs/uatissuessc
+
+# Build output — dotnet (managed by scaffold/update-framework.sh)
+bin/
+obj/
+*.user
+TestResults/

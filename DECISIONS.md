@@ -1036,3 +1036,53 @@ raised. Recorded for the owner.
   hand. One defect found and recorded (`opencode_cost_usd` reads the wrong stream).
 - **Playbook axis:** not covered here. `events.ndjson` is a TfLens-only stream (`per_repo[].events`,
   REQ-FN-065); its figures are an `extras` axis with no reference and are checked in §7.
+
+## §9 Naming
+
+### N-001 — `/three-questions` renamed to `/gate-outcomes` ("Gate outcomes"), 2026-09-01
+
+**Decision (owner ruling).** The report page called **Three questions** is renamed **Gate outcomes**;
+the route moves `/three-questions` → `/gate-outcomes`. Full depth: nav label, page title, `h1`,
+breadcrumb, route, nav icon, `data-testid`s, the Razor component, the two mockup files, the DevGuide
+screenshot, the Playwright spec filename, and the exported snapshot's section heading.
+
+**Why.** "Three questions" named a *count*, not a subject. It was the only sidebar item not named for
+what it shows, and it resolved only for a reader who had already read `.tfcore/telemetry/SCHEMA.md` §0
+— a document outside this repository's `docs/`. Twice raised by the owner as opaque.
+**Gate outcomes** states both subject and source: all three figures (first-pass rate, gate catch
+distribution, escape rate) come from `gates.jsonl`, which SCHEMA.md calls *the primary stream*. It
+also reads cleanly against `Misses & rework` beside it — gate verdicts here, defect lifecycle there.
+
+**Deliberately unchanged.**
+
+- **The schema's vocabulary.** SCHEMA.md §0 still calls these *the three questions*, and that phrase
+  stays correct wherever this repository's prose or code comments refer to the **concept**. TfLens
+  renamed its screen, not the framework's terminology — that is not this product's to change.
+  `.tfcore/` was not touched (REQ-NFR-018).
+- **The feature ID `F-3Q`.** IDs are stable identifiers that checklist rows, other documents and
+  telemetry records point at; renaming one to match a label breaks traceability for no gain. Read
+  `F-3Q` as an opaque key, not as an abbreviation of the current title.
+- **Source documents authored elsewhere** — `docs/Miss-Telemetry-*.md`, `docs/Phase-*-TfLens*.md`,
+  the positioning plan. Renaming this product's page must not rewrite its input material.
+
+**Icon changed too.** `circle-question-mark` → `shield-check`: a question-mark glyph beside a label
+that no longer asks a question is worse than no icon. Verified painted at runtime, which matters
+because TR-008 records that several Lucide names in this library render nothing at all.
+
+**Historical export artefacts were rewritten, on the owner's explicit instruction.** The eight
+snapshots under `src/TfLens/data/reports/` (and the two under `data/reports/`) carried
+`## Three questions` as a section heading. They now read `## Gate outcomes`. The trade-off is
+recorded here rather than left implicit: those files no longer show what was literally exported on
+their own dates, so they are consistent with the current product but are no longer verbatim evidence
+of a past run.
+
+**Evidence.** Release build 0 warnings / 0 errors; **689/689** .NET tests pass (541 Core + 105
+Guardrails + 43 Integration) against the compose PostgreSQL. Signed-in browser smoke at 1280 on the
+running app: title `Gate outcomes · TfLens`, `h1` *Gate outcomes*, nav label and `href` correct,
+`shield-check` painted, breadcrumb *Reports › Gate outcomes*, no residual "Three questions" text,
+0 JS errors; `/three-questions` returns **404**. All 20 mockups pass the headless check at 1280 and
+390; 1000 internal links across every rendered document resolve.
+
+**Not verified.** The Playwright verify gates (render-truth, visual-truth, `mockup-parity`) have not
+re-run against the new route and mockup filenames, so `REQ-UI-006`, `REQ-UI-018`..`REQ-UI-021`,
+`REQ-UI-034` and `REQ-FN-056` are demoted to `Needs re-verify`. A smoke is not a verify.

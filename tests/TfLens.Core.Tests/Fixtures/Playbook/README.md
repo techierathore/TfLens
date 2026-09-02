@@ -39,4 +39,4 @@ output.
 | Sub-agent token share | 16% |
 | `anthropic/claude-sonnet-5` total tokens | 725 |
 | `anthropic/claude-haiku-5` total tokens | 140 |
-| Three questions | `—` on every gate: the stream carries no verdict (S-001) |
+| Gate outcomes | `—` on every gate: the stream carries no verdict (S-001) |

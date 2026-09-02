@@ -7,6 +7,16 @@
     (ADR-016). It renders on the six report routes only — see ShellNavigation.ShowsFrameworkSwitch.
     `/misses` joined that set on 2026-08-28 (BRD-126): the switch is rendered, never hidden, for a
     surface one framework has and the other does not, and the Playbook axis shows `playbook-empty`.
+
+    BRD-144 (2026-08-30) — the switch is a segmented TRACK, not two loose words. `docs/mockups/coverage.html`
+    line 109 draws `.fw` as the track itself: `background: var(--muted)`, `border-radius: 8px`, `padding: 3px`,
+    28px triggers, 34px overall — and it hangs `data-testid="framework-switch"` on that track. The app hung the
+    testid on the `Tabs` root, which paints nothing, while TrBlazeUI's own `bg-muted rounded-md p-1` track sat one
+    level down on `TabsList`, so the anchored node read as plain text on all six report pages at both widths.
+
+    The testid stays on `Tabs` — `TabsList` exposes no `AdditionalAttributes`, so it cannot carry one (TR-024) —
+    and the ground moves UP onto it instead. There is exactly ONE track: `TabsList` is flattened to a bare flex
+    row in `ShellHeader.razor.css` so the muted ground is not painted twice.
 *@
 @implements IDisposable
 @inject ShellPreferences objPreferences
@@ -15,7 +25,7 @@
 
 <Tabs Value="@objPreferences.Framework"
       ValueChanged="OnFrameworkChangedAsync"
-      Class="shrink-0"
+      Class="tflens-framework-switch inline-flex shrink-0 items-center bg-muted"
       data-testid="framework-switch">
     <TabsList>
         <TabsTrigger Value="@FrameworkNames.TechieFlow">

@@ -51,6 +51,18 @@ public sealed record AnalysisResult
     /// </remarks>
     public MissAnalysis Misses { get; init; } = MissAnalysis.Empty;
 
+    /// <summary>
+    /// The TechieFlow phase-effort block — live-only, grouped by <c>cmd</c>
+    /// (REQ-FN-089..REQ-FN-093, BRD-146..BRD-152).
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="PhaseEffortAnalysis.Empty"/> so a framework with no live run reports zero
+    /// rather than absent. Every figure inside it arrives wrapped in the count it rests on — a token total
+    /// as a <see cref="TokenWindow"/>, a spawn count as a <see cref="FanoutObservation"/> — so a page
+    /// binding this block cannot render a number without also holding its denominator (ADR-026).
+    /// </remarks>
+    public PhaseEffortAnalysis Phases { get; init; } = PhaseEffortAnalysis.Empty;
+
     /// <summary>Parser version stamped into every export, so a figure can be traced to the code that made it.</summary>
     public required string ParserVersion { get; init; }
 

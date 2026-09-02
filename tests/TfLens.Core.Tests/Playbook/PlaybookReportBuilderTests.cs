@@ -168,7 +168,7 @@ public sealed class PlaybookReportBuilderTests
 
     /// <summary>The three questions render an em dash, because the stream carries no verdict at all.</summary>
     [Fact]
-    public void ThreeQuestionsAreNotApplicableWithoutAVerdictField()
+    public void GateOutcomesAreNotApplicableWithoutAVerdictField()
     {
         Analysis.PhaseQuestions.Should().NotBeEmpty();
         Analysis.PhaseQuestions.Should().OnlyContain(aQ =>

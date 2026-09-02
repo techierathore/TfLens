@@ -8,7 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <ResourcePreloader />
-    <link rel="stylesheet" href="_content/TrBlazeUI.Components/trblazeui.css" />
+    @* REQ-NFR-015 — every stylesheet and script this document declares goes through `Assets`, which
+       `MapStaticAssets` resolves to a content-fingerprinted url. A rebuilt file gets a new url, so a
+       browser cannot answer a request for it out of a stale cache — the failure that rendered `/login`
+       unstyled on 2026-08-28 and `/harness` as three stacked tables on 2026-08-30, both times with the
+       server answering every asset correctly. The library sheet was the one link still bypassing it. *@
+    <link rel="stylesheet" href="@Assets["_content/TrBlazeUI.Components/trblazeui.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["TfLens.styles.css"]" />
     <ImportMap />
@@ -22,7 +27,7 @@
     <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
-    <script src="app.js"></script>
+    <script src="@Assets["app.js"]"></script>
 </body>
 
 </html>

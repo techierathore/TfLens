@@ -8,7 +8,7 @@
  *   - every report page's Playbook state carries the standing axis note (`playbook-axis-note`);
  *   - each page renders EITHER real Playbook figures OR the Phase-3 `playbook-empty` state with its
  *     Connect-a-Playbook-repo action — never a blank surface and never the TechieFlow surface;
- *   - `/three-questions` renders `pb-phases-{name}` once there is Playbook data;
+ *   - `/gate-outcomes` renders `pb-phases-{name}` once there is Playbook data;
  *   - no chart, column or table on a Playbook-state page mixes `phase_gate` with TechieFlow `gate`
  *     data — the TechieFlow surfaces are absent from every Playbook-state page;
  *   - switching back to TechieFlow restores the TechieFlow surface on all five (no regression);
@@ -29,7 +29,7 @@ import {
 } from './_helpers';
 
 /** The five report routes, in sidebar order. */
-const REPORT_ROUTES = ['/', '/three-questions', '/harness', '/routing', '/export'] as const;
+const REPORT_ROUTES = ['/', '/gate-outcomes', '/harness', '/routing', '/export'] as const;
 
 /**
  * The TechieFlow-only surfaces that must NOT appear while the Playbook state is showing.
@@ -38,7 +38,7 @@ const REPORT_ROUTES = ['/', '/three-questions', '/harness', '/routing', '/export
  */
 const TECHIEFLOW_ONLY: Record<string, string[]> = {
   '/': ['coverage-kpis', 'rebuild-card', 'unknown-fields'],
-  '/three-questions': ['type-tabs', 'three-questions-empty', 'taint-trigger'],
+  '/gate-outcomes': ['type-tabs', 'gate-outcomes-empty', 'taint-trigger'],
   '/harness': ['harness-columns', 'tokens-table', 'opencode-cost'],
   '/routing': ['routing-tabs', 'drift-empty', 'drift-table', 'model-tokens'],
   '/export': [],
@@ -218,8 +218,8 @@ test.describe('REQ-UI-034 — the Playbook state of the five report pages', () =
       expect(verdict.verdict, `/routing ${id} — ${verdict.detail}`).toBe('RENDERS');
     }
 
-    // /three-questions — one tab per phase_gate, each carrying its own `pb-phases-{name}` table.
-    await gotoScreen(page, '/three-questions');
+    // /gate-outcomes — one tab per phase_gate, each carrying its own `pb-phases-{name}` table.
+    await gotoScreen(page, '/gate-outcomes');
     const gateTabs = await page.evaluate(() =>
       Array.from(document.querySelectorAll('[data-testid^="pb-gate-tab-"]')).map(
         e => (e.getAttribute('data-testid') || '').replace('pb-gate-tab-', ''),
@@ -231,12 +231,12 @@ test.describe('REQ-UI-034 — the Playbook state of the five report pages', () =
       await page.locator(`[data-testid="pb-gate-tab-${gate}"]`).first().click();
       await page.waitForTimeout(700);
       const table = await tableCheck(page, `pb-phases-${gate}`);
-      expect(table.verdict, `/three-questions pb-phases-${gate} — ${table.detail}`).toBe('RENDERS');
+      expect(table.verdict, `/gate-outcomes pb-phases-${gate} — ${table.detail}`).toBe('RENDERS');
 
       // Every figure reaches the screen through FigureText, so a refusal reads as words, not a number.
       for (const id of [`pb-first-pass-${gate}`, `pb-catch-share-${gate}`, `pb-escape-rate-${gate}`]) {
         const verdict = await renderCheck(page, id);
-        expect(verdict.verdict, `/three-questions ${id} — ${verdict.detail}`).toBe('RENDERS');
+        expect(verdict.verdict, `/gate-outcomes ${id} — ${verdict.detail}`).toBe('RENDERS');
       }
       console.log(`PB GATE ${gate}: ${table.detail}`);
       await page.screenshot({ path: `tests/.artifacts/playbook/pb-gate-${gate}-1280.png`, fullPage: false });

@@ -4,7 +4,7 @@
    did, which is why its KPI chips came out the wrong colours entirely (first-pass violet where the
    mockup is green, escape green where the mockup is a warning) and why the Live / Backfilled share
    bars rendered grey. Custom properties inherit, so declaring them here reaches every TrBlazeUI
-   control on the page. Values are the approved mockup's palette (docs/mockups/three-questions.html).
+   control on the page. Values are the approved mockup's palette (docs/mockups/gate-outcomes.html).
    Added 2026-08-29 (REQ-UI-018). */
 .tflens-stack {
     --chart-1: #60a5fa;
@@ -20,6 +20,28 @@
     --alert-warning-bg: rgba(245, 158, 11, .08);
     --alert-danger: #ef4444;
     --alert-danger-bg: rgba(239, 68, 68, .08);
+}
+
+/* REQ-UI-022 — the Late-gate coverage card's clock chip.
+
+   `docs/mockups/gate-outcomes.html` draws it as `.chip.c1`: a 32px rounded tile tinted with `--chart-1`.
+   The same two classes are declared in `StatTile.razor.css`, and that declaration cannot reach an element
+   authored HERE — Blazor rewrites every rule in a scoped sheet to that component's own `b-…` attribute,
+   so a rule written for one component's markup silently matches nothing in another's. Declaring them
+   again in this file's scope is the fix, not a duplication to be tidied away later (REQ-NFR-021, which
+   now fails the build on exactly this mistake). */
+.tflens-stat-chip {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}
+
+.tflens-accent-1 {
+    background: color-mix(in oklab, var(--chart-1) 15%, transparent);
+    color: var(--chart-1);
 }
 
 /* REQ-UI-018 — the mockup paints the live shares blue and the backfilled shares violet, which is what

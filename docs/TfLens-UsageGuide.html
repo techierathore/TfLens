@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="sub">Last rendered: 2026-08-28</div>
+    <div class="sub">Last rendered: 2026-09-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#test-users-canonical-use-these-for-all-smoke-verify-uat">Test users (canonical — use THESE for all smoke / verify / UAT)</a></li>
@@ -119,10 +119,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#repos-repos">Repos (/repos)</a></li>
         <li class="h3"><a href="#add-source-import-metric-files-repos">Add source → Import metric files (/repos)</a></li>
         <li class="h3"><a href="#coverage-health">Coverage / health (/)</a></li>
-        <li class="h3"><a href="#three-questions-three-questions">Three questions (/three-questions)</a></li>
+        <li class="h3"><a href="#gate-outcomes-gate-outcomes">Gate outcomes (/gate-outcomes)</a></li>
         <li class="h3"><a href="#harness-comparison-harness">Harness comparison (/harness)</a></li>
         <li class="h3"><a href="#routing-economics-routing">Routing &amp;amp; economics (/routing)</a></li>
         <li class="h3"><a href="#misses-rework-misses">Misses &amp;amp; rework (/misses)</a></li>
+        <li class="h3"><a href="#phase-effort-effort">Phase effort (/effort)</a></li>
         <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
         <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
         <li class="h3"><a href="#playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)</a></li>
@@ -144,7 +145,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Usage Guide (Test Users · Test Plan · Setup)</h1>
-    <div class="subtitle">Rendered 2026-08-28 &middot; source <code>TfLens-UsageGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-UsageGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -159,10 +160,11 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#repos-repos">Repos (/repos)</a></li>
         <li class="h3"><a href="#add-source-import-metric-files-repos">Add source → Import metric files (/repos)</a></li>
         <li class="h3"><a href="#coverage-health">Coverage / health (/)</a></li>
-        <li class="h3"><a href="#three-questions-three-questions">Three questions (/three-questions)</a></li>
+        <li class="h3"><a href="#gate-outcomes-gate-outcomes">Gate outcomes (/gate-outcomes)</a></li>
         <li class="h3"><a href="#harness-comparison-harness">Harness comparison (/harness)</a></li>
         <li class="h3"><a href="#routing-economics-routing">Routing &amp;amp; economics (/routing)</a></li>
         <li class="h3"><a href="#misses-rework-misses">Misses &amp;amp; rework (/misses)</a></li>
+        <li class="h3"><a href="#phase-effort-effort">Phase effort (/effort)</a></li>
         <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
         <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
         <li class="h3"><a href="#playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)</a></li>
@@ -242,7 +244,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   A["Log in as owner"] --&gt; B["Coverage: Sync now"]
   B --&gt; C{"Coverage GREEN?"}
   C --&gt;|"no"| D["Read the warning text; fix clone / hooks"]
-  C --&gt;|"yes"| E["Three questions per project_type"]
+  C --&gt;|"yes"| E["Gate outcomes per project_type"]
   E --&gt; F["Harness + Routing + Misses pages"]
   F --&gt; G["Export snapshot"]
   G --&gt; H["Terminal: tf-metrics.sh rollup + parity-compare.py"]
@@ -252,17 +254,21 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </div>
 <h3 id="login-login">Login (<code>/login</code>)<a class="anchor-link" href="#login-login">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> prove who you are before any figure is shown. TfLens stores no passwords; every figure elsewhere is scoped to the signed-in user's own repos.
+</li>
 <li><strong>Log in as:</strong> user 3 (anonymous) first, then user 1
 </li>
-<li><strong>Steps:</strong> 1) Open <code>/three-questions</code> while signed out → 2) observe redirect to <code>/login?returnUrl=…</code> → 3) submit a wrong password → 4) submit <code>tflensdemo@techierathore.com</code> / <code>TfLensDemo!23</code>
+<li><strong>Steps:</strong> 1) Open <code>/gate-outcomes</code> while signed out → 2) observe redirect to <code>/login?returnUrl=…</code> → 3) submit a wrong password → 4) submit <code>tflensdemo@techierathore.com</code> / <code>TfLensDemo!23</code>
 </li>
-<li><strong>Expected:</strong> step 2 redirects; step 3 shows the generic "Sign-in failed." alert (AppManager <code>INVALID_CREDENTIALS</code> is logged, never shown); step 4 lands on <code>/three-questions</code> (the return URL) with the shell visible and the header showing "TfLens Demo"; no GitHub button is present (deferred)
+<li><strong>Expected:</strong> step 2 redirects; step 3 shows the generic "Sign-in failed." alert (AppManager <code>INVALID_CREDENTIALS</code> is logged, never shown); step 4 lands on <code>/gate-outcomes</code> (the return URL) with the shell visible and the header showing "TfLens Demo"; no GitHub button is present (deferred)
 </li>
 <li><strong>Covers:</strong> BRD-1, BRD-2, BRD-90, BRD-93, BRD-94 (absence)
 </li>
 </ul>
 <h3 id="register-register">Register (<code>/register</code>)<a class="anchor-link" href="#register-register">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> let a new user in. Free and open source — anyone using either framework can create an account and see the reports for their own data.
+</li>
 <li><strong>Log in as:</strong> user 3 (anonymous)
 </li>
 <li><strong>Steps:</strong> 1) Open <code>/register</code> → 2) submit with password <code>weak</code> → 3) submit user 2's details with a valid password → 4) observe the landing page
@@ -274,6 +280,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="forgot-reset-password-forgot-password-reset-password">Forgot / reset password (<code>/forgot-password</code>, <code>/reset-password</code>)<a class="anchor-link" href="#forgot-reset-password-forgot-password-reset-password">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> start and finish an AppManager password reset without TfLens ever seeing the password.
+</li>
 <li><strong>Log in as:</strong> user 3 (anonymous)
 </li>
 <li><strong>Steps:</strong> 1) Submit user 1's email on <code>/forgot-password</code> → 2) submit a non-existent email → 3) open <code>/reset-password?token=bogus</code> and submit a valid password → 4) (owner) use a real emailed token
@@ -285,6 +293,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="profile-profile">Profile (<code>/profile</code>)<a class="anchor-link" href="#profile-profile">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> the one screen where a user acts on themselves rather than on data — display name, password, theme.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Open the user menu → Profile → 2) read the profile card → 3) change password with a wrong current password → 4) change it correctly and back again
@@ -296,17 +306,21 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="shell-sidebar-header">Shell (sidebar + header)<a class="anchor-link" href="#shell-sidebar-header">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> make <em>whose data, and which framework?</em> answerable on every screen — the nav, the Framework switch, Sync now, the user menu.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the sidebar order and icons → 2) click the sidebar trigger to collapse, hover an item, expand again → 3) click each item → 4) flip the header <strong>Framework switch</strong> to Playbook and back, then open <code>/repos</code> and <code>/profile</code> → 5) press <strong>Sync now</strong> → 6) open the user menu (name on the right) → 7) toggle the theme → 8) Sign out from the menu
 </li>
-<li><strong>Expected:</strong> the sidebar holds <strong>seven</strong> items in the fixed order Repos, Coverage / health, Three questions, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, Snapshot export, each with a Lucide icon and no <code>/playbook</code> item — the framework is chosen in the header; the Framework switch renders on the <strong>six</strong> report routes (<code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) and on neither <code>/repos</code> nor <code>/profile</code>; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
+<li><strong>Expected:</strong> the sidebar holds <strong>eight</strong> items in the fixed order Repos, Coverage / health, Gate outcomes, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, <strong>Phase effort</strong>, Snapshot export, each with a Lucide icon and no <code>/playbook</code> item — the framework is chosen in the header; the Framework switch renders on the <strong>six</strong> report routes (<code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) and on neither <code>/repos</code> nor <code>/profile</code>; switching to Playbook shows the Playbook state of the current page and the choice survives a reload; collapsed sidebar shows icons only with tooltips and the state survives a reload; each route renders inside the same shell; Sync now shows a spinner, then one toast per repo and the "synced N min ago" badge updates, leaving every imported source untouched; the user menu shows the email, Profile, Manage repos, Sign out — there is no bare Sign-out button; the app opened in dark mode and the toggle persists light mode across reloads; Sign out calls AppManager logout and returns to <code>/login</code>
 </li>
 <li><strong>Covers:</strong> BRD-4, BRD-5, BRD-6, BRD-85, BRD-105, BRD-106, BRD-124, BRD-126 (REQ-UI-006, REQ-UI-010)
 </li>
 </ul>
 <h3 id="repos-repos">Repos (<code>/repos</code>)<a class="anchor-link" href="#repos-repos">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> <strong>nothing else on the site works until this does</strong> — connect the telemetry TfLens reads, and purge it on removal.
+</li>
 <li><strong>Log in as:</strong> user 1, then user 2
 </li>
 <li><strong>Steps:</strong> 1) Read the repos table → 2) <strong>Add source</strong> → <strong>Fetch via API</strong> with <code>https://github.com/techierathore/TrBlazeUI</code> → Validate → Connect → 3) try a private repo URL → 4) try a public repo without telemetry (e.g. <code>octocat/Hello-World</code>) → 5) try connecting a repo already in the list → 6) Remove a repo and confirm → 7) sign in as user 2 and open <code>/repos</code>
@@ -318,6 +332,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="add-source-import-metric-files-repos">Add source → Import metric files (<code>/repos</code>)<a class="anchor-link" href="#add-source-import-metric-files-repos">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> get telemetry in when it cannot be fetched — a private or corporate repo, or a producer whose output is transient (the Playbook's phase metrics).
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) <strong>Add source</strong> → <strong>Import metric files</strong> → 2) type a source name and pick a framework → 3) drop a <code>.zip</code> of a <code>docs/metrics/</code> directory → 4) read the preview, then Cancel → 5) reopen and drop <code>data/reports/&lt;date&gt;/tflens.json</code> → 6) redo step 3 and press <strong>Import</strong> → 7) read the new row → 8) press header <strong>Sync now</strong> → 9) press the row's <strong>Re-import</strong> → 10) back on <strong>Fetch via API</strong>, Validate a private repo URL
@@ -329,6 +345,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="coverage-health">Coverage / health (<code>/</code>)<a class="anchor-link" href="#coverage-health">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> answer <em>is the telemetry itself trustworthy right now?</em> It is the landing page on purpose — every other number on the site is suspect until this page is green.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Land on <code>/</code> after login → 2) read the status strip → 3) open each repo card and read its source badge and dataset identity → 4) read the per-stream table → 5) find a stale repo → 6) read the "Miss stream — data quality" card → 7) expand "Fields observed that SCHEMA.md doesn't document" → 8) press <strong>Rebuild…</strong>, confirm
@@ -338,8 +356,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>Covers:</strong> BRD-21, BRD-22, BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44, BRD-127, BRD-136, BRD-137 (REQ-UI-039, REQ-UI-042)
 </li>
 </ul>
-<h3 id="three-questions-three-questions">Three questions (<code>/three-questions</code>)<a class="anchor-link" href="#three-questions-three-questions">#</a></h3>
+<h3 id="gate-outcomes-gate-outcomes">Gate outcomes (<code>/gate-outcomes</code>)<a class="anchor-link" href="#gate-outcomes-gate-outcomes">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> the headline page. <strong>The name is a reference, not a slogan</strong> — it renders the three questions <code>.tfcore/telemetry/SCHEMA.md</code> §0 says the telemetry exists to answer: <strong>(1) first-pass rate</strong> (what fraction of REQs reach <code>Verified</code> on attempt 1), <strong>(2) gate catch distribution</strong> (of all failures, which gate caught them), <strong>(3) escape rate</strong> (what fraction reached UAT/production instead of a gate). All three come from <code>gates.jsonl</code>, which is why they share one screen. The schema's fourth question — miss attribution and rework cost — is answered on <code>/misses</code> instead, deliberately. See BRD §9, <em>Why one screen is called "Gate outcomes"</em>.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the SCHEMA §6 note → 2) switch through the <code>project_type</code> tabs (one per type observed in the data — <code>app</code>, <code>framework</code>, <code>library</code>, …) → 3) on one tab read the three cards → 4) read the gate distribution table → 5) read the late-gate line → 6) expand the taint list
@@ -351,6 +371,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="harness-comparison-harness">Harness comparison (<code>/harness</code>)<a class="anchor-link" href="#harness-comparison-harness">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> answer <em>does the framework behave the same whichever tool runs it?</em> Tokens may be compared across harnesses; dollars may not.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the three columns → 2) compare token rows → 3) read the dollars card → 4) search the page for any <code>$</code> total
@@ -362,6 +384,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="routing-economics-routing">Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#routing-economics-routing">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> answer <em>did runs land on the model they were routed to, and what would the mix have cost?</em> The repricing is always labelled an estimate, never measured spend.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Drift tab: find a <code>routed:false</code> row → 2) Models tab: read totals → 3) Repricing tab: read both cards and the excluded-runs line → 4) press <strong>Edit prices.json</strong>, change one output price, Save → 5) Poolable tab: read the five cards
@@ -373,17 +397,30 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </ul>
 <h3 id="misses-rework-misses">Misses &amp; rework (<code>/misses</code>)<a class="anchor-link" href="#misses-rework-misses">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> answer <em>what was missed, which practice let it through, and what did the repair cost?</em> — the schema's fourth question, on its own screen. Its <strong>escape share</strong> is a different measurement from Gate outcomes' <strong>escape rate</strong> and the two are never merged.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Open <strong>Misses &amp; rework</strong> from the sidebar → 2) read the period Select and the escape note → 3) switch <code>project_type</code> tabs → 4) read the KPI row → 5) read "Where misses come from" and the failed-practice card → 6) read "Who was running" → 7) read "Cost of rework" → 8) open a row's raw record under <strong>Every miss</strong> → 9) narrow the period to Last 7 days → 10) flip the Framework switch to Playbook
 </li>
-<li><strong>Expected:</strong> the period trigger reads <code>All history (default)</code> on first paint and the badge beside it restates the window; the standing note "Two escape figures on this site, and they are not the same number" is page copy, not a tooltip, and separates this page's miss-stream escape share from the <code>gates</code>-derived escape rate on <code>/three-questions</code>; there is <strong>no "all types" tab and no total row</strong>; the KPI tiles are Open misses · Declined (wont-fix) · Misses {period} · Median time to close · Design-miss share · Escape share (misses) · Tokens spent on rework · Measured USD on rework, with <code>wont-fix</code> in its own tile and never inside the open count while <code>deferred</code> is, and any rate-card estimate on a visually distinct tile carrying its estimate label; the origin table shows an always-visible excluded count ("N of M misses excluded…"), rendered even at zero; the failed-practice card's denominator reads <code>n of N misses assessed</code> — the records that carry the field, never the miss count — and states separately how many predate <code>why_missed</code>; "Who was running" carries the standing warning "Observational only — this band does not show causation" and is computed from <code>origin_confidence: "linked"</code> records only with the excluded count on screen; "Cost of rework" renders <strong>three</strong> cards — Measured (<code>cost_attribution: sole</code>) · Apportioned (<code>shared:n</code>) · Unattributable (<code>none</code>) — and there is no blended measured-plus-apportioned number anywhere on the page, in the export or in parity; a figure below n=3 reads <code>insufficient data (n=…)</code> and an absent value reads <code>—</code>, never <code>$0.00</code>; the raw record shows <code>overflow</code> field names only; narrowing the period recomputes every figure and closes any open raw record; on Playbook the whole page shows its empty state with the Framework switch still rendered
+<li><strong>Expected:</strong> the period trigger reads <code>All history (default)</code> on first paint and the badge beside it restates the window; the standing note "Two escape figures on this site, and they are not the same number" is page copy, not a tooltip, and separates this page's miss-stream escape share from the <code>gates</code>-derived escape rate on <code>/gate-outcomes</code>; there is <strong>no "all types" tab and no total row</strong>; the KPI tiles are Open misses · Declined (wont-fix) · Misses {period} · Median time to close · Design-miss share · Escape share (misses) · Tokens spent on rework · Measured USD on rework, with <code>wont-fix</code> in its own tile and never inside the open count while <code>deferred</code> is, and any rate-card estimate on a visually distinct tile carrying its estimate label; the origin table shows an always-visible excluded count ("N of M misses excluded…"), rendered even at zero; the failed-practice card's denominator reads <code>n of N misses assessed</code> — the records that carry the field, never the miss count — and states separately how many predate <code>why_missed</code>; "Who was running" carries the standing warning "Observational only — this band does not show causation" and is computed from <code>origin_confidence: "linked"</code> records only with the excluded count on screen; "Cost of rework" renders <strong>three</strong> cards — Measured (<code>cost_attribution: sole</code>) · Apportioned (<code>shared:n</code>) · Unattributable (<code>none</code>) — and there is no blended measured-plus-apportioned number anywhere on the page, in the export or in parity; a figure below n=3 reads <code>insufficient data (n=…)</code> and an absent value reads <code>—</code>, never <code>$0.00</code>; the raw record shows <code>overflow</code> field names only; narrowing the period recomputes every figure and closes any open raw record; on Playbook the whole page shows its empty state with the Framework switch still rendered
 </li>
 <li><strong>Covers:</strong> BRD-118, BRD-119, BRD-120, BRD-121, BRD-122, BRD-123, BRD-124, BRD-125, BRD-126 (REQ-UI-035..REQ-UI-038, REQ-NFR-013)
 </li>
 </ul>
+<h3 id="phase-effort-effort">Phase effort (<code>/effort</code>)<a class="anchor-link" href="#phase-effort-effort">#</a></h3>
+<ul>
+<li><strong>Purpose:</strong> answer <em>what did each phase cost — in time, tokens, models and subagents?</em> A <strong>budgeting and capacity</strong> view, never a quality scoreboard: <code>*build-phase</code> costing more than <code>*log-miss</code> is a fact about what those phases <em>are</em>. Quality lives on <code>/misses</code> and Coverage.
+</li>
+<li><strong>Status:</strong> <strong>not built yet</strong> (F-EFFORT, Phase 3 — <code>REQ-UI-045</code>..<code>051</code>). Its approved design is <code>docs/mockups/effort.html</code> and <code>docs/mockups/effort-playbook.html</code>; a test plan is written here when the screen exists, so that this section never describes behaviour nobody can execute.
+</li>
+<li><strong>Covers (when built):</strong> BRD-145..BRD-163, BRD-168, BRD-169
+</li>
+</ul>
 <h3 id="snapshot-export-export">Snapshot export (<code>/export</code>)<a class="anchor-link" href="#snapshot-export-export">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> turn the figures into something quotable — marked <strong>QUOTABLE</strong> only while parity holds and provenance is clean.
+</li>
 <li><strong>Log in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the banner → 2) press <strong>Export snapshot</strong> → 3) open both files from the new row → 4) copy a SHA from the dataset table
@@ -408,15 +445,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Log in as:</strong> user 1
 </li>
-<li><strong>Steps:</strong> 1) On <code>/</code> flip the Framework switch to Playbook → 2) walk <code>/</code>, <code>/three-questions</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code> with Playbook selected → 3) reload one of them → 4) flip back to TechieFlow on each page
+<li><strong>Steps:</strong> 1) On <code>/</code> flip the Framework switch to Playbook → 2) walk <code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/effort</code>, <code>/export</code> with Playbook selected → 3) reload one of them → 4) flip back to TechieFlow on each page
 </li>
-<li><strong>Expected:</strong> the switch renders on all six report pages and is never hidden; with no connected repository emitting <code>events.ndjson</code> each page shows its own Playbook axis note and empty state rather than a zero, and <code>/misses</code> additionally lists the four planned bands with the note that a zero there is absence, not a good score; the choice persists per user across navigation and reload; the same layouts render Playbook data once a Playbook source exists (Three questions keyed by <code>phase_gate</code>, phase totals, main-vs-subagent split, observed-fields list), the export writes a separate Playbook snapshot, and no figure from one framework appears under the other; the way to get Playbook data without a public repo is Add source → Import metric files with a <code>verification/telemetry/</code> bundle
+<li><strong>Expected:</strong> the switch renders on all seven report pages and is never hidden; with no connected repository emitting <code>events.ndjson</code> each page shows its own Playbook axis note and empty state rather than a zero, and <code>/misses</code> additionally lists the four planned bands with the note that a zero there is absence, not a good score; the choice persists per user across navigation and reload; the same layouts render Playbook data once a Playbook source exists (Gate outcomes keyed by <code>phase_gate</code>, phase totals, main-vs-subagent split, observed-fields list), the export writes a separate Playbook snapshot, and no figure from one framework appears under the other; the way to get Playbook data without a public repo is Add source → Import metric files with a <code>verification/telemetry/</code> bundle
 </li>
 <li><strong>Covers:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110 (REQ-FN-067, REQ-FN-070)
 </li>
 </ul>
 <h3 id="health-endpoint-healthz">Health endpoint (<code>/healthz</code>)<a class="anchor-link" href="#health-endpoint-healthz">#</a></h3>
 <ul>
+<li><strong>Purpose:</strong> liveness for the container and the orchestrator. Not a user surface.
+</li>
 <li><strong>Log in as:</strong> user 3 (anonymous)
 </li>
 <li><strong>Steps:</strong> 1) <code>curl -s http://localhost:5099/healthz</code>
@@ -515,7 +554,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li>[ ] Open <strong>Misses &amp; rework</strong>, narrow the period, and read the three-way cost-of-rework split
 </li>
-<li>[ ] Open <strong>Three questions</strong> and switch <code>project_type</code> tabs
+<li>[ ] Open <strong>Gate outcomes</strong> and switch <code>project_type</code> tabs
 </li>
 <li>[ ] Flip the Framework switch to Playbook on a report page and back
 </li>

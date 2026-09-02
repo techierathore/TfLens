@@ -9,7 +9,7 @@ namespace TfLens.Core.Export;
 /// Renders <c>snapshot.md</c> — the human half of a snapshot, sectioned exactly like the report pages.
 /// </summary>
 /// <remarks>
-/// REQ-FN-056 fixes the sectioning: Coverage, Three questions, Harness comparison, Routing &amp;
+/// REQ-FN-056 fixes the sectioning: Coverage, Gate outcomes, Harness comparison, Routing &amp;
 /// economics, Snapshot / parity — the five pages, in nav order. REQ-FN-059 fixes the content rule:
 /// no heading, row or sentence here combines live with backfilled, one <c>project_type</c> with
 /// another, or one framework with another, because the shape it renders (<see cref="AnalysisResult"/>)
@@ -29,7 +29,7 @@ internal static class SnapshotMarkdown
 
         Header(vText, aInputs);
         Coverage(vText, aInputs);
-        ThreeQuestions(vText, aInputs);
+        GateOutcomes(vText, aInputs);
         Misses(vText, aInputs);
         Harness(vText, aInputs);
         Routing(vText, aInputs);
@@ -101,7 +101,7 @@ internal static class SnapshotMarkdown
     /// <param name="aPlaybook">The Playbook report set.</param>
     private static void PlaybookPhases(StringBuilder aText, PlaybookAnalysis aPlaybook)
     {
-        aText.AppendLine("### Phase totals and the three questions").AppendLine();
+        aText.AppendLine("### Phase totals and gate outcomes").AppendLine();
 
         if (aPlaybook.PhaseTotals.Count == 0)
         {
@@ -136,7 +136,7 @@ internal static class SnapshotMarkdown
         var vReason = aPlaybook.PhaseQuestions.Select(aQ => aQ.UnavailableReason).FirstOrDefault(aR => aR is not null);
         if (vReason is not null)
         {
-            aText.Append("The three questions are not applicable: ").AppendLine(vReason).AppendLine();
+            aText.Append("Gate outcomes are not applicable: ").AppendLine(vReason).AppendLine();
         }
     }
 
@@ -514,13 +514,13 @@ internal static class SnapshotMarkdown
     }
 
     /// <summary>
-    /// Section 2 — Three questions, one table per provenance and project type. Never a total.
+    /// Section 2 — Gate outcomes, one table per provenance and project type. Never a total.
     /// </summary>
     /// <param name="aText">The buffer.</param>
     /// <param name="aInputs">Everything the snapshot renders from.</param>
-    private static void ThreeQuestions(StringBuilder aText, SnapshotInputs aInputs)
+    private static void GateOutcomes(StringBuilder aText, SnapshotInputs aInputs)
     {
-        aText.AppendLine("## Three questions").AppendLine();
+        aText.AppendLine("## Gate outcomes").AppendLine();
 
         SegmentTables(aText, "Live", aInputs.Analysis.Live);
         SegmentTables(aText, "Backfilled", aInputs.Analysis.Backfilled);

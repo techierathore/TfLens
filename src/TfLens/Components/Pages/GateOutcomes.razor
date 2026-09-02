@@ -1,5 +1,5 @@
 @*
-    REQ-UI-018 / REQ-UI-019 / REQ-UI-020 / REQ-UI-021 / REQ-UI-022 — the Three questions screen.
+    REQ-UI-018 / REQ-UI-019 / REQ-UI-020 / REQ-UI-021 / REQ-UI-022 — the Gate outcomes screen.
 
     The page the product exists for: first-pass rate, escape rate and failures scored, read one
     project_type at a time. There is deliberately no "all" tab and no total row — the engine's
@@ -8,21 +8,21 @@
     to it. Every figure reaches the screen through FigureText, so a segment below n=3 renders the literal
     text `insufficient data (n=…)` rather than a flattering number.
 *@
-@page "/three-questions"
+@page "/gate-outcomes"
 @using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject IMetricsEngine objMetricsEngine
 @inject ITelemetryStore objStore
 @inject ShellPreferences objPreferences
 
-<PageTitle>Three questions · TfLens</PageTitle>
+<PageTitle>Gate outcomes · TfLens</PageTitle>
 
 <div class="tflens-stack">
 
     @* TR-013 — the Typography components do not resolve in 2.0.0, so the heading is plain markup carrying
        the library's own utility classes. *@
     <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Three questions</h1>
+        <h1 class="text-2xl font-semibold tracking-tight">Gate outcomes</h1>
         <p class="mt-1 text-sm text-muted-foreground">@Subtitle</p>
     </div>
 
@@ -65,7 +65,7 @@
     }
     else if (objLoadError is not null)
     {
-        <Alert Variant="AlertVariant.Danger" data-testid="three-questions-error">
+        <Alert Variant="AlertVariant.Danger" data-testid="gate-outcomes-error">
             <LucideIcon Name="triangle-alert" Size="16" />
             <AlertTitle>Couldn't compute the figures</AlertTitle>
             <AlertDescription>@objLoadError</AlertDescription>
@@ -74,9 +74,9 @@
     else if (objTypes.Count == 0)
     {
         <Empty Title="No gate records yet"
-               Description="Run *verify on a connected repo — the three questions are computed from gate records only."
+               Description="Run *verify on a connected repo — first-pass, gate catch and escape are computed from gate records only."
                Size="EmptySize.Default"
-               data-testid="three-questions-empty">
+               data-testid="gate-outcomes-empty">
             <Icon>
                 <LucideIcon Name="list-checks" Size="40" />
             </Icon>
@@ -290,10 +290,25 @@
                                 <div>
                                     <CardTitle Class="text-base">Late-gate coverage</CardTitle>
                                     <CardDescription>
-                                        Gates added after the data started — coverage is partial by construction
+                                        Gates added after the data started — coverage is partial by
+                                        construction · live records only
                                     </CardDescription>
                                 </div>
-                                <Badge Variant="BadgeVariant.Secondary">live records only</Badge>
+                                @* REQ-UI-022, restored 2026-09-01 — `docs/mockups/gate-outcomes.html` puts a
+                                   clock chip (`chip c1` / `i-clock`) at the top-right of this header, and it is
+                                   the header's only right-hand element. The build shipped a `live records only`
+                                   Badge there instead, so the gate reported a missing icon at both widths. The
+                                   chip is the design's, and the badge's sentence — which is a real constraint on
+                                   what these lines count, not decoration — moved into the description rather than
+                                   being dropped: nothing the reader had is gone.
+
+                                   The chip's classes are declared in THIS file's own `.razor.css`. They also
+                                   exist in `StatTile.razor.css`, and that copy is unreachable from here —
+                                   Blazor scopes every rule to the component that authored it (REQ-NFR-021). *@
+                                <span class="tflens-stat-chip tflens-accent-1 shrink-0"
+                                      data-testid="@($"late-gate-chip-{vType}")">
+                                    <LucideIcon Name="clock" Size="16" />
+                                </span>
                             </CardHeader>
                             <CardContent Class="pt-0">
                                 <div class="flex flex-col gap-2">

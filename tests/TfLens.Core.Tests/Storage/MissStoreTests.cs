@@ -28,6 +28,7 @@ namespace TfLens.Core.Tests.Storage;
 /// and the two classes can run at the same time.
 /// </para>
 /// </remarks>
+[Collection(PostgresCollection.Name)]
 public sealed class MissStoreTests : IAsyncLifetime
 {
     // No hard-coded connection: resolved the way the app resolves it (TestDatabase, 2026-08-29).

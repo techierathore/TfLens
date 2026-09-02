@@ -1,0 +1,461 @@
+/* The Phase effort page's layout.
+
+   TrBlazeUI 2.0.0 ships no responsive variants and no arbitrary-value utilities (TR-002), so every
+   breakpoint this screen needs lives here as a real media query: five KPI tiles across at 1280 and one
+   per row at 390, the two denominator cards side by side, and the routing/cost pair splitting
+   1.3fr / 1fr — which are the approved design's own proportions (docs/mockups/effort.html). */
+
+/* TR-001: trblazeui.css emits utilities for --chart-1..5 and the --alert-* tokens but defines none of
+   them, so anything painted with them is transparent — the Info and Warning alert tints, the stat
+   chips, and every share bar on this page. Custom properties inherit, so declaring them on the page
+   root reaches every TrBlazeUI control rendered inside. Values are the approved mockup's palette,
+   which reads on both the light and the dark surface. */
+.tflens-effort {
+    --chart-1: #60a5fa;
+    --chart-2: #34d399;
+    --chart-3: #f472b6;
+    --chart-4: #fbbf24;
+    --chart-5: #a78bfa;
+    --alert-success: #22c55e;
+    --alert-success-bg: rgba(34, 197, 94, .08);
+    --alert-info: #3b82f6;
+    --alert-info-bg: rgba(59, 130, 246, .08);
+    --alert-warning: #f59e0b;
+    --alert-warning-bg: rgba(245, 158, 11, .08);
+    --alert-danger: #ef4444;
+    --alert-danger-bg: rgba(239, 68, 68, .08);
+    min-width: 0;
+}
+
+/* The header's period select — the same 12rem the Misses filter uses, so the two report pages that
+   carry a window filter present it identically. */
+.tflens-period {
+    width: 12rem;
+    max-width: 100%;
+}
+
+/* The mockup's `h3` band headings (18px/600) — TR-013, the Typography components do not resolve in
+   2.0.0, so the headings are plain markup carrying the design's own metrics. */
+.tflens-band-heading {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+}
+
+/* REQ-UI-046 — the five-tile KPI row.
+
+   StatGroup is deliberately not used: its shim spans tiles on TrBlazeUI's 12-column grid and twelve
+   does not divide by five, so a five-tile row lands 4 + 1. The design puts five equal tiles across at
+   1280, two across in the middle, and one per row at 390. */
+.tflens-effort-kpis {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.tflens-effort-denominators,
+.tflens-effort-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+
+@media (min-width: 48rem) {
+    .tflens-effort-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tflens-effort-denominators {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 64rem) {
+    .tflens-effort-kpis {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    /* The mockup's own 1.3fr / 1fr split for Routing beside Measured spend. */
+    .tflens-effort-lower {
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    }
+}
+
+/* REQ-UI-046 — the fan-out tile's accent border, which is what marks it as the coverage figure the
+   whole fan-out half of the page is bounded by (BRD-151). `Class` lands on StatTile's own Card root,
+   which carries StatTile's scope attribute rather than this page's, so the rule reaches it through
+   ::deep from the row this page does own. */
+.tflens-effort-kpis ::deep .tflens-kpi-accent {
+    border-color: color-mix(in oklab, var(--chart-4) 45%, transparent);
+}
+
+/* The heaviest-phase tile carries a command rather than a number, and a command is longer than a
+   figure — the design drops it to 22px so `day1-greenfield` holds one line at 1280. */
+.tflens-kpi-cmd {
+    font-size: 1.375rem;
+    line-height: 1.2;
+}
+
+/* Card headers on this page put a badge or a chip opposite the title; the shim reproduces the
+   mockup's `.chip`, whose rules live in StatTile's own scope and so cannot reach an element written
+   here (the same trap Harness.razor.css documents). */
+.tflens-stat-chip {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}
+
+.tflens-accent-2 {
+    background: color-mix(in oklab, var(--chart-2) 15%, transparent);
+    color: var(--chart-2);
+}
+
+/* Classes that land on a CHILD COMPONENT's root — Badge, Alert, CardFooter, Card — reach it only
+   through ::deep. Blazor stamps every rule in a scoped sheet with THIS file's scope attribute, and a
+   component's own root element carries ITS file's attribute instead, so a bare `.tflens-nowrap-badge`
+   rule matches nothing at all. It is the same trap Harness.razor.css documents for the stat chips:
+   the class is on the element, the rule simply never applies. ::deep re-scopes the ANCESTOR — the
+   page root, which this file does own — and leaves the descendant unscoped. */
+
+/* TrBlazeUI's Badge is not `white-space: nowrap` where the mockup's is, so a two-word badge broke
+   over two lines as a flex item. */
+.tflens-effort ::deep .tflens-nowrap-badge {
+    white-space: nowrap;
+    flex: none;
+}
+
+/* BRD-146 — the token band's denominator rides on the band label, which is upper-cased; the badge
+   inside it is a sentence and keeps its own case. */
+.tflens-effort ::deep .tflens-panel-badge {
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.tflens-effort ::deep .tflens-panel-alert {
+    margin-bottom: 0.25rem;
+}
+
+/* CardFooter justifies its children to the end; this page's footers carry a paragraph of standing
+   copy, which the design sets flush left. */
+.tflens-effort ::deep .tflens-card-note {
+    display: block;
+    text-align: left;
+}
+
+/* The disclosure trigger is a button inside Collapsible, so it needs the full card width to put its
+   observation badge on the right the way the design draws it. */
+.tflens-effort ::deep .tflens-detail button {
+    width: 100%;
+}
+
+.tflens-nowrap {
+    white-space: nowrap;
+}
+
+/* The mockup's `.sm` (13px) and `.xs` (12px) against the page's own 14px. TR-002 — trblazeui.css is a
+   pre-built bundle with no arbitrary-value utilities, so these are written out. */
+.tflens-small {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+.tflens-xs {
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+}
+
+/* The mockup draws its tables in a `card-c flush` — zero padding, so the rows run edge to edge and
+   their separators reach the card's borders. CardContent carries `p-6`, which insets the table by
+   24px a side; the negative margin restores the design, and the cell padding restores its 16px. A
+   wide table scrolls inside this box rather than widening the page (BRD-144). */
+.tflens-table {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-inline: -1.5rem;
+}
+
+    .tflens-table ::deep table {
+        width: 100%;
+    }
+
+    /* DataTable wraps its table in `relative w-full overflow-auto rounded-md border`, drawing a second
+       bordered panel inside the card that already holds it. `docs/mockups/effort.html` puts its tables
+       in a `card-c flush` and draws no such box — the card's own border is the only one. The wrapper is
+       kept, because it is what scrolls a wide table inside its own container (BRD-144); only its
+       decoration is removed. Same treatment Harness.razor.css gives ChartContainer (TR-028). */
+    .tflens-table ::deep .rounded-md.border {
+        border: 0;
+        border-radius: 0;
+    }
+
+    .tflens-table ::deep th,
+    .tflens-table ::deep td {
+        padding: 0.625rem 1rem;
+        vertical-align: middle;
+    }
+
+/* The fan-out card's table is headerless in the mockup: its left cell IS the label, so a header row
+   would repeat it. DataTable has no ShowHeader switch, so the header is declared for the component's
+   own metadata and hidden here. */
+.tflens-kv-table ::deep thead {
+    display: none;
+}
+
+    /* Three columns in a half-width card: the description takes what is left, and the bar and the
+       count are fixed so the count cannot be clipped. A coverage figure the reader cannot read is
+       the same as one that is not there, and this card exists to be read (BRD-147). */
+    .tflens-kv-table ::deep td:nth-child(2) {
+        width: 6rem;
+    }
+
+    .tflens-kv-table ::deep td:nth-child(3) {
+        width: 5.5rem;
+        white-space: nowrap;
+    }
+
+    .tflens-kv-table .tflens-bar {
+        width: 4.5rem;
+    }
+
+/* The design floats the info glyph beside the first line rather than reserving a column for it. The
+   `p` and the `svg` are written in this file, so they carry this file's scope and need no ::deep. */
+.tflens-card-note p {
+    display: block;
+    text-align: left;
+}
+
+.tflens-card-note svg {
+    display: inline-block;
+    vertical-align: -0.2em;
+    margin-right: 0.375rem;
+}
+
+/* Share bars. `IndicatorClass` lands on an element inside Progress, which carries Progress's scope
+   attribute; ::deep from a wrapper this page owns is what lets these colours reach it. */
+.tflens-bar {
+    display: block;
+    width: 7rem;
+    max-width: 100%;
+    min-width: 3rem;
+}
+
+    .tflens-bar ::deep .tflens-fill-1 {
+        background: var(--chart-1);
+    }
+
+    .tflens-bar ::deep .tflens-fill-2 {
+        background: var(--chart-2);
+    }
+
+    .tflens-bar ::deep .tflens-fill-4 {
+        background: var(--chart-4);
+    }
+
+    .tflens-bar ::deep .tflens-fill-5 {
+        background: var(--chart-5);
+    }
+
+    /* `unknown` is neither good nor bad — it said nothing — so its bar is the muted foreground. */
+    .tflens-bar ::deep .tflens-fill-muted {
+        background: var(--muted-foreground);
+    }
+
+.tflens-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+}
+
+/* REQ-UI-048 — the per-phase disclosures. */
+.tflens-detail-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.tflens-detail-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: left;
+}
+
+    .tflens-detail-trigger > span {
+        min-width: 0;
+        overflow-wrap: break-word;
+    }
+
+.tflens-spacer {
+    flex: 1;
+}
+
+.tflens-detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    min-width: 0;
+}
+
+/* The mockup's `.panel` — a dashed box per band, in the fixed order Time · Tokens · By model ·
+   Fan-out (REQ-UI-048). */
+.tflens-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius, 0.625rem);
+    padding: 1rem;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.tflens-panel-label {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+}
+
+/* The small tables inside a band. These are plain markup rather than DataTable: they are four fixed
+   rows of a record this page already holds, and the design draws them as the mockup's `.tbl`. */
+.tflens-panel-table {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+    .tflens-panel-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .tflens-panel-table th {
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .tflens-panel-table td {
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .tflens-panel-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .tflens-panel-table .tflens-right {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+/* The fan-out band's key/value table has no header row of its own. */
+.tflens-kv-panel td:first-child {
+    color: var(--muted-foreground);
+}
+
+/* REQ-UI-049 — the routing card is the narrower half of a 1.3fr / 1fr pair, so its first three
+   columns are pinned and the "What it means" column keeps the rest. Without this the meaning wrapped
+   to five lines and the row grew taller than the badge it explains. */
+.tflens-routing-table ::deep th:nth-child(1),
+.tflens-routing-table ::deep td:nth-child(1) {
+    width: 4.5rem;
+}
+
+.tflens-routing-table ::deep th:nth-child(2),
+.tflens-routing-table ::deep td:nth-child(2) {
+    width: 1.5rem;
+}
+
+.tflens-routing-table ::deep th:nth-child(3),
+.tflens-routing-table ::deep td:nth-child(3) {
+    width: 5rem;
+}
+
+/* At 390 the three pinned columns leave the meaning column almost no width, and it wrapped one word
+   per line — a 400px-tall row explaining a 22px badge. The floor makes the table wider than the
+   viewport instead, so it scrolls inside DataTable's own `overflow-auto` wrapper the way every wide
+   control on this page does (BRD-144). The floor is measured rather than picked: a cell's `width` is
+   content-box and each carries 16px of padding a side, so 4.5 + 1.5 + 5 + 10 rem plus 4 x 32px of
+   padding is 472px inside the 484px this card gives the table at 1280 — the meaning reads whole at
+   the design's own width, and only the phone scrolls. */
+.tflens-routing-table ::deep th:nth-child(4),
+.tflens-routing-table ::deep td:nth-child(4) {
+    min-width: 10rem;
+}
+
+.tflens-routing-table .tflens-bar {
+    width: 3.5rem;
+}
+
+/* REQ-UI-049 — the per-phase routing counts, closed by default so the card face stays the design's
+   own three-row summary. */
+.tflens-routing-byphase {
+    margin-top: 1rem;
+}
+
+.tflens-byphase {
+    margin-top: 0.5rem;
+}
+
+/* BRD-168 — the standing actor note under the last band. */
+.tflens-actor-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+/* The mockup underlines its in-copy links with a 3px offset. */
+.tflens-link {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.tflens-figure {
+    font-size: 1.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+/* The time band's four figures — four across at 1280, two at 390. */
+.tflens-quad {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+    min-width: 0;
+}
+
+@media (min-width: 48rem) {
+    .tflens-quad {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}

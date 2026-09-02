@@ -35,7 +35,40 @@ public enum StreamKind
     /// <c>miss-amend</c>. They land in three tables, dispatched on each record's own <c>kind</c>
     /// (ADR-018, REQ-FN-072).
     /// </remarks>
-    Misses = 5
+    Misses = 5,
+
+    /// <summary>
+    /// The Playbook exporter's normalized schema-2 <c>phase-metric</c> NDJSON (added 2026-09-01,
+    /// BRD-153, ADR-023).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One file, three tables — <c>"PbPhaseExecution"</c>, <c>"PbPhaseModelUsage"</c> and
+    /// <c>"PbPhaseSubagent"</c> — so this is the second stream whose kind is not 1:1 with a table
+    /// (ADR-025). It arrives only through the import mode: the producer reads a transient
+    /// <c>events.ndjson</c> that rotates, so there is nothing at a repository path to fetch, and adding
+    /// it here rather than building a second ingest path is what keeps BRD-132 true.
+    /// </para>
+    /// <para>
+    /// Deliberately <b>absent</b> from <see cref="StreamNames.Playbook"/>: that list drives the fetcher
+    /// and the raw-archive rebuild, and phase rows have no repository file to fetch and nothing a
+    /// truncate-and-replay could restore them from.
+    /// </para>
+    /// </remarks>
+    PhaseMetrics = 6,
+
+    /// <summary>
+    /// The Playbook's normalized miss export — <c>miss</c> · <c>miss-fix</c> · <c>miss-amend</c>
+    /// (REQ-FN-103, BRD-164, ADR-024).
+    /// </summary>
+    /// <remarks>
+    /// A separate kind from <see cref="Misses"/> even though the rows land in the SAME three tables,
+    /// because the two editions key differently: TechieFlow rows key on the natural <c>miss_id</c>, and
+    /// Playbook rows on an immutable source-line hash. The kind is what tells the parse path which
+    /// mapping to use; the wall that stops the two pooling on READ is <c>UserRepo.Framework</c> (ADR-016),
+    /// which is a mandatory parameter rather than a filter.
+    /// </remarks>
+    PlaybookMisses = 7
 }
 
 /// <summary>
@@ -87,6 +120,26 @@ public static class StreamNames
     public const string Misses = "misses";
 
     /// <summary>
+    /// Wire name of <see cref="StreamKind.PhaseMetrics"/> (added 2026-09-01, BRD-153).
+    /// </summary>
+    /// <remarks>
+    /// One word, unlike the <c>phase-metrics.ndjson</c> file it is recognised by, because
+    /// <c>ImportStreamCatalog</c> resolves a wire name onto its <see cref="StreamKind"/> with
+    /// <see cref="Enum.TryParse{T}(string, bool, out T)"/> — a hyphen there would silently make the
+    /// stream unparseable rather than fail loudly.
+    /// </remarks>
+    public const string PhaseMetrics = "phasemetrics";
+
+    /// <summary>
+    /// Wire name of <see cref="StreamKind.PlaybookMisses"/> (added 2026-09-01, BRD-164).
+    /// </summary>
+    /// <remarks>
+    /// One word for the same reason <see cref="PhaseMetrics"/> is: the stream name resolves onto its
+    /// <see cref="StreamKind"/> through <c>Enum.TryParse</c>, which a hyphen would defeat.
+    /// </remarks>
+    public const string PlaybookMisses = "playbookmisses";
+
+    /// <summary>
     /// The five TechieFlow streams in report order; <c>misses</c> is appended, so it reports last.
     /// </summary>
     /// <remarks>
@@ -114,6 +167,8 @@ public static class StreamNames
         Commits => StreamKind.Commits,
         Misses => StreamKind.Misses,
         Events => StreamKind.Events,
+        PhaseMetrics => StreamKind.PhaseMetrics,
+        PlaybookMisses => StreamKind.PlaybookMisses,
         _ => throw new ArgumentOutOfRangeException(nameof(aName), aName, "Unknown stream name.")
     };
 
@@ -130,6 +185,8 @@ public static class StreamNames
         StreamKind.Commits => Commits,
         StreamKind.Misses => Misses,
         StreamKind.Events => Events,
+        StreamKind.PhaseMetrics => PhaseMetrics,
+        StreamKind.PlaybookMisses => PlaybookMisses,
         _ => throw new ArgumentOutOfRangeException(nameof(aKind), aKind, "Unknown stream kind.")
     };
 }
@@ -240,6 +297,52 @@ public sealed record RunRecord
 
     /// <summary>Attempt number; first-pass rate counts only <c>attempt == 1</c>.</summary>
     public int? Attempt { get; init; }
+
+    /// <summary>
+    /// <b>Measured</b> count of sub-agent invocations that produced output inside this run's window
+    /// (SCHEMA.md §2.6, added to the stream 2026-08-31).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>null</c> means <i>not captured</i>, and it is never the same fact as <c>0</c></b>
+    /// (REQ-FN-088, BRD-145). A <c>main</c>-scope window saw no sub-agent transcripts at all, so it did
+    /// not report "none ran" — it reported nothing. Coalescing the absent value to zero would turn "we
+    /// did not look" into a measurement, and the resulting fan-out average would be confidently composed
+    /// largely of runs that could not have seen a sub-agent (ADR-026). <see cref="TokensScope"/>
+    /// therefore governs how this may be read, and only a <c>tree</c>-scope record can support a
+    /// fan-out claim.
+    /// </para>
+    /// <para>
+    /// Carried <i>beside</i> <see cref="Subagents"/>, never reconciled with it: that list is a
+    /// statement of intent an agent typed into its own emit, this is a count taken from the harness's
+    /// own store. Where they disagree, the measured one is right, and a report should say so.
+    /// </para>
+    /// </remarks>
+    public int? SubagentRuns { get; init; }
+
+    /// <summary>
+    /// Output tokens attributable to those sub-agents (SCHEMA.md §2.6); <c>null</c> when not captured.
+    /// </summary>
+    /// <remarks><see cref="TokensOut"/> minus this is the main thread's own share.</remarks>
+    public int? TokensOutSubagents { get; init; }
+
+    /// <summary>
+    /// The per-model output-token <b>split</b> over the window (SCHEMA.md §2.6): <c>{model_id: tokens}</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>null</c> when the producer captured no split — never an empty dictionary standing in for one,
+    /// because "no models observed" and "we did not measure per model" are different facts.
+    /// </para>
+    /// <para>
+    /// Stored as a single <c>jsonb</c> column rather than a child table because it is only ever read
+    /// <b>whole</b>: never joined, never filtered on one model, and the run's token window is already
+    /// atomic. The contrast with <c>"PbPhaseModelUsage"</c> is deliberate and is the rule — a per-model
+    /// split that is only ever read whole stays JSON; one that must be queried becomes a table
+    /// (ADR-025). Per-model effort reads this and never the dominant <see cref="Model"/> label.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyDictionary<string, long>? ModelTokensOut { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
     public string? Overflow { get; init; }
@@ -494,6 +597,17 @@ public sealed record MissRecord
     /// <summary>The owning REQ; <c>null</c> is meaningful — no REQ existed to miss.</summary>
     public string? ReqId { get; init; }
 
+    /// <summary>
+    /// The <b>Playbook's</b> requirement axis, carried beside <see cref="ReqId"/> (REQ-FN-104, BRD-165).
+    /// </summary>
+    /// <remarks>
+    /// One axis under two names: a Playbook item and a TechieFlow REQ are the same kind of thing, named
+    /// differently by the two editions, so they sit in two columns and may be read as one axis. They are
+    /// still not merged into one column, because a row must always be able to say which edition wrote
+    /// it. <c>null</c> on every TechieFlow row (ADR-024).
+    /// </remarks>
+    public string? ItemId { get; init; }
+
     /// <summary>Requirement class — <c>UI</c> | <c>FN</c> | <c>RAG</c> | <c>NFR</c>.</summary>
     public string? ReqClass { get; init; }
 
@@ -544,14 +658,42 @@ public sealed record MissRecord
     /// <summary>The <c>cmd</c> that was running when it surfaced.</summary>
     public string? FoundPhase { get; init; }
 
-    /// <summary>Which gate caught it when <see cref="FoundBy"/> is <c>gate</c>; <c>null</c> otherwise.</summary>
+    /// <summary>
+    /// Which TechieFlow <b>assertion</b> gate caught it when <see cref="FoundBy"/> is <c>gate</c>;
+    /// <c>null</c> otherwise.
+    /// </summary>
     public string? FoundGate { get; init; }
+
+    /// <summary>
+    /// Which Playbook <b>process</b> gate caught it — a different measurement from
+    /// <see cref="FoundGate"/> (REQ-FN-104, BRD-165, SCHEMA.md §11).
+    /// </summary>
+    /// <remarks>
+    /// <b>These two never share a column and never share a chart.</b> Unlike <see cref="ItemId"/> beside
+    /// <see cref="ReqId"/> — one axis under two names — a process gate and an assertion gate are two
+    /// genuinely different things being measured, and merging them would produce a distribution whose
+    /// rows are not comparable to each other. The rule is the same one ADR-010 fixed for
+    /// <c>"PbEvent"."PhaseGate"</c> versus <c>"Gate"."Gate"</c>, applied to the shared miss tables
+    /// (ADR-024). <c>null</c> on every TechieFlow row.
+    /// </remarks>
+    public string? FoundPhaseGate { get; init; }
 
     /// <summary><c>started</c> of the finding run.</summary>
     public string? FoundRunId { get; init; }
 
     /// <summary>The §3.3 failure-class vocabulary, reused verbatim; <c>null</c> where none applies.</summary>
     public string? FailureClass { get; init; }
+
+    /// <summary>
+    /// The Playbook's natural key: an immutable hash of the exported source line (REQ-FN-103, BRD-164).
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> on every TechieFlow row, which is why <c>"UcMissUserRepoSourceLine"</c> is a
+    /// <b>partial</b> unique index — TechieFlow rows must not collide with each other on <c>NULL</c>,
+    /// and <c>"UcMissUserRepoMissId"</c> goes on governing them. Two editions, two natural keys, one
+    /// table (ADR-024). The normalizer that computes the hash is REQ-FN-103's ingest half.
+    /// </remarks>
+    public string? SourceLineHash { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
     public string? Overflow { get; init; }
@@ -657,6 +799,17 @@ public sealed record MissFixRecord
     /// <summary>Model that ran the fix.</summary>
     public string? Model { get; init; }
 
+    /// <summary>
+    /// The Playbook's immutable source-line hash; <c>null</c> on every TechieFlow row (REQ-FN-103).
+    /// </summary>
+    /// <remarks>
+    /// Carried so the ingest half can key a Playbook fix on the same identity as its miss. Unlike
+    /// <see cref="MissRecord.SourceLineHash"/> it backs no unique index — <c>"MissFix"</c> already keys
+    /// on <c>(MissId, COALESCE(FixRunId, ''))</c>, and a second natural key on the same table would give
+    /// one repair two ways to be unique, which is how a duplicate slips through both.
+    /// </remarks>
+    public string? SourceLineHash { get; init; }
+
     /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
     public string? Overflow { get; init; }
 }
@@ -720,6 +873,16 @@ public sealed record MissAmendRecord
 
     /// <summary>The value to set; must be inside that field's closed vocabulary or the amend is an orphan.</summary>
     public string? Value { get; init; }
+
+    /// <summary>
+    /// The Playbook's immutable source-line hash; <c>null</c> on every TechieFlow row (REQ-FN-103).
+    /// </summary>
+    /// <remarks>
+    /// As on <see cref="MissFixRecord.SourceLineHash"/>, this backs no unique index: an amendment is
+    /// already identified by <c>(MissId, Field, Ts)</c>, and two amendments of one field at different
+    /// instants are two distinct facts rather than a collision.
+    /// </remarks>
+    public string? SourceLineHash { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
     public string? Overflow { get; init; }

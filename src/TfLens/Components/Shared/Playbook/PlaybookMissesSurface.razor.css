@@ -1,0 +1,235 @@
+/* The Playbook axis of `/misses` — the measurements TrBlazeUI's shipped utility set cannot express.
+
+   Blazor scoped CSS is scoped to ONE component, so the page-level rules in Misses.razor.css cannot
+   reach this component's markup: these are its own copies rather than references to them (the same
+   arrangement PlaybookHarnessSurface.razor.css already uses).
+
+   TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
+   none of them, so anything painted with them is transparent — the KPI accent chips and every Alert
+   tint. Custom properties inherit, so declaring them on this surface's root reaches every TrBlazeUI
+   control rendered inside it, whether or not the host page declares them too. Values are the approved
+   mockup's palette (docs/mockups/misses-playbook.html), which reads on both surfaces.
+
+   TR-002: the package ships no responsive variants at all, so every breakpoint here is hand-written. */
+.pb-misses-surface {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    --chart-1: #60a5fa;
+    --chart-2: #34d399;
+    --chart-3: #f472b6;
+    --chart-4: #fbbf24;
+    --chart-5: #a78bfa;
+    --alert-success: #22c55e;
+    --alert-success-bg: rgba(34, 197, 94, .08);
+    --alert-info: #3b82f6;
+    --alert-info-bg: rgba(59, 130, 246, .08);
+    --alert-warning: #f59e0b;
+    --alert-warning-bg: rgba(245, 158, 11, .08);
+    --alert-danger: #ef4444;
+    --alert-danger-bg: rgba(239, 68, 68, .08);
+}
+
+/* TR-002: `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*` (no media query), so the
+   library's own grid helpers collapse to a fixed span at every width. The KPI rows drive
+   grid-template-columns directly instead — one column on a phone, four once there is room. */
+.pb-kpi-row ::deep .trblazeui-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+    .pb-kpi-row ::deep .trblazeui-grid > * {
+        grid-column: auto;
+    }
+
+.pb-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-width: 0;
+}
+
+    .pb-grid > * {
+        min-width: 0;
+    }
+
+@media (min-width: 40rem) {
+    .pb-kpi-row ::deep .trblazeui-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 64rem) {
+    .pb-kpi-row ::deep .trblazeui-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .pb-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pb-grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* The cross-tab is the wider of the pair: it carries a column per observed miss class. The
+       minmax(0, …) is load-bearing — a bare `1.35fr` lets the table's intrinsic width push the column
+       past its share and shove the card beside it off the right edge of the page. */
+    .pb-grid-origin {
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    }
+}
+
+/* Any wide control scrolls inside its own box rather than widening the page (BRD-144). */
+.pb-scroll-x {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* The plain tables. A DataTableColumn needs a compile-time property per column, and neither
+   `miss_class` nor the two found-axes have a closed vocabulary, so these columns are built at render
+   time. They carry the same numbers a chart would, which is also REQ-NFR-005's requirement. */
+.pb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+    .pb-table th {
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .pb-table td {
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .pb-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .pb-table .pb-num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .pb-table .pb-bar {
+        width: 8rem;
+    }
+
+    /* A prose column squeezed to one word per line is unreadable. Giving it a floor makes the table
+       overflow instead, which `.pb-scroll-x` turns into a scroll inside the card (BRD-144). */
+    .pb-table .pb-note {
+        min-width: 13rem;
+    }
+
+@media (max-width: 30rem) {
+    /* The share bar yields first: the count and the percentage beside it are the figures. */
+    .pb-table .pb-bar {
+        width: 3.5rem;
+    }
+}
+
+    /* A wire value is one token: `miss-fix` has to read as `miss-fix`, never as `miss-` stacked above
+       `fix`, and `/implement` never as `/imple` + `ment`. A hyphen is a soft-wrap opportunity, so the
+       browser is otherwise free to break the name in half. The extra width costs the page nothing —
+       every table here lives inside `.pb-scroll-x`, which scrolls it inside its own card. */
+    .pb-table td .font-mono,
+    .pb-table th .font-mono {
+        white-space: nowrap;
+    }
+
+/* An origin phase names one command — `/implement` has to read as `/implement`, never broken in half.
+   The extra width costs the page nothing: the table lives inside `.pb-scroll-x`. */
+.pb-table-origin th:first-child,
+.pb-table-origin td:first-child {
+    white-space: nowrap;
+}
+
+/* The three cost headlines. Deliberately large, and deliberately never rendered as one number. */
+.pb-money {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+/* Separator renders its own root, which cannot carry this component's scope attribute, so the rule's
+   breathing space lives on the wrapper instead. */
+.pb-rule {
+    margin: 1rem 0;
+}
+
+/* median / p90 on one tile: two figures, one unit each, never added together. */
+.pb-pair {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.pb-unit,
+.pb-slash {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+/* The accent chips the mockup puts on each cost card's header. */
+.pb-chip {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    display: grid;
+    place-items: center;
+}
+
+.pb-chip-2 {
+    background: color-mix(in oklab, var(--chart-2) 15%, transparent);
+    color: var(--chart-2);
+}
+
+.pb-chip-4 {
+    background: color-mix(in oklab, var(--chart-4) 15%, transparent);
+    color: var(--chart-4);
+}
+
+.pb-chip-5 {
+    background: color-mix(in oklab, var(--chart-5) 15%, transparent);
+    color: var(--chart-5);
+}
+
+.pb-chip-danger {
+    background: color-mix(in oklab, var(--alert-danger) 15%, transparent);
+    color: var(--alert-danger);
+}
+
+/* docs/mockups/misses-playbook.html rings the measured-tokens tile and badges it `sole · complete`,
+   because it is the ONE figure entitled to be called the cost of a repair and the apportioned column
+   below it carries a number in the same unit. `StatTile` renders its own Card, so that element never
+   receives this file's scope attribute — the rules are anchored on `.pb-kpi-row`, which IS ours, and
+   reach the tile through `::deep`. Colour comes from the app's own semantic-success token so this
+   ring, the success badges in app.css and every success Alert stay one hue. */
+.pb-kpi-row ::deep .pb-measured {
+    border-color: color-mix(in oklab, var(--alert-success) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--alert-success) 35%, transparent);
+}
+
+.pb-kpi-row ::deep .pb-measured-badge {
+    color: var(--alert-success);
+    border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
+    background: var(--alert-success-bg);
+    font-weight: 500;
+}

@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { signIn } from './_helpers';
 
-const ROUTES = ['/', '/three-questions', '/harness', '/routing', '/export'];
+const ROUTES = ['/', '/gate-outcomes', '/harness', '/routing', '/export'];
 const SAMPLES = 12;
 
 test.setTimeout(900_000);

@@ -1,4 +1,5 @@
 using TfLens.Core.Contracts;
+using TfLens.Core.Playbook;
 
 namespace TfLens.Core.Abstractions;
 
@@ -44,6 +45,32 @@ public interface IPlaybookReportBuilder
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The Playbook-native figures, carrying their own schema-status caveat.</returns>
     Task<PlaybookAnalysis> BuildAsync(
+        int aUserId,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default);
+
+    /// <summary>
+    /// Builds the schema-2 phase-efficiency report — the Playbook axis of <c>/effort</c> (BRD-162).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Separate from <see cref="BuildAsync"/> because it reads a different stream through different
+    /// cohorts: <see cref="PlaybookAnalysis"/> comes from <c>events.ndjson</c>, this comes from the
+    /// exporter's normalized <c>phase-metric</c> NDJSON arriving through the import mode (ADR-023), and
+    /// the two have no shared denominator. Returning them together would invite a caller to read one's
+    /// <c>n</c> against the other's figures.
+    /// </para>
+    /// <para>
+    /// A harness with no normalized producer reports <b>unsupported</b>, never zero and never an empty
+    /// measured figure (BRD-163) — a data gap and a harness that ran and spent nothing are different
+    /// facts, and only one of them is a number.
+    /// </para>
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id — a required parameter, never a filter (ADR-013).</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's Playbook repositories.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The phase report, with every figure gated by the cohort it belongs to (BRD-161).</returns>
+    Task<PlaybookPhaseReport> BuildPhaseReportAsync(
         int aUserId,
         string? aRepo = null,
         CancellationToken aCancellationToken = default);

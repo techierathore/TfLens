@@ -52,14 +52,25 @@
                     <CardTitle>Export</CardTitle>
                     <CardDescription>Markdown for humans, JSON for machines</CardDescription>
                 </div>
-                <Button Variant="ButtonVariant.Secondary"
-                        Size="ButtonSize.Icon"
-                        OnClick="ExportAsync"
-                        Disabled="@(objIsExporting || UserId is null)"
-                        AriaLabel="Export snapshot"
-                        data-testid="export-now-icon">
-                    <LucideIcon Name="download" Size="16" />
-                </Button>
+                @* REQ-UI-032, colour corrected 2026-09-01 — the design draws this as a BLUE
+                   `chart-1` chip, not a neutral control; the parity gate reported the bucket
+                   difference at both widths. (Its companion `badge` finding on the same element is
+                   the documented extractor artefact: the mockup's decorative `.chip` was built here
+                   as a real icon Button, and `isBadge()` returns false for anything INTERACTIVE.) *@
+                @* The chip class sits on a wrapper this component authors, not on the Button: a
+                   child component's root element carries ITS scope attribute, never this file's, so
+                   `Class="tflens-export-chip"` compiled to a rule that could not match (REQ-NFR-021,
+                   the same trap the harness chips fell into). `::deep` reaches through. *@
+                <span class="tflens-export-chip">
+                    <Button Variant="ButtonVariant.Secondary"
+                            Size="ButtonSize.Icon"
+                            OnClick="ExportAsync"
+                            Disabled="@(objIsExporting || UserId is null)"
+                            AriaLabel="Export snapshot"
+                            data-testid="export-now-icon">
+                        <LucideIcon Name="download" Size="16" />
+                    </Button>
+                </span>
             </div>
         </CardHeader>
         <CardContent Class="flex flex-col gap-4 pt-0">
@@ -82,7 +93,7 @@
                 one snapshot per framework — currently: <span class="font-medium">@FrameworkLabel</span>
             </p>
             <p class="text-xs text-muted-foreground tflens-break" data-testid="export-target">
-                writes <span class="font-mono">@TargetFolder/snapshot.md</span> +
+                writes <span class="font-mono"><PathText Value="@($"{TargetFolder}/snapshot.md")" /></span> +
                 <span class="font-mono">tflens.json</span>
             </p>
 
@@ -107,13 +118,15 @@
                             <CellTemplate Context="vRow">
                                 @if (vRow.Field == "Parity status")
                                 {
-                                    <Badge Variant="BadgeVariant.Outline"
-                                           Class="@ParityBadgeClass"
-                                           data-testid="export-parity-status">@vRow.Value</Badge>
+                                    <span class="tflens-pill">
+                                        <Badge Variant="BadgeVariant.Outline"
+                                               Class="@ParityBadgeClass"
+                                               data-testid="export-parity-status">@vRow.Value</Badge>
+                                    </span>
                                 }
                                 else
                                 {
-                                    <span>@vRow.Value</span>
+                                    <PathText Value="@vRow.Value" />
                                 }
                             </CellTemplate>
                         </DataTableColumn>
@@ -132,7 +145,7 @@
             </CardDescription>
         </CardHeader>
         <CardContent Class="pt-0">
-            <div class="overflow-x-auto" data-testid="dataset-shas">
+            <div class="overflow-x-auto tflens-shas" data-testid="dataset-shas">
                 @if (objShaRows.Count == 0)
                 {
                     <Empty Title="no dataset SHAs yet"
@@ -316,7 +329,17 @@
                             <DataTableColumn TData="FactRow" TValue="string"
                                              Property="@(aRow => aRow.Field)" Header="Field" />
                             <DataTableColumn TData="FactRow" TValue="string"
-                                             Property="@(aRow => aRow.Value)" Header="Value" />
+                                             Property="@(aRow => aRow.Value)" Header="Value">
+                                @* REQ-UI-033 — a script path and a compare command are both longer than
+                                   this column. Rendered as one unbreakable run they were split mid-token
+                                   at 390 (`.tfcore/telemetry/tf-metrics.sh` needed 211px in 148px), which
+                                   BRD-144 clause 6 forbids: a path a reader cannot re-type is not a
+                                   reproducible identity. PathText offers the browser a break at each
+                                   separator instead, so the wrap lands on a boundary. *@
+                                <CellTemplate Context="vRow">
+                                    <PathText Value="@vRow.Value" />
+                                </CellTemplate>
+                            </DataTableColumn>
                         </Columns>
                     </DataTable>
                 </div>
@@ -381,6 +404,8 @@
             "the reference script cannot be hashed, so the recorded parity run cannot be confirmed; restore it and re-run the parity procedure",
         ParityReasons.ProvenanceOrphan =>
             $"{objProvenance.OrphanRows} stored row(s) on {objProvenance.Orphans.Count} source SHA(s) that no sync and no import ever obtained; run \"provenance-check\" and purge them before quoting any figure",
+        ParityReasons.ProvenanceUnknown =>
+            "the provenance behind these figures could not be checked, so whether the rows came from a real sync or import is unknown; that is a refusal and not a clean result, because an integrity rule that cannot be evaluated has not passed",
         _ =>
             "no parity run has ever been recorded; run the parity procedure before quoting any figure"
     };

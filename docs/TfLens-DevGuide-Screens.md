@@ -12,7 +12,7 @@ counts in a shot will not match what you see today; the *structure* is what the 
 
 ---
 
-## Runtime-verified 2026-08-29 as `tflensdemo@techierathore.com` (userId 2, Manager)
+## Runtime-verified 2026-08-30 as `tflensdemo@techierathore.com` (userId 2, Manager)
 
 Observed, not inferred. A full `*verify all` pass drove every screen below on a **Release** build at
 `http://localhost:5099` with headless Chromium at **1280×800 and 390×844**, applying the data-render
@@ -21,26 +21,41 @@ visual-truth gate (does the screen look right — no overlap, no clipping, nothi
 horizontal page scroll?). Evidence: `tests/.artifacts/gates/render-visual.json` and the paired
 screenshots `tests/.artifacts/gates/{screen}-{1280,390}.png`.
 
-| Screen | Controls checked | Data render | Looks right |
-|---|---|---|---|
-| `/login` | 8 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/register` | 12 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/forgot-password` | 4 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/reset-password` | 11 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/profile` | 22 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/repos` | 32 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/` — Coverage / health | 53 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/` — Coverage miss-quality card | 7 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/three-questions` | 32 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/harness` | 28 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/routing` — drift · models · repricing · poolable | 23 · 8 · 19 · 13 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/misses` | 102 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| `/export` | 30 | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
-| Playbook axis of all six report pages | 12 each (72) | renders ✓ (runtime-confirmed 2026-08-29) | looks-right ✓ |
+**A third gate now runs beside those two: `mockup-parity` (REQ-NFR-020 / BRD-144).** It grades each
+built screen against its approved mockup in `docs/mockups/`, and it is the gate that matters most for
+this table, because the two gates above cannot see design drift: a badge rendered as plain text has
+text and does not overlap, and a value split mid-token is present and unclipped. Its 2026-08-29 first
+run demoted 8 screens with 44 findings. **This run: 10 PASS / 2 FAIL / 0 findings.**
+
+| Screen | Controls checked | Data render | Looks right | Mockup parity |
+|---|---|---|---|---|
+| `/login` | 8 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — doc overflow 390 delta **122 → 0** |
+| `/register` | 12 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | **FAIL** — doc overflow 1280 delta 73, 390 delta 416 (owner-reserved) |
+| `/forgot-password` | 4 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — doc overflow 390 delta **14 → 0** |
+| `/reset-password` | 11 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | **FAIL** — doc overflow 390 delta 166 (owner-reserved) |
+| `/profile` | 22 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS (1 waiver: `profile-identity-note` — the mockup is wrong, not the app) |
+| `/repos` | 35 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 6 wrap findings cleared |
+| `/` — Coverage / health | 58 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 4 findings cleared |
+| `/` — Coverage miss-quality card | 7 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS |
+| `/gate-outcomes` | 31 | renders ✓ (runtime-confirmed **2026-09-01**) | looks-right ✓ (runtime-confirmed **2026-09-01**, 1280 + 390) | **mockup-parity: 1 open finding** — `stat-sparkline` semantic colour (app amber via `@AccentClass` vs the design's `--chart-1`), `MISS-TfLens-20260901-03`. `late-gate-app` icon belongs to `REQ-UI-022`; `app-sidebar` clip is the TF-012 false positive |
+| `/harness` | 28 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 2 findings cleared |
+| `/routing` — drift · models · repricing · poolable | 23 · 8 · 19 · 13 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — **20 findings cleared**, the largest per-screen count |
+| `/misses` | 104 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 8 findings cleared |
+| `/export` | 30 | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | PASS — 2 findings cleared |
+| Playbook axis of all six report pages | 12 each (72) | renders ✓ (runtime-confirmed 2026-08-30) | looks-right ✓ | SKIPPED — empty state, no mockup to grade against |
 
 **Zero** render-empty controls, **zero** render errors, **zero** visual failures and **zero** console
-errors across all **22 screen-states / 476 controls**. Defects found were behavioural, not rendering —
-they are listed against their screens below and in `docs/TfLens-Checklist.md`.
+errors across all **22 screen-states / 485 controls** and **44 viewport checks**. Acceptance: Playwright
+80 passed / 2 failed / 3 skipped of 85 (the 2 failures are the two owner-reserved routes above, nothing
+else) and .NET **689/689** on Release.
+
+**Two rendering defects were fixed this run that no gate but `mockup-parity` could see, and both had
+the same root cause** — worth knowing because it will recur. Blazor stamps the CSS-isolation scope
+attribute **only on elements authored in the owning `.razor` file**; `StatTile` and `Card` render their
+own root elements, so a bare `.tflens-measured { … }` rule in `Misses.razor.css` compiled to
+`.tflens-measured[b-s2fwlvxw9p]` and **matched nothing**. The measured-USD tile's green ring and the
+estimate card's dashed border had both been written on 2026-08-29 and neither was ever painted. The fix
+is to anchor such a rule on an element the file *does* author and reach the component through `::deep`.
 
 **One screen is NOT runtime-verified with data: the Playbook axis.** Every Playbook state above was
 confirmed as its *empty* state (`playbook-axis-note` + `playbook-empty` + `playbook-empty-connect`,
@@ -65,7 +80,7 @@ Three things a reader should know before trusting a screen here:
 - **The Playbook axis is finished on `/export` only.** *(Stale — superseded 2026-08-27; all five report
   pages now render the Playbook state. See the Playbook section below.)* `playbook-axis-note` /
   `playbook-empty` render
-  there and nowhere else; `/`, `/three-questions`, `/harness` and `/routing` re-query on the Playbook
+  there and nowhere else; `/`, `/gate-outcomes`, `/harness` and `/routing` re-query on the Playbook
   axis but reuse the TechieFlow surface with no axis note. `pb-phases-*` is not rendered by any page.
   The separation rule itself holds — no `gate-dist-*` table is ever populated on the Playbook axis, so
   `phase_gate` and `gate` never share a table.
@@ -102,7 +117,7 @@ Screenshots refreshed by this pass: `docs/devguide-images/misses.png`, `repos.pn
 ## Contents
 
 - [How to run and drive it](#how-to-run-and-drive-it)
-- [Cross-cutting gotchas — read these first](#cross-cutting-gotchas--read-these-first)
+- [Cross-cutting gotchas — read these first](#cross-cutting-gotchas-read-these-first)
 - [The shell: `MainLayout`](#the-shell-mainlayout)
 - [`/login`](#login)
 - [`/register`](#register)
@@ -110,8 +125,8 @@ Screenshots refreshed by this pass: `docs/devguide-images/misses.png`, `repos.pn
 - [`/reset-password`](#reset-password)
 - [`/profile`](#profile)
 - [`/repos`](#repos)
-- [`/` — Coverage / health](#--coverage--health)
-- [`/three-questions`](#three-questions)
+- [`/` — Coverage / health](#coverage-health)
+- [`/gate-outcomes`](#gate-outcomes)
 - [`/harness`](#harness)
 - [`/routing`](#routing)
 - [`/misses`](#misses)
@@ -174,7 +189,7 @@ Current values in the codebase — check yours against this list before adding a
 | File | Table | `InitialPageSize` | Rows it can hold |
 |---|---|---|---|
 | `Coverage.razor` | `repo-streams-{name}` | 16 | 4 (TechieFlow) / 1 (Playbook) |
-| `ThreeQuestions.razor` | `gate-dist-{type}` | 32 | 8 (`GateOrder` 7 + `unattributed`) |
+| `GateOutcomes.razor` | `gate-dist-{type}` | 32 | 8 (`GateOrder` 7 + `unattributed`) |
 | `Harness.razor` | `harness-table-{harness}` | 50 | 11 |
 | `Harness.razor` | `tokens-table` | 50 | 3 |
 | `Routing.razor` | `drift-table` | 25 | unbounded (pager on) |
@@ -206,8 +221,8 @@ package's own `lucide.json` render an **empty placeholder** with no error and no
 | `x-circle` | `circle-x` |
 
 A probe over all twelve routes found **0 blank icons** today, so the codebase is currently clean — this
-is the rule that keeps it that way. `ShellNavigation.Items` already uses `circle-question-mark` for
-Three questions for exactly this reason.
+is the rule that keeps it that way. `ShellNavigation.Items` uses only post-rename names for exactly this reason — `shield-check`
+for Gate outcomes since the 2026-09-01 rename, `circle-question-mark` before it.
 
 **Confirmed again 2026-08-28 as `TR-022`,** and it is worth knowing *why* it bites: `lucide.json`
 carries **two** maps, `icons` and `aliases`, and `LucideIcon` looks the name up in `icons` only. So a
@@ -271,7 +286,7 @@ They disagree all the time and nothing reconciles them:
 | Reads `"SyncState"` counters | Reads the stream tables directly |
 |---|---|
 | `/repos` "Records synced" KPI, per-row Records column (`RepoListItem.RecordCount`) | `/` Coverage KPI row and every stream table (`ITelemetryStore.ReadCoverageFactsAsync`) |
-| `/export` "Scope" fact and Dataset SHAs (`ExportSurface.ReloadAsync`) | `/three-questions`, `/harness`, `/routing` (`IMetricsEngine`, `IExtraMetrics`) |
+| `/export` "Scope" fact and Dataset SHAs (`ExportSurface.ReloadAsync`) | `/gate-outcomes`, `/harness`, `/routing` (`IMetricsEngine`, `IExtraMetrics`) |
 | `ShellState.RecordCount`, header last-sync badge | |
 
 Verified live today: `"SyncState"` reports `RunsCount=0, GatesCount=0` for every repo of user 2, while
@@ -306,10 +321,10 @@ Razor emits `RZ10012` (a *warning*) and renders `<empty>` / `<typographyh2>` as 
 carries both `TrBlazeUI.Components.Empty` and `TrBlazeUI.Components.Typography`.
 
 **Stale comments to ignore:** `Coverage.razor:28` ("TrBlazeUI 2.0.0 ships no Typography components"),
-`ThreeQuestions.razor:20` (TR-007, same claim) and `Routing.razor:15-18` ("These namespaces are NOT in
+`GateOutcomes.razor:20` (TR-007, same claim) and `Routing.razor:15-18` ("These namespaces are NOT in
 Components/_Imports.razor") all contradict the current `_Imports.razor`. `Repos.razor`, `Harness.razor`,
 `Routing.razor` and `Export.razor` use `TypographyH2` successfully; `Coverage.razor` and
-`ThreeQuestions.razor` still hand-roll `<h1 class="text-2xl font-semibold">`. Both work — just do not
+`GateOutcomes.razor` still hand-roll `<h1 class="text-2xl font-semibold">`. Both work — just do not
 believe the comments.
 
 ### 9. `TabsTrigger` captures no unmatched attributes
@@ -436,7 +451,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 | Region | Component | `data-testid` | Service call | Behind it |
 |---|---|---|---|---|
 | Sidebar shell | `SidebarProvider CookieKey="@SidebarPreference.CookieName"` → `Sidebar` | `app-sidebar` | — | `tflens-sidebar` cookie, written by TrBlazeUI |
-| Nav items | `SidebarMenuButton` ×7 | `nav-repos`, `nav-coverage`, `nav-three-questions`, `nav-harness`, `nav-routing`, **`nav-misses`**, `nav-export` | — | `ShellNavigation.Items` (order, label, Lucide name, section, `HasFrameworkSwitch` all live here). `/misses` was added 2026-08-28 **between** Routing and Snapshot export, icon `bug` |
+| Nav items | `SidebarMenuButton` ×7 | `nav-repos`, `nav-coverage`, `nav-gate-outcomes`, `nav-harness`, `nav-routing`, **`nav-misses`**, `nav-export` | — | `ShellNavigation.Items` (order, label, Lucide name, section, `HasFrameworkSwitch` all live here). `/misses` was added 2026-08-28 **between** Routing and Snapshot export, icon `bug` |
 | Repo badge | `SidebarMenuBadge` | `nav-repo-count` | `ShellState.RepoCount` | `IRepoRegistry.ListAsync(userId)` → `SELECT * FROM "UserRepo" WHERE "UserId" = @aUserId` |
 | Sidebar theme toggle | `ThemeToggle` | `theme-toggle-sidebar` | `ShellPreferences.SetThemeAsync` | JS `tflens.setTheme` → `tflens-theme` cookie + `<html class="dark">` |
 | Breadcrumb | `Breadcrumb` in `ShellHeader.razor` | — | `ShellNavigation.Breadcrumb(path)` | static table; `/profile` comes from `ExtraCrumbs` |
@@ -448,7 +463,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 | Toasts | `ToastProvider Position="BottomRight"` | — | `ToastService` | — |
 
 `ShellHeader.ShowsFrameworkSwitch` → `ShellNavigation.ShowsFrameworkSwitch(path)` → the item's
-`HasFrameworkSwitch` flag. It is **true on the six report routes only** (`/`, `/three-questions`,
+`HasFrameworkSwitch` flag. It is **true on the six report routes only** (`/`, `/gate-outcomes`,
 `/harness`, `/routing`, `/misses`, `/export`) — not on `/repos`, not on `/profile`. Verified live;
 `/misses` observed carrying `framework-switch` on 2026-08-28.
 
@@ -791,7 +806,7 @@ forks on that from the first press to the last column:
 The two are one `Dialog` with two panels, not two dialogs. Origin is *delivery*, not data: it is
 displayed here, on Coverage and in the export, and it **divides no figure** anywhere (ADR-021, and
 `SourceKindIsNeverASegmentTests` pins it). See
-[cross-cutting gotcha 13](#13-sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed) before
+[cross-cutting gotcha 13](#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed) before
 you touch either vocabulary.
 
 ![The Add-source dialog, Fetch via API](./devguide-images/repos-add-source.png)
@@ -1069,7 +1084,7 @@ a `<span>` inside. The build will not warn you.
   the row Sync button toasts *"Sync is not available in this build."* instead of throwing. Same pattern
   in `SyncNowButton`.
 - The `Records` column and `kpi-records` read `"SyncState"` counters. Seeded rows show `0` here while
-  Coverage shows the real totals. Not a bug in this page — [gotcha 6](#cross-cutting-gotchas--read-these-first).
+  Coverage shows the real totals. Not a bug in this page — [gotcha 6](#cross-cutting-gotchas-read-these-first).
 - `ReloadAsync` also calls `ShellState.RefreshAsync(userId)`, which is what keeps the sidebar badge and
   the header last-sync badge in step after a connect/remove. Drop that call and the shell goes stale.
 - `data-testid="repo-sync-{name}"` uses `UserRepo.Name` (the segment after `/`), not `owner/name`. Two
@@ -1082,7 +1097,7 @@ a `<span>` inside. The build will not warn you.
 - **The `Actions` column now renders one action button plus Remove**, not always two. The
   "is it blank?" note above still holds: they are icon-only.
 - **The dialog body scrolls, the dialog does not.** `.tflens-dialog-body` is load-bearing — see
-  [cross-cutting gotcha 11](#11-dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself).
+  [cross-cutting gotcha 11](#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself).
   Remove it and the import mode's footer goes below the fold at phone height. It also means a geometry
   gate can report a false overlap against the footer for a control scrolled out of view.
 - **Closing or switching modes forgets the staged bundle** (`ForgetBundleAsync` → JS `clearBundle`).
@@ -1235,7 +1250,7 @@ each**, 0 blank icons, no page-level horizontal scroll, no console or page error
   `Progress` bar is **fake** — it is set to 20 before the call and 100 after, with nothing in between.
   A long rebuild looks frozen at 20%.
 - Rebuild is also the only path that recomputes the `"SyncState"` counters
-  ([gotcha 6](#cross-cutting-gotchas--read-these-first)).
+  ([gotcha 6](#cross-cutting-gotchas-read-these-first)).
 - `OnParametersSetAsync` bails if `objIsLoaded`, so it loads **once** per component instance.
   Re-querying on a framework change is `OnFrameworkChanged`, subscribed to
   `ShellPreferences.Changed`, which compares `objFramework` to `objPreferences.Framework` and calls
@@ -1275,12 +1290,21 @@ one card with three skeleton lines. Every report page uses that same single-card
 
 ---
 
-## `/three-questions`
+## `/gate-outcomes`
 
-**File:** `src/TfLens/Components/Pages/ThreeQuestions.razor` · `@page "/three-questions"` ·
+**File:** `src/TfLens/Components/Pages/GateOutcomes.razor` · `@page "/gate-outcomes"` ·
 authenticated · `MainLayout` · Framework switch **shown**
 
-![Three questions](./devguide-images/three-questions.png)
+![Gate outcomes](./devguide-images/gate-outcomes.png)
+
+> **Runtime-verified 2026-09-01** as `tflensdemo@techierathore.com` against the configured dev database
+> (`WinPostgre localhost:5550/tflens`, 8 repos · 111 runs · 827 gates). All **31** controls render their data;
+> visual gate clean at 1280 and 390; 0 console errors. Screenshot re-captured this run — it now shows the
+> post-rename title (`Gate outcomes`), which the file did not after the `mv`.
+>
+> **Known issue (open):** the KPI `stat-sparkline` strokes `currentColor` under `@AccentClass`, so the failures
+> tile paints **amber** where `docs/mockups/gate-outcomes.html` and UIDesign §Design system specify `--chart-1`.
+> Fidelity, not function — `REQ-UI-018` is held at `Needs re-verify` for it (`MISS-TfLens-20260901-03`).
 
 **What it is for.** The page the product exists for: first-pass rate, escape rate and failures scored,
 read **one `project_type` at a time**. There is deliberately no "all" tab and no total row.
@@ -1339,8 +1363,8 @@ it ran.
 ### States
 
 - **Loading** — single `Card` of `Skeleton` lines.
-- **Error** — `Alert Danger` `three-questions-error` with the exception message.
-- **Empty** — `objTypes.Count == 0` → `Empty` `three-questions-empty`, "No gate records yet".
+- **Error** — `Alert Danger` `gate-outcomes-error` with the exception message.
+- **Empty** — `objTypes.Count == 0` → `Empty` `gate-outcomes-empty`, "No gate records yet".
 - **Insufficient data** — any `Figure` below `MinN` = 3 renders `insufficient data (n=…)` through
   `FigureText`. `SmallWhenNoNumber` shrinks it to `text-base font-normal` so a refusal-to-answer is
   never rendered at headline size.
@@ -1601,7 +1625,7 @@ answer into a flattering number:
    recompute anything in the view. That is why every engine rule still applies under a filter, and
    why a narrow window degrades to `insufficient data (n=…)` rather than to a wrong number.
 6. **An absent cost renders `—`, never `$0.00`,** and every `Figure` renders through
-   `Components/Shared/FigureText.razor` ([gotcha 7](#7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor)).
+   `Components/Shared/FigureText.razor` ([gotcha 7](#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor)).
 
 ### Control → data path
 
@@ -1790,16 +1814,16 @@ the raw-record disclosure open, and any apportioned or measured-dollar figure (n
 - **`CollapsibleContent` is guarded by an `@if`, not merely closed.** `TR-018`: a closed
   `CollapsibleContent` still lays its children out and overlaps what follows. Do not remove the guard.
 - **`Progress Class="w-16"`, not `w-20`.** See
-  [cross-cutting gotcha 10](#10-trblazeuicsss-spacingsizing-scale-has-holes--w-20-renders-at-zero-width) —
+  [cross-cutting gotcha 10](#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width) —
   `w-20` is absent from the shipped stylesheet and the share bars rendered at zero width.
 - **The chip icons are `circle-check`, not `check-circle`.** `TR-022`; the alias renders an empty box.
 - **This page reads `ITelemetryStore` directly and so bypasses `MemoryAnalysisCache`.** It is not
   served by the `CachingMetricsEngine` at all, which means it is *not* subject to
-  [gotcha 5](#5-memoryanalysiscache-is-keyed-on-the-syncstate-version) — seeded rows show up here
-  immediately while `/three-questions` may still serve a cached analysis. Two pages, two freshnesses.
+  [gotcha 5](#memoryanalysiscache-is-keyed-on-the-syncstate-version) — seeded rows show up here
+  immediately while `/gate-outcomes` may still serve a cached analysis. Two pages, two freshnesses.
 - **`FrameworkNames` is the axis, `project_type` is the segment, and they are different things.**
   There is deliberately no "all types" entry on `MissAnalysis.Live` and no total row anywhere on the
-  page — the same rule as `/three-questions` (ADR-007).
+  page — the same rule as `/gate-outcomes` (ADR-007).
 
 ### Deviation from `docs/TfLens-UIDesign.md`
 
@@ -1813,7 +1837,7 @@ the raw-record disclosure open, and any apportioned or measured-dollar figure (n
   class="tflens-table">` inside `.tflens-scroll-x`, because `DataTableColumn` needs a compile-time
   property per column and `miss_class` has no closed vocabulary — the columns are whatever the linked
   records carry. The `why_missed`, model, agent and detail tables *are* `DataTable`s, all with an
-  explicit `InitialPageSize` ([gotcha 1](#1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse)).
+  explicit `InitialPageSize` ([gotcha 1](#datatable-truncates-to-initialpagesize-even-with-showpagination-false)).
 
 ---
 
@@ -1897,7 +1921,7 @@ is one searchable string in the DOM.
   change, filter by joining `"UserRepo"."Framework"` — the store has no framework-scoped overload of
   this read.
 - `RecordTotal` sums the `"SyncState"` counters, so it reads `0` on seeded data
-  ([gotcha 6](#cross-cutting-gotchas--read-these-first)).
+  ([gotcha 6](#cross-cutting-gotchas-read-these-first)).
 - **There is deliberately no `/playbook` route.** The framework is chosen by the header switch, which
   re-queries every figure on the new axis.
 - `CopyShaAsync` depends on `tflens.copyText` in `wwwroot/app.js` and reports a refusal honestly
@@ -1930,7 +1954,7 @@ Selecting **Playbook** in the header switch writes `tflens-framework=playbook` a
 > the same day, which recorded the state before REQ-UI-034 / REQ-FN-067 / REQ-FN-070 were built.)*
 > Driving the switch to Playbook and visiting all five report pages: **every one** renders
 > `playbook-axis-note` and real figures rather than the empty state — `/` the `events` stream card plus
-> the observed-fields collapsible, `/three-questions` `pb-phases-all` and `pb-phases-/build-phase` with
+> the observed-fields collapsible, `/gate-outcomes` `pb-phases-all` and `pb-phases-/build-phase` with
 > a tab per process gate, `/harness` `pb-model-tokens` + `pb-measured-cost` + `pb-phases-harness`,
 > `/routing` its three panels including `pb-agent-split`, and `/export` the export surface. The
 > **separation rule still holds**: no `gate-dist-*` table is populated while the Playbook axis is
@@ -1987,14 +2011,14 @@ with the switch on Playbook:
 |---|---|---|---|
 | `/export` | ✅ | ✅ | Axis note, then the Phase-3 empty state |
 | `/` | ❌ | ❌ | Normal Coverage layout: the one Playbook repo card, `events` stream row, "GREEN — 1 repos synced" |
-| `/three-questions` | ❌ | ❌ | Normal layout, `three-questions-empty` ("No gate records yet") |
+| `/gate-outcomes` | ❌ | ❌ | Normal layout, `gate-outcomes-empty` ("No gate records yet") |
 | `/harness` | ❌ | ❌ | Normal layout, three `—` columns, `tokens-chart-empty` |
 | `/routing` | ❌ | ❌ | Normal layout, `drift-empty` |
 
 So on four of five report routes a user on the Playbook axis sees TechieFlow-shaped empty states and
 **no axis note at all** — the user-facing half of the `phase_gate` / `gate` separation rule is missing
 exactly where a reader is most likely to conflate the two. The `PlaybookPhaseTotals` and
-`PlaybookAgentSplitPanel` components the design specifies for the Three questions and Routing Playbook
+`PlaybookAgentSplitPanel` components the design specifies for the Gate outcomes and Routing Playbook
 states exist but are unreferenced.
 
 Coverage on the Playbook axis does behave correctly in one respect: `FrameworkNames.Streams("playbook")`
@@ -2013,7 +2037,7 @@ returns a single `events` stream, so the repo card's table renders one row rathe
 | `/profile` | `Components/Pages/Auth/Profile.razor` | `MainLayout` | `[Authorize]` | no |
 | `/repos` | `Components/Pages/Repos.razor` | `MainLayout` | fallback policy | no |
 | `/` | `Components/Pages/Coverage.razor` | `MainLayout` | fallback policy | **yes** |
-| `/three-questions` | `Components/Pages/ThreeQuestions.razor` | `MainLayout` | fallback policy | **yes** |
+| `/gate-outcomes` | `Components/Pages/GateOutcomes.razor` | `MainLayout` | fallback policy | **yes** |
 | `/harness` | `Components/Pages/Harness.razor` | `MainLayout` | fallback policy | **yes** |
 | `/routing` | `Components/Pages/Routing.razor` | `MainLayout` | fallback policy | **yes** |
 | `/misses` | `Components/Pages/Misses.razor` | `MainLayout` | fallback policy | **yes** |
@@ -2067,7 +2091,7 @@ overlap; a header that wraps to two rows does not overlap; a 71px value column t
 | `/harness` | `REQ-UI-023` | Every value cell is **71px** wide: `Cache read` `2,287,975,139` breaks across **3 lines mid-number**, `Runs by cmd` takes 10 lines, `Verdict mix` 14. `Verdict mix` also renders as a raw text dump instead of the mockup's pass-share bar + `78% pass`; the three harness icon tiles lost their tinted backgrounds. | layout |
 | `/` | `REQ-UI-014` | Two status badges per repo card (`Synced` + `synced`) where the mockup has one green pill; the `Days since` column is in the DOM but clipped off the card edge; 3 of 4 KPI cards render no sparkline, and the one that does is violet against the mockup's blue. | layout |
 | `/profile` | `REQ-UI-005` | `Member since` renders the raw ISO instant `2026-08-28T10:48:58.00636Z`; the change-password caption says passwords are encrypted **"before they leave the server"** where the mockup says **"browser"** — RSA-OAEP is client-side, so the shipped wording misstates the security property; `Role` and `Identity provider` lost their badges and captions; the identity email wraps mid-word. | data/logic + layout |
-| `/three-questions` | `REQ-UI-018` | KPI status-icon colours wrong (first-pass violet not green, escape green not amber); Live/Backfilled share bars lost their blue/violet fills; the type tab strip is shrink-to-fit, not full-width. | layout |
+| `/gate-outcomes` | `REQ-UI-018` | KPI status-icon colours wrong (first-pass violet not green, escape green not amber); Live/Backfilled share bars lost their blue/violet fills; the type tab strip is shrink-to-fit, not full-width. | layout |
 | `/export` | `REQ-UI-032`, `REQ-UI-033` | The `Export` card-header download icon button is missing; `Parity status` renders as plain text instead of a coloured status pill; the KV table adds a `Field \| Value` header row the mockup does not have. | layout |
 | `/misses` | `REQ-UI-036` | The `Measured USD on rework` tile lost the green ring and the inline `opencode · measured` badge that mark it as the only *measured* dollar figure — exactly the distinction the mockup's own note says a reader must not lose. | layout |
 | `/repos` | `REQ-UI-011` | `Filter repos...` moved to its own left-aligned row (mockup right-aligns it on the heading row) and lost its magnifier icon; sparkline colours inconsistent between tiles. | layout |
@@ -2077,3 +2101,53 @@ overlap; a header that wraps to two rows does not overlap; a 71px value column t
 an earlier harness used the wrong cookie name). The four Playbook-axis mockups are **not comparable**:
 no connected repository emits `events.ndjson`, so the Playbook axis has 0 repos and renders its empty
 state — the documented owner blocker, not drift.
+
+### Update 2026-09-01 (`*fix-issues`) — `/harness`, `/export` and `/gate-outcomes` are closed
+
+`mockup-parity` **39 findings → 18**, and every finding on `REQ-UI-022`/`023`/`024`/`025`/`032`/`033`'s
+own controls is gone. Evidence: `tests/.artifacts/gates/mockup-parity.json`, screenshots under
+`tests/.artifacts/harness-fix/`.
+
+| Screen | What changed | Observed after |
+|---|---|---|
+| `/harness` | The tokens chart drops ApexCharts' defaults for the design's own composition: no y axis, no gridlines, no plot frame, one compact label above each bar. `BarChart` cannot express any of that (**TR-028**), so `ApexChart` — the component it wraps — is used directly for its `Options`. The `Harness \| Total tokens` table is removed; the design has none, and the labels it existed to substitute for now exist. Card titles at the design's 16px. | 1 finding, the `app-sidebar clip@1280` that fires on all ten screens (TF-012). Bar labels measured `3.2B` · `814k` · `18.5M`; y-axis label count **0**. |
+| `/harness` kv tables | The table runs edge to edge on the mockup's `card-c flush`, 40/60 split, 16px cell padding — the value cell went **142px → 185px** against the design's 184px at the same 1280 viewport. `insufficient data (n=0)` holds one line at both widths. | No `wrap` finding on `harness-opencode-tokens-per-verified` at either width. |
+| `/export` | Dataset identity is held whole: SHA, branch, repo slug and sync age are `nowrap` and the SHA column carries a `min-width`. Long paths and commands carry `<wbr>` at their separators (new `PathText`), and `overflow-wrap: anywhere` — which breaks at the first character that will not fit — is replaced by `break-word`. The header chip is the design's blue `chart-1`. | 17 findings → 8, and **every `token` finding is gone**. |
+| `/gate-outcomes` | The *Late-gate coverage* card header carries the mockup's clock chip again; the `live records only` Badge that stood in its place moved into the description rather than being dropped. | No finding on `REQ-UI-022`'s elements. |
+
+**Two classes of finding on `/export` are adjudicated and were deliberately NOT acted on.** (1) `badge`
+on `export-now-icon`: the mockup's decorative `.chip` is a real icon `Button` here, and the extractor's
+`isBadge()` returns false for anything `INTERACTIVE` — the *colour* half of that pair was real and is
+fixed. (2) Five `snapshots-table` wraps: the mockup's five columns are
+`date \| parser version \| parity status \| snapshot.md \| tflens.json` and the app's six add
+`framework`, so app `td[3]`/`td[4]` pair against the design's `td[4]`/`td[5]` — a column offset, verified
+by reading both tables, not a wrap.
+
+**A gate bug was fixed in the same pass (`REQ-NFR-020`).** `_mockup-parity.ts`'s `tokenFit` read
+`textContent`, which skips `<wbr>` — the one element whose entire purpose is to mark a legal break — so
+it went on reporting a mid-token break on a path that no longer breaks. It now walks the subtree and
+treats `<wbr>` as whitespace, as the browser does.
+
+### Update 2026-09-01 — static assets are content-fingerprinted (`REQ-NFR-015`)
+
+`Program.cs` calls `MapStaticAssets().AllowAnonymous()` in place of `UseStaticFiles()`, and `App.razor`
+routes **every** stylesheet and script through `Assets[...]`. `UseStaticFiles` sent no `Cache-Control`
+at all, so a browser reused its pre-rebuild copy heuristically — the cause of the unstyled `/login`
+(2026-08-28) and of `/harness` rendering as three full-width stacked tables with raw `Metric \| Value`
+headers (2026-08-30), both while the server answered every asset correctly. **When debugging a "the CSS
+is wrong" report, check the asset URL carries its `?v=` fingerprint before looking at the stylesheet.**
+
+`.AllowAnonymous()` is load-bearing: `MapStaticAssets` registers endpoints, which inherit BRD-2's
+fallback authorization policy, so without it an anonymous visitor's request for
+`AuthForms.<hash>.razor.js` 302s to `/login` and the sign-in form's JS module never imports.
+
+### Update 2026-09-01 — a dead scoped-CSS rule now fails the build (`REQ-NFR-021`)
+
+`tests/TfLens.Guardrails.Tests/ScopedCssTests.cs` fails the build on two things: a malformed
+`*.razor.css` (unbalanced comment or brace), and a rule whose pre-`::deep` selector targets a class the
+colocated `.razor` never writes. **When you add a rule to `X.razor.css`, the element it targets must be
+authored in `X.razor`.** A class you pass as `Class="…"` to a *child* component lands on that child's
+root, which carries the child's scope attribute — the rule will not match, and this check cannot see it
+because the name is in the markup. Wrap the child in an element you own and reach in with `::deep`.
+For a class something else applies (framework JS, for instance), declare it:
+`/* REQ-NFR-021 external: name-one, name-two */`.

@@ -12,9 +12,23 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-- **4 blockers, 3 majors, 1 minor, 0 nice-to-haves** — 8 entries, of which **5 are resolved** and
-  **3 are open** (`TF-005`, `TF-007`, **`TF-008`**).
-- Last consolidated: 2026-08-29
+- **5 blockers, 5 majors, 2 minors, 0 nice-to-haves** — 12 entries, **all 12 now fixed upstream** and
+  awaiting re-verification here.
+- **Fixed 2026-08-31 (the last seven):** `TF-005`, `TF-007`, `TF-008`, `TF-009`, `TF-010`, `TF-011`,
+  `TF-012`. See **Resolution status (TechieFlow team, 2026-08-31)** below — it carries the per-entry
+  verification recipe, and it is the part of this file worth reading first.
+- **Three things in that block need action here, not just re-verification:**
+  1. **`DECISIONS.md` D-012 can be retired.** `tf-metrics.sh` now publishes
+     `tokens_per_miss_measured_n`, so TfLens can agree with the reference *and* be correct — the
+     position `TF-005` said was impossible. The deliberate divergence has no reason left to exist.
+  2. **Drop the `TF-010` post-render patch.** `tf-render-html.sh` emits the CTA box itself now, so the
+     patch is not merely unnecessary — it will be overwritten and then re-applied forever by a phase
+     that has no reason to.
+  3. **Two defects the framework found while fixing these, both plausibly present in TfLens too:** a
+     miss-record enum that was never validated on write, and a `cost_attribution` recount that
+     short-circuited on a stored `sole` **in the headline cost column**. Both are described at the end
+     of the 2026-08-31 block with the one-line fix.
+- Last consolidated: 2026-08-29; appended 2026-08-30 (`TF-009`–`TF-012`); resolved 2026-08-31.
 
 **Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
 `Low` = minor. Nothing here is filed nice-to-have. Entry bodies keep their original `High`/`Medium`/`Low`
@@ -22,23 +36,35 @@ wording, so no recorded severity was silently reinterpreted.
 
 | Band | Count | Entries | State |
 |---|---|---|---|
-| **Blocker** (High) | 4 | TF-001 · TF-003 · **TF-007** · **TF-008** | TF-001/TF-003 ✅ 2026-08-27; **TF-007 open** (no asset-integrity gate); **TF-008 open** (no mockup-parity gate, raised 2026-08-29) |
-| **Major** (Medium) | 3 | **TF-005** · TF-002 · TF-006 | **TF-005 open**; TF-002 ✅ 2026-08-27; TF-006 ✅ 2026-08-28 |
-| **Minor** (Low) | 1 | TF-004 | ✅ fixed 2026-08-28 |
+| **Blocker** (High) | 5 | TF-001 · TF-003 · TF-007 · TF-008 · TF-011 | TF-001 / TF-003 ✅ 2026-08-27 · **TF-007 ✅ 2026-08-31** (`tf-assets.sh`, gate §4a2) · **TF-008 ✅ 2026-08-31** (`tf-mockup-parity.sh`, gate §4b2) · **TF-011 ✅ 2026-08-31** (coverage published; `UNGRADEABLE` replaces the false `PASS`) |
+| **Major** (Medium) | 5 | TF-002 · TF-005 · TF-006 · TF-009 · TF-012 | TF-002 ✅ 2026-08-27 · TF-006 ✅ 2026-08-28 · **TF-005 ✅ 2026-08-31** (divisor + `_n`, SCHEMA §5.5.8) · **TF-009 ✅ 2026-08-31** (`stroke`, the seventh class) · **TF-012 ✅ 2026-08-31** (sr-only excluded from `clip` / `wrap` / `token`) |
+| **Minor** (Low) | 2 | TF-004 · TF-010 | TF-004 ✅ 2026-08-28 · **TF-010 ✅ 2026-08-31** (renderer emits the CTA box) |
 | Nice-to-have | 0 | — | — |
+
+**The band counts are corrected here.** The previous table read 4 / 4 / 1 against a 5 / 5 / 2 summary
+line and omitted `TF-011` and `TF-012` entirely — they were appended on 2026-08-30 after the table was
+last rebuilt. The severity of every entry is unchanged; only the tally and the membership are.
 
 The two **Resolution status** blocks below are the correspondence with the TechieFlow team and are kept
 in full — they are the most useful part of the record for the receiving team. Nothing in them was
 deleted; the only edits are the `TF-005` → `TF-006` renumbering described next.
 
-### The one open entry
+### No open entries
 
-**`TF-005`** — `analyse_misses` averages an unrecorded `tokens_out` as **zero**, so a repair whose cost
-was never recorded is counted as a free repair and rework is understated. TfLens deliberately diverges
-rather than reproduce a figure it believes is wrong; the divergence is recorded as `DECISIONS.md`
-**D-012** and is **latent, not live** — every dataset seen so far carries the field, so the BRD §13
-parity gate currently passes at exit 0 (P-003). If that gate ever fails on `tokens_per_miss_*`, it is
-this decision surfacing and the fix is upstream, not here.
+All twelve are fixed upstream as of 2026-08-31. What remains is **re-verification from this side** —
+TechieFlow does not close a consumer's entries — plus the three action items in the Summary above.
+
+**One thread worth following to its end, because it is the whole argument for filing rather than
+working around.** `TF-005` said a consumer was put in an unwinnable position: reproduce a figure it
+believed was wrong, or fail its own zero-tolerance parity gate. TfLens chose neither and **filed**,
+recording the divergence as `DECISIONS.md` **D-012** with a test (`AFixCarryingNoTokenCountIsNotCountedAsZero`)
+and a comment at the call site warning the next reader not to "fix" it by adopting the reference's
+number. That divergence stayed latent for three days and is now **resolved in TfLens's direction** —
+the reference publishes its denominator, so both implementations are correct and agree. D-012 can be
+retired, and the comment it guards can go with it.
+
+That is the same shape as `TF-006`: a defect reported instead of decided alone, and a framework rule
+that grew a legal move as a result.
 
 ### What changed in the 2026-08-28 consolidation
 
@@ -74,6 +100,41 @@ this decision surfacing and the fix is upstream, not here.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-08-31)
+
+**All seven open entries are FIXED upstream — `TF-005`, `TF-007`, `TF-008`, `TF-009`, `TF-010`, `TF-011`, `TF-012`.**
+Deploy with `update-framework.sh <repo>`, then re-verify from your side and close them; TechieFlow does
+not close a consumer's entries for it. Framework-side record: `WorkFlow-Context.md` §5, 2026-08-31 entry.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-005** | `analyse_misses` now divides by the records that **carry** `tokens_out`, and **publishes the divisor**: `tokens_per_miss_measured_n`, `tokens_per_miss_apportioned_n`, `tokens_unrecorded_sole_n`, `tokens_unrecorded_shared_n`. The rule is generalised in SCHEMA **§5.5.8** — *every mean over an optional field divides by the records that carry it, and the excluded records are counted and reported.* | Run your own repro: three `sole` fixes at 100/200/300 plus one with no `tokens_out` now returns **`200.0`, `_n: 3`, `unrecorded: 1`** — the figure your entry asked for. **`DECISIONS.md` D-012 can be retired**: with `_n` on the wire the two implementations agree by construction, so you no longer have to choose between matching the reference and being right. |
+| **TF-007** | New gate. **`bash .tfcore/utils/tf-assets.sh --base <url> --paths "/,/login"`** — parses what the document **declares** (`<link rel=stylesheet>`, `<script src>`, preload/modulepreload/icon), resolves against `<base href>`, and asserts **200 with a non-empty body** for each. `assets` is in the `gate` enum and `gates_run` (SCHEMA §3.2), `missing-asset` in `failure_class` (§3.3), and it is in `LATE_GATES` from day one (§3.5). `verify-phase` **§4a2**, between §4a and §4b. | 404 one stylesheet → **exit 5**, `findings[].problem: "status-404"`. Healthy page → **exit 0 in ~100 ms**. Auth wall → **exit 4**, `ASSETS-UNMEASURED`, and `assets` omitted from `gates_run`. Your `tests/verify/asset-integrity.spec.ts` can stay as a second opinion or go; the framework now owns the check. |
+| **TF-007 c1** | New audit, wired into **both scaffolds, `update-framework.sh` (block 8b2), and day-1 §5b in both variants**: `bash .tfcore/utils/tf-gitignore-audit.sh . --fix`. It detects the stack **from the tree** (never from `core-config.yaml` — that file is rsynced between projects), appends the missing build-output rules, **and reports build output that is already TRACKED**, which is the half that matters: a tracked file is never ignored. **No git** — it parses `.git/index` directly and prints the `git rm -r --cached <path>` lines for you to run. | Run it on TfLens. Expect it to name your `bin/`/`obj/` paths precisely (it emits the output directory, never an ancestor — `src/App/bin`, not `src/App`). Day-1 §5b now says in as many words that the agent which generated the file and did not read it was responsible — your correction is on the record. |
+| **TF-008** | New gate. **`bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen name=/route …`** (Playwright, which §1 already provisions). Structural, never pixel-wise, at 1280 and 390. `mockup-parity` is in the `gate` enum and `gates_run`, `mockup-drift` in `failure_class`, in `LATE_GATES`. `verify-phase` **§4b2**; §4b's old prose "mockup diff" bullet is **deleted** — it was the thing that caught none of this. | Your five escape rows are the acceptance test: header wrap, starved value column, clipped column, status pill as plain text, and the measured-vs-estimate tile. Also `document.scrollHeight <= clientHeight + 2` per route — your `/routing` void (2607px against 900) fails on its own. |
+| **TF-009** | **`stroke` is the seventh class**, exactly as you specified: `border-*-style` quantised to `none` / `solid` / `dashed` (dotted folds into dashed), the four sides' agreement, and `border-width: 0` vs a visible rule — your suggestion 3, taken. A mockup `dashed` against an app `solid` fails, and the finding text says *why* it matters, so the next reader does not have to rediscover that a dashed rule means "estimate". | Point it at `docs/mockups/misses.html` vs `/misses` before your repair. Reproduced here on a fixture built from your exact markup: `kpi-rework-usd-estimate` — *"border style differs — mockup dashed, app solid"* at both widths, with the semantic bucket still `neutral` on both sides, so no phantom `color` finding is invented. |
+| **TF-010** | `tf-render-html.py` now special-cases `PROJECT-STATUS.md`: it reads the first fenced code block under `## Next command to run` and emits the §5 markup immediately after the subtitle `<div>`, above the frontmatter table and the inline TOC. `--cta-bg` finally has a consumer. `render-workflow-docs.md` §5 was rewritten to say the renderer emits it and **you must not hand-patch it**; the Output Checklist item is now falsifiable — `grep -c "NEXT COMMAND TO RUN" PROJECT-STATUS.html` must print `1`. | Re-render and grep. If it prints `0`, the source has no `## Next command to run` code block — that is a status-gate defect in the markdown, and the renderer emitting nothing there is deliberate: an absent box is honest, an invented command is not. **Drop the post-render patch; it is superseded.** |
+| **TF-011** | Three of your four suggestions, in your order of value. **(1)** Every screen publishes `coverage: {compared, content_graded, app_controls, mockup_anchors, ungradeable}` and the verdict is **`UNGRADEABLE`**, never `PASS`, when no clause that reaches *inside* a container ever fired. `UNGRADEABLE` is `NOT-OBSERVABLE`, emits **no gate record**, and may not license a `Verified` — written into SCHEMA §3.5 and `verify-phase` §6. Your point that a raw anchor ratio is the wrong measure is taken verbatim: the floor counts **comparisons that could have produced a finding**, not anchors. **(2)** `anchor_deficit.add_data_testid_to_mockup` lists the app testids the mockup lacks. **(3)** The walker descends **any** anchored subtree by structural path key — card, column, grid, `<dl>`, list and table alike, not tables only. | On a fixture rebuilt from your `harness` case — a mockup anchoring only the three column containers — the old shape gives `PASS / 0 findings`; this one finds **both** defects the owner found by eye: the missing card-header chips and the wrapping label column. Suggestion **(4)** (a structural fallback for wholly unanchored regions) was **not** taken — `UNGRADEABLE` already refuses the false green, and a fallback with known false positives would buy noise instead. Say if you still want it. |
+| **TF-012** | `isHidden()` skips any element with a rect under 2px in either axis, `clip-path: inset(50%)`, or `clip: rect(0,0,0,0)` — **and its subtree is excluded when measuring an ancestor's overflow**: where a hidden descendant exists, the ancestor is measured from the right edge of its **visible** descendants instead of `scrollWidth`. Applied to `wrap` and `token` as well as `clip`, as you asked, and the walker skips hidden elements outright so they never become comparison keys. | The canonical sr-only recipe from your table — `<label>Dark mode</label>` and `<span class="sr-only">Toggle Sidebar</span>` inside `app-sidebar` — was reproduced verbatim. A correct app carrying both produces **`PASS`, 0 findings, exit 0**. Your 8 hand-adjudicated findings will not come back, and that adjudication no longer has to be redone by the next reader. |
+
+### The two questions you left open for the owner — both answered
+
+1. **Constraint 1 is narrowed. You were right, twice.** `_metrics-emit-gate.md` constraint 1 now reads: **`tf-metrics.sh` is owner-run in its `--backfill-*` modes only.** `--report` / `--rollup` / `--phases` are **agent-safe** — read-only, no git in the path. The old blanket wording contradicted the script's own header, `has_commit_hook()`'s docstring, and `metrics-report.md` §1, which has always told agents to run `--report`. **Your §13 parity procedure is runnable in-session**, and the TF-006 report-side checks you verified by reading code can now simply be run.
+2. **Your BRD F-PARITY row and the `Miss-Telemetry-TfLens.md` `TF-005`→`TF-006` citations are still yours**, and both are still right to be: the first is specification territory (`*amend-docs`), the second is a file in this repo — **now corrected here**, see below.
+
+### Corrected on our side, since they are our files
+
+- `docs/Miss-Telemetry-TfLens.md` lines 6, 12 and §0.65 cite `TF-005` meaning the `miss-amend` entry. **Fixed to `TF-006`** — thank you for reporting rather than editing; that was the right call and it is the reason §5.5.7 exists at all.
+
+### Two defects your entries surfaced that you did not report — both ours, both now fixed
+
+Logged in our own stream, because a framework defect is exactly as countable as an app's:
+
+1. **`tf-emit.sh` validated the `miss-amend` allowlist meticulously and a `miss` record's own enums not at all.** A typo in `miss_class` landed permanently on an append-only stream, invented a category in every distribution built on it, and **could not be corrected** — `miss_class` is not amendable, and constraint 5 forbids editing the file. Found by making exactly that typo while logging these entries. The emitter now refuses any value outside the closed vocabularies of `miss_class` / `artifact` / `severity` / `found_by` / `why_missed` / `verdict_after` / `fix_cmd`, prints the reason and the allowed values, and appends nothing (SCHEMA **§5.5.7b**). **This one is worth mirroring in your ingest** — you already re-check the amend allowlist on read; these enums deserve the same treatment for the same reason.
+2. **`analyse_misses` honoured a stored `cost_attribution: "sole"` and skipped the report-time recount — in the headline column.** The emitter stamps attribution one record at a time, so a run closing nine misses writes `sole`, `shared:2` … `shared:9`; the **first** record is `sole` because at that instant it was the only miss the run had closed. The recount that §5.5.3 exists to perform then short-circuited on it, so **one entire multi-miss token window was reported as the measured cost of a single repair, once per multi-miss run, silently and upward.** On this repo it inflated `cost_sole_n` from 2 to 3 and produced a `tokens_per_miss_measured` of **99,974** where the honest answer is *insufficient data (n=2)*. The recount now wins over the stored value, `sole` included. **Check your `MissFigures` for the same short-circuit** — the fix is one condition.
 
 ---
 
@@ -227,17 +288,26 @@ Owner's policy call.
 
 ## Entries
 
-Ordered **blocker → major → minor**, then open before resolved. IDs are unchanged apart from the
-documented `TF-005`/`TF-006` collision fix; the order is a reading aid, never a renumbering.
+Ordered **blocker → major → minor**. IDs are unchanged apart from the documented `TF-005`/`TF-006`
+collision fix; the order is a reading aid, never a renumbering. **Nothing is open** — every entry
+carries a dated resolution banner in its own body, and the per-entry verification recipes are in the
+2026-08-31 resolution block above. The entries are kept in full as the record of what was wrong and why;
+that record is the point, not the status.
 
 | ID | Band | Severity | Status | Component | Summary |
 |----|------|----------|--------|-----------|---------|
 | [TF-001](#tf-001--tf-metricssh-never-de-duplicates-the-sessions-stream-so-sessions-and-token-totals-are-overstated) | Blocker | **High** | ✅ **Fixed 2026-08-27** | `tf-metrics.sh` | Sessions stream is never de-duplicated, so session counts and every token total derived from them are overstated. Blocked every consumer's parity check. |
 | [TF-003](#tf-003--generate-html-has-no-renderer-html-is-hand-authored-by-the-model-from-a-494-line-spec) | Blocker | **High** | ✅ **Fixed 2026-08-27** | `*generate-html` | No renderer shipped; the agent hand-authored every HTML file from a 494-line spec. `tf-render-html.sh` now ships and the task calls it — verified here on 5 documents / 392 KB. |
-| [TF-005](#tf-005--analyse_misses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework) | Major | Medium | 🔴 **OPEN** — the only open entry | `tf-metrics.sh` | `analyse_misses` averages an unrecorded `tokens_out` as **zero**, so an unmeasured repair counts as a free one and rework is understated. TfLens deliberately diverges — `DECISIONS.md` **D-012**. |
+| [TF-005](#tf-005--analyse_misses-averages-an-unrecorded-token-count-as-zero-understating-the-cost-of-rework) | Major | Medium | ✅ **Fixed 2026-08-31** | `tf-metrics.sh` | `analyse_misses` averaged an unrecorded `tokens_out` as **zero**, so an unmeasured repair counted as a free one and rework was understated. Divisor now excludes them and **publishes `_n`** (SCHEMA §5.5.8) — `DECISIONS.md` **D-012** can be retired. |
 | [TF-002](#tf-002--tf-perfsh-cannot-measure-an-authenticated-app-and-does-not-say-so) | Major | Medium | ✅ **Fixed 2026-08-27** · **exercised in the field 2026-08-28** | `tf-perf.sh` | No cookie/auth option, so on a login-gated app it timed the redirect and reported it as a page-load figure. |
 | [TF-006](#tf-006--a-schema-field-added-mid-session-leaves-already-emitted-records-incomplete-with-no-append-only-way-to-complete-them) | Major | Medium | ✅ **Fixed 2026-08-28** | `misses.jsonl` schema | A field added to the schema after a record was written could never be filled in: the correction rule says "a new record, never an edit", but the stream had no correction record kind and re-emitting is barred by the collapse rule. **Filed as `TF-005`; renumbered — see its heading note.** |
 | [TF-004](#tf-004--tf-render-htmls-checklist-guard-matches-any--checklistmd-not-just-the-requirements-checklist) | Minor | Low | ✅ **Fixed 2026-08-28** | `tf-render-html` | Refused any file ending `-Checklist.md`, including a human deployment runbook. The ban is meant for the agent's Requirements checklist only. |
+| [TF-007](#tf-007--the-gate-set-has-no-asset-integrity-gate-so-a-page-can-lose-its-entire-stylesheet-and-every-gate-still-passes) | Blocker | **High** | ✅ **Fixed 2026-08-31** | gate set | No asset-integrity gate, so a page could lose its entire stylesheet and every gate still passed. **`tf-assets.sh` + `verify-phase` §4a2** now assert every declared asset arrived. Companions also shipped: `tf-gitignore-audit.sh` and the unreproducible-construct rule. |
+| [TF-008](#tf-008--no-gate-compares-a-built-screen-to-its-approved-mockup-so-a-screen-can-lose-its-entire-design-and-every-gate-still-passes) | Blocker | **High** | ✅ **Fixed 2026-08-31** | gate set | No gate compared a built screen to its approved mockup. **`tf-mockup-parity.sh` + `verify-phase` §4b2** — eight structural classes at two viewports, plus the `document.scrollHeight` assertion. §4b's prose "mockup diff" bullet is deleted. |
+| [TF-009](#tf-009--mockup-parity-grades-six-structural-classes-but-not-border-style-so-a-tile-can-lose-its-this-is-an-estimate-treatment-and-every-gate-still-passes) | Major | Medium | ✅ **Fixed 2026-08-31** | `mockup-parity` | Blind to `border-style`, so an estimate tile could ship styled exactly like a measured one. **`stroke` is the seventh class**, with `border-width: 0` vs a visible rule as suggestion 3 asked. |
+| [TF-010](#tf-010--render-workflow-docs-5-requires-a-next-command-to-run-box-on-project-statushtml-that-tf-render-htmlsh-never-emits) | Minor | Low | ✅ **Fixed 2026-08-31** | `tf-render-html` | §5 mandated a "NEXT COMMAND TO RUN" box the renderer never emitted, and the patch was overwritten by every render. The renderer emits it now; `--cta-bg` finally has a consumer. |
+| [TF-011](#tf-011--mockup-parity-reports-an-unqualified-pass-on-a-screen-it-graded-almost-none-of-because-its-depth-is-bounded-by-the-mockups-data-testid-count) | Blocker | **High** | ✅ **Fixed 2026-08-31** | `mockup-parity` | Reported an unqualified `PASS` on screens it graded almost nothing of — *the less it could see, the cleaner its verdict looked.* Coverage is published per screen and the verdict is **`UNGRADEABLE`**, never `PASS`, below the floor; the walker now descends cards and grids, not only tables. |
+| [TF-012](#tf-012--the-clip-clause-counts-screen-reader-only-text-as-overflow-so-every-accessible-screen-fails-it) | Major | Medium | ✅ **Fixed 2026-08-31** | `mockup-parity` | Counted screen-reader-only text as overflow, failing 8 of 10 screens identically — the fastest way to train a reader to skim a report. Visually-hidden elements are skipped, and excluded from an ancestor's overflow measurement. |
 
 ---
 
@@ -550,6 +620,31 @@ renderer and silently diverges from the shell.
 
 ## TF-005 — `analyse_misses` averages an unrecorded token count as zero, understating the cost of rework
 
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **Your suggested fix was taken, including the `_n` key, and generalised into a schema rule.** The
+> divisor is now the records that CARRY `tokens_out`; `tokens_per_miss_measured_n`,
+> `tokens_per_miss_apportioned_n`, `tokens_unrecorded_sole_n` and `tokens_unrecorded_shared_n` are all
+> published, and SCHEMA **§5.5.8** states the general form — *every mean over an optional field divides
+> by the records that carry it, and the excluded records are counted and reported.*
+>
+> Verified against **your exact repro**: three `sole` fixes at 100/200/300 plus one carrying no
+> `tokens_out` now returns **`200.0`** with `_n: 3` and `unrecorded: 1`, where it returned `150.0`
+> before.
+>
+> **The `_n` key is the part that mattered most**, and your entry was right about why: it dissolves the
+> unwinnable position rather than merely moving it. With the denominator on the wire a consumer can
+> agree with the reference *and* be correct, so **`DECISIONS.md` D-012 can be retired** — along with the
+> call-site comment warning the next reader not to adopt the reference's number.
+> `MissCostTests.AFixCarryingNoTokenCountIsNotCountedAsZero` should now pass against parity rather than
+> against a divergence.
+>
+> **Your "if the current behaviour is intended" branch was declined deliberately.** Making `tokens_out`
+> mandatory on a `sole` record would have made the absent case unreachable — but it would also have made
+> `tf-emit.sh` refuse to record a miss-fix whose run had no computable window, which is a real and honest
+> state (§5.5.3 `none`). Excluding beats forbidding here.
+
+
 **Severity:** Medium — the figure is wrong only on datasets where some `sole` fix records carry no
 `tokens_out`, but it is wrong in the direction that flatters the framework, and it forces every
 consumer to choose between agreeing with the reference and being correct.
@@ -689,7 +784,7 @@ the harness to measure honestly.
 
 ```bash
 bash .tfcore/utils/tf-perf.sh --base http://localhost:5099 \
-     --paths "/,/three-questions,/harness,/routing,/export" \
+     --paths "/,/gate-outcomes,/harness,/routing,/export" \
      --levels 1 --requests 12 --build-config Release
 ```
 against any app whose routes require a login.
@@ -957,6 +1052,33 @@ The content check is the more robust of the two and does not depend on naming di
 
 ## TF-007 — the gate set has no asset-integrity gate, so a page can lose its entire stylesheet and every gate still passes
 
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **The gate shipped, and both companions with it.**
+>
+> - **`bash .tfcore/utils/tf-assets.sh --base <url> --paths "/,/login"`** — reads what the document
+>   *declares* and asserts a **200 with a non-empty body** for each. `verify-phase` **§4a2**, between §4a
+>   and §4b exactly as asked. `assets` is in the `gate` enum and `gates_run`, `missing-asset` in
+>   `failure_class`, and it is in `LATE_GATES` from the day it shipped so its share is never read against
+>   a total that predates it. **Exit 5 on your fixture; exit 0 in ~100 ms on a healthy page.** It grades
+>   **same-origin by default** — a flaky CDN failing every screen is the cry-wolf failure that costs more
+>   than the defects it catches — with `--include-external` to opt in.
+> - **Companion 1** — `tf-gitignore-audit.sh`, wired into both scaffolds, `update-framework.sh`, and a new
+>   **day-1 §5b** in both variants. It detects the stack **from the tree**, adds the build-output rules,
+>   and reports build output that is **already tracked**, which is the half you correctly said matters. No
+>   git: it parses `.git/index` directly and prints the un-tracking commands for the owner to run.
+>   **Your attribution correction is on the record in the task itself** — day-1 §5b says in as many words
+>   that the agent which generated the file and did not read it was responsible, and that the audit exists
+>   to make the mistake harder rather than to move the blame.
+> - **Companion 2** — `_smoke-test-policy.md` now carries *"If the harness cannot reproduce a construct's
+>   failure, the harness cannot sign it off either"*, and takes your conclusion as the general answer:
+>   prefer replacing the construct with one the harness can drive. Nine clean reproduction attempts are
+>   evidence the harness cannot see the defect, not evidence there is none.
+>
+> **Your reading of why the visual gate could never have caught this is quoted in §4a2 verbatim**, because
+> it is the sharpest sentence in the entry: *partial breakage overlaps; complete breakage stacks neatly.*
+
+
 **Severity:** High · **Raised:** 2026-08-28 · **Status:** open · **Found by:** owner, UAT
 
 ### What happened
@@ -1053,6 +1175,29 @@ Two smaller companions, both from the same session and both currently unowned by
 
 ## TF-008 — no gate compares a built screen to its approved mockup, so a screen can lose its entire design and every gate still passes
 
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **`bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen name=/route …`** ships, and
+> `verify-phase` **§4b2** runs it. Structural, never pixel-wise — your reasoning that pixel diffing on
+> live data would be switched off within a week is recorded as the reason.
+>
+> Both numbered asks are in: **(2)** `document.scrollHeight <= clientHeight + 2` on every route, which
+> catches your `/routing` void on its own; **(3)** a screen with no mockup is **`NO-MOCKUP`**, never a
+> silent pass. Ask **(1)**'s fail list is implemented as eight classes — `badge` · `icon` · `color` ·
+> `stroke` · `wrap` · `clip` · `token` · `missing` — and your five escape rows were the acceptance test.
+>
+> **One class you did not ask for, added because your own escape table needed it: `missing`.** Key
+> pairing cannot see an element that is *not there*, so "a badge rendered as bare text" and "a missing
+> icon" — the first two rows of your table — were invisible to every clause. It is deliberately narrow
+> (only a mockup element that is chrome or carries an icon, and only when its parent paired), because an
+> unrestricted DOM-shape diff would fire on every wrapper div and become the always-present finding
+> `TF-012` warns about.
+>
+> **`verify-phase` §4b's prose "mockup diff" bullet has been deleted, not amended.** It was the
+> framework's mockup check, it had shipped for months, and it caught none of this — which is why this
+> entry is logged as a framework miss (`wrong-behaviour`) rather than only as a gap.
+
+
 **Severity:** High (blocker)
 
 **Encountered in:** `*triage-issues` / `*fix-issues`, TfLens, 2026-08-29. Owner UAT: *"it's still not
@@ -1125,3 +1270,439 @@ telemetry now says so numerically — `insufficient-verify-method` is **24 of 46
 records, and the `app` escape rate is **91%**, with `escaped` (22) larger than every real gate catch
 combined (5). Adding acceptance criteria does not help: in every case above the acceptance existed and
 was met. The missing thing is a gate that can fail.
+
+---
+
+## TF-009 — `mockup-parity` grades six structural classes but not `border-style`, so a tile can lose its "this is an estimate" treatment and every gate still passes
+
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **`stroke` is the seventh class**, built to your spec: `border-*-style` quantised to the three values
+> that carry meaning (`none` / `solid` / `dashed`, with dotted folding into dashed), whether the four
+> sides agree, and — your suggestion 3 — `border-width: 0` versus a visible rule.
+>
+> Reproduced here on a fixture built from your markup: mockup `dashed` against app `solid` on
+> `kpi-rework-usd-estimate` fails at **both** widths, while the semantic bucket stays `neutral` on both
+> sides so no phantom `color` finding is invented — the property you were careful to preserve when you
+> repaired it.
+>
+> **Your second point is why the class earns its keep, and it is written into the finding text itself:**
+> `border-style` is how a hand-drawn mockup says *provisional / estimated / inactive* without spending a
+> colour, precisely because it stays legible on both surfaces. The finding says so, so the next reader
+> does not have to rediscover that a dashed rule means "estimate".
+
+
+**Severity:** Medium (major)
+
+**Encountered in:** `*build-phase`, TfLens, 2026-08-30, REQ-UI-036 / BRD-123 on `/misses`. Direct
+follow-up to **`TF-008`**, whose own escape table already names this exact symptom — *"Measured-vs-estimate
+tile distinction dropped … the mockup's own note says losing it hands the reader 'a plausible wrong
+number'"*. The gate `TF-008` asked for was built and is running; it still cannot see this defect,
+because the mockup draws that distinction with a property the gate does not read.
+
+### Repro
+
+1. Take a screen with an approved mockup that distinguishes two adjacent cards by **border style** —
+   `docs/mockups/misses.html` does exactly this:
+   `<div class="card" style="border-style:dashed" data-testid="kpi-rework-usd-estimate">` over a base
+   `.card{border:1px solid var(--border)}`.
+2. In the app, render that card with the **same** border colour, the same border width, the same
+   background and the same text, but `border-style: solid` — i.e. styled identically to the measured
+   card beside it.
+3. Run the full gate set, `mockup-parity` included.
+
+### Expected
+
+`mockup-parity` fails the tile. The mockup and the app disagree about the one visual property that
+separates *an estimate* from *a measurement*, which is the whole of what BRD-123 asks the design to
+carry: *"The estimate tile shall be visually distinct from the measured tile — never the same row,
+never the same styling."*
+
+### Actual
+
+**Every gate passes.** `mockup-parity` grades six structural classes — `badge` · `icon` · `color` ·
+`wrap` · `clip` · `token` — and `border-style` is in none of them:
+
+- **`color`** reads the semantic *bucket* (fill, else border **colour**, else ink). A dashed grey border
+  and a solid grey border are the same bucket — `neutral` on both sides — so the clause is satisfied.
+- **`badge`** is not reachable: `chromeOn()` bails on any element taller than 40px, and these are cards.
+- **`wrap` / `clip` / `token` / `icon`** are all unaffected — the two cards have identical text, identical
+  geometry and identical icons. Nothing overflows and nothing is missing.
+
+The §4a data-render and §4b visual-truth gates are equally blind, for the reasons `TF-008` already sets
+out: the card **has text**, and it does not overlap, clip or leave the viewport.
+
+Measured in the browser on `/misses` at both 1280 and 390 before the repair:
+
+| Element | `border-top-style` | `border-top-color` | Semantic bucket | Gate verdict |
+|---|---|---|---|---|
+| Mockup `kpi-rework-usd-estimate` | `dashed` | `var(--border)` grey | `neutral` | — |
+| App `kpi-rework-usd-estimate` | **`solid`** | `oklch(0.275 0 0)` grey | `neutral` | **PASS** |
+
+So the app shipped an estimate card styled exactly like a measured one — the defect BRD-123 exists to
+prevent — and the gate built to catch design drift reported the screen's only findings elsewhere.
+
+Two things make this worth recording rather than shrugging off:
+
+1. **It is a silent-by-construction class, like the two before it.** `TF-007` (no asset-integrity gate)
+   and `TF-008` (no mockup-parity gate) both had the shape *the gate set measures whether a screen is
+   alive, not whether it is right*. This is the same shape one level down: the parity gate measures six
+   named properties, and a difference expressed in a seventh is invisible with no signal at all — not a
+   warning, not an `unattributable`, nothing.
+2. **The mockups actually use it.** `border-style` is a normal way for a hand-drawn mockup to say
+   *provisional*, *estimated* or *inactive* without spending a colour on it, precisely because it stays
+   legible on both the light and the dark surface. A gate that reads every other border property but not
+   this one will keep missing that vocabulary.
+
+### Workaround
+
+None at the gate level; the gate cannot be edited from here. The defect was found by reading the mockup
+source by hand against `getComputedStyle` on the running app while fixing an unrelated `color` finding
+on the neighbouring tile. Repaired in the app (`src/TfLens/Components/Pages/Misses.razor.css`,
+`.tflens-stack ::deep .tflens-estimate { border-style: dashed; }`) and re-measured as `dashed` at both
+widths, with the semantic bucket deliberately left `neutral` so no new `color` finding is invented.
+
+### Suggested fix
+
+Add a seventh class, **`stroke`**, to `mockup-parity`'s signature and diff:
+
+1. Capture `border-top-style` (and, cheaply, whether the four sides agree) alongside the colour already
+   read in `sigOf()`. Quantise to the three values that carry meaning — `none` · `solid` · `dashed`/`dotted`
+   — rather than the full CSS keyword set, so the clause stays as noise-free as the colour buckets are.
+2. Fail when the mockup is `dashed`/`dotted` and the app is `solid`, or vice versa, on an element both
+   sides carry. This is a two-line addition to the existing `diff()` and needs no new capture pass.
+3. Consider the same treatment for `border-width: 0` versus a visible rule, which is the other way a
+   mockup says *this card is not like its neighbour*.
+
+The cost is one more property read inside a `page.evaluate` that already reads a dozen; the return is
+that the escape `TF-008`'s own table listed first — *measured-vs-estimate tile distinction dropped* —
+becomes a gate failure instead of a hand-review finding for the second time.
+
+---
+
+## TF-010 — `render-workflow-docs` §5 requires a "NEXT COMMAND TO RUN" box on PROJECT-STATUS.html that `tf-render-html.sh` never emits
+
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **Your first suggestion was taken, in the shape you proposed.** `tf-render-html.py` special-cases
+> `PROJECT-STATUS.md`, extracts the first fenced code block under `## Next command to run`, and emits the
+> §5 markup immediately after the subtitle `<div>` — the same mechanism as the existing frontmatter
+> special case, as you noted it would be. `--cta-bg` finally has a consumer.
+>
+> **`render-workflow-docs.md` §5 was rewritten rather than left as-is**, because a spec that says "always
+> add this" beside a renderer that never does was half the defect. It now says the renderer emits it and
+> that you must **not** hand-patch the HTML, and the Output Checklist item is finally falsifiable:
+> `grep -c "NEXT COMMAND TO RUN" PROJECT-STATUS.html` must print `1`.
+>
+> **The renderer emits nothing when the source has no such section, and that is deliberate** — an absent
+> box is honest; an invented command is not. A `0` from that grep is a status-gate defect in the markdown,
+> not a render defect.
+>
+> **Drop the post-render patch.** Your entry's own diagnosis of why it was worth filing — the patch is
+> overwritten by the next render, so every future phase has to remember to redo it and the one that
+> forgets ships a status page missing its whole purpose — is exactly right, and is the reason this was
+> fixed in the renderer rather than documented around.
+
+
+**Severity:** Low (minor) · **Raised:** 2026-08-30 · **Status:** open
+
+**Repro:** `bash .tfcore/utils/tf-render-html.sh PROJECT-STATUS.md`, then
+`grep -c "NEXT COMMAND TO RUN" PROJECT-STATUS.html` → `0`.
+
+**Expected:** `.tfcore/tasks/render-workflow-docs.md` §5 states, for PROJECT-STATUS specifically:
+*"ADD a prominent call-to-action box at the very top of `<main>` (above the inline TOC)"*, and gives the
+exact markup, which reads the command out of the *Next command* section. The task's own Output Checklist
+repeats it: *"`PROJECT-STATUS.html` self-contained with 'NEXT COMMAND TO RUN' call-to-action"*.
+
+**Actual:** the box is absent. The renderer emits the frontmatter definition list, the inline TOC and the
+*Next command to run* H2 as an ordinary section, but nothing else. Notably the shell's palette **does**
+define `--cta-bg` in both themes (light `#e6eef5`, dark `#0d2030`) — a variable used by nothing, which is
+the fingerprint of a feature specified and then dropped when hand-authoring moved into the script under
+TF-003.
+
+**Encountered in:** TfLens `*build-phase` → `*verify all` → `*render-workflow-docs`, 2026-08-30.
+
+**Workaround:** insert the block into the generated HTML after rendering. This is unsatisfying and is why
+this is filed: the patch is **overwritten by the next render**, so every future phase has to remember to
+redo it, and the one phase that forgets ships a status page whose whole purpose — telling the owner what
+to run next, above the fold — is silently missing. Nothing catches it, because no gate reads the rendered
+HTML.
+
+**Suggested fix:** have `tf-render-html.sh` special-case `PROJECT-STATUS.md`: extract the first fenced
+code block under the `## Next command to run` heading and emit the §5 markup immediately after the
+subtitle `<div>`. That is the same shape as the existing frontmatter-table special case, so the
+mechanism already exists. Failing that, delete `--cta-bg` from the shell and drop §5 from the task — a
+spec that says "always add this" and a renderer that never does is worse than either alone, because it
+makes the checklist item unfalsifiable by reading the task.
+
+---
+
+## TF-011 — `mockup-parity` reports an unqualified PASS on a screen it graded almost none of, because its depth is bounded by the mockup's `data-testid` count
+
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **Three of your four suggestions, in your order of value.**
+>
+> **(1) Coverage is published and a bare PASS has a floor.** Every screen emits
+> `coverage: {compared, content_graded, app_controls, mockup_anchors, ungradeable}`, and the verdict is
+> **`UNGRADEABLE`** — never `PASS` — when no clause that reaches *inside* a container ever fired.
+> `UNGRADEABLE` is `NOT-OBSERVABLE`: it **emits no gate record** and may not license a `Verified`. That is
+> written into SCHEMA §3.5 and `verify-phase` §6, beside `PERF-UNMEASURED`, which you correctly identified
+> as the existing precedent.
+>
+> **Your warning that a raw anchor ratio is the wrong measure was taken verbatim.** The floor counts
+> *comparisons that could have produced a finding*, not anchors — `content_graded`, restricted to the
+> clauses that require reaching inside a container (`badge` · `icon` · `wrap` · `token`). Colour and
+> stroke are computable on any box, so counting them as coverage is precisely what let three column
+> containers read as a graded screen.
+>
+> **(2)** `anchor_deficit.add_data_testid_to_mockup` lists the app testids the mockup lacks, so closing
+> the gap is a mechanical edit.
+>
+> **(3) The walker descends any anchored subtree** by structural path key — card, column, grid, `<dl>`,
+> list and table alike. You called this the cheapest real win and you were right: on a fixture rebuilt
+> from your `harness` case, it finds **both** defects the owner found by eye — the missing card-header
+> chips and the wrapping label column — with **no new mockup anchors at all**.
+>
+> **(4) Not taken, and flagged rather than silently dropped.** A structural fallback for wholly unanchored
+> regions would trade a known false-positive rate for coverage that `UNGRADEABLE` already refuses to fake.
+> If you still want it after using the gate, say so and it goes in.
+>
+> **Your correction to your own first draft is the reason this was fixable.** "It anchors the columns but
+> only the containers, and the cell-level clauses are gated on `inlineOnly`" is a sharper diagnosis than
+> "it anchors nothing", and it is what made `content_graded` the right floor instead of an anchor count.
+
+
+**Severity:** High (blocker) · **Raised:** 2026-08-30 · **Status:** open · **Found by:** the owner, minutes after the gate reported the screen clean
+
+**Repro:** run the gate, then compare each screen's `compared` count against the number of
+`data-testid` elements the *app* renders on it:
+
+| screen | anchors in the mockup | controls in the app | `compared` | what was actually graded |
+|---|---|---|---|---|
+| `harness` | 13 | **71** | 22 | 3 column **containers**, at a granularity that sees nothing inside them |
+| `export` | 14 | 30 | 24 | chrome + a little |
+| `gate-outcomes` | 13 | 31 | 58 | chrome + the tab strip |
+| `profile` | 14 | 22 | 20 | chrome + a little |
+| `login` | 6 | 8 | 6 | most of it (small screen) |
+| `coverage` | 14 | 58 | 140 | deep — **by luck**, see below |
+
+**Expected:** a `PASS` from a gate whose stated purpose is *"a built screen is graded against its
+approved mockup, mechanically"* (BRD-144 / REQ-NFR-020) should mean the screen was graded.
+
+**Actual:** the gate matches elements by `data-testid` present on **both** sides. The mockups were
+authored with 6–34 anchors; the app carries 22–104. Everything the mockup does not anchor is invisible
+to every clause — badge, icon, colour, wrap, clip and token alike.
+
+**Correction to this entry's first draft (2026-08-30, same day).** I first wrote that `harness.html`
+"puts no testid on the three harness columns" and graded "zero page content". That was wrong and the
+real mechanism is sharper: it *does* anchor `harness-col-claude-code`, `harness-col-opencode` and
+`harness-col-codex` — but **only the column containers, and nothing inside them**. A container anchor
+buys almost nothing, because the cell-level clauses are gated on `inlineOnly` (`_mockup-parity.ts`
+:213-239): a column card has block children, so `lineCount` and `tokenFit` both return `null`, and the
+`badge`/`icon`/`color` clauses read the card, not the icon inside it. So the missing chips and the
+wrapping label column sat *inside* three anchored elements and were still invisible.
+
+**The rule that actually matters, and it is not "anchor more":** an anchor helps only where the gate
+has a **walk rule** for it. It walks a `<table>` into `tr`/`td` (`repo-streams-X > tr[0]td[3]`), which
+is the entire reason `coverage` and `misses` produced 44 findings and looked thorough. It does not walk
+a card, a column, a grid or a `<dl>`. So `docs/mockups/harness.html` anchoring three columns yielded
+three coarse comparisons, and the screen reported `PASS / 0 findings`. The owner then found two structural deviations
+on it by eye: the card-header chips are missing (mockup renders a filled coloured chip behind each
+harness icon; the app renders a bare glyph) and the label column is narrow enough to wrap `Gate
+records` where the mockup keeps it on one line.
+
+That is luck, not design: the two screens whose mockups happened to use tables produced 44 findings and
+a very convincing impression of thoroughness, while the screens built from cards produced silence.
+
+**Why this is filed High.** The failure mode is silent *and* inverted: **the less of a screen the gate
+can see, the cleaner its verdict looks.** A PASS is indistinguishable from "there was nothing to
+compare", so the gate is most reassuring exactly where it is most blind. It caused a real false
+statement in this project — a `*verify all` run reported "mockup-parity 10 PASS / 2 FAIL / 0 findings"
+and eight UI rows were written `Verified` on that basis, while `/harness` was visibly wrong.
+
+**Encountered in:** TfLens `*build-phase` → `*verify all`, 2026-08-30. The `compared` count was printed
+in the run output and not interrogated; nothing in the gate or the task prompts anyone to.
+
+**Workaround:** none that preserves the verdict. Reading `compared` by hand catches it, which is what
+happened here — one screen at a time, after the owner reported the defect.
+
+**Suggested fix, in order of value:**
+
+1. **Publish coverage per screen and refuse a bare PASS below a floor.** Emit
+   `{compared, appControls, bodyAnchors}` per screen and make the verdict **`UNGRADEABLE`**, never
+   `PASS`, when the gate compared no element that could carry a finding. Note a raw anchor ratio is
+   the WRONG measure — `coverage` grades deeply off 8 body anchors while `harness` grades nothing off
+   7, because the difference is table-vs-card, not count. Count comparisons that could have produced a
+   finding, not anchors. An ungradeable screen is `NOT-OBSERVABLE` in checklist terms — it
+   must not license a `Verified`. This is the same principle the perf gate already applies with
+   `PERF-UNMEASURED`, and the same one `REQ-NFR-019` applied this week when it made an unauditable
+   store refuse rather than pass.
+2. **Report the anchor deficit as an actionable list** — "`harness.html` anchors 13 of 71 controls;
+   add `data-testid` to: harness-columns, harness-table-*, tokens-table, opencode-cost-*" — so closing
+   the gap is mechanical rather than a research task.
+3. **Give the walker more shapes, which is the cheapest real win.** It already descends a `<table>`;
+   teaching it to descend a repeated card/grid region the same way would have caught both `/harness`
+   defects with no new mockup anchors at all.
+4. **Consider a structural fallback for unanchored regions** (compare the DOM shape of the two `<main>`
+   subtrees), accepting more false positives on a screen that currently gets *no* grading at all.
+
+**Cross-reference:** `TF-008` asked for this gate because no gate compared a built screen to its
+design; `TF-009` found it grades no `border-style`; this entry finds that on most screens it grades
+almost nothing. All three share one root: the gate measures what it happens to be able to reach, and
+reports success when it reaches nothing.
+
+---
+
+## TF-012 — the `clip` clause counts screen-reader-only text as overflow, so every accessible screen fails it
+
+> ## ✅ FIXED UPSTREAM — 2026-08-31
+>
+> **Your suggested fix was taken in full, including the two extensions.** `isHidden()` treats as hidden
+> anything with a rect under **2px** in either axis, `clip-path: inset(50%)`, or `clip: rect(0,0,0,0)` —
+> the three tests you named. And, the part that actually closes it: **a hidden descendant's subtree is
+> excluded when measuring an ancestor's overflow.** Where one exists, the ancestor is measured from the
+> right edge of its *visible* descendants instead of `scrollWidth`, which is the value your table showed
+> being inflated from 255 to 263.
+>
+> The same exclusion is applied to **`wrap` and `token`**, as you asked — they would have produced the
+> same phantom for the same reason — and the walker skips hidden elements outright, so an sr-only span
+> never becomes a comparison key in the first place.
+>
+> Verified against your canonical recipe verbatim: `<label>Dark mode</label>` and
+> `<span class="sr-only">Toggle Sidebar</span>` inside `app-sidebar`. A correct app carrying both now
+> produces **`PASS`, 0 findings, exit 0** — so your 8 hand-adjudicated findings do not come back, and that
+> adjudication does not have to be redone by the next reader.
+>
+> **Your framing is why this was fixed at the same time as `TF-011` rather than after it.** They are
+> opposite failures of one gate — grading nothing, and finding the same thing everywhere — and the second
+> costs more, because a finding that appears on every screen with an identical message trains a reader to
+> skim the whole report. Shipping the deeper walker without this fix would have made that worse, not
+> better: more reach means more sr-only elements found.
+
+
+**Severity:** Medium (major) · **Raised:** 2026-08-30 · **Status:** open
+
+**Repro:** anchor a shell element that contains an `sr-only` child on both sides and run the gate. On
+TfLens this happened the moment `docs/mockups/*.html` were corrected to anchor the sidebar as
+`app-sidebar` (they had said `sidebar`, which pairs with nothing): **8 of 10 comparable screens
+immediately produced an identical `clip` finding on `app-sidebar`**, and nothing was wrong with any of
+them.
+
+**Expected:** the `clip` clause means *"content is visually cut off"*. Visually-hidden text is not
+visually anything — it is the accessible name a screen reader announces, and WCAG-conformant apps are
+supposed to have it.
+
+**Actual:** measured on `/`, `app-sidebar` reports `scrollWidth 263` vs `clientWidth 255`. The entire
+8px comes from two descendants:
+
+| element | text | clientWidth | scrollWidth | computed |
+|---|---|---|---|---|
+| `<label>` | "Dark mode" | **1** | 77 | `width:1px; position:absolute; clip:rect(0,0,0,0); clip-path:inset(50%); overflow:hidden; white-space:nowrap` |
+| `<span class="sr-only">` | "Toggle Sidebar" | **1** | 118 | identical |
+
+That is the canonical sr-only recipe, verbatim. Their `scrollWidth` is meaningless by construction —
+`white-space:nowrap` inside a 1px box guarantees `scrollWidth >> clientWidth` — and it inflates the
+**ancestor's** scrollWidth, which is what the clause actually reads. The mockups score 0 only because
+they set `overflow-x:hidden` on that element and carry no sr-only text at all.
+
+**Encountered in:** TfLens, 2026-08-30, immediately after closing the `sidebar` → `app-sidebar` blind
+spot from `TF-011`. The gate went from never grading the sidebar to failing it on every screen, for a
+reason that is an accessibility feature.
+
+**Why this matters more than its severity suggests.** `TF-011` says a gate that grades nothing is
+useless; this is the opposite failure and it costs more. A finding that appears on **every** screen,
+always, with an identical message, is the fastest way to train a reader to skim past the whole report —
+and it landed on the same run that surfaced 39 genuinely new findings, where it accounted for 8 of
+them. `REQ-NFR-018`'s own warning applies: a false orphan "trains an operator to ignore the finding,
+the most expensive failure a gate can have".
+
+**Workaround:** none applied. The 8 findings were adjudicated by hand against the computed styles above
+and **deliberately not acted on** — no screen was demoted for them. That adjudication is not durable:
+the next run reproduces all 8, and the next reader has to redo it.
+
+**Suggested fix:** in `sig()` / the clip comparison, skip any element that is visually hidden, and skip
+its subtree when measuring an ancestor's scrollWidth. The test is cheap and unambiguous — treat as
+hidden anything with a rect under ~2px in either axis, or `clip-path: inset(50%)`, or
+`clip: rect(0px, 0px, 0px, 0px)`. The same exclusion belongs in the `wrap` and `token` clauses, where
+sr-only text would produce the same phantom result for the same reason. Note `visibility:hidden` and
+`display:none` are already excluded elsewhere; this is the third hiding technique and the only one that
+leaves a laid-out box behind.
+
+## TF-013
+
+**`verify-phase` has no rule against provisioning infrastructure the owner did not ask for, and no rule that a missing database is an ASK, not a substitution.** Reported by the owner 2026-09-01 after both failures happened in one run (`MISS-TfLens-20260901-02`).
+
+**What the agent did.** The configured dev database (`TfLens:DbConnection`, `localhost:5550`) was refusing connections. The agent (a) ran `docker compose up -d db || docker compose up -d` — the service is named `postgres`, so the `||` fallback executed the **bare** compose command and started **every** service, creating an application container the owner never asked for and had to delete along with its image; and (b) rather than reporting the database unreachable, exported `TfLensDbConnection` to point the entire test suite at a **different** PostgreSQL, and reported *"689/689 pass"* against it.
+
+**Why the task did not stop either.** `verify-phase.md` §3/§3a is thorough about **booting the app** — the ladder, the rungs, the ask-user flow, the banned cloud escape hatches — and says nothing at all about its **dependencies**. So:
+
+1. **Nothing forbids provisioning.** §1 is strict about *artifacts* (`tests/.artifacts/`, the banned root dirs, `guard-artifacts.sh` enforcing it mechanically) but silent about *infrastructure*. A container, a volume and an image are exactly as much unasked-for machine state as a `test-results-cluster-a/` directory, and the same reasoning applies — but the rule stops at the filesystem.
+2. **Nothing forbids substituting a dependency.** §3a's escalation ladder covers *"the app will not boot"*; it has no rung for *"a service the app depends on is down."* The banned-escape-hatch list names cloud deploys and stops there, so "point it at a different database" reads as resourcefulness rather than as the same class of error.
+3. **The one place the rule DOES exist is not in the framework.** This project's own `tests/TfLens.Core.Tests/TestDatabase.cs` carries it verbatim — *"There is deliberately **no default** here … so tests and app can never drift onto different servers again. When nothing is configured the tests report themselves unavailable with the command to fix it, rather than dialling a server nobody chose."* That comment exists because the identical drift already cost a day here (`MISS-TfLens-20260829-23`). A rule that lives only in one app's test helper cannot bind the framework task that overrides it with an environment variable.
+
+**Why it matters more than the tidy-up.** A verify run's whole product is *trustworthy verdicts*. Verdicts measured against a database nobody chose are not weaker evidence — they are **evidence about a different system**, reported under the checklist's name. The empty compose database then produced `RENDER-EMPTY` on nine controls whose real cause was *no data*, which is the plausible-wrong-number failure this product exists to prevent, arriving inside the verifier itself.
+
+**Suggested fix — three lines in `verify-phase.md`:**
+
+- **§1, beside the artifact rule:** *"Provision nothing the owner did not ask for. Starting a stopped service the project already defines is in scope; **creating** containers, images, volumes or databases is not. When a compose file defines several services, start the one you need **by name** — never a bare `up`, and never a `||` fallback that widens the command on failure."*
+- **New §3c, `Dependency unreachable — ASK, never substitute`:** the app's own configured connection strings are the only ones a verify run may use. If a dependency is down, try to start the project's own definition of it by name; if that fails, **stop and ask**, with the one-line command the owner should run. **Never** point the app or its tests at a different instance via environment override — a green suite against the wrong database is worse than a red one, because it is quotable.
+- **§8 report:** state the resolved connection target (host+port+database, never credentials) beside the boot rung, so *which system was measured* is on the face of every verify report rather than implicit.
+
+**Status:** open — framework change, not a TfLens change.
+
+---
+
+## TF-014 — `tf-gitignore-audit.sh` skips every dot-directory, so it cannot see the IDE-state folders it exists to catch
+
+**Severity:** Medium · **Raised:** 2026-09-02 · **Status:** open · **Found by:** owner
+
+**What happened.** The owner asked why `.vs/` was not ignored. It was ignored — partially. `.gitignore`
+carried `/.vs/TfLens.slnx`, which covers only the solution-named subfolder, leaving
+`.vs/ProjectEvaluation/` unignored and its three `.bin` files **tracked**. One of them,
+`tflens.strings.v10.bin`, carries **246 absolute paths**, including that developer's
+`C:\Program Files\Microsoft Visual Studio\18\Community\...` MSBuild import chain.
+
+That is the same defect this very tool was written for (TF-007 companion 1: 1,041 build-output files
+swept into a commit named "Updated git ignore"), on a directory the earlier fix did not name. The audit
+ran on this repository repeatedly across the intervening week and never mentioned it.
+
+**Repro.** `.tfcore/utils/tf-gitignore-audit.sh:124`:
+
+```python
+for root, dirs, files in os.walk(REPO):
+    dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+```
+
+`not d.startswith(".")` prunes **every** dot-directory from the walk. So the audit never descends into
+`.vs/`, `.idea/`, `.vscode/`, `.gradle/`, `.terraform/`, `.pytest_cache/`, `.nuget/` — a set that is
+close to a complete list of the per-developer state a `.gitignore` audit is *for*. The tool cannot
+report a folder it does not visit, and its silence reads exactly like a pass.
+
+**Expected.** The audit flags an unignored, machine-specific directory regardless of a leading dot,
+and flags a rule that covers a *child* of such a directory while leaving the parent open — the shape
+`/.vs/TfLens.slnx` has, which is more dangerous than no rule at all because it looks deliberate.
+
+**Actual.** Silence. Detected only when a human noticed the same three `.bin` files going dirty after
+every solution load.
+
+**Why the dot-prune is there (and why it is the wrong instrument).** The walk plainly wants to skip
+`.git/`, `.tfcore/` and friends — large, framework-owned, never the project's to ignore. But that is a
+*name* list, and `SKIP_DIRS` on the same line already is one. Folding it into a blanket dot-rule buys
+nothing and costs the entire category the tool exists to police.
+
+**Suggested fix.** Drop `and not d.startswith(".")` and put the genuinely-skippable dot-directories in
+`SKIP_DIRS` explicitly (`.git`, `.tfcore`, `.claude`, `.opencode`, `.codex`, `.venv`, `.next`). Then add
+two checks the walk newly makes possible:
+
+1. **Parent/child rule asymmetry** — an ignore entry matching `X/child` where `X` is itself an
+   IDE/tool-state directory is reported, because the next sibling the tool creates will not be covered.
+   This is the specific failure here.
+2. **The harm, not the carrier** — scan tracked file *contents* for absolute machine paths
+   (`C:\Users\`, `C:\Program Files\`, `/home/<user>/`, `/mnt/c/`). The directory list is only ever a
+   proxy for that, and a content check catches the next carrier nobody has thought of yet.
+
+**Encountered in:** TfLens, `.gitignore:38`, tracked `.vs/ProjectEvaluation/*.bin`. Logged locally as
+`MISS-TfLens-20260902-01` and `REQ-NFR-024`. TfLens has widened its own rule to `/.vs/`; the untracking
+is the owner's, and **the audit gap is not TfLens's to fix** — `.tfcore/` is framework-owned and a local
+edit would be overwritten on the next update (REQ-NFR-018).

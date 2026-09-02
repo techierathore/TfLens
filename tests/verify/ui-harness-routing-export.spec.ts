@@ -168,12 +168,19 @@ test('REQ-UI-023 harness screen shows three fixed columns with the compare-token
     expect(t.verdict, `harness-table-${h}: ${t.detail}`).toBe('RENDERS');
   }
 
-  // The chart is supplementary: every charted total is also printed as text.
-  const tokensTable = await tableCheck(page, 'tokens-table');
-  console.log(`tokens-table: ${tokensTable.verdict} — ${tokensTable.detail}`);
-  expect(tokensTable.verdict, `tokens-table: ${tokensTable.detail}`).toBe('RENDERS');
+  // Every charted total is also printed as text. The CLAUSE is unchanged; where it is satisfied moved
+  // on 2026-09-01 (REQ-UI-023). Until then a `Harness | Total tokens` DataTable repeated the three
+  // figures under the chart — this project's own workaround for a chart that carried no labels. The
+  // approved design has no such table: it prints the value ABOVE its bar, which is also its answer to
+  // a bar too short to see. The chart now does that, so the table was removed as owner-reported drift,
+  // and the figures are asserted where they now live: the SVG labels, plus an off-screen list that
+  // keeps them reachable without sight of the graphic.
+  expect(await exists(page, 'tokens-table'), 'tokens-table was removed on 2026-09-01 — the design has no such table')
+    .toBe(false);
 
-  const tableText = ((await textOf(page, 'tokens-table')) || '').replace(/\s+/g, ' ');
+  const chartValues = ((await textOf(page, 'tokens-chart-values')) || '').replace(/\s+/g, ' ');
+  expect(chartValues.length, 'tokens-chart-values must carry the totals as text').toBeGreaterThan(0);
+
   for (const h of HARNESSES) {
     const total = await textOf(page, `tokens-total-${h}`);
     if (total === null) {
@@ -181,8 +188,26 @@ test('REQ-UI-023 harness screen shows three fixed columns with the compare-token
       continue;
     }
     expect(total.length, `tokens-total-${h} must not be blank`).toBeGreaterThan(0);
-    expect(tableText, `tokens-total-${h} ("${total}") must appear as text in tokens-table`).toContain(total);
+    expect(chartValues, `tokens-total-${h} ("${total}") must appear as text beside the chart`).toContain(total);
   }
+
+  // The bars themselves must be labelled — that is what replaced the table, so its absence is a
+  // regression to the exact state the owner reported: figures no reader could get at.
+  const barLabels = await page.$$eval(
+    '[data-testid="tokens-chart"] .apexcharts-datalabels text',
+    els => els.map(e => (e.textContent || '').trim()).filter(t => t.length > 0),
+  );
+  console.log(`tokens-chart bar labels: ${JSON.stringify(barLabels)}`);
+  expect(barLabels.length, 'every bar must print its own value (REQ-UI-023, owner UAT 2026-08-30)')
+    .toBe(HARNESSES.length);
+
+  // No raw y axis: the design draws none, and ApexCharts' default printed `3000000000` unscaled.
+  const yAxisLabels = await page.$$eval(
+    '[data-testid="tokens-chart"] .apexcharts-yaxis text',
+    els => els.map(e => (e.textContent || '').trim()).filter(t => t.length > 0),
+  );
+  expect(yAxisLabels, 'the tokens chart must draw no y-axis labels').toEqual([]);
+
   console.log(`tokens-chart present: ${await exists(page, 'tokens-chart')}`);
 });
 
@@ -781,7 +806,7 @@ test('REQ-UI-033 the quotable banner agrees with the last-parity card', async ({
 test('REQ-UI-034 the five report pages each render a Playbook state with no axis mixing', async ({ page }) => {
   test.setTimeout(300_000);
 
-  const routes = ['/', '/three-questions', '/harness', '/routing', '/export'];
+  const routes = ['/', '/gate-outcomes', '/harness', '/routing', '/export'];
   const report: Record<string, unknown>[] = [];
 
   try {
@@ -825,7 +850,7 @@ test('REQ-UI-034 the five report pages each render a Playbook state with no axis
       }
 
       // CRITICAL SEPARATION: no phase_gate data may share a surface with TechieFlow gate data.
-      // On the Playbook axis the three-questions gate distribution must not be populated.
+      // On the Playbook axis the gate-outcomes gate distribution must not be populated.
       if (gateDist.length > 0) {
         const populated = await page.evaluate(() => {
           const out: { id: string; rows: number }[] = [];

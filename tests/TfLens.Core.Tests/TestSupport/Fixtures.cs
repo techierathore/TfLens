@@ -60,6 +60,17 @@ public static class Fixtures
     /// <summary>The isolation counterpart to <see cref="MissStoreTestUserId"/>; likewise not a real account.</summary>
     public const int MissStoreTestSecondUserId = 90005;
 
+    /// <summary>
+    /// Reserved user id for the phase-effort store tests (F-EFFORT, REQ-FN-088 / REQ-FN-095).
+    /// </summary>
+    /// <remarks>
+    /// A third reserved id for the same reason 90004 was a second one: <c>MissStoreTests</c> calls
+    /// <c>RebuildAsync(90004)</c>, which clears every stream row for that user, and xUnit runs the two
+    /// classes at the same time. Sharing the id would make this class's assertions depend on which
+    /// class happened to reach the database first.
+    /// </remarks>
+    public const int PhaseStoreTestUserId = 90006;
+
     /// <summary>The busy fixture repository, <c>project_type app</c>.</summary>
     public const string TrSetupRepo = "techierathore/TrSetup";
 

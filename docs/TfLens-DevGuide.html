@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Developer Guide</h1>
-    <div class="sub">Last rendered: 2026-08-29</div>
+    <div class="sub">Last rendered: 2026-09-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -137,7 +137,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Developer Guide</h1>
-    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>TfLens-DevGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-DevGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -216,7 +216,7 @@ spacing scale having holes so <code>w-20</code> renders at zero width).</p>
 <tr><td>Add / re-import a source</td><td><code>/repos/add</code>, <code>/repos/reimport/{Source}</code></td><td><a href="./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044"><code>/repos</code> § routes</a></td></tr>
 <tr><td>Remove a source</td><td><code>/repos/remove/{Source}</code></td><td><a href="./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044"><code>/repos</code> § routes</a></td></tr>
 <tr><td>Coverage / health</td><td><code>/</code></td><td><a href="./TfLens-DevGuide-Screens.md#--coverage--health"><code>/</code> — Coverage / health</a></td></tr>
-<tr><td>Three questions</td><td><code>/three-questions</code></td><td><a href="./TfLens-DevGuide-Screens.md#three-questions"><code>/three-questions</code></a></td></tr>
+<tr><td>Gate outcomes</td><td><code>/gate-outcomes</code></td><td><a href="./TfLens-DevGuide-Screens.md#gate-outcomes"><code>/gate-outcomes</code></a></td></tr>
 <tr><td>Harness comparison</td><td><code>/harness</code></td><td><a href="./TfLens-DevGuide-Screens.md#harness"><code>/harness</code></a></td></tr>
 <tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td><a href="./TfLens-DevGuide-Screens.md#routing"><code>/routing</code></a></td></tr>
 <tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td><a href="./TfLens-DevGuide-Screens.md#misses"><code>/misses</code></a></td></tr>
@@ -276,6 +276,35 @@ is the one to edit when you need to change a key.</p>
 <p>Do <strong>not</strong> put secrets in <code>appsettings.Development.json</code>. That file <em>is</em> committed, so a real
 AppManager secret in it goes to git history — and <code>ConfigurationHygieneTests</code> fails the build to
 stop exactly that.</p>
+</blockquote>
+<blockquote>
+<h3 id="wsl-and-windows-have-separate-user-secret-stores-this-has-already-broken-f5-once">WSL and Windows have SEPARATE user-secret stores — this has already broken F5 once<a class="anchor-link" href="#wsl-and-windows-have-separate-user-secret-stores-this-has-already-broken-f5-once">#</a></h3>
+<p><code>UserSecretsId</code> is <code>tflens-dev-secrets</code> on both sides, but the file it names is <strong>per-OS-profile</strong>,
+and the two never sync:</p>
+<table>
+<thead><tr><th>Where you run <code>dotnet user-secrets set</code></th><th>File it actually writes</th></tr></thead>
+<tbody>
+<tr><td>WSL / Linux shell (where the agents work)</td><td><code>~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json</code></td></tr>
+<tr><td>Windows — Visual Studio, <code>dotnet</code> in PowerShell, <strong>F5</strong></td><td><code>%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json</code></td></tr>
+</tbody>
+</table>
+<p><strong>What went wrong on 2026-08-29 (<code>MISS-TfLens-20260830-04</code>).</strong> A <code>*fix-issues</code> run removed five
+hard-coded copies of the connection string and set <code>TfLens:DbConnection</code> in user secrets — from a
+WSL shell. That wrote the Linux store only. The Windows store kept its three older keys, so
+<strong>F5 in Visual Studio crashed with the BRD-9 "connection string is not configured" message</strong> while
+every agent-run smoke test passed, because those boot in WSL and read the Linux store. The
+verification method could not see the defect: <em>"it boots"</em> was true for the agent and false for the
+owner, simultaneously, for a whole day.</p>
+<p><strong>If you are an agent:</strong> setting a secret from WSL does <strong>not</strong> configure the owner's IDE. Say which
+store you wrote, and never report "moved to user secrets" as though it were machine-independent.
+<code>DeveloperOnboardingTests.UserSecretsIdIsDeclaredSoTheF5PathKeepsWorking</code> asserts the <em>id</em> is
+declared; nothing asserts the <em>value</em> exists in the store the owner's IDE reads, and from Linux
+nothing portably can.</p>
+<p><strong>To check both stores at once</strong> (from WSL, with the Windows drive mounted):</p>
+<pre><code class="language-bash">cat ~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json                       # Linux store
+cat "/mnt/c/Users/$USER/AppData/Roaming/Microsoft/UserSecrets/tflens-dev-secrets/secrets.json"</code></pre>
+<p>They must both carry all five keys: <code>TfLens:DbConnection</code>, <code>TfLens:AppManagerAppId</code>,
+<code>TfLens:AppManagerApiKey</code>, <code>TfLens:AppManagerApiSecret</code>, <code>TfLens:GitHubToken</code>.</p>
 </blockquote>
 <h3 id="setup-three-steps-one-path">Setup — three steps, one path<a class="anchor-link" href="#setup-three-steps-one-path">#</a></h3>
 <p>Same three steps on every OS. Run them from the repository root.</p>

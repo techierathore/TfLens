@@ -170,9 +170,24 @@ public static class MetricsConstants
     /// beside <c>why_missed_eligible</c>. Keep in step with <c>FIELD_SINCE</c> in <c>tf-metrics.sh</c>,
     /// and add a row here whenever an optional field is added to any stream (REQ-FN-076, BRD-117).
     /// </para>
+    /// <para>
+    /// <b>Extended 2026-09-01 (REQ-FN-091, BRD-148) with the three SCHEMA §2.6 <c>runs</c> fields</b>,
+    /// all at <c>2026-08-31</c> — the date the producer began emitting them. This is the same table and
+    /// the same code path as <c>why_missed</c> on purpose: a second table would be a second place for
+    /// the floor to be forgotten. The consequence matters for <c>/effort</c>, because a run written
+    /// before that date is not a run with no sub-agents — it is a run that could not have said, and
+    /// <c>unobserved_predates_field</c> is therefore a permanent exclusion rather than a gap that a
+    /// later sync might fill (ADR-026).
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyDictionary<string, string> FieldSince =
-        new Dictionary<string, string> { ["why_missed"] = "2026-08-28" };
+        new Dictionary<string, string>
+        {
+            ["why_missed"] = "2026-08-28",
+            ["subagent_runs"] = "2026-08-31",
+            ["tokens_out_subagents"] = "2026-08-31",
+            ["model_tokens_out"] = "2026-08-31"
+        };
 
     /// <summary>Verdicts that are not failures, and so do not enter the gate distribution.</summary>
     public static readonly IReadOnlyList<string> NonFailureVerdicts = ["Verified", "Done (pre-existing)"];
@@ -184,6 +199,24 @@ public static class MetricsConstants
     /// <param name="aDenominator">The denominator.</param>
     /// <returns><c>—</c> when the denominator is zero, else e.g. <c>67%</c>.</returns>
     public static string Pct(int aNumerator, int aDenominator) =>
+        aDenominator == 0
+            ? "—"
+            : (100.0 * aNumerator / aDenominator).ToString("F0", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>
+    /// The reference's <c>pct()</c> over the long totals a token or duration block deals in.
+    /// </summary>
+    /// <remarks>
+    /// The same rule and the same rendering as <see cref="Pct(int, int)"/>, widened because a phase's
+    /// cache-read total runs to tens of millions per repository and would overflow an <c>int</c> across a
+    /// year of streams. It exists as an overload rather than a second helper so there is exactly one
+    /// implementation of the em dash and of the rounding: <c>share_of_*</c> is diffed against the oracle
+    /// as a <b>string</b> (BRD-152), and two spellings of "no denominator" would be two ways to fail that.
+    /// </remarks>
+    /// <param name="aNumerator">The numerator.</param>
+    /// <param name="aDenominator">The denominator.</param>
+    /// <returns><c>—</c> when the denominator is zero, else e.g. <c>87%</c>.</returns>
+    public static string Pct(long aNumerator, long aDenominator) =>
         aDenominator == 0
             ? "—"
             : (100.0 * aNumerator / aDenominator).ToString("F0", CultureInfo.InvariantCulture) + "%";

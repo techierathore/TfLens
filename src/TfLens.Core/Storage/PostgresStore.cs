@@ -45,8 +45,40 @@ public sealed class PostgresStore : ITelemetryStore
     private static readonly string[] StreamTables =
         ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "PbEvent"];
 
+    /// <summary>
+    /// The three schema-2 Playbook phase tables, purged with the stream tables when a repository is
+    /// removed (REQ-FN-095, ADR-025).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Purged, but deliberately not truncated by the rebuild</b> — which is why they are a second
+    /// list rather than three more entries in <see cref="StreamTables"/>. A rebuild empties a table and
+    /// then replays the raw JSONL archive into it, and that is safe precisely because the archive is the
+    /// source of truth. Phase-metric rows do not arrive that way: they come through the import path
+    /// (ADR-023), so truncating them on a rebuild would delete data with nothing to replay it from.
+    /// </para>
+    /// <para>
+    /// <see cref="DeleteRepoDataAsync"/> walks both lists, because there the rule is the opposite and
+    /// absolute: missing one table leaves orphaned rows that reappear in every figure for a repository
+    /// the owner believes they removed — the same failure the miss tables were added here to avoid
+    /// (BRD-115).
+    /// </para>
+    /// </remarks>
+    private static readonly string[] PhaseTables =
+        ["PbPhaseExecution", "PbPhaseModelUsage", "PbPhaseSubagent"];
+
     /// <summary>Resolved once — the schema script does not move while the process runs.</summary>
     private static string? SchemaPathCache;
+
+    /// <summary>
+    /// Registers the Dapper type handlers the column set needs, once per process.
+    /// </summary>
+    /// <remarks>
+    /// <c>"Run"."ModelTokensOut"</c> is a <c>jsonb</c> map rather than a scalar, and Dapper cannot read
+    /// one without being told how (<see cref="JsonMapTypeHandler"/>). Registering from the store's type
+    /// initializer puts it on the one path every database call already passes through.
+    /// </remarks>
+    static PostgresStore() => JsonMapTypeHandler.Register();
 
     private readonly TfLensOptions objOptions;
     private readonly IStreamParser objParser;
@@ -134,8 +166,88 @@ public sealed class PostgresStore : ITelemetryStore
             InsertPbEventMarkerSql,
             aParsed.PbEvents.Where(aE => string.IsNullOrEmpty(aE.MessageId)).ToList(),
             aCancellationToken).ConfigureAwait(false);
+        // One phase-metric line, three tables (ADR-025). The parser has already split it, so these are
+        // three ordinary upserts keyed on (UserId, Repo, PhaseExecutionId) — re-import is the NORMAL
+        // case here, because the exporter re-emits every currently readable window (REQ-FN-094).
+        vWritten += await ExecuteBatchAsync(
+            vConnection, InsertPhaseExecutionSql, aParsed.PhaseExecutions, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(
+            vConnection, InsertPhaseModelUsageSql, aParsed.PhaseModelUsages, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(
+            vConnection, InsertPhaseSubagentSql, aParsed.PhaseSubagents, aCancellationToken)
+            .ConfigureAwait(false);
 
         return vWritten;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PbPhaseExecutionRecord>> ReadPhaseExecutionsAsync(
+        int aUserId, string? aRepo = null, CancellationToken aCancellationToken = default)
+    {
+        const string vSql = """
+            SELECT s.* FROM "PbPhaseExecution" s
+            WHERE s."UserId" = @aUserId AND (@aRepo IS NULL OR s."Repo" = @aRepo)
+            ORDER BY s."StartedAt", s."PhaseExecutionId"
+            """;
+
+        return await ReadPhaseAsync<PbPhaseExecutionRecord>(vSql, aUserId, aRepo, aCancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PbPhaseModelUsageRecord>> ReadPhaseModelUsagesAsync(
+        int aUserId, string? aRepo = null, CancellationToken aCancellationToken = default)
+    {
+        const string vSql = """
+            SELECT s.* FROM "PbPhaseModelUsage" s
+            WHERE s."UserId" = @aUserId AND (@aRepo IS NULL OR s."Repo" = @aRepo)
+            ORDER BY s."PhaseExecutionId", s."Model"
+            """;
+
+        return await ReadPhaseAsync<PbPhaseModelUsageRecord>(vSql, aUserId, aRepo, aCancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PbPhaseSubagentRecord>> ReadPhaseSubagentsAsync(
+        int aUserId, string? aRepo = null, CancellationToken aCancellationToken = default)
+    {
+        const string vSql = """
+            SELECT s.* FROM "PbPhaseSubagent" s
+            WHERE s."UserId" = @aUserId AND (@aRepo IS NULL OR s."Repo" = @aRepo)
+            ORDER BY s."PhaseExecutionId", s."SessionId"
+            """;
+
+        return await ReadPhaseAsync<PbPhaseSubagentRecord>(vSql, aUserId, aRepo, aCancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs one phase-table read for a user, optionally narrowed to one repository.
+    /// </summary>
+    /// <remarks>
+    /// No framework join, unlike <see cref="ReadStreamAsync{T}"/>: these three tables exist only on the
+    /// Playbook axis, so a join to <c>"UserRepo"."Framework"</c> could only ever remove rows the caller
+    /// already asked for by repository.
+    /// </remarks>
+    /// <typeparam name="T">The record type the table maps to.</typeparam>
+    /// <param name="aSql">The query.</param>
+    /// <param name="aUserId">The AppManager user id — mandatory (ADR-013).</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching rows.</returns>
+    private async Task<IReadOnlyList<T>> ReadPhaseAsync<T>(
+        string aSql, int aUserId, string? aRepo, CancellationToken aCancellationToken)
+    {
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+
+        var vRows = await vConnection.QueryAsync<T>(
+            new CommandDefinition(aSql, new { aUserId, aRepo }, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false);
+
+        return vRows.ToList();
     }
 
     /// <inheritdoc />
@@ -323,7 +435,10 @@ public sealed class PostgresStore : ITelemetryStore
         ArgumentNullException.ThrowIfNull(aRepo);
 
         await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
-        foreach (var vTable in StreamTables)
+
+        // Both lists, and all three phase tables among them (REQ-FN-095): a table this loop forgets is a
+        // table whose rows survive the removal and go on contributing to every figure.
+        foreach (var vTable in StreamTables.Concat(PhaseTables))
         {
             var vSql = $"""DELETE FROM "{vTable}" WHERE "UserId" = @aUserId AND "Repo" = @aRepo""";
             await vConnection.ExecuteAsync(
@@ -944,17 +1059,24 @@ public sealed class PostgresStore : ITelemetryStore
         """;
 
     /// <summary>Idempotent insert for <c>runs</c>; conflicts on <c>UcRunIdentity</c> are no-ops.</summary>
+    /// <remarks>
+    /// The three SCHEMA §2.6 columns are written straight through as the parser read them, <c>null</c>
+    /// included: nothing here coalesces an absent <c>"SubagentRuns"</c> to zero, so <c>RebuildAsync</c>
+    /// re-derives the same nulls from the stream alone (REQ-FN-088, ADR-026).
+    /// </remarks>
     private const string InsertRunSql = """
         INSERT INTO "Run" (
             "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
             "Harness","Cmd","Mode","Started","Ended","DurationS","ReqsTouched","ReqsCount","Subagents",
             "FilesWritten","BuildResult","Tier","TierModel","Model","Models","Routed","TokensIn","TokensOut",
-            "TokensCacheRead","TokensCacheWrite","CostUsd","TokensScope","Attempt","Overflow")
+            "TokensCacheRead","TokensCacheWrite","CostUsd","TokensScope","Attempt",
+            "SubagentRuns","TokensOutSubagents","ModelTokensOut","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@Cmd,@Mode,@Started,@Ended,@DurationS,@ReqsTouched,@ReqsCount,@Subagents,
             @FilesWritten,@BuildResult,@Tier,@TierModel,@Model,@Models,@Routed,@TokensIn,@TokensOut,
-            @TokensCacheRead,@TokensCacheWrite,@CostUsd,@TokensScope,@Attempt,CAST(@Overflow AS jsonb))
+            @TokensCacheRead,@TokensCacheWrite,@CostUsd,@TokensScope,@Attempt,
+            @SubagentRuns,@TokensOutSubagents,CAST(@ModelTokensOut AS jsonb),CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -995,17 +1117,27 @@ public sealed class PostgresStore : ITelemetryStore
         """;
 
     /// <summary>Idempotent insert for a <c>miss</c>; conflicts on <c>UcMissUserRepoMissId</c> are no-ops.</summary>
+    /// <remarks>
+    /// One table, two editions (ADR-024). <c>"ItemId"</c> and <c>"FoundPhaseGate"</c> are written beside
+    /// <c>"ReqId"</c> and <c>"FoundGate"</c> rather than into them, and a TechieFlow row simply leaves
+    /// all three of the new columns <c>null</c> (REQ-FN-104, REQ-FN-103). A Playbook row additionally
+    /// conflicts on <c>UcMissUserRepoSourceLine</c>, which the <c>ON CONFLICT DO NOTHING</c> covers
+    /// without naming — the clause is unqualified precisely so a second natural key on the same table
+    /// does not need a second statement.
+    /// </remarks>
     private const string InsertMissSql = """
         INSERT INTO "Miss" (
             "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
-            "Harness","MissId","ReqId","ReqClass","MissClass","Artifact","Severity","WhyMissed",
+            "Harness","MissId","ReqId","ItemId","ReqClass","MissClass","Artifact","Severity","WhyMissed",
             "OriginPhase","OriginAgent","OriginRunId","OriginConfidence","OriginModel","OriginHarness",
-            "FoundBy","FoundPhase","FoundGate","FoundRunId","FailureClass","Overflow")
+            "FoundBy","FoundPhase","FoundGate","FoundPhaseGate","FoundRunId","FailureClass",
+            "SourceLineHash","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
-            @Harness,@MissId,@ReqId,@ReqClass,@MissClass,@Artifact,@Severity,@WhyMissed,
+            @Harness,@MissId,@ReqId,@ItemId,@ReqClass,@MissClass,@Artifact,@Severity,@WhyMissed,
             @OriginPhase,@OriginAgent,@OriginRunId,@OriginConfidence,@OriginModel,@OriginHarness,
-            @FoundBy,@FoundPhase,@FoundGate,@FoundRunId,@FailureClass,CAST(@Overflow AS jsonb))
+            @FoundBy,@FoundPhase,@FoundGate,@FoundPhaseGate,@FoundRunId,@FailureClass,
+            @SourceLineHash,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1022,12 +1154,12 @@ public sealed class PostgresStore : ITelemetryStore
             "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
             "Harness","MissId","ReqId","FixRunId","FixCmd","FixAttempt","VerdictAfter","Reopened",
             "CostAttribution","TokensIn","TokensOut","TokensCacheRead","TokensCacheWrite","CostUsd",
-            "TokensScope","Model","Overflow")
+            "TokensScope","Model","SourceLineHash","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@MissId,@ReqId,@FixRunId,@FixCmd,@FixAttempt,@VerdictAfter,@Reopened,
             @CostAttribution,@TokensIn,@TokensOut,@TokensCacheRead,@TokensCacheWrite,@CostUsd,
-            @TokensScope,@Model,CAST(@Overflow AS jsonb))
+            @TokensScope,@Model,@SourceLineHash,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1043,10 +1175,10 @@ public sealed class PostgresStore : ITelemetryStore
     private const string InsertMissAmendSql = """
         INSERT INTO "MissAmend" (
             "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
-            "Harness","MissId","Field","Value","Overflow")
+            "Harness","MissId","Field","Value","SourceLineHash","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
-            @Harness,@MissId,@Field,@Value,CAST(@Overflow AS jsonb))
+            @Harness,@MissId,@Field,@Value,@SourceLineHash,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1105,6 +1237,100 @@ public sealed class PostgresStore : ITelemetryStore
         VALUES ({PbEventValues})
         ON CONFLICT DO NOTHING
         """;
+
+    /// <summary>Every <c>"PbPhaseExecution"</c> column; the first three are its natural key.</summary>
+    private static readonly string[] PhaseExecutionColumns =
+    [
+        "UserId", "Repo", "PhaseExecutionId", "SourceSchema", "SourceHarness", "Phase", "SessionId",
+        "Granularity", "StartedAt", "EndedAt", "ElapsedMs", "Complete", "EndReason", "DominantModel",
+        "Tier", "TokensInput", "TokensOutput", "TokensReasoning", "TokensCacheRead", "TokensCacheWrite",
+        "TokensIn", "TokensOut", "CostUsd", "Turns", "AssistantElapsedMs", "ToolElapsedMs",
+        "ObservedActiveMs", "ActiveCoverage", "DataQualityValid", "DataQualityIssues", "TokenStatus",
+        "CostStatus", "TokensScope", "SubagentsSpawned", "SubagentsContributors", "AttemptSnapshot",
+        "GateVerdictSnapshot", "ProjectType", "ImportedAt", "Overflow"
+    ];
+
+    /// <summary>Every <c>"PbPhaseModelUsage"</c> column; the first four are its natural key.</summary>
+    private static readonly string[] PhaseModelUsageColumns =
+    [
+        "UserId", "Repo", "PhaseExecutionId", "Model", "Turns", "TokensInput", "TokensOutput",
+        "TokensReasoning", "TokensCacheRead", "TokensCacheWrite", "TokensIn", "TokensOut", "CostUsd",
+        "CostStatus", "ActiveMs"
+    ];
+
+    /// <summary>Every <c>"PbPhaseSubagent"</c> column; the first four are its natural key.</summary>
+    private static readonly string[] PhaseSubagentColumns =
+    [
+        "UserId", "Repo", "PhaseExecutionId", "SessionId", "ParentSessionId", "Agent", "StartedAt",
+        "EndedAt", "ElapsedMs", "Complete", "Turns", "TokensIn", "TokensOut", "CostUsd", "CostStatus"
+    ];
+
+    /// <summary>
+    /// Upsert for one phase execution, keyed on <c>UcPbPhaseExecUserRepoId</c> (REQ-FN-094).
+    /// </summary>
+    /// <remarks>
+    /// <b>Upsert, not <c>DO NOTHING</c>.</b> The exporter re-emits every currently readable window, so a
+    /// later import legitimately carries a <i>more complete</i> reading of a window already stored — an
+    /// EOF window that has since closed, for instance — and refusing it would freeze the partial row.
+    /// The <c>WHERE</c> is what keeps re-import honest in the other direction: an identical bundle
+    /// changes nothing and reports zero rows written rather than counting an untouched row as new.
+    /// <c>"ImportedAt"</c> is excluded from that comparison and included in the <c>SET</c>, because it
+    /// changes on every import by definition and would otherwise make every re-import look like a change.
+    /// </remarks>
+    private static readonly string InsertPhaseExecutionSql =
+        PhaseUpsertSql("PbPhaseExecution", PhaseExecutionColumns, 3, "ImportedAt");
+
+    /// <summary>Upsert for one model's usage, keyed on <c>UcPbPhaseModelUserRepoIdModel</c>.</summary>
+    private static readonly string InsertPhaseModelUsageSql =
+        PhaseUpsertSql("PbPhaseModelUsage", PhaseModelUsageColumns, 4);
+
+    /// <summary>Upsert for one sub-agent session, keyed on <c>UcPbPhaseSubUserRepoIdSession</c>.</summary>
+    private static readonly string InsertPhaseSubagentSql =
+        PhaseUpsertSql("PbPhaseSubagent", PhaseSubagentColumns, 4);
+
+    /// <summary>
+    /// Builds the idempotent upsert for one phase table.
+    /// </summary>
+    /// <remarks>
+    /// Generated rather than written out three times because the same forty column names would otherwise
+    /// appear in an insert list, a value list, a <c>SET</c> clause and a <c>WHERE</c> comparison — four
+    /// places for one of them to be forgotten, and a forgotten column in the <c>SET</c> is a value that
+    /// silently never updates. The shape is exactly the one the hand-written statements above use.
+    /// </remarks>
+    /// <param name="aTable">The table name.</param>
+    /// <param name="aColumns">Every column, in insert order.</param>
+    /// <param name="aKeyColumns">How many leading columns form the natural key.</param>
+    /// <param name="aExcludedFromCompare">Columns that change on every import and so cannot signal one.</param>
+    /// <returns>The statement.</returns>
+    private static string PhaseUpsertSql(
+        string aTable, string[] aColumns, int aKeyColumns, params string[] aExcludedFromCompare)
+    {
+        var vKey = aColumns.Take(aKeyColumns).ToArray();
+        var vPayload = aColumns.Skip(aKeyColumns).ToArray();
+        var vCompared = vPayload.Except(aExcludedFromCompare, StringComparer.Ordinal).ToArray();
+
+        var vInsert = string.Join(",", aColumns.Select(aC => $"\"{aC}\""));
+        var vValues = string.Join(",", aColumns.Select(Parameter));
+        var vSet = string.Join(",\n            ", vPayload.Select(aC => $"\"{aC}\" = EXCLUDED.\"{aC}\""));
+        var vMine = string.Join(",", vCompared.Select(aC => $"\"{aTable}\".\"{aC}\""));
+        var vTheirs = string.Join(",", vCompared.Select(aC => $"EXCLUDED.\"{aC}\""));
+
+        return $"""
+            INSERT INTO "{aTable}" ({vInsert})
+            VALUES ({vValues})
+            ON CONFLICT ({string.Join(",", vKey.Select(aC => $"\"{aC}\""))}) DO UPDATE SET
+            {vSet}
+            WHERE ({vMine}) IS DISTINCT FROM ({vTheirs})
+            """;
+    }
+
+    /// <summary>Renders one column's insert parameter, casting the one <c>jsonb</c> column.</summary>
+    /// <param name="aColumn">The column name.</param>
+    /// <returns>The parameter expression.</returns>
+    private static string Parameter(string aColumn) =>
+        string.Equals(aColumn, "Overflow", StringComparison.Ordinal)
+            ? "CAST(@Overflow AS jsonb)"
+            : "@" + aColumn;
 
     /// <summary>
     /// Records one obtained dataset identity; re-recording the same triple is a no-op (REQ-NFR-019).

@@ -1,0 +1,71 @@
+@*
+    REQ-UI-001 / REQ-UI-003, BRD-144 clause 2 — the narrow-viewport brand bar.
+
+    WHAT IT FIXES. At 390 the anonymous split stacks, and `AuthLayout`'s brand panel keeps its full
+    desktop furniture: the 44px mark, the 32px wordmark, the 18px tagline and the four benefit
+    bullets, inside 2rem of padding with a 2rem gap. Measured 2026-08-30 on the running app that is
+    399px of the 844px viewport spent before the sign-in card starts, which pushed `/login` to
+    scrollHeight 966 (delta 122) and `/forgot-password` to 858 (delta 14).
+
+    docs/mockups/login.html does NOT do that. Below 700px its `.brandp` turns into a single 65px row
+    — mark and wordmark shrunk, tagline and bullets hidden, credit line and theme toggle pushed to
+    the right — and the card then fits the viewport with room to spare (measured: mockup brandp 65px,
+    doc delta 0 at 390). The rules below are that same collapse, expressed against the app's
+    `.auth-*` class names. It removes real content height; it does NOT hide a scrollbar over content
+    that still does not fit.
+
+    WHY IT IS A <style> ELEMENT AND NOT app.css OR A SCOPED .razor.css.
+      * A scoped `AuthLayout.razor.css` is what caused the 2026-08-28 UAT failure: when the optional
+        `TfLens.styles.css` bundle did not arrive the whole anonymous screen collapsed, with no error
+        anywhere (REQ-NFR-015, docs/uatissuessc/Login.png). That route is closed by decision.
+      * `wwwroot/app.css` is shared by all four anonymous screens, and this collapse must NOT reach
+        `/register` or `/reset-password`: both are `Verified`, both fail the same clause for a
+        different reason (their own mockups scroll too), and whether BRD-144 clause 2 binds them at
+        all is an open question the owner has reserved (PROJECT-STATUS.md, Known blockers). Shipping
+        a layout change that silently moved those two would be deciding it by agent fiat.
+      * Rendering the rules from the two pages that need them makes the opt-in explicit, keeps one
+        source of truth for both, and — like app.css and unlike the scoped bundle — cannot 404,
+        because it is part of the page's own HTML.
+
+    When the owner settles the register / reset-password question, this belongs in `app.css` on
+    `.auth-brand` unconditionally, and this component should be deleted.
+*@
+
+<style>
+    @@media (max-width: 767.98px) {
+        .auth-split .auth-brand {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.25rem;
+        }
+
+        .auth-split .auth-tagline,
+        .auth-split .auth-bullets {
+            display: none;
+        }
+
+        .auth-split .auth-mark {
+            width: 2.125rem;
+            height: 2.125rem;
+            border-radius: 0.5625rem;
+        }
+
+        .auth-split .auth-mark svg {
+            width: 1.125rem;
+            height: 1.125rem;
+        }
+
+        .auth-split .auth-wordmark {
+            font-size: 1.375rem;
+        }
+
+        .auth-split .auth-brand-footer {
+            margin-left: auto;
+        }
+
+        .auth-split .auth-right {
+            padding: 1.75rem 1rem;
+        }
+    }
+</style>

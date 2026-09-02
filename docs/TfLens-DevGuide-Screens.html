@@ -106,10 +106,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="sub">Last rendered: 2026-08-29</div>
+    <div class="sub">Last rendered: 2026-09-01</div>
     <div class="group">Contents</div>
     <ol>
-        <li><a href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#runtime-verified-2026-08-30-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-30 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
         <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
@@ -172,7 +172,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#three-questions">/three-questions</a></li>
+        <li><a href="#gate-outcomes">/gate-outcomes</a></li>
         <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
         <li class="h3"><a href="#states-9">States</a></li>
         <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
@@ -205,16 +205,19 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
         <li><a href="#known-issues-mockup-parity-owner-uat-2026-08-29-open">Known issues — mockup parity (owner UAT, 2026-08-29) — OPEN</a></li>
+        <li class="h3"><a href="#update-2026-09-01-fix-issues-harness-export-and-gate-outcomes-are-closed">Update 2026-09-01 (*fix-issues) — /harness, /export and /gate-outcomes are closed</a></li>
+        <li class="h3"><a href="#update-2026-09-01-static-assets-are-content-fingerprinted-req-nfr-015">Update 2026-09-01 — static assets are content-fingerprinted (REQ-NFR-015)</a></li>
+        <li class="h3"><a href="#update-2026-09-01-a-dead-scoped-css-rule-now-fails-the-build-req-nfr-021">Update 2026-09-01 — a dead scoped-CSS rule now fails the build (REQ-NFR-021)</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
+    <div class="subtitle">Rendered 2026-09-01 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
+        <li><a href="#runtime-verified-2026-08-30-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-30 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
         <li><a href="#observed-2026-08-28-the-phase-3-screens">Observed 2026-08-28 — the Phase 3 screens</a></li>
         <li><a href="#contents">Contents</a></li>
         <li><a href="#how-to-run-and-drive-it">How to run and drive it</a></li>
@@ -277,7 +280,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
         <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#three-questions">/three-questions</a></li>
+        <li><a href="#gate-outcomes">/gate-outcomes</a></li>
         <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
         <li class="h3"><a href="#states-9">States</a></li>
         <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
@@ -310,6 +313,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
         <li><a href="#known-issues-mockup-parity-owner-uat-2026-08-29-open">Known issues — mockup parity (owner UAT, 2026-08-29) — OPEN</a></li>
+        <li class="h3"><a href="#update-2026-09-01-fix-issues-harness-export-and-gate-outcomes-are-closed">Update 2026-09-01 (*fix-issues) — /harness, /export and /gate-outcomes are closed</a></li>
+        <li class="h3"><a href="#update-2026-09-01-static-assets-are-content-fingerprinted-req-nfr-015">Update 2026-09-01 — static assets are content-fingerprinted (REQ-NFR-015)</a></li>
+        <li class="h3"><a href="#update-2026-09-01-a-dead-scoped-css-rule-now-fails-the-build-req-nfr-021">Update 2026-09-01 — a dead scoped-CSS rule now fails the build (REQ-NFR-021)</a></li>
       </ol>
     </div>
 <p>This half of the guide is the map a developer follows to get from <em>"this thing on screen is wrong"</em> to
@@ -321,35 +327,48 @@ reading twice.</p>
 <p>Screenshots in <code>docs/devguide-images/</code> are a point-in-time capture. The dev database is shared, so row
 counts in a shot will not match what you see today; the <em>structure</em> is what the shot is for.</p>
 <hr>
-<h2 id="runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-29 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)<a class="anchor-link" href="#runtime-verified-2026-08-29-as-tflensdemo-techierathore-com-userid-2-manager">#</a></h2>
+<h2 id="runtime-verified-2026-08-30-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-08-30 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)<a class="anchor-link" href="#runtime-verified-2026-08-30-as-tflensdemo-techierathore-com-userid-2-manager">#</a></h2>
 <p>Observed, not inferred. A full <code>*verify all</code> pass drove every screen below on a <strong>Release</strong> build at
 <code>http://localhost:5099</code> with headless Chromium at <strong>1280×800 and 390×844</strong>, applying the data-render
 gate (does every control listed in its <em>Control → data path</em> table actually render its data?) and the
 visual-truth gate (does the screen look right — no overlap, no clipping, nothing off-canvas, no
 horizontal page scroll?). Evidence: <code>tests/.artifacts/gates/render-visual.json</code> and the paired
 screenshots <code>tests/.artifacts/gates/{screen}-{1280,390}.png</code>.</p>
+<p><strong>A third gate now runs beside those two: <code>mockup-parity</code> (REQ-NFR-020 / BRD-144).</strong> It grades each
+built screen against its approved mockup in <code>docs/mockups/</code>, and it is the gate that matters most for
+this table, because the two gates above cannot see design drift: a badge rendered as plain text has
+text and does not overlap, and a value split mid-token is present and unclipped. Its 2026-08-29 first
+run demoted 8 screens with 44 findings. <strong>This run: 10 PASS / 2 FAIL / 0 findings.</strong></p>
 <table>
-<thead><tr><th>Screen</th><th>Controls checked</th><th>Data render</th><th>Looks right</th></tr></thead>
+<thead><tr><th>Screen</th><th>Controls checked</th><th>Data render</th><th>Looks right</th><th>Mockup parity</th></tr></thead>
 <tbody>
-<tr><td><code>/login</code></td><td>8</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/register</code></td><td>12</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/forgot-password</code></td><td>4</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/reset-password</code></td><td>11</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/profile</code></td><td>22</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/repos</code></td><td>32</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/</code> — Coverage / health</td><td>53</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/</code> — Coverage miss-quality card</td><td>7</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/three-questions</code></td><td>32</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/harness</code></td><td>28</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/routing</code> — drift · models · repricing · poolable</td><td>23 · 8 · 19 · 13</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/misses</code></td><td>102</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td><code>/export</code></td><td>30</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
-<tr><td>Playbook axis of all six report pages</td><td>12 each (72)</td><td>renders ✓ (runtime-confirmed 2026-08-29)</td><td>looks-right ✓</td></tr>
+<tr><td><code>/login</code></td><td>8</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — doc overflow 390 delta <strong>122 → 0</strong></td></tr>
+<tr><td><code>/register</code></td><td>12</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td><strong>FAIL</strong> — doc overflow 1280 delta 73, 390 delta 416 (owner-reserved)</td></tr>
+<tr><td><code>/forgot-password</code></td><td>4</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — doc overflow 390 delta <strong>14 → 0</strong></td></tr>
+<tr><td><code>/reset-password</code></td><td>11</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td><strong>FAIL</strong> — doc overflow 390 delta 166 (owner-reserved)</td></tr>
+<tr><td><code>/profile</code></td><td>22</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS (1 waiver: <code>profile-identity-note</code> — the mockup is wrong, not the app)</td></tr>
+<tr><td><code>/repos</code></td><td>35</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — 6 wrap findings cleared</td></tr>
+<tr><td><code>/</code> — Coverage / health</td><td>58</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — 4 findings cleared</td></tr>
+<tr><td><code>/</code> — Coverage miss-quality card</td><td>7</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS</td></tr>
+<tr><td><code>/gate-outcomes</code></td><td>31</td><td>renders ✓ (runtime-confirmed <strong>2026-09-01</strong>)</td><td>looks-right ✓ (runtime-confirmed <strong>2026-09-01</strong>, 1280 + 390)</td><td><strong>mockup-parity: 1 open finding</strong> — <code>stat-sparkline</code> semantic colour (app amber via <code>@AccentClass</code> vs the design's <code>--chart-1</code>), <code>MISS-TfLens-20260901-03</code>. <code>late-gate-app</code> icon belongs to <code>REQ-UI-022</code>; <code>app-sidebar</code> clip is the TF-012 false positive</td></tr>
+<tr><td><code>/harness</code></td><td>28</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — 2 findings cleared</td></tr>
+<tr><td><code>/routing</code> — drift · models · repricing · poolable</td><td>23 · 8 · 19 · 13</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — <strong>20 findings cleared</strong>, the largest per-screen count</td></tr>
+<tr><td><code>/misses</code></td><td>104</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — 8 findings cleared</td></tr>
+<tr><td><code>/export</code></td><td>30</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>PASS — 2 findings cleared</td></tr>
+<tr><td>Playbook axis of all six report pages</td><td>12 each (72)</td><td>renders ✓ (runtime-confirmed 2026-08-30)</td><td>looks-right ✓</td><td>SKIPPED — empty state, no mockup to grade against</td></tr>
 </tbody>
 </table>
 <p><strong>Zero</strong> render-empty controls, <strong>zero</strong> render errors, <strong>zero</strong> visual failures and <strong>zero</strong> console
-errors across all <strong>22 screen-states / 476 controls</strong>. Defects found were behavioural, not rendering —
-they are listed against their screens below and in <code>docs/TfLens-Checklist.md</code>.</p>
+errors across all <strong>22 screen-states / 485 controls</strong> and <strong>44 viewport checks</strong>. Acceptance: Playwright
+80 passed / 2 failed / 3 skipped of 85 (the 2 failures are the two owner-reserved routes above, nothing
+else) and .NET <strong>689/689</strong> on Release.</p>
+<p><strong>Two rendering defects were fixed this run that no gate but <code>mockup-parity</code> could see, and both had
+the same root cause</strong> — worth knowing because it will recur. Blazor stamps the CSS-isolation scope
+attribute <strong>only on elements authored in the owning <code>.razor</code> file</strong>; <code>StatTile</code> and <code>Card</code> render their
+own root elements, so a bare <code>.tflens-measured { … }</code> rule in <code>Misses.razor.css</code> compiled to
+<code>.tflens-measured[b-s2fwlvxw9p]</code> and <strong>matched nothing</strong>. The measured-USD tile's green ring and the
+estimate card's dashed border had both been written on 2026-08-29 and neither was ever painted. The fix
+is to anchor such a rule on an element the file <em>does</em> author and reach the component through <code>::deep</code>.</p>
 <p><strong>One screen is NOT runtime-verified with data: the Playbook axis.</strong> Every Playbook state above was
 confirmed as its <em>empty</em> state (<code>playbook-axis-note</code> + <code>playbook-empty</code> + <code>playbook-empty-connect</code>,
 with no TechieFlow figure leaking across the axis). No connected repository emits <code>events.ndjson</code>, so
@@ -362,7 +381,7 @@ dataset.</p>
 </li>
 <li><s><strong>Escape does not dismiss two dialogs.</strong></s> <strong>Fixed 2026-08-27.</strong> Escape now dismisses both the remove-repo <code>AlertDialog</code> and the connect-repo <code>Dialog</code> (including after a validation result is on screen). Root cause was a library gap, not page code: TrBlazeUI 2.0.0's <code>AlertDialog</code> ships no Escape handling and no <code>CloseOnEscape</code>/<code>Modal</code> parameter, and — unlike <code>Dialog</code> — has no <code>TrBlazeUI.Primitives</code> counterpart to inherit one from (<code>TR-014</code>). Worked around with a capture-phase <code>keydown</code> module (<code>Repos.razor.js</code>) invoking a <code>[JSInvokable]</code> dismiss on the page, which closes the remove dialog first, else the connect dialog when it is not mid-connect, and defers to an open <code>role="listbox"</code> so dismissing the Kind select does not close the dialog behind it.
 </li>
-<li><strong>The Playbook axis is finished on <code>/export</code> only.</strong> <em>(Stale — superseded 2026-08-27; all five report pages now render the Playbook state. See the Playbook section below.)</em> <code>playbook-axis-note</code> / <code>playbook-empty</code> render there and nowhere else; <code>/</code>, <code>/three-questions</code>, <code>/harness</code> and <code>/routing</code> re-query on the Playbook axis but reuse the TechieFlow surface with no axis note. <code>pb-phases-*</code> is not rendered by any page. The separation rule itself holds — no <code>gate-dist-*</code> table is ever populated on the Playbook axis, so <code>phase_gate</code> and <code>gate</code> never share a table.
+<li><strong>The Playbook axis is finished on <code>/export</code> only.</strong> <em>(Stale — superseded 2026-08-27; all five report pages now render the Playbook state. See the Playbook section below.)</em> <code>playbook-axis-note</code> / <code>playbook-empty</code> render there and nowhere else; <code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code> and <code>/routing</code> re-query on the Playbook axis but reuse the TechieFlow surface with no axis note. <code>pb-phases-*</code> is not rendered by any page. The separation rule itself holds — no <code>gate-dist-*</code> table is ever populated on the Playbook axis, so <code>phase_gate</code> and <code>gate</code> never share a table.
 </li>
 </ul>
 <hr>
@@ -394,7 +413,7 @@ this page, check the record count behind it.</p>
 <ul>
 <li><a href="#how-to-run-and-drive-it">How to run and drive it</a>
 </li>
-<li><a href="#cross-cutting-gotchas--read-these-first">Cross-cutting gotchas — read these first</a>
+<li><a href="#cross-cutting-gotchas-read-these-first">Cross-cutting gotchas — read these first</a>
 </li>
 <li><a href="#the-shell-mainlayout">The shell: <code>MainLayout</code></a>
 </li>
@@ -410,9 +429,9 @@ this page, check the record count behind it.</p>
 </li>
 <li><a href="#repos"><code>/repos</code></a>
 </li>
-<li><a href="#--coverage--health"><code>/</code> — Coverage / health</a>
+<li><a href="#coverage-health"><code>/</code> — Coverage / health</a>
 </li>
-<li><a href="#three-questions"><code>/three-questions</code></a>
+<li><a href="#gate-outcomes"><code>/gate-outcomes</code></a>
 </li>
 <li><a href="#harness"><code>/harness</code></a>
 </li>
@@ -458,7 +477,7 @@ explicit <code>InitialPageSize</code> renders its first <strong>5</strong> rows 
 <thead><tr><th>File</th><th>Table</th><th><code>InitialPageSize</code></th><th>Rows it can hold</th></tr></thead>
 <tbody>
 <tr><td><code>Coverage.razor</code></td><td><code>repo-streams-{name}</code></td><td>16</td><td>4 (TechieFlow) / 1 (Playbook)</td></tr>
-<tr><td><code>ThreeQuestions.razor</code></td><td><code>gate-dist-{type}</code></td><td>32</td><td>8 (<code>GateOrder</code> 7 + <code>unattributed</code>)</td></tr>
+<tr><td><code>GateOutcomes.razor</code></td><td><code>gate-dist-{type}</code></td><td>32</td><td>8 (<code>GateOrder</code> 7 + <code>unattributed</code>)</td></tr>
 <tr><td><code>Harness.razor</code></td><td><code>harness-table-{harness}</code></td><td>50</td><td>11</td></tr>
 <tr><td><code>Harness.razor</code></td><td><code>tokens-table</code></td><td>50</td><td>3</td></tr>
 <tr><td><code>Routing.razor</code></td><td><code>drift-table</code></td><td>25</td><td>unbounded (pager on)</td></tr>
@@ -490,8 +509,8 @@ package's own <code>lucide.json</code> render an <strong>empty placeholder</stro
 </tbody>
 </table>
 <p>A probe over all twelve routes found <strong>0 blank icons</strong> today, so the codebase is currently clean — this
-is the rule that keeps it that way. <code>ShellNavigation.Items</code> already uses <code>circle-question-mark</code> for
-Three questions for exactly this reason.</p>
+is the rule that keeps it that way. <code>ShellNavigation.Items</code> uses only post-rename names for exactly this reason — <code>shield-check</code>
+for Gate outcomes since the 2026-09-01 rename, <code>circle-question-mark</code> before it.</p>
 <p><strong>Confirmed again 2026-08-28 as <code>TR-022</code>,</strong> and it is worth knowing <em>why</em> it bites: <code>lucide.json</code>
 carries <strong>two</strong> maps, <code>icons</code> and <code>aliases</code>, and <code>LucideIcon</code> looks the name up in <code>icons</code> only. So a
 name that is genuinely in the package's own metadata still resolves to nothing. The measured-USD
@@ -542,7 +561,7 @@ or call <code>IAnalysisCache.Invalidate(userId)</code>.</p>
 <thead><tr><th>Reads <code>"SyncState"</code> counters</th><th>Reads the stream tables directly</th></tr></thead>
 <tbody>
 <tr><td><code>/repos</code> "Records synced" KPI, per-row Records column (<code>RepoListItem.RecordCount</code>)</td><td><code>/</code> Coverage KPI row and every stream table (<code>ITelemetryStore.ReadCoverageFactsAsync</code>)</td></tr>
-<tr><td><code>/export</code> "Scope" fact and Dataset SHAs (<code>ExportSurface.ReloadAsync</code>)</td><td><code>/three-questions</code>, <code>/harness</code>, <code>/routing</code> (<code>IMetricsEngine</code>, <code>IExtraMetrics</code>)</td></tr>
+<tr><td><code>/export</code> "Scope" fact and Dataset SHAs (<code>ExportSurface.ReloadAsync</code>)</td><td><code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code> (<code>IMetricsEngine</code>, <code>IExtraMetrics</code>)</td></tr>
 <tr><td><code>ShellState.RecordCount</code>, header last-sync badge</td><td></td></tr>
 </tbody>
 </table>
@@ -568,10 +587,10 @@ build a value with fewer than 3 supporting records, which is the backstop.</p>
 <code>Repos.razor</code>'s empty state was invisible for exactly this reason. <code>Components/_Imports.razor</code> now
 carries both <code>TrBlazeUI.Components.Empty</code> and <code>TrBlazeUI.Components.Typography</code>.</p>
 <p><strong>Stale comments to ignore:</strong> <code>Coverage.razor:28</code> ("TrBlazeUI 2.0.0 ships no Typography components"),
-<code>ThreeQuestions.razor:20</code> (TR-007, same claim) and <code>Routing.razor:15-18</code> ("These namespaces are NOT in
+<code>GateOutcomes.razor:20</code> (TR-007, same claim) and <code>Routing.razor:15-18</code> ("These namespaces are NOT in
 Components/_Imports.razor") all contradict the current <code>_Imports.razor</code>. <code>Repos.razor</code>, <code>Harness.razor</code>,
 <code>Routing.razor</code> and <code>Export.razor</code> use <code>TypographyH2</code> successfully; <code>Coverage.razor</code> and
-<code>ThreeQuestions.razor</code> still hand-roll <code>&lt;h1 class="text-2xl font-semibold"&gt;</code>. Both work — just do not
+<code>GateOutcomes.razor</code> still hand-roll <code>&lt;h1 class="text-2xl font-semibold"&gt;</code>. Both work — just do not
 believe the comments.</p>
 <h3 id="tabstrigger-captures-no-unmatched-attributes">9. <code>TabsTrigger</code> captures no unmatched attributes<a class="anchor-link" href="#tabstrigger-captures-no-unmatched-attributes">#</a></h3>
 <p>You cannot put <code>data-testid</code> on a <code>TabsTrigger</code>. Every tab in the app puts it on the <code>&lt;span&gt;</code> the
@@ -668,7 +687,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Service call</th><th>Behind it</th></tr></thead>
 <tbody>
 <tr><td>Sidebar shell</td><td><code>SidebarProvider CookieKey="@SidebarPreference.CookieName"</code> → <code>Sidebar</code></td><td><code>app-sidebar</code></td><td>—</td><td><code>tflens-sidebar</code> cookie, written by TrBlazeUI</td></tr>
-<tr><td>Nav items</td><td><code>SidebarMenuButton</code> ×7</td><td><code>nav-repos</code>, <code>nav-coverage</code>, <code>nav-three-questions</code>, <code>nav-harness</code>, <code>nav-routing</code>, <strong><code>nav-misses</code></strong>, <code>nav-export</code></td><td>—</td><td><code>ShellNavigation.Items</code> (order, label, Lucide name, section, <code>HasFrameworkSwitch</code> all live here). <code>/misses</code> was added 2026-08-28 <strong>between</strong> Routing and Snapshot export, icon <code>bug</code></td></tr>
+<tr><td>Nav items</td><td><code>SidebarMenuButton</code> ×7</td><td><code>nav-repos</code>, <code>nav-coverage</code>, <code>nav-gate-outcomes</code>, <code>nav-harness</code>, <code>nav-routing</code>, <strong><code>nav-misses</code></strong>, <code>nav-export</code></td><td>—</td><td><code>ShellNavigation.Items</code> (order, label, Lucide name, section, <code>HasFrameworkSwitch</code> all live here). <code>/misses</code> was added 2026-08-28 <strong>between</strong> Routing and Snapshot export, icon <code>bug</code></td></tr>
 <tr><td>Repo badge</td><td><code>SidebarMenuBadge</code></td><td><code>nav-repo-count</code></td><td><code>ShellState.RepoCount</code></td><td><code>IRepoRegistry.ListAsync(userId)</code> → <code>SELECT * FROM "UserRepo" WHERE "UserId" = @aUserId</code></td></tr>
 <tr><td>Sidebar theme toggle</td><td><code>ThemeToggle</code></td><td><code>theme-toggle-sidebar</code></td><td><code>ShellPreferences.SetThemeAsync</code></td><td>JS <code>tflens.setTheme</code> → <code>tflens-theme</code> cookie + <code>&lt;html class="dark"&gt;</code></td></tr>
 <tr><td>Breadcrumb</td><td><code>Breadcrumb</code> in <code>ShellHeader.razor</code></td><td>—</td><td><code>ShellNavigation.Breadcrumb(path)</code></td><td>static table; <code>/profile</code> comes from <code>ExtraCrumbs</code></td></tr>
@@ -681,7 +700,7 @@ theme toggle, user menu) and the page container that every authenticated screen 
 </tbody>
 </table>
 <p><code>ShellHeader.ShowsFrameworkSwitch</code> → <code>ShellNavigation.ShowsFrameworkSwitch(path)</code> → the item's
-<code>HasFrameworkSwitch</code> flag. It is <strong>true on the six report routes only</strong> (<code>/</code>, <code>/three-questions</code>,
+<code>HasFrameworkSwitch</code> flag. It is <strong>true on the six report routes only</strong> (<code>/</code>, <code>/gate-outcomes</code>,
 <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/export</code>) — not on <code>/repos</code>, not on <code>/profile</code>. Verified live;
 <code>/misses</code> observed carrying <code>framework-switch</code> on 2026-08-28.</p>
 <h3 id="states">States<a class="anchor-link" href="#states">#</a></h3>
@@ -957,7 +976,7 @@ forks on that from the first press to the last column:</p>
 <p>The two are one <code>Dialog</code> with two panels, not two dialogs. Origin is <em>delivery</em>, not data: it is
 displayed here, on Coverage and in the export, and it <strong>divides no figure</strong> anywhere (ADR-021, and
 <code>SourceKindIsNeverASegmentTests</code> pins it). See
-<a href="#13-sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">cross-cutting gotcha 13</a> before
+<a href="#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">cross-cutting gotcha 13</a> before
 you touch either vocabulary.</p>
 <p><img src="./devguide-images/repos-add-source.png" alt="The Add-source dialog, Fetch via API" style="max-width:100%">
 <img src="./devguide-images/repos-import-mode.png" alt="The same dialog in Import metric files mode" style="max-width:100%"></p>
@@ -1158,7 +1177,7 @@ a <code>&lt;span&gt;</code> inside. The build will not warn you.</p>
 </li>
 <li><code>IRepoSyncRunner</code> is resolved with <code>GetService</code>, not <code>GetRequiredService</code>. If it is not registered, the row Sync button toasts <em>"Sync is not available in this build."</em> instead of throwing. Same pattern in <code>SyncNowButton</code>.
 </li>
-<li>The <code>Records</code> column and <code>kpi-records</code> read <code>"SyncState"</code> counters. Seeded rows show <code>0</code> here while Coverage shows the real totals. Not a bug in this page — <a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>.
+<li>The <code>Records</code> column and <code>kpi-records</code> read <code>"SyncState"</code> counters. Seeded rows show <code>0</code> here while Coverage shows the real totals. Not a bug in this page — <a href="#cross-cutting-gotchas-read-these-first">gotcha 6</a>.
 </li>
 <li><code>ReloadAsync</code> also calls <code>ShellState.RefreshAsync(userId)</code>, which is what keeps the sidebar badge and the header last-sync badge in step after a connect/remove. Drop that call and the shell goes stale.
 </li>
@@ -1168,7 +1187,7 @@ a <code>&lt;span&gt;</code> inside. The build will not warn you.</p>
 </li>
 <li><strong>The <code>Actions</code> column now renders one action button plus Remove</strong>, not always two. The "is it blank?" note above still holds: they are icon-only.
 </li>
-<li><strong>The dialog body scrolls, the dialog does not.</strong> <code>.tflens-dialog-body</code> is load-bearing — see <a href="#11-dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">cross-cutting gotcha 11</a>. Remove it and the import mode's footer goes below the fold at phone height. It also means a geometry gate can report a false overlap against the footer for a control scrolled out of view.
+<li><strong>The dialog body scrolls, the dialog does not.</strong> <code>.tflens-dialog-body</code> is load-bearing — see <a href="#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">cross-cutting gotcha 11</a>. Remove it and the import mode's footer goes below the fold at phone height. It also means a geometry gate can report a false overlap against the footer for a control scrolled out of view.
 </li>
 <li><strong>Closing or switching modes forgets the staged bundle</strong> (<code>ForgetBundleAsync</code> → JS <code>clearBundle</code>). That is deliberate: a bundle staged under <em>Fetch via API</em> and committed after a mode switch would be imported into a source the user was no longer looking at. If you add a third mode, call it too.
 </li>
@@ -1292,7 +1311,7 @@ each</strong>, 0 blank icons, no page-level horizontal scroll, no console or pag
 </li>
 <li><strong>Rebuild is the only destructive control on a read-only lens.</strong> <code>ConfirmRebuildAsync</code> drops the parsed tables and replays the raw archive; the raw archive and the GitHub repos are untouched. The <code>Progress</code> bar is <strong>fake</strong> — it is set to 20 before the call and 100 after, with nothing in between. A long rebuild looks frozen at 20%.
 </li>
-<li>Rebuild is also the only path that recomputes the <code>"SyncState"</code> counters (<a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>).
+<li>Rebuild is also the only path that recomputes the <code>"SyncState"</code> counters (<a href="#cross-cutting-gotchas-read-these-first">gotcha 6</a>).
 </li>
 <li><code>OnParametersSetAsync</code> bails if <code>objIsLoaded</code>, so it loads <strong>once</strong> per component instance. Re-querying on a framework change is <code>OnFrameworkChanged</code>, subscribed to <code>ShellPreferences.Changed</code>, which compares <code>objFramework</code> to <code>objPreferences.Framework</code> and calls <code>ReloadAsync</code>. The figures are re-read on the new axis, never filtered from what is on screen.
 </li>
@@ -1317,10 +1336,19 @@ one — Sync now on zero repos does nothing — but the design doc is stale here
 <p>The design also says loading is <code>Skeleton</code> <strong>cards</strong> (plural, mirroring the repo grid); the code renders
 one card with three skeleton lines. Every report page uses that same single-card block.</p>
 <hr>
-<h2 id="three-questions"><code>/three-questions</code><a class="anchor-link" href="#three-questions">#</a></h2>
-<p><strong>File:</strong> <code>src/TfLens/Components/Pages/ThreeQuestions.razor</code> · <code>@page "/three-questions"</code> ·
+<h2 id="gate-outcomes"><code>/gate-outcomes</code><a class="anchor-link" href="#gate-outcomes">#</a></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/GateOutcomes.razor</code> · <code>@page "/gate-outcomes"</code> ·
 authenticated · <code>MainLayout</code> · Framework switch <strong>shown</strong></p>
-<p><img src="./devguide-images/three-questions.png" alt="Three questions" style="max-width:100%"></p>
+<p><img src="./devguide-images/gate-outcomes.png" alt="Gate outcomes" style="max-width:100%"></p>
+<blockquote>
+<p><strong>Runtime-verified 2026-09-01</strong> as <code>tflensdemo@techierathore.com</code> against the configured dev database
+(<code>WinPostgre localhost:5550/tflens</code>, 8 repos · 111 runs · 827 gates). All <strong>31</strong> controls render their data;
+visual gate clean at 1280 and 390; 0 console errors. Screenshot re-captured this run — it now shows the
+post-rename title (<code>Gate outcomes</code>), which the file did not after the <code>mv</code>.</p>
+<p><strong>Known issue (open):</strong> the KPI <code>stat-sparkline</code> strokes <code>currentColor</code> under <code>@AccentClass</code>, so the failures
+tile paints <strong>amber</strong> where <code>docs/mockups/gate-outcomes.html</code> and UIDesign §Design system specify <code>--chart-1</code>.
+Fidelity, not function — <code>REQ-UI-018</code> is held at <code>Needs re-verify</code> for it (<code>MISS-TfLens-20260901-03</code>).</p>
+</blockquote>
 <p><strong>What it is for.</strong> The page the product exists for: first-pass rate, escape rate and failures scored,
 read <strong>one <code>project_type</code> at a time</strong>. There is deliberately no "all" tab and no total row.</p>
 <h3 id="control-data-path-9">Control → data path<a class="anchor-link" href="#control-data-path-9">#</a></h3>
@@ -1379,9 +1407,9 @@ it ran.</p>
 <ul>
 <li><strong>Loading</strong> — single <code>Card</code> of <code>Skeleton</code> lines.
 </li>
-<li><strong>Error</strong> — <code>Alert Danger</code> <code>three-questions-error</code> with the exception message.
+<li><strong>Error</strong> — <code>Alert Danger</code> <code>gate-outcomes-error</code> with the exception message.
 </li>
-<li><strong>Empty</strong> — <code>objTypes.Count == 0</code> → <code>Empty</code> <code>three-questions-empty</code>, "No gate records yet".
+<li><strong>Empty</strong> — <code>objTypes.Count == 0</code> → <code>Empty</code> <code>gate-outcomes-empty</code>, "No gate records yet".
 </li>
 <li><strong>Insufficient data</strong> — any <code>Figure</code> below <code>MinN</code> = 3 renders <code>insufficient data (n=…)</code> through <code>FigureText</code>. <code>SmallWhenNoNumber</code> shrinks it to <code>text-base font-normal</code> so a refusal-to-answer is never rendered at headline size.
 </li>
@@ -1598,7 +1626,7 @@ answer into a flattering number:</p>
 </li>
 <li><strong>The period filter narrows the record set and re-runs <code>MissFigures.Compute</code>.</strong> It does not recompute anything in the view. That is why every engine rule still applies under a filter, and why a narrow window degrades to <code>insufficient data (n=…)</code> rather than to a wrong number.
 </li>
-<li><strong>An absent cost renders <code>—</code>, never <code>$0.00</code>,</strong> and every <code>Figure</code> renders through <code>Components/Shared/FigureText.razor</code> (<a href="#7-a-figure-may-only-ever-be-rendered-through-componentssharedfiguretextrazor">gotcha 7</a>).
+<li><strong>An absent cost renders <code>—</code>, never <code>$0.00</code>,</strong> and every <code>Figure</code> renders through <code>Components/Shared/FigureText.razor</code> (<a href="#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor">gotcha 7</a>).
 </li>
 </ol>
 <h3 id="control-data-path-11">Control → data path<a class="anchor-link" href="#control-data-path-11">#</a></h3>
@@ -1764,13 +1792,13 @@ the raw-record disclosure open, and any apportioned or measured-dollar figure (n
 </li>
 <li><strong><code>CollapsibleContent</code> is guarded by an <code>@if</code>, not merely closed.</strong> <code>TR-018</code>: a closed <code>CollapsibleContent</code> still lays its children out and overlaps what follows. Do not remove the guard.
 </li>
-<li><strong><code>Progress Class="w-16"</code>, not <code>w-20</code>.</strong> See <a href="#10-trblazeuicsss-spacingsizing-scale-has-holes--w-20-renders-at-zero-width">cross-cutting gotcha 10</a> — <code>w-20</code> is absent from the shipped stylesheet and the share bars rendered at zero width.
+<li><strong><code>Progress Class="w-16"</code>, not <code>w-20</code>.</strong> See <a href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">cross-cutting gotcha 10</a> — <code>w-20</code> is absent from the shipped stylesheet and the share bars rendered at zero width.
 </li>
 <li><strong>The chip icons are <code>circle-check</code>, not <code>check-circle</code>.</strong> <code>TR-022</code>; the alias renders an empty box.
 </li>
-<li><strong>This page reads <code>ITelemetryStore</code> directly and so bypasses <code>MemoryAnalysisCache</code>.</strong> It is not served by the <code>CachingMetricsEngine</code> at all, which means it is <em>not</em> subject to <a href="#5-memoryanalysiscache-is-keyed-on-the-syncstate-version">gotcha 5</a> — seeded rows show up here immediately while <code>/three-questions</code> may still serve a cached analysis. Two pages, two freshnesses.
+<li><strong>This page reads <code>ITelemetryStore</code> directly and so bypasses <code>MemoryAnalysisCache</code>.</strong> It is not served by the <code>CachingMetricsEngine</code> at all, which means it is <em>not</em> subject to <a href="#memoryanalysiscache-is-keyed-on-the-syncstate-version">gotcha 5</a> — seeded rows show up here immediately while <code>/gate-outcomes</code> may still serve a cached analysis. Two pages, two freshnesses.
 </li>
-<li><strong><code>FrameworkNames</code> is the axis, <code>project_type</code> is the segment, and they are different things.</strong> There is deliberately no "all types" entry on <code>MissAnalysis.Live</code> and no total row anywhere on the page — the same rule as <code>/three-questions</code> (ADR-007).
+<li><strong><code>FrameworkNames</code> is the axis, <code>project_type</code> is the segment, and they are different things.</strong> There is deliberately no "all types" entry on <code>MissAnalysis.Live</code> and no total row anywhere on the page — the same rule as <code>/gate-outcomes</code> (ADR-007).
 </li>
 </ul>
 <h3 id="deviation-from-docs-tflens-uidesign-md-5">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-5">#</a></h3>
@@ -1779,7 +1807,7 @@ the raw-record disclosure open, and any apportioned or measured-dollar figure (n
 </li>
 <li>The design's period control is a plain <code>Select</code>; the code adds <code>DisplayTextSelector</code> and a <code>misses-period-label</code> badge beside it, because the closed trigger otherwise shows the raw key (TR-020) and because the window should be legible without opening anything.
 </li>
-<li>The design puts the origin cross-tab in a <code>DataTable</code>. The code hand-rolls a <code>&lt;table class="tflens-table"&gt;</code> inside <code>.tflens-scroll-x</code>, because <code>DataTableColumn</code> needs a compile-time property per column and <code>miss_class</code> has no closed vocabulary — the columns are whatever the linked records carry. The <code>why_missed</code>, model, agent and detail tables <em>are</em> <code>DataTable</code>s, all with an explicit <code>InitialPageSize</code> (<a href="#1-datatable-truncates-to-initialpagesize-even-with-showpaginationfalse">gotcha 1</a>).
+<li>The design puts the origin cross-tab in a <code>DataTable</code>. The code hand-rolls a <code>&lt;table class="tflens-table"&gt;</code> inside <code>.tflens-scroll-x</code>, because <code>DataTableColumn</code> needs a compile-time property per column and <code>miss_class</code> has no closed vocabulary — the columns are whatever the linked records carry. The <code>why_missed</code>, model, agent and detail tables <em>are</em> <code>DataTable</code>s, all with an explicit <code>InitialPageSize</code> (<a href="#datatable-truncates-to-initialpagesize-even-with-showpagination-false">gotcha 1</a>).
 </li>
 </ul>
 <hr>
@@ -1851,7 +1879,7 @@ is one searchable string in the DOM.</p>
 </li>
 <li><strong>The Dataset SHAs table and the Scope fact are not framework-filtered.</strong> <code>ReadSyncStateAsync</code> takes only a user id, so the table lists every repo on <strong>both</strong> axes while the header says TechieFlow. Verified live: 8 rows shown under a <code>TechieFlow 7 / Playbook 1</code> switch. If that matters for your change, filter by joining <code>"UserRepo"."Framework"</code> — the store has no framework-scoped overload of this read.
 </li>
-<li><code>RecordTotal</code> sums the <code>"SyncState"</code> counters, so it reads <code>0</code> on seeded data (<a href="#cross-cutting-gotchas--read-these-first">gotcha 6</a>).
+<li><code>RecordTotal</code> sums the <code>"SyncState"</code> counters, so it reads <code>0</code> on seeded data (<a href="#cross-cutting-gotchas-read-these-first">gotcha 6</a>).
 </li>
 <li><strong>There is deliberately no <code>/playbook</code> route.</strong> The framework is chosen by the header switch, which re-queries every figure on the new axis.
 </li>
@@ -1879,7 +1907,7 @@ is one searchable string in the DOM.</p>
 the same day, which recorded the state before REQ-UI-034 / REQ-FN-067 / REQ-FN-070 were built.)</em>
 Driving the switch to Playbook and visiting all five report pages: <strong>every one</strong> renders
 <code>playbook-axis-note</code> and real figures rather than the empty state — <code>/</code> the <code>events</code> stream card plus
-the observed-fields collapsible, <code>/three-questions</code> <code>pb-phases-all</code> and <code>pb-phases-/build-phase</code> with
+the observed-fields collapsible, <code>/gate-outcomes</code> <code>pb-phases-all</code> and <code>pb-phases-/build-phase</code> with
 a tab per process gate, <code>/harness</code> <code>pb-model-tokens</code> + <code>pb-measured-cost</code> + <code>pb-phases-harness</code>,
 <code>/routing</code> its three panels including <code>pb-agent-split</code>, and <code>/export</code> the export surface. The
 <strong>separation rule still holds</strong>: no <code>gate-dist-*</code> table is populated while the Playbook axis is
@@ -1931,7 +1959,7 @@ with the switch on Playbook:</p>
 <tbody>
 <tr><td><code>/export</code></td><td>✅</td><td>✅</td><td>Axis note, then the Phase-3 empty state</td></tr>
 <tr><td><code>/</code></td><td>❌</td><td>❌</td><td>Normal Coverage layout: the one Playbook repo card, <code>events</code> stream row, "GREEN — 1 repos synced"</td></tr>
-<tr><td><code>/three-questions</code></td><td>❌</td><td>❌</td><td>Normal layout, <code>three-questions-empty</code> ("No gate records yet")</td></tr>
+<tr><td><code>/gate-outcomes</code></td><td>❌</td><td>❌</td><td>Normal layout, <code>gate-outcomes-empty</code> ("No gate records yet")</td></tr>
 <tr><td><code>/harness</code></td><td>❌</td><td>❌</td><td>Normal layout, three <code>—</code> columns, <code>tokens-chart-empty</code></td></tr>
 <tr><td><code>/routing</code></td><td>❌</td><td>❌</td><td>Normal layout, <code>drift-empty</code></td></tr>
 </tbody>
@@ -1939,7 +1967,7 @@ with the switch on Playbook:</p>
 <p>So on four of five report routes a user on the Playbook axis sees TechieFlow-shaped empty states and
 <strong>no axis note at all</strong> — the user-facing half of the <code>phase_gate</code> / <code>gate</code> separation rule is missing
 exactly where a reader is most likely to conflate the two. The <code>PlaybookPhaseTotals</code> and
-<code>PlaybookAgentSplitPanel</code> components the design specifies for the Three questions and Routing Playbook
+<code>PlaybookAgentSplitPanel</code> components the design specifies for the Gate outcomes and Routing Playbook
 states exist but are unreferenced.</p>
 <p>Coverage on the Playbook axis does behave correctly in one respect: <code>FrameworkNames.Streams("playbook")</code>
 returns a single <code>events</code> stream, so the repo card's table renders one row rather than four.</p>
@@ -1955,7 +1983,7 @@ returns a single <code>events</code> stream, so the repo card's table renders on
 <tr><td><code>/profile</code></td><td><code>Components/Pages/Auth/Profile.razor</code></td><td><code>MainLayout</code></td><td><code>[Authorize]</code></td><td>no</td></tr>
 <tr><td><code>/repos</code></td><td><code>Components/Pages/Repos.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr>
 <tr><td><code>/</code></td><td><code>Components/Pages/Coverage.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
-<tr><td><code>/three-questions</code></td><td><code>Components/Pages/ThreeQuestions.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
+<tr><td><code>/gate-outcomes</code></td><td><code>Components/Pages/GateOutcomes.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/harness</code></td><td><code>Components/Pages/Harness.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/routing</code></td><td><code>Components/Pages/Routing.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/misses</code></td><td><code>Components/Pages/Misses.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
@@ -2003,7 +2031,7 @@ overlap; a header that wraps to two rows does not overlap; a 71px value column t
 <tr><td><code>/harness</code></td><td><code>REQ-UI-023</code></td><td>Every value cell is <strong>71px</strong> wide: <code>Cache read</code> <code>2,287,975,139</code> breaks across <strong>3 lines mid-number</strong>, <code>Runs by cmd</code> takes 10 lines, <code>Verdict mix</code> 14. <code>Verdict mix</code> also renders as a raw text dump instead of the mockup's pass-share bar + <code>78% pass</code>; the three harness icon tiles lost their tinted backgrounds.</td><td>layout</td></tr>
 <tr><td><code>/</code></td><td><code>REQ-UI-014</code></td><td>Two status badges per repo card (<code>Synced</code> + <code>synced</code>) where the mockup has one green pill; the <code>Days since</code> column is in the DOM but clipped off the card edge; 3 of 4 KPI cards render no sparkline, and the one that does is violet against the mockup's blue.</td><td>layout</td></tr>
 <tr><td><code>/profile</code></td><td><code>REQ-UI-005</code></td><td><code>Member since</code> renders the raw ISO instant <code>2026-08-28T10:48:58.00636Z</code>; the change-password caption says passwords are encrypted <strong>"before they leave the server"</strong> where the mockup says <strong>"browser"</strong> — RSA-OAEP is client-side, so the shipped wording misstates the security property; <code>Role</code> and <code>Identity provider</code> lost their badges and captions; the identity email wraps mid-word.</td><td>data/logic + layout</td></tr>
-<tr><td><code>/three-questions</code></td><td><code>REQ-UI-018</code></td><td>KPI status-icon colours wrong (first-pass violet not green, escape green not amber); Live/Backfilled share bars lost their blue/violet fills; the type tab strip is shrink-to-fit, not full-width.</td><td>layout</td></tr>
+<tr><td><code>/gate-outcomes</code></td><td><code>REQ-UI-018</code></td><td>KPI status-icon colours wrong (first-pass violet not green, escape green not amber); Live/Backfilled share bars lost their blue/violet fills; the type tab strip is shrink-to-fit, not full-width.</td><td>layout</td></tr>
 <tr><td><code>/export</code></td><td><code>REQ-UI-032</code>, <code>REQ-UI-033</code></td><td>The <code>Export</code> card-header download icon button is missing; <code>Parity status</code> renders as plain text instead of a coloured status pill; the KV table adds a <code>Field | Value</code> header row the mockup does not have.</td><td>layout</td></tr>
 <tr><td><code>/misses</code></td><td><code>REQ-UI-036</code></td><td>The <code>Measured USD on rework</code> tile lost the green ring and the inline <code>opencode · measured</code> badge that mark it as the only <em>measured</em> dollar figure — exactly the distinction the mockup's own note says a reader must not lose.</td><td>layout</td></tr>
 <tr><td><code>/repos</code></td><td><code>REQ-UI-011</code></td><td><code>Filter repos...</code> moved to its own left-aligned row (mockup right-aligns it on the heading row) and lost its magnifier icon; sparkline colours inconsistent between tiles.</td><td>layout</td></tr>
@@ -2014,6 +2042,49 @@ overlap; a header that wraps to two rows does not overlap; a 71px value column t
 an earlier harness used the wrong cookie name). The four Playbook-axis mockups are <strong>not comparable</strong>:
 no connected repository emits <code>events.ndjson</code>, so the Playbook axis has 0 repos and renders its empty
 state — the documented owner blocker, not drift.</p>
+<h3 id="update-2026-09-01-fix-issues-harness-export-and-gate-outcomes-are-closed">Update 2026-09-01 (<code>*fix-issues</code>) — <code>/harness</code>, <code>/export</code> and <code>/gate-outcomes</code> are closed<a class="anchor-link" href="#update-2026-09-01-fix-issues-harness-export-and-gate-outcomes-are-closed">#</a></h3>
+<p><code>mockup-parity</code> <strong>39 findings → 18</strong>, and every finding on <code>REQ-UI-022</code>/<code>023</code>/<code>024</code>/<code>025</code>/<code>032</code>/<code>033</code>'s
+own controls is gone. Evidence: <code>tests/.artifacts/gates/mockup-parity.json</code>, screenshots under
+<code>tests/.artifacts/harness-fix/</code>.</p>
+<table>
+<thead><tr><th>Screen</th><th>What changed</th><th>Observed after</th></tr></thead>
+<tbody>
+<tr><td><code>/harness</code></td><td>The tokens chart drops ApexCharts' defaults for the design's own composition: no y axis, no gridlines, no plot frame, one compact label above each bar. <code>BarChart</code> cannot express any of that (<strong>TR-028</strong>), so <code>ApexChart</code> — the component it wraps — is used directly for its <code>Options</code>. The <code>Harness | Total tokens</code> table is removed; the design has none, and the labels it existed to substitute for now exist. Card titles at the design's 16px.</td><td>1 finding, the <code>app-sidebar clip@1280</code> that fires on all ten screens (TF-012). Bar labels measured <code>3.2B</code> · <code>814k</code> · <code>18.5M</code>; y-axis label count <strong>0</strong>.</td></tr>
+<tr><td><code>/harness</code> kv tables</td><td>The table runs edge to edge on the mockup's <code>card-c flush</code>, 40/60 split, 16px cell padding — the value cell went <strong>142px → 185px</strong> against the design's 184px at the same 1280 viewport. <code>insufficient data (n=0)</code> holds one line at both widths.</td><td>No <code>wrap</code> finding on <code>harness-opencode-tokens-per-verified</code> at either width.</td></tr>
+<tr><td><code>/export</code></td><td>Dataset identity is held whole: SHA, branch, repo slug and sync age are <code>nowrap</code> and the SHA column carries a <code>min-width</code>. Long paths and commands carry <code>&lt;wbr&gt;</code> at their separators (new <code>PathText</code>), and <code>overflow-wrap: anywhere</code> — which breaks at the first character that will not fit — is replaced by <code>break-word</code>. The header chip is the design's blue <code>chart-1</code>.</td><td>17 findings → 8, and <strong>every <code>token</code> finding is gone</strong>.</td></tr>
+<tr><td><code>/gate-outcomes</code></td><td>The <em>Late-gate coverage</em> card header carries the mockup's clock chip again; the <code>live records only</code> Badge that stood in its place moved into the description rather than being dropped.</td><td>No finding on <code>REQ-UI-022</code>'s elements.</td></tr>
+</tbody>
+</table>
+<p><strong>Two classes of finding on <code>/export</code> are adjudicated and were deliberately NOT acted on.</strong> (1) <code>badge</code>
+on <code>export-now-icon</code>: the mockup's decorative <code>.chip</code> is a real icon <code>Button</code> here, and the extractor's
+<code>isBadge()</code> returns false for anything <code>INTERACTIVE</code> — the <em>colour</em> half of that pair was real and is
+fixed. (2) Five <code>snapshots-table</code> wraps: the mockup's five columns are
+<code>date \| parser version \| parity status \| snapshot.md \| tflens.json</code> and the app's six add
+<code>framework</code>, so app <code>td[3]</code>/<code>td[4]</code> pair against the design's <code>td[4]</code>/<code>td[5]</code> — a column offset, verified
+by reading both tables, not a wrap.</p>
+<p><strong>A gate bug was fixed in the same pass (<code>REQ-NFR-020</code>).</strong> <code>_mockup-parity.ts</code>'s <code>tokenFit</code> read
+<code>textContent</code>, which skips <code>&lt;wbr&gt;</code> — the one element whose entire purpose is to mark a legal break — so
+it went on reporting a mid-token break on a path that no longer breaks. It now walks the subtree and
+treats <code>&lt;wbr&gt;</code> as whitespace, as the browser does.</p>
+<h3 id="update-2026-09-01-static-assets-are-content-fingerprinted-req-nfr-015">Update 2026-09-01 — static assets are content-fingerprinted (<code>REQ-NFR-015</code>)<a class="anchor-link" href="#update-2026-09-01-static-assets-are-content-fingerprinted-req-nfr-015">#</a></h3>
+<p><code>Program.cs</code> calls <code>MapStaticAssets().AllowAnonymous()</code> in place of <code>UseStaticFiles()</code>, and <code>App.razor</code>
+routes <strong>every</strong> stylesheet and script through <code>Assets[...]</code>. <code>UseStaticFiles</code> sent no <code>Cache-Control</code>
+at all, so a browser reused its pre-rebuild copy heuristically — the cause of the unstyled <code>/login</code>
+(2026-08-28) and of <code>/harness</code> rendering as three full-width stacked tables with raw <code>Metric \| Value</code>
+headers (2026-08-30), both while the server answered every asset correctly. <strong>When debugging a "the CSS
+is wrong" report, check the asset URL carries its <code>?v=</code> fingerprint before looking at the stylesheet.</strong></p>
+<p><code>.AllowAnonymous()</code> is load-bearing: <code>MapStaticAssets</code> registers endpoints, which inherit BRD-2's
+fallback authorization policy, so without it an anonymous visitor's request for
+<code>AuthForms.&lt;hash&gt;.razor.js</code> 302s to <code>/login</code> and the sign-in form's JS module never imports.</p>
+<h3 id="update-2026-09-01-a-dead-scoped-css-rule-now-fails-the-build-req-nfr-021">Update 2026-09-01 — a dead scoped-CSS rule now fails the build (<code>REQ-NFR-021</code>)<a class="anchor-link" href="#update-2026-09-01-a-dead-scoped-css-rule-now-fails-the-build-req-nfr-021">#</a></h3>
+<p><code>tests/TfLens.Guardrails.Tests/ScopedCssTests.cs</code> fails the build on two things: a malformed
+<code>*.razor.css</code> (unbalanced comment or brace), and a rule whose pre-<code>::deep</code> selector targets a class the
+colocated <code>.razor</code> never writes. <strong>When you add a rule to <code>X.razor.css</code>, the element it targets must be
+authored in <code>X.razor</code>.</strong> A class you pass as <code>Class="…"</code> to a <em>child</em> component lands on that child's
+root, which carries the child's scope attribute — the rule will not match, and this check cannot see it
+because the name is in the markup. Wrap the child in an element you own and reach in with <code>::deep</code>.
+For a class something else applies (framework JS, for instance), declare it:
+<code>/* REQ-NFR-021 external: name-one, name-two */</code>.</p>
   </main>
 </div>
 

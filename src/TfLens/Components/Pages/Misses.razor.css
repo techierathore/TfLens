@@ -125,6 +125,19 @@
         white-space: nowrap;
     }
 
+/* REQ-UI-037, 2026-08-30 — the origin-phase column names a TechieFlow task, and a task name is one
+   token: `handoff-phase` has to read as `handoff-phase`, never as `handoff-` stacked above `phase`.
+   A hyphen is a soft-wrap opportunity, so the browser was free to break the name in half, and this
+   cross-tab is seven columns wide where the mockup's is five — measured on 2026-08-30 the first
+   cell offered 88px of content box against the 101px the longest name needs, at BOTH 1280 and 390,
+   and broke mid-name in both. Telling the column not to wrap makes it size to the name instead.
+   The extra width costs the page nothing: the table already lives inside `.tflens-scroll-x`, which
+   scrolls it inside its own card rather than widening the document. */
+.tflens-table-origin th:first-child,
+.tflens-table-origin td:first-child {
+    white-space: nowrap;
+}
+
 /* The three cost headlines. Deliberately large, and deliberately never rendered as one number. */
 .tflens-money {
     font-size: 1.75rem;
@@ -142,23 +155,47 @@
 }
 
 /* BRD-123 / REQ-NFR-013 clause 5 — the rate-card card must not be mistakable for a measured tile at a
-   glance. A dashed border and a warning-tinted surface, on its own row, is that difference. */
-.tflens-estimate {
+   glance. BRD-123's words are "never the same row, never the same styling"; docs/mockups/misses.html
+   implements exactly that with `style="border-style:dashed"` over the default `.card`
+   (`border:1px solid var(--border)`) — dashed, in the ordinary border grey, on a row of its own.
+   Nobody was billed this.
+
+   2026-08-30 — this rule carried the same defect as the measured ring below it, and for the same
+   reason: `Card` renders its own root element, so that element never received this file's scope
+   attribute and `.tflens-estimate { … }` compiled to a selector matching nothing. Measured in the
+   browser before the fix, the card's computed `border-top-style` was `solid` — the estimate tile was
+   styled identically to a measured one, which is precisely what BRD-123 forbids. Re-anchored on the
+   page's own `.tflens-stack` (line 44, authored here, so it IS scoped) and reached through `::deep`.
+
+   The amber border-colour and warning tint this rule used to declare are deliberately NOT restored.
+   BRD-123 names no hue, the mockup keeps the default grey, and tinting the card would make the app's
+   semantic colour read `amber` where the mockup reads `neutral` — the app inventing a meaning the
+   design never gave it. Dashed-versus-solid is the whole of the distinction the mockup draws between
+   an estimate and a measurement, and it is enough to carry it. */
+.tflens-stack ::deep .tflens-estimate {
     border-style: dashed;
-    border-color: var(--alert-warning, #f59e0b);
-    background: var(--alert-warning-bg, rgba(245, 158, 11, .06));
 }
 
-/* REQ-UI-036, 2026-08-29 — the measured-dollars tile is ringed, as docs/mockups/misses.html draws it.
-   It is the only MEASURED dollar figure in the product, and the estimate card directly below it shows
-   a number an order of magnitude larger. Without the ring and the badge the two tiles look alike, which
-   the mockup's own note calls out as handing the reader "a plausible wrong number". */
-.tflens-measured {
+/* REQ-UI-036, 2026-08-29 — the measured-dollars tile is ringed, as docs/mockups/misses.html draws it
+   (`border-color:rgba(52,211,153,.45)`). It is the only MEASURED dollar figure in the product, and the
+   estimate card directly below it shows a number an order of magnitude larger. Without the ring and the
+   badge the two tiles look alike, which the mockup's own note calls out as handing the reader "a
+   plausible wrong number".
+
+   2026-08-30 — the ring was written but never painted. Blazor stamps the scope attribute only on
+   elements authored in THIS file; `StatTile` renders its own `<Card>`, so the card element carries no
+   `b-` attribute of ours and the bare `.tflens-measured { … }` rule compiled to a selector that matched
+   nothing (verified in the browser: the tile's attributes contained no `b-…` at all, and its computed
+   border-top-color was the plain `--border` grey). The rules are therefore anchored on `.tflens-kpi-row`,
+   which IS ours, and reach the tile through `::deep` — the same shape the grid override above already
+   uses. Colour comes from the app's own semantic-success token rather than a one-off hex, so this ring,
+   the success badges in app.css and every success Alert stay one hue. */
+.tflens-kpi-row ::deep .tflens-measured {
     border-color: color-mix(in oklab, var(--alert-success) 55%, transparent);
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--alert-success) 35%, transparent);
 }
 
-.tflens-measured-badge {
+.tflens-kpi-row ::deep .tflens-measured-badge {
     color: var(--alert-success);
     border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
     background: var(--alert-success-bg);

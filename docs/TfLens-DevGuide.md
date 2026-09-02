@@ -50,7 +50,7 @@ spacing scale having holes so `w-20` renders at zero width).
 | Add / re-import a source | `/repos/add`, `/repos/reimport/{Source}` | [`/repos` § routes](./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044) |
 | Remove a source | `/repos/remove/{Source}` | [`/repos` § routes](./TfLens-DevGuide-Screens.md#2026-08-28--add-source-and-remove-are-their-own-routes-now-req-ui-044) |
 | Coverage / health | `/` | [`/` — Coverage / health](./TfLens-DevGuide-Screens.md#--coverage--health) |
-| Three questions | `/three-questions` | [`/three-questions`](./TfLens-DevGuide-Screens.md#three-questions) |
+| Gate outcomes | `/gate-outcomes` | [`/gate-outcomes`](./TfLens-DevGuide-Screens.md#gate-outcomes) |
 | Harness comparison | `/harness` | [`/harness`](./TfLens-DevGuide-Screens.md#harness) |
 | Routing & economics | `/routing` | [`/routing`](./TfLens-DevGuide-Screens.md#routing) |
 | Misses & rework | `/misses` | [`/misses`](./TfLens-DevGuide-Screens.md#misses) |
@@ -139,6 +139,40 @@ TfLens needs two things: the .NET 10 SDK, and a PostgreSQL 16 database. Nothing 
 > Do **not** put secrets in `appsettings.Development.json`. That file *is* committed, so a real
 > AppManager secret in it goes to git history — and `ConfigurationHygieneTests` fails the build to
 > stop exactly that.
+
+> ### WSL and Windows have SEPARATE user-secret stores — this has already broken F5 once
+>
+> `UserSecretsId` is `tflens-dev-secrets` on both sides, but the file it names is **per-OS-profile**,
+> and the two never sync:
+>
+> | Where you run `dotnet user-secrets set` | File it actually writes |
+> |---|---|
+> | WSL / Linux shell (where the agents work) | `~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json` |
+> | Windows — Visual Studio, `dotnet` in PowerShell, **F5** | `%APPDATA%\Microsoft\UserSecrets\tflens-dev-secrets\secrets.json` |
+>
+> **What went wrong on 2026-08-29 (`MISS-TfLens-20260830-04`).** A `*fix-issues` run removed five
+> hard-coded copies of the connection string and set `TfLens:DbConnection` in user secrets — from a
+> WSL shell. That wrote the Linux store only. The Windows store kept its three older keys, so
+> **F5 in Visual Studio crashed with the BRD-9 "connection string is not configured" message** while
+> every agent-run smoke test passed, because those boot in WSL and read the Linux store. The
+> verification method could not see the defect: *"it boots"* was true for the agent and false for the
+> owner, simultaneously, for a whole day.
+>
+> **If you are an agent:** setting a secret from WSL does **not** configure the owner's IDE. Say which
+> store you wrote, and never report "moved to user secrets" as though it were machine-independent.
+> `DeveloperOnboardingTests.UserSecretsIdIsDeclaredSoTheF5PathKeepsWorking` asserts the *id* is
+> declared; nothing asserts the *value* exists in the store the owner's IDE reads, and from Linux
+> nothing portably can.
+>
+> **To check both stores at once** (from WSL, with the Windows drive mounted):
+>
+> ```bash
+> cat ~/.microsoft/usersecrets/tflens-dev-secrets/secrets.json                       # Linux store
+> cat "/mnt/c/Users/$USER/AppData/Roaming/Microsoft/UserSecrets/tflens-dev-secrets/secrets.json"
+> ```
+>
+> They must both carry all five keys: `TfLens:DbConnection`, `TfLens:AppManagerAppId`,
+> `TfLens:AppManagerApiKey`, `TfLens:AppManagerApiSecret`, `TfLens:GitHubToken`.
 
 ### Setup — three steps, one path
 

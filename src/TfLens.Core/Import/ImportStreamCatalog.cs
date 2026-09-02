@@ -28,7 +28,19 @@ public static class ImportStreamCatalog
         ("sessions.jsonl", StreamNames.Sessions),
         ("commits.jsonl", StreamNames.Commits),
         ("misses.jsonl", MissesStream),
-        ("events.ndjson", StreamNames.Events)
+        ("events.ndjson", StreamNames.Events),
+        // REQ-FN-094 / BRD-153 / ADR-023 — the Playbook's normalized schema-2 phase output. This ONE
+        // LINE is the whole of the ingest wiring: the exporter's stdout is uploaded like any other
+        // bundle and travels the same recognise → parse → upsert path, so there is no second ingest
+        // code path for the record type (BRD-132). The file name is TfLens's own choice, because the
+        // producer writes to stdout and names nothing.
+        ("phase-metrics.ndjson", StreamNames.PhaseMetrics),
+        // REQ-FN-103 / BRD-164 / ADR-024 — the Playbook's normalized MISS export. Same one-line wiring
+        // as the phase stream above and for the same reason: the exporter writes to stdout and names
+        // nothing, so the file name is TfLens's own. The rows land in the three EXISTING miss tables;
+        // what differs is the key (an immutable source-line hash, not the natural miss_id), and that
+        // difference is carried by the stream kind, not by a second ingest path (BRD-132).
+        ("playbook-misses.ndjson", StreamNames.PlaybookMisses)
     ];
 
     /// <summary>
@@ -40,6 +52,18 @@ public static class ImportStreamCatalog
     /// SCHEMA.md and <c>misses.jsonl</c> already use.
     /// </remarks>
     public const string MissesStream = "misses";
+
+    /// <summary>
+    /// The streams that belong to the Playbook axis, for <see cref="TryResolveFramework"/>.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not read from <c>StreamNames.Playbook</c>: that list drives the <b>fetcher</b> and
+    /// the raw-archive rebuild, and the phase stream belongs to neither — it has no repository file to
+    /// fetch and nothing a truncate-and-replay could restore it from (ADR-023). This list answers a
+    /// different question: which axis does a recognised bundle describe.
+    /// </remarks>
+    private static readonly string[] PlaybookStreams =
+        [StreamNames.Events, StreamNames.PhaseMetrics, StreamNames.PlaybookMisses];
 
     /// <summary>Every file name a bundle may carry a stream in.</summary>
     public static IReadOnlyList<string> FileNames { get; } = Entries.Select(aE => aE.FileName).ToArray();
@@ -115,8 +139,16 @@ public static class ImportStreamCatalog
     /// Names the framework a set of recognised streams belongs to.
     /// </summary>
     /// <remarks>
-    /// <c>events</c> is the Playbook's only stream and no TechieFlow bundle carries it, so the two sets
-    /// are disjoint and a bundle carrying both describes two sources rather than one (ADR-016).
+    /// <para>
+    /// <c>events</c> and <c>phasemetrics</c> are the Playbook's streams and no TechieFlow bundle carries
+    /// either, so the two sets are disjoint and a bundle carrying both describes two sources rather than
+    /// one (ADR-016).
+    /// </para>
+    /// <para>
+    /// The Playbook side is a <b>named set</b> rather than "anything that is not <c>events</c>", which is
+    /// what it was before 2026-09-01. Left as it stood, the phase stream would have been resolved as a
+    /// TechieFlow bundle and stamped the wrong framework onto the source (REQ-FN-094).
+    /// </para>
     /// </remarks>
     /// <param name="aStreams">The recognised stream wire names.</param>
     /// <param name="aFramework">The framework when the method returns <c>true</c>.</param>
@@ -128,8 +160,8 @@ public static class ImportStreamCatalog
         aFramework = string.Empty;
 
         var vList = aStreams.ToArray();
-        var vHasPlaybook = vList.Contains(StreamNames.Events, StringComparer.Ordinal);
-        var vHasTechieFlow = vList.Any(aS => !string.Equals(aS, StreamNames.Events, StringComparison.Ordinal));
+        var vHasPlaybook = vList.Any(aS => PlaybookStreams.Contains(aS, StringComparer.Ordinal));
+        var vHasTechieFlow = vList.Any(aS => !PlaybookStreams.Contains(aS, StringComparer.Ordinal));
 
         if (vHasPlaybook && vHasTechieFlow)
         {

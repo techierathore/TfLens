@@ -1,6 +1,6 @@
 /**
  * Black-box verification of the Coverage / health landing page (`/`) and the
- * Three questions screen (`/three-questions`).
+ * Gate outcomes screen (`/gate-outcomes`).
  *
  * Nothing here touches application source. Every assertion is made against what
  * the running app renders for the canonical demo user.
@@ -322,13 +322,13 @@ test('REQ-UI-017 Rebuild is guarded by a confirmation that can be cancelled with
 });
 
 // ---------------------------------------------------------------------------
-// SCREEN `/three-questions`
+// SCREEN `/gate-outcomes`
 // ---------------------------------------------------------------------------
 
 test('REQ-UI-018 One tab per project_type, no "all" tab, no total, standing SCHEMA note', async ({
   page,
 }) => {
-  await gotoScreen(page, '/three-questions');
+  await gotoScreen(page, '/gate-outcomes');
   const note = await testid(page, 'schema-note');
   await expect(note).toBeVisible({ timeout: 20_000 });
   const noteText = (await note.innerText()).trim();
@@ -375,7 +375,7 @@ test('REQ-UI-018 One tab per project_type, no "all" tab, no total, standing SCHE
 test('REQ-UI-019 Backfilled figures are labelled beside the live ones and never summed', async ({
   page,
 }) => {
-  await gotoScreen(page, '/three-questions');
+  await gotoScreen(page, '/gate-outcomes');
   await (await testid(page, 'type-tabs')).waitFor({ state: 'attached', timeout: 20_000 });
   const types = await suffixes(page, 'type-tab-');
   expect(types.length).toBeGreaterThan(0);
@@ -423,7 +423,7 @@ test('REQ-UI-019 Backfilled figures are labelled beside the live ones and never 
 test('REQ-UI-020 Gate catch distribution renders the whole gate order with its caveat badges', async ({
   page,
 }) => {
-  await gotoScreen(page, '/three-questions');
+  await gotoScreen(page, '/gate-outcomes');
   await (await testid(page, 'type-tabs')).waitFor({ state: 'attached', timeout: 20_000 });
   const types = await suffixes(page, 'type-tab-');
   expect(types.length).toBeGreaterThan(0);
@@ -464,7 +464,7 @@ test('REQ-UI-020 Gate catch distribution renders the whole gate order with its c
 test('REQ-UI-021 Tainted-REQ list names every REQ excluded from the live first-pass rate', async ({
   page,
 }) => {
-  await gotoScreen(page, '/three-questions');
+  await gotoScreen(page, '/gate-outcomes');
   const list = await testid(page, 'taint-list');
   await list.waitFor({ state: 'attached', timeout: 20_000 });
 
@@ -542,7 +542,7 @@ test('REQ-UI-021 Tainted-REQ list names every REQ excluded from the live first-p
 test('REQ-UI-022 Late-gate lines report ran beside caught, never a share as a catch rate', async ({
   page,
 }) => {
-  await gotoScreen(page, '/three-questions');
+  await gotoScreen(page, '/gate-outcomes');
   await (await testid(page, 'type-tabs')).waitFor({ state: 'attached', timeout: 20_000 });
 
   expect(

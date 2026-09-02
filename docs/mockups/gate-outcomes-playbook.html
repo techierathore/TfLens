@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Three questions</title>
+<title>TfLens — Gate outcomes (Playbook)</title>
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -168,6 +168,28 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
  [data-testid="source-mode"] .tab{padding:0 6px;font-size:12px;gap:4px}
  [data-testid="source-mode"] .tab svg{display:none}
 }
+/* ---- overflow containment (added 2026-09-01, BRD-144) — wide content scrolls inside its own container and never past the shell ---- */
+.card-c.flush{overflow-x:auto}
+.panel{overflow-x:auto;min-width:0}
+.coll .body{min-width:0}
+.page>*,.stack>*,.grid>*,.coll{min-width:0}
+p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
+.alert .mono,.empty p .mono,.card-d .mono,p .mono{overflow-wrap:anywhere}
+.tbl td .mono,.tbl th .mono{overflow-wrap:normal;white-space:nowrap}
+.tbl .r,.kpi .v{overflow-wrap:normal}
+.alert p b,.alert p i,.alert p span{display:inline}
+.grid.g5 .kpi{padding:16px 18px}.grid.g5 .kpi .t{font-size:12px}.grid.g5 .kpi .v{font-size:24px;white-space:nowrap}
+@media (max-width:900px){
+ p.row{display:block}p.row>svg.i{float:left;margin:3px 8px 0 0}
+}
+@media (max-width:700px){
+ .badge{white-space:normal;height:auto;min-height:22px;padding:2px 8px;border-radius:12px;text-align:left}
+ .row.between{flex-wrap:wrap}
+ .card-c.row{flex-wrap:wrap}
+ .empty p{max-width:100%}
+ .empty>*{max-width:100%;min-width:0}
+ .empty .row{flex-wrap:wrap;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -202,21 +224,24 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
 function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}</script>
 <div class="shell">
-<aside class="sidebar" data-testid="sidebar">
+<aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
   <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
-   <a href="three-questions.html" class="active" title="Three questions"><svg><use href="#i-help-circle"/></svg><span class="lbl">Three questions</span></a>
+   <a href="gate-outcomes.html" class="active" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
    <a href="harness.html" title="Harness comparison"><svg><use href="#i-git-compare"/></svg><span class="lbl">Harness comparison</span></a>
    <a href="routing.html" title="Routing &amp; economics"><svg><use href="#i-route"/></svg><span class="lbl">Routing &amp; economics</span></a>
    <a href="misses.html" title="Misses &amp; rework"><svg><use href="#i-bug"/></svg><span class="lbl">Misses &amp; rework</span></a>
+   <a href="effort.html" title="Phase effort"><svg><use href="#i-gauge"/></svg><span class="lbl">Phase effort</span></a>
    <a href="export.html" title="Snapshot export"><svg><use href="#i-download"/></svg><span class="lbl">Snapshot export</span></a>
   </nav></div>
  </div>
@@ -225,8 +250,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
 <div class="main">
  <header class="hdr">
   <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>
-  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Three questions</b></nav>
-  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="three-questions.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="three-questions-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
+  <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Gate outcomes</b></nav>
+  <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab" href="gate-outcomes.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab active" href="gate-outcomes-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
   <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
   <span class="badge outline">synced 12 min ago</span>
@@ -234,38 +259,33 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div><h1>Three questions</h1><p class="sub">First-pass rate · escape rate · failures scored — per project_type, never combined</p></div>
-  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>SCHEMA.md §6</b><p>Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.</p></div></div>
-  <div class="tabs" role="tablist">
-   <span class="tab active" data-testid="type-tab-app">app <span class="badge secondary">41</span></span>
-   <span class="tab" data-testid="type-tab-library">library <span class="badge secondary">128</span></span>
-   <span class="tab" data-testid="type-tab-framework">framework <span class="badge secondary">96</span></span>
-   <span class="tab" data-testid="type-tab-unclassified">unclassified (project_type inferred) <span class="badge secondary">7</span></span>
+  <div class="row between"><div><h1>Gate outcomes</h1><p class="sub">Playbook state — first-pass rate · escape rate · failures scored, keyed by phase_gate, per project_type, never combined</p></div><span class="badge outline">parser v3 · 1 repo</span></div>
+  <div class="alert info"><svg><use href="#i-info"/></svg><div><b>Different axes</b><p>Playbook process-gates (phase_gate) and TechieFlow assertion-gates (gate) are different axes and never share a chart (SCHEMA.md §11). Figures are never pooled across frameworks.</p></div></div>
+  <div class="panel"><div class="panel-lbl">State A: after Phase 3</div>
+   <div class="tabs" role="tablist">
+    <span class="tab active" data-testid="type-tab-app">app <span class="badge secondary">20</span></span>
+    <span class="tab" data-testid="type-tab-library">library <span class="badge secondary">12</span></span>
+    <span class="tab" data-testid="type-tab-framework">framework <span class="badge secondary">0</span></span>
+    <span class="tab" data-testid="type-tab-unclassified">unclassified (project_type inferred) <span class="badge secondary">3</span></span>
+   </div>
+   <div class="grid g3">
+    <div class="card kpi" title="passed on first verify phase_gate ÷ items scored (SCHEMA.md §11)"><div class="row"><span class="t">First-pass rate (phase_gate)</span><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div><div class="v">64%</div><div class="n row"><span class="badge secondary">backfilled</span> 55%</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,22 20,20 40,16 60,17 80,12 100,9"/></svg></div>
+    <div class="card kpi" title="post-verification bugs ÷ items with any failure (SCHEMA.md §11)"><div class="row"><span class="t">Escape rate (post-verification bugs)</span><span class="chip c3"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v"><span class="insuf">insufficient data (n=2)</span></div><div class="n row"><span class="badge secondary">backfilled</span> <span class="ital">insufficient data (n=1)</span></div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,14 100,14"/></svg></div>
+    <div class="card kpi" title="count of phase_gate events with outcome=fail (SCHEMA.md §11)"><div class="row"><span class="t">Failures scored</span><span class="chip c4"><svg><use href="#i-x"/></svg></span></div><div class="v">20</div><div class="n row"><span class="badge secondary">backfilled</span> 9</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,8 20,12 40,10 60,15 80,14 100,18"/></svg></div>
+   </div>
+   <p class="muted sm">live: 20 events, 11 items scored · backfilled: 9 events, 5 items scored · source <span class="mono">events.ndjson</span></p>
+   <div class="card">
+    <div class="card-h"><div><div class="card-t">Gate distribution — app</div><div class="card-d">Which phase_gate caught each failure; post-verification bugs = the escaped equivalent</div></div><span class="badge outline">live 20 · backfilled 9</span></div>
+    <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="pb-gate-dist-app"><thead><tr><th>phase_gate</th><th class="r">Live count</th><th>Live share</th><th class="r">Backfilled count</th><th>Backfilled share</th></tr></thead><tbody>
+     <tr><td>plan review</td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:15%"></i></span><span class="xs">15%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:11%;background:var(--chart-5)"></i></span><span class="xs">11%</span></span></td></tr>
+     <tr><td>verify</td><td class="r">9</td><td><span class="bar"><span class="prog"><i style="width:45%"></i></span><span class="xs">45%</span></span></td><td class="r">4</td><td><span class="bar"><span class="prog"><i style="width:44%;background:var(--chart-5)"></i></span><span class="xs">44%</span></span></td></tr>
+     <tr><td>gap report</td><td class="r">6</td><td><span class="bar"><span class="prog"><i style="width:30%"></i></span><span class="xs">30%</span></span></td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:33%;background:var(--chart-5)"></i></span><span class="xs">33%</span></span></td></tr>
+     <tr><td><span class="row"><b>post-verification bugs</b> <span class="badge destructive">escaped equivalent</span></span></td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:10%;background:var(--destructive)"></i></span><span class="xs">10%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:11%;background:var(--destructive)"></i></span><span class="xs">11%</span></span></td></tr>
+    </tbody></table></div>
+   </div>
   </div>
-  <div class="grid g3">
-   <div class="card kpi" title="verified on first *verify ÷ REQs scored (SCHEMA.md §8)"><div class="row"><span class="t">First-pass rate</span><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div><div class="v">71%</div><div class="n row"><span class="badge secondary">backfilled</span> 58%</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,20 15,18 30,22 45,14 60,12 75,10 90,9 100,6"/></svg></div>
-   <div class="card kpi" title="REQs that escaped every gate ÷ REQs with a post-verify failure (SCHEMA.md §8)"><div class="row"><span class="t">Escape rate</span><span class="chip c3"><svg><use href="#i-alert-triangle"/></svg></span></div><div class="v"><span class="insuf">insufficient data (n=2)</span></div><div class="n row"><span class="badge secondary">backfilled</span> <span class="ital">insufficient data (n=1)</span></div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,14 100,14"/></svg></div>
-   <div class="card kpi" title="count of gate records with verdict=fail (SCHEMA.md §8)"><div class="row"><span class="t">Failures scored</span><span class="chip c4"><svg><use href="#i-x"/></svg></span></div><div class="v">20</div><div class="n row"><span class="badge secondary">backfilled</span> 11</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,6 15,10 30,8 45,14 60,12 75,18 90,16 100,20"/></svg></div>
-  </div>
-  <p class="muted sm">live: 41 records, 17 REQs scored, 3 excluded by backfill taint · backfilled: 24 records, 12 REQs scored</p>
-  <div class="card">
-   <div class="card-h"><div><div class="card-t">Gate distribution — app</div><div class="card-d">Which gate caught each failure; escaped = no gate caught it</div></div><span class="badge outline">live 20 · backfilled 11</span></div>
-   <div class="card-c flush" style="padding-top:16px"><table class="tbl" data-testid="gate-dist-app"><thead><tr><th>Gate</th><th class="r">Live count</th><th>Live share</th><th class="r">Backfilled count</th><th>Backfilled share</th></tr></thead><tbody>
-    <tr><td>build</td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:10%"></i></span><span class="xs">10%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--chart-5)"></i></span><span class="xs">9%</span></span></td></tr>
-    <tr><td>acceptance</td><td class="r">5</td><td><span class="bar"><span class="prog"><i style="width:25%"></i></span><span class="xs">25%</span></span></td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:27%;background:var(--chart-5)"></i></span><span class="xs">27%</span></span></td></tr>
-    <tr><td>render</td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:15%"></i></span><span class="xs">15%</span></span></td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:18%;background:var(--chart-5)"></i></span><span class="xs">18%</span></span></td></tr>
-    <tr><td>visual</td><td class="r">6</td><td><span class="bar"><span class="prog"><i style="width:30%"></i></span><span class="xs">30%</span></span></td><td class="r">3</td><td><span class="bar"><span class="prog"><i style="width:27%;background:var(--chart-5)"></i></span><span class="xs">27%</span></span></td></tr>
-    <tr><td><span class="row">perf <span class="badge outline">see coverage</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:5%"></i></span><span class="xs">5%</span></span></td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td></tr>
-    <tr><td>standards</td><td class="r">2</td><td><span class="bar"><span class="prog"><i style="width:10%"></i></span><span class="xs">10%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--chart-5)"></i></span><span class="xs">9%</span></span></td></tr>
-    <tr><td><span class="row"><b>escaped</b> <span class="badge destructive">no gate caught it</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:5%;background:var(--destructive)"></i></span><span class="xs">5%</span></span></td><td class="r">1</td><td><span class="bar"><span class="prog"><i style="width:9%;background:var(--destructive)"></i></span><span class="xs">9%</span></span></td></tr>
-    <tr><td>unattributed</td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td><td class="r">0</td><td><span class="bar"><span class="prog"><i style="width:0"></i></span><span class="xs">0%</span></span></td></tr>
-   </tbody></table></div>
-  </div>
-  <div class="grid g2" style="align-items:start">
-   <div class="card"><div class="card-h"><div><div class="card-t">Late-gate coverage</div><div class="card-d">Gates added after the data started — coverage is partial by construction</div></div><span class="chip c1"><svg><use href="#i-clock"/></svg></span></div>
-    <div class="card-c stack" style="gap:8px"><div class="row"><span class="badge outline">perf</span><span>perf gate: ran on 6 records, caught 1 → <span class="ital muted">insufficient data (n=6)</span></span></div><div class="row"><span class="badge outline">visual</span><span class="muted">not yet run on this data (gate added 2026-08-10)</span></div></div></div>
-   <div class="coll"><div class="trg"><svg><use href="#i-chevron-down"/></svg>3 REQs excluded from the live first-pass rate</div>
-    <div class="body"><p class="muted sm">Backfill taint — the REQ had a backfilled verdict before its first live verdict, so it cannot count as a first pass.</p><div class="row wrap" data-testid="taint-list"><span class="badge outline mono">REQ-UI-004</span><span class="badge outline mono">REQ-FN-011</span><span class="badge outline mono">REQ-UI-009</span></div></div></div>
+  <div class="panel"><div class="panel-lbl">State B: before Phase 3</div>
+   <div class="empty" data-testid="playbook-empty"><span class="chip c5"><svg><use href="#i-book-open"/></svg></span><b>No Playbook data yet</b><p>Phase 3 — the report set for Playbook repos is built after the real events.ndjson is parsed</p><a class="btn outline" style="margin-top:8px" href="repos.html"><svg class="i"><use href="#i-git-branch"/></svg>Connect a Playbook repo</a></div>
   </div>
  </div></main>
 </div></div>

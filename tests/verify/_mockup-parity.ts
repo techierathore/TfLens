@@ -248,7 +248,25 @@ export async function extractSignatures(page: Page): Promise<Extract> {
     const tokenFit = (el: Element): { text: string; need: number; have: number } | null => {
       if (!ctx) return null;
       if (!inlineOnly(el)) return null;
-      const raw = (el.textContent || '').trim();
+      // `<wbr>` IS a break opportunity — it is the element whose entire purpose is to say "the line
+      // may break here". Reading `textContent` skips it, so a path deliberately marked up as breakable
+      // measured as one unbreakable run and the gate reported a mid-token break the browser does not
+      // perform. Found 2026-09-01 on `export-target`, after REQ-UI-032's fix: the page stopped breaking
+      // `data/reports/2/…/snapshot.md` mid-segment and the gate went on reporting that it did.
+      // A false finding on a fixed defect is worse than no finding — it is what teaches a reader to
+      // skim this list.
+      const withBreaks = (root: Element): string => {
+        let out = '';
+        const walk = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+        let n: Node | null = walk.currentNode;
+        while (n) {
+          if (n.nodeType === Node.TEXT_NODE) out += n.textContent || '';
+          else if ((n as Element).tagName === 'WBR') out += ' ';
+          n = walk.nextNode();
+        }
+        return out;
+      };
+      const raw = withBreaks(el).trim();
       if (!raw) return null;
       const cs = getComputedStyle(el as HTMLElement);
       ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
@@ -431,14 +449,14 @@ export const ALLOW: Allow[] = [
       + '(BRD §1). Recorded decision.',
   },
   {
-    screen: 'three-questions',
+    screen: 'gate-outcomes',
     testid: 'kpi-escape',
     classes: ['icon'],
     reason: 'Sparkline deliberately not built — no stored series behind the tile (BRD §1). '
       + 'Recorded decision.',
   },
   {
-    screen: 'three-questions',
+    screen: 'gate-outcomes',
     testid: 'kpi-failures',
     classes: ['icon'],
     reason: 'Sparkline deliberately not built — no stored series behind the tile (BRD §1). '

@@ -106,7 +106,12 @@ public static class ProvenanceAudit
 
         if (!aReport.IsSupported)
         {
-            return ["provenance-check: this store cannot be audited, so nothing is claimed about it."];
+            return
+            [
+                "provenance-check: this store cannot be audited, so no figure taken from it may be "
+                + "quoted. This is a refusal, not a clean result — an integrity rule that cannot be "
+                + "evaluated has not passed (REQ-NFR-019, BRD-89)."
+            ];
         }
 
         var vLines = new List<string>();

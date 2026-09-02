@@ -78,6 +78,11 @@ public sealed class MetricsEngine : IMetricsEngine
         // second, adjacent figure and the gates-derived escape rate above is untouched (REQ-FN-077).
         var vMissFigures = MissFigures.Compute(vMisses, vMissFixes, vMissAmends, vRuns);
 
+        // ---- stage 7: the phase-effort block — live runs grouped by cmd, every figure returned wrapped
+        // in the count it rests on (REQ-FN-089..REQ-FN-093). It reads the same run records the pooled
+        // block does and writes nothing back; the two never share a figure.
+        var vPhaseFigures = PhaseMetrics.Compute(vRuns);
+
         objLogger.LogInformation(
             "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttributionExcluded} misses outside the per-origin figures",
             aUserId,
@@ -101,6 +106,7 @@ public sealed class MetricsEngine : IMetricsEngine
             Backfilled = vBackfilledFigures,
             Pooled = vPooled,
             Misses = vMissFigures,
+            Phases = vPhaseFigures,
             ParserVersion = ParserVersion.Current
         };
     }

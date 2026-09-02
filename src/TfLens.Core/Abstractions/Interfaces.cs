@@ -388,6 +388,61 @@ public interface ITelemetryStore
         CancellationToken aCancellationToken = default);
 
     /// <summary>
+    /// Reads every schema-2 phase execution for a user, optionally narrowed to one repository
+    /// (REQ-FN-094, ADR-025).
+    /// </summary>
+    /// <remarks>
+    /// The rows come back exactly as stored, quarantined ones included. Judging them is a read-time
+    /// operation — <c>PlaybookPhaseInvariants</c> re-derives the verdict over these rows, so no caller
+    /// depends on a stored flag and a row written by an older build is judged by today's rules. A
+    /// filtered-out invalid row would be worse than useless here: it is exactly the row the page must
+    /// display, with its reason, instead of a number (REQ-FN-096).
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching execution rows, ordered by UTC start.</returns>
+    Task<IReadOnlyList<PbPhaseExecutionRecord>> ReadPhaseExecutionsAsync(
+        int aUserId,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PbPhaseExecutionRecord>>([]);
+
+    /// <summary>
+    /// Reads every per-model usage row for a user, optionally narrowed to one repository (REQ-FN-099).
+    /// </summary>
+    /// <remarks>
+    /// This is the <b>only</b> basis of a per-model figure. The execution's dominant-model label is a
+    /// label, and attributing a whole mixed-model execution to it is the misattribution BRD-150 forbids.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching per-model rows.</returns>
+    Task<IReadOnlyList<PbPhaseModelUsageRecord>> ReadPhaseModelUsagesAsync(
+        int aUserId,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PbPhaseModelUsageRecord>>([]);
+
+    /// <summary>
+    /// Reads every sub-agent session row for a user, optionally narrowed to one repository (REQ-FN-100).
+    /// </summary>
+    /// <remarks>
+    /// The rows are a <i>drill-down</i>: their tokens are already inside the phase totals, so summing
+    /// them onto a phase figure counts the same work twice (§6).
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching sub-agent rows.</returns>
+    Task<IReadOnlyList<PbPhaseSubagentRecord>> ReadPhaseSubagentsAsync(
+        int aUserId,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PbPhaseSubagentRecord>>([]);
+
+    /// <summary>
     /// Reads the sync bookkeeping for a user's repositories.
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
@@ -549,10 +604,12 @@ public interface ITelemetryStore
     /// pollution that happens to be small enough for the numbers to look plausible.
     /// </para>
     /// <para>
-    /// The default answers <see cref="ProvenanceAuditReport.Unsupported"/>, which asserts nothing in
-    /// either direction: an in-memory fixture has no ledger, no archive and no sync state, so it is not
-    /// in a position to say a store is clean. Only a non-empty
-    /// <see cref="ProvenanceAuditReport.Orphans"/> is ever read as a finding.
+    /// The default answers <see cref="ProvenanceAuditReport.Unsupported"/>: a store with no ledger, no
+    /// archive and no sync state is not in a position to say it is clean. That answer <b>refuses</b>
+    /// <c>QUOTABLE</c> rather than passing the question along (closed 2026-08-30, REQ-NFR-019 gap b), so
+    /// an implementation that has not been taught to audit cannot publish a figure by omission. Any
+    /// store meant to back a published number implements this member; leaving the default in place is a
+    /// decision to be unquotable, and it is visible as <c>ParityReasons.ProvenanceUnknown</c>.
     /// </para>
     /// </remarks>
     /// <param name="aUserId">One user, or <c>null</c> to audit the whole store.</param>

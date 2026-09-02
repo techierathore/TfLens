@@ -171,28 +171,66 @@ public sealed record ParityRecord
     /// <para>
     /// <b>Provenance is checked first</b> and its verdict wins. A store carrying invented rows is not
     /// quotable whatever the stamp says, and reporting "the parser moved on" while the numbers are
-    /// fabricated would send the reader to the wrong fix. There is no argument, setting or overload that
-    /// skips the check: a caller that has an audit passes it, and one that has none is simply not
-    /// asserting anything about the data (BRD-89 / REQ-NFR-009).
+    /// fabricated would send the reader to the wrong fix.
+    /// </para>
+    /// <para>
+    /// <b>An unauditable store is refused, not waved through</b> (closed 2026-08-30, REQ-NFR-019 gap b).
+    /// The first cut of this method returned the plain <see cref="EvaluateFor"/> stamp whenever
+    /// <see cref="ProvenanceAuditReport.IsSupported"/> was <c>false</c>, on the reasoning that a store
+    /// with no ledger "asserts nothing in either direction". That reasoning is wrong at the only place it
+    /// mattered: the output is a <b>publication decision</b>, and a decision has no neutral setting. A
+    /// store that cannot answer the provenance question is not a store that answered it favourably, so
+    /// letting the stamp continue to <see cref="ParityStatuses.Quotable"/> was BRD-89's forbidden
+    /// relaxation wearing the clothes of modesty — and the relaxation applied to <i>any</i> future
+    /// implementation of <see cref="Provenance.ProvenanceAuditReport"/>'s source that had simply not been
+    /// written yet, which is the widest possible blast radius for an integrity rule.
+    /// </para>
+    /// <para>
+    /// This is the same shape as <see cref="ParityReasons.ScriptUnavailable"/>, already settled one
+    /// method up: a reference script that cannot be hashed "degrades to not-quotable rather than being
+    /// assumed unchanged". An oracle that cannot be consulted and a store that cannot be audited are the
+    /// same fact, and are now answered the same way. There is no argument, setting or overload that skips
+    /// the check (BRD-89 / REQ-NFR-009), and no way to express "I did not look": the parameter is
+    /// required, and the only three answers it can carry — clean, orphaned, unauditable — are each given
+    /// their own reason so a reader can tell "we checked and it is fine" from "we could not check".
+    /// </para>
+    /// <para>
+    /// <b>What an unauditable store legitimately means.</b> In production it means a store whose
+    /// implementation does not carry the ledger, the sync state and the raw archive the audit compares —
+    /// which today is no production store at all, since <c>PostgresStore</c> implements it. It is reached
+    /// only by an in-memory double or by a store type nobody has taught to audit yet. Neither is a thing
+    /// whose figures should be published, so refusing costs nothing real and closes the door on the
+    /// store type that has not been written.
     /// </para>
     /// </remarks>
     /// <param name="aRecord">The last parity record, or <c>null</c>.</param>
     /// <param name="aParserVersion">The parser version that produced the figures.</param>
     /// <param name="aReferenceScriptPath">Path of the reference script.</param>
     /// <param name="aAudit">
-    /// The provenance audit over the data being published, or <c>null</c> when none was run. An
-    /// <see cref="ProvenanceAuditReport.IsSupported"/> of <c>false</c> makes no claim either way.
+    /// The provenance audit over the data being published. A caller with no audit to hand passes
+    /// <see cref="ProvenanceAuditReport.Unsupported"/> and is refused, exactly as an audit that could not
+    /// run is: there is no value of this parameter that means "skip the question".
     /// </param>
     /// <returns>The status and the reason behind it.</returns>
     public static ParityStamp EvaluateWithProvenance(
         ParityRecord? aRecord,
         string aParserVersion,
         string? aReferenceScriptPath,
-        ProvenanceAuditReport? aAudit)
+        ProvenanceAuditReport aAudit)
     {
+        // A positive finding outranks a missing capability: "these rows are fabricated" is the more
+        // specific and more actionable statement, and it is the one that names what to purge.
         if (aAudit is { HasOrphans: true })
         {
             return new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ProvenanceOrphan);
+        }
+
+        // Defensive rather than ArgumentNullException: this runs on a page render and inside the export,
+        // and a null from a nullable-oblivious caller must produce the refusal the caller would have got
+        // for Unsupported, never an exception that takes the whole banner down (BRD-87).
+        if (aAudit is null || !aAudit.IsSupported)
+        {
+            return new ParityStamp(ParityStatuses.NotQuotable, ParityReasons.ProvenanceUnknown);
         }
 
         return EvaluateFor(aRecord, aParserVersion, aReferenceScriptPath);

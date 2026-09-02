@@ -62,6 +62,7 @@ internal static class SnapshotJson
             ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
             ["pooled"] = Pooled(aInputs.Analysis.Pooled),
             ["misses"] = Misses(aInputs),
+            ["phases"] = Phases(aInputs.Analysis.Phases),
             ["extras"] = Extras(aInputs),
             ["parity"] = Parity(aInputs)
         };
@@ -302,6 +303,181 @@ internal static class SnapshotJson
                 : Number(vMeasured.MeasuredUsdPerMiss, MeasuredUsdDigits),
             ["cost_usd_records"] = vMeasured?.MeasuredUsdRecords ?? 0
         };
+    }
+
+    /// <summary>
+    /// The phase-effort block, in the oracle's key layout (REQ-FN-093, BRD-152).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The oracle emits this object under the top-level key <c>phases</c> of
+    /// <c>tf-metrics.sh --report --json</c> and <c>--rollup --json</c>, so it is already reachable by the
+    /// invocation BRD §13 step 2 already makes and <b>no new oracle run is needed</b>. Its inner
+    /// <c>phases</c> map is keyed by <c>cmd</c>; the outer keys are the page-level denominators.
+    /// </para>
+    /// <para>
+    /// Two shapes matter more than the rest and both are the reference's, not TfLens's. <b>Shares are
+    /// strings.</b> <c>share_of_duration</c>, <c>share_of_tokens_out</c> and
+    /// <c>subagent_share_of_tokens_out</c> come out of the engine as the oracle's own <c>87%</c> /
+    /// <c>—</c> text and are written here verbatim, because BRD-152 diffs them as strings and any
+    /// reformatting would be a diff against the oracle's own rendering. <b>And <c>null</c> is a real
+    /// value.</b> <c>tokens_out_per_run</c>, <c>duration_s.median</c>, <c>spawns_median</c> and
+    /// <c>spawns_max</c> come back from the oracle as a genuine <c>null</c> below the
+    /// <see cref="MetricsConstants.MinN"/> floor, so they go through <see cref="Number"/>, which emits
+    /// <c>null</c> for any figure that is not a value — a <c>0</c> on either side is a mismatch, not a
+    /// rounding difference.
+    /// </para>
+    /// <para>
+    /// <c>tokens_measured_n</c> and <c>tokens_unmeasured_n</c> are written as two keys and never as one:
+    /// the second is the divisor's complement, not part of it, and a document that carried only the
+    /// divisor would let a reader take the token totals for figures over every run (BRD-146). The same
+    /// applies to <c>fanout.unobserved_not_tree</c> and <c>fanout.unobserved_predates_field</c>, which
+    /// stay two counts because they are two facts (BRD-147, ADR-026).
+    /// </para>
+    /// </remarks>
+    /// <param name="aPhases">The engine's phase-effort block.</param>
+    /// <returns>The <c>phases</c> object.</returns>
+    private static JsonObject Phases(PhaseEffortAnalysis aPhases)
+    {
+        var vRows = new JsonObject();
+
+        foreach (var vRow in aPhases.Phases)
+        {
+            vRows[vRow.Cmd] = Phase(vRow);
+        }
+
+        return new JsonObject
+        {
+            ["runs_live"] = aPhases.RunsLive,
+            ["scope_coverage"] = Counts(aPhases.ScopeCoverage),
+            ["tokens_out_total"] = aPhases.TokensOutTotal,
+            ["duration_s_total"] = aPhases.DurationSecondsTotal,
+            ["note"] = PhaseEffortAnalysis.StandingNote,
+            ["phases"] = vRows
+        };
+    }
+
+    /// <summary>
+    /// One phase's row.
+    /// </summary>
+    /// <remarks>
+    /// <c>models</c> is built from the run's <c>model_tokens_out</c> split and never from its dominant
+    /// <c>model</c> label, so a mixed-model window is never filed whole under its winner (BRD-150).
+    /// <c>subagents_declared</c> sits beside the <c>fanout</c> block rather than inside it because the two
+    /// are a self-report and a measurement, published together and never reconciled — where they disagree
+    /// the measured one is authoritative (BRD-149, SCHEMA.md §2.6).
+    /// </remarks>
+    /// <param name="aRow">The engine's row for one <c>cmd</c>.</param>
+    /// <returns>The phase object.</returns>
+    private static JsonObject Phase(PhaseEffortRow aRow) => new()
+    {
+        ["runs"] = aRow.Runs,
+        ["duration_s"] = new JsonObject
+        {
+            ["total"] = aRow.Duration.TotalSeconds,
+            ["median"] = aRow.Duration.MedianSeconds,
+            ["max"] = aRow.Duration.MaxSeconds,
+            ["n"] = aRow.Duration.TimedN
+        },
+        ["share_of_duration"] = aRow.ShareOfDuration,
+        ["tokens_measured_n"] = aRow.TokensMeasuredN,
+        ["tokens_unmeasured_n"] = aRow.TokensUnmeasuredN,
+        ["tokens"] = new JsonObject
+        {
+            ["in"] = aRow.Tokens.In,
+            ["out"] = aRow.Tokens.Out,
+            ["cache_read"] = aRow.Tokens.CacheRead,
+            ["cache_write"] = aRow.Tokens.CacheWrite
+        },
+        ["tokens_out_median"] = aRow.TokensOutMedian,
+        ["tokens_out_per_run"] = Number(aRow.TokensOutPerRun.Tokens, null),
+        ["share_of_tokens_out"] = aRow.ShareOfTokensOut,
+        ["models"] = Models(aRow.Models),
+        ["harnesses"] = Counts(aRow.Harnesses),
+        ["modes"] = Counts(aRow.Modes),
+        ["build_result"] = Counts(aRow.BuildResults),
+        ["reqs_touched_total"] = aRow.ReqsTouchedTotal,
+        ["files_written_total"] = aRow.FilesWrittenTotal,
+        ["subagents_declared"] = Counts(aRow.SubagentsDeclared),
+        ["fanout"] = Fanout(aRow.Fanout),
+        ["routing"] = new JsonObject
+        {
+            ["routed"] = aRow.Routing.Routed,
+            ["drifted"] = aRow.Routing.Drifted,
+            ["unknown"] = aRow.Routing.Unknown
+        },
+        ["cost_usd_by_harness"] = HarnessCosts(aRow.CostUsdByHarness)
+    };
+
+    /// <summary>
+    /// The fan-out block — the denominator first, the numbers after (BRD-147, ADR-026).
+    /// </summary>
+    /// <remarks>
+    /// <c>observed_n</c> is written first because it is what the block has to be read against: the figures
+    /// below it describe <c>tokens_scope == "tree"</c> runs carrying <c>subagent_runs</c> and nothing
+    /// else. The two exclusions are separate keys and their total is emitted beside them rather than
+    /// instead of them, because <i>we did not look</i> can change tomorrow and <i>we could not have
+    /// looked</i> never will.
+    /// </remarks>
+    /// <param name="aFanout">The engine's fan-out observation.</param>
+    /// <returns>The <c>fanout</c> object.</returns>
+    private static JsonObject Fanout(FanoutObservation aFanout) => new()
+    {
+        ["observed_n"] = aFanout.ObservedN,
+        ["unobserved_n"] = aFanout.UnobservedN,
+        ["unobserved_not_tree"] = aFanout.UnobservedNotTree,
+        ["unobserved_predates_field"] = aFanout.UnobservedPredatesField,
+        ["spawns_total"] = aFanout.SpawnsTotal,
+        ["spawns_median"] = aFanout.Spawns,
+        ["spawns_max"] = aFanout.SpawnsMax,
+        ["runs_with_fanout"] = aFanout.RunsWithFanout,
+        ["tokens_out_subagents"] = aFanout.TokensOutSubagents,
+        ["subagent_share_of_tokens_out"] = aFanout.SubagentShareOfTokensOut
+    };
+
+    /// <summary>Renders the per-model split; the key is the model id the producer wrote.</summary>
+    /// <param name="aModels">The engine's per-model rows.</param>
+    /// <returns>The <c>models</c> object.</returns>
+    private static JsonObject Models(IReadOnlyList<PhaseModelEffort> aModels)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vModel in aModels)
+        {
+            vObject[vModel.Model] = new JsonObject
+            {
+                ["runs"] = vModel.Runs,
+                ["tokens_out"] = vModel.TokensOut
+            };
+        }
+
+        return vObject;
+    }
+
+    /// <summary>
+    /// Renders measured dollars per harness — never a total across them (SCHEMA.md §4).
+    /// </summary>
+    /// <remarks>
+    /// There is no cross-harness key here and no rate-card figure anywhere near it: only OpenCode measures
+    /// spend, and a phase's dollars priced from a rate card would be an estimate presented as a
+    /// measurement.
+    /// </remarks>
+    /// <param name="aCosts">The engine's per-harness rows.</param>
+    /// <returns>The <c>cost_usd_by_harness</c> object.</returns>
+    private static JsonObject HarnessCosts(IReadOnlyList<PhaseHarnessCost> aCosts)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vCost in aCosts)
+        {
+            vObject[vCost.Harness] = new JsonObject
+            {
+                ["usd"] = vCost.Usd,
+                ["records"] = vCost.Records
+            };
+        }
+
+        return vObject;
     }
 
     /// <summary>

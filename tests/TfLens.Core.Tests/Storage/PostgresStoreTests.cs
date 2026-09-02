@@ -20,6 +20,7 @@ namespace TfLens.Core.Tests.Storage;
 /// in-memory double would prove none of them. The connection string comes from
 /// <c>TfLensDbConnection</c> when set, and otherwise from the documented local compose service.
 /// </remarks>
+[Collection(PostgresCollection.Name)]
 public sealed class PostgresStoreTests : IAsyncLifetime
 {
     // No hard-coded connection: resolved the way the app resolves it (TestDatabase, 2026-08-29).

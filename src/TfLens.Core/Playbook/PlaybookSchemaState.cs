@@ -45,7 +45,7 @@ public static class PlaybookSchemaState
     /// </remarks>
     public const bool IsVerdictMapRecorded = false;
 
-    /// <summary>The reason the three-questions figures are not applicable.</summary>
+    /// <summary>The reason the gate-outcomes figures are not applicable.</summary>
     public const string VerdictMapUnavailableReason =
         "events.ndjson carries no verdict field — the Playbook's gate_verdict vocabulary is parsed from "
         + "the project checklist by scripts/playbook-telemetry.mjs, not emitted into the stream. The "

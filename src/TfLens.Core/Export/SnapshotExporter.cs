@@ -289,6 +289,15 @@ public sealed class SnapshotExporter : ISnapshotExporter
                 vAudit.Orphans.Count,
                 vAudit.OrphanRows);
         }
+        else if (!vAudit.IsSupported)
+        {
+            // Logged as loudly as a finding is, because it produces the same refusal and is the easier
+            // of the two to mistake for silence (REQ-NFR-019 gap b, closed 2026-08-30).
+            objLogger.LogWarning(
+                "Snapshot for user {UserId} is not quotable: this store cannot audit its own provenance, "
+                + "and an integrity rule that cannot be evaluated has not passed",
+                aUserId);
+        }
 
         // REQ-FN-063 — the stamp is checked against BOTH invalidators: the parser version and the hash
         // of the reference script the recorded run was compared with; REQ-NFR-019 adds the third.

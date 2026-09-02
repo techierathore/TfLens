@@ -21,18 +21,47 @@
     align-items: start;
 }
 
-/* A long target path must wrap rather than widen the card. */
+/* A long target path must wrap rather than widen the card.
+
+   Changed 2026-09-01 (REQ-UI-032, BRD-144 clause 6): was `overflow-wrap: anywhere`, which broke
+   `data/reports/2/2026-08-30/techieflow/snapshot.md` mid-segment because the run needed 307px in a
+   262px card. `anywhere` breaks at the first character that will not fit; `break-word` breaks only a
+   word that cannot fit a line on its own. The path now also carries `<wbr>` marks at its separators
+   (`PathText`), so there is a real boundary to wrap on and the last-resort break stays a last resort. */
 .tflens-break {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 /*
     A script hash and a compare command are both longer than the column they sit in. `::deep` is needed
     because the cells belong to DataTable, not to this component's own markup, and a value that is
     clipped rather than wrapped reads as a shorter hash than it is.
+
+    Same correction as `.tflens-break` above: `anywhere` split `.tfcore/telemetry/tf-metrics.sh`
+    mid-token at 390 (211px of text in a 148px cell), which is the defect BRD-144 clause 6 names.
 */
 .tflens-facts ::deep td {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+/* REQ-UI-032 — the field column holds short, fixed labels (`Parity status`, `Script hash`), so it
+   wraps only because the value beside it is competing for the width. Holding the labels on one line
+   is what the mockup does, and the value now has break points of its own to give ground with. */
+.tflens-facts ::deep td:first-child {
+    white-space: nowrap;
+}
+
+/* REQ-UI-032 — dataset identity. Every cell in this table is an identifier a reader must be able to
+   re-type: a repo slug, a branch, a 7-character commit SHA, a sync age. `30e6616` needed 62px in a
+   51px cell and came apart mid-hash — a broken SHA is a wrong SHA, on the one screen whose job is
+   publishing a dataset someone else can reproduce. The cells are held whole and the table scrolls
+   inside its own `overflow-x-auto` container instead, which is the treatment every other wide table
+   on this page already gets. */
+.tflens-shas ::deep td,
+.tflens-shas ::deep th {
+    white-space: nowrap;
 }
 
 @media (min-width: 64rem) {
@@ -63,8 +92,11 @@
     display: none;
 }
 
+/* No explicit width any more: `white-space: nowrap` below already sizes this column to its longest
+   label, and the 38% it used to claim was 22px MORE than `Parity status` needs — width the value
+   column wanted, which is why `6 synced repo(s) · 1,174 records` came out over three lines at 1280. */
 .tflens-facts ::deep td:first-child {
-    width: 38%;
+    width: 1%;
     color: var(--muted-foreground);
 }
 
@@ -79,4 +111,32 @@
     color: var(--alert-warning);
     border-color: color-mix(in oklab, var(--alert-warning) 45%, transparent);
     background: var(--alert-warning-bg);
+}
+
+/* REQ-UI-032 — the header's export chip. `docs/mockups/export.html` draws it as a blue `chart-1`
+   chip; the app shipped TrBlazeUI's neutral Secondary button, which the parity gate reads as a
+   different semantic colour bucket at both widths. Only the paint changes — it is still the same
+   Button, with the same action and the same disabled state as the full-width one below it. */
+.tflens-export-chip ::deep button {
+    background: color-mix(in oklab, var(--chart-1) 15%, transparent);
+    color: var(--chart-1);
+    border-color: transparent;
+}
+
+/* REQ-UI-033 — the parity pill. TrBlazeUI's Badge does not set `white-space`, so as a table cell's
+   only child it wrapped `NOT QUOTABLE` over two lines where the design holds it on one. A status
+   read at a glance is exactly the wrong thing to break in half. */
+.tflens-pill ::deep > div,
+.tflens-pill ::deep > span {
+    white-space: nowrap;
+}
+
+/* REQ-UI-032 — the SHA column. `white-space: nowrap` stops the hash breaking, but the gate measures
+   the CONTENT box: 83px of cell less 32px of DataTable padding left 51px against a 7-character hash
+   that needs 62px, so the text was living in its own padding. A minimum width gives the column the
+   room the figure actually needs, which is the honest reading of BRD-144 clause 6 — the cell must be
+   wide enough for its longest unbreakable token, not merely prevented from breaking it. */
+.tflens-shas ::deep td:nth-child(3),
+.tflens-shas ::deep th:nth-child(3) {
+    min-width: 7rem;
 }

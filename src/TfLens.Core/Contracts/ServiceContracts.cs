@@ -198,6 +198,24 @@ public sealed record ParseResult
     /// <summary><c>miss-amend</c> records, stored verbatim and folded only at read time (ADR-020).</summary>
     public IReadOnlyList<MissAmendRecord> MissAmends { get; init; } = [];
 
+    /// <summary>
+    /// Schema-2 <c>phase-metric</c> executions, when <see cref="Stream"/> is
+    /// <see cref="StreamKind.PhaseMetrics"/> (REQ-FN-094, ADR-023).
+    /// </summary>
+    /// <remarks>
+    /// One NDJSON line yields all three of <see cref="PhaseExecutions"/>,
+    /// <see cref="PhaseModelUsages"/> and <see cref="PhaseSubagents"/> in a single pass — the second
+    /// stream whose records do not all land in one table (ADR-025). They arrive through the import mode
+    /// like any other bundle, which is what keeps the promise that there is no second ingest path.
+    /// </remarks>
+    public IReadOnlyList<PbPhaseExecutionRecord> PhaseExecutions { get; init; } = [];
+
+    /// <summary>Per-model usage rows, deduped on <c>(UserId, Repo, PhaseExecutionId, Model)</c>.</summary>
+    public IReadOnlyList<PbPhaseModelUsageRecord> PhaseModelUsages { get; init; } = [];
+
+    /// <summary>Sub-agent session rows, deduped on <c>(UserId, Repo, PhaseExecutionId, SessionId)</c>.</summary>
+    public IReadOnlyList<PbPhaseSubagentRecord> PhaseSubagents { get; init; } = [];
+
     /// <summary>Lines that were not valid JSON; counted and skipped, never fatal.</summary>
     public int InvalidLines { get; init; }
 
@@ -229,7 +247,8 @@ public sealed record ParseResult
 
     /// <summary>Total records stored from this file, across every record type.</summary>
     public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count
-        + Misses.Count + MissFixes.Count + MissAmends.Count;
+        + Misses.Count + MissFixes.Count + MissAmends.Count
+        + PhaseExecutions.Count + PhaseModelUsages.Count + PhaseSubagents.Count;
 }
 
 /// <summary>What a rebuild-from-raw replayed.</summary>
@@ -429,6 +448,31 @@ public static class ParityReasons
     /// </para>
     /// </remarks>
     public const string ProvenanceOrphan = "provenance-orphan";
+
+    /// <summary>
+    /// The store cannot answer the provenance question at all, so the rule was never evaluated
+    /// (REQ-NFR-019, BRD-89).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this is its own reason and not silence.</b> An integrity rule that cannot be evaluated must
+    /// not read as "passed". Until 2026-08-30 an unauditable store returned
+    /// <c>ProvenanceAuditReport.Unsupported</c> and the stamp simply carried on to the parser and script
+    /// checks, so a store that had never been asked the question could still reach
+    /// <see cref="ParityStatuses.Quotable"/> — a fail-open, and BRD-89 allows integrity rules no
+    /// relaxation. The refusal is now unconditional, and this reason is what makes it legible.
+    /// </para>
+    /// <para>
+    /// It is deliberately distinct from <see cref="ProvenanceOrphan"/> and from
+    /// <see cref="Current"/>, because those are the two things a reader must never confuse it with:
+    /// "we checked and found fabricated rows", "we checked and it is clean", and "we could not check".
+    /// Collapsing the third into the second is the fail-open; collapsing it into the first would accuse a
+    /// clean store of pollution. Like <see cref="ScriptUnavailable"/> — its exact sibling, an oracle that
+    /// cannot be hashed — it is NOT QUOTABLE with a reason that names the missing capability rather than
+    /// a finding.
+    /// </para>
+    /// </remarks>
+    public const string ProvenanceUnknown = "provenance-unknown";
 }
 
 /// <summary>The parity stamp evaluated against this build — the status and the reason behind it.</summary>

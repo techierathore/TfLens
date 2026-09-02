@@ -1,0 +1,49 @@
+@*
+    Renders a PhaseValue. This is the only way a phase figure reaches a page, so the "insufficient
+    data" and "unavailable" cases cannot be accidentally rendered as a number — the same technique
+    FigureText applies to the TechieFlow Figure (ADR-007, REQ-FN-102).
+
+    A PhaseValue is a different type from Figure on purpose: the two axes never pool, and neither
+    component will accept the other's figure.
+*@
+@using TfLens.Core.Playbook
+
+@if (Value.HasValue)
+{
+    <span class="@Class" data-testid="@TestId">@(MeasuredText ?? Value.Display())</span>
+}
+else if (Value.Kind == PhaseValueKind.InsufficientData)
+{
+    <span class="text-muted-foreground italic @Class" data-testid="@TestId">@Value.Display()</span>
+}
+else
+{
+    <span class="text-muted-foreground @Class" data-testid="@TestId">@Value.Display()</span>
+}
+
+@code {
+    /// <summary>The figure to render, refusals included.</summary>
+    [Parameter]
+    [EditorRequired]
+    public PhaseValue Value { get; set; }
+
+    /// <summary>
+    /// A presentation rendering of the SAME number, used only when the figure carries one.
+    /// </summary>
+    /// <remarks>
+    /// The engine renders a duration as milliseconds and the approved design renders it as
+    /// <c>21m 08s</c>. This parameter re-notates that measured value and nothing else: a figure that
+    /// refuses to be a number still reaches the screen through <see cref="PhaseValue.Display"/>, so no
+    /// caller can use it to print a figure where the engine published none.
+    /// </remarks>
+    [Parameter]
+    public string? MeasuredText { get; set; }
+
+    /// <summary>Extra utility classes applied to the rendered span.</summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Stable test id so the verifier's data-render gate can assert the value is non-blank.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

@@ -572,7 +572,11 @@ public sealed class TelemetryImportService : ITelemetryImportService
 
             foreach (var vRecord in vRecords)
             {
-                var vTs = vRecord?.GetType().GetProperty("Ts")?.GetValue(vRecord) as string;
+                // "Ts" on a stream record; "StartedAt" on a schema-2 phase execution, which carries the
+                // window's boundaries rather than a single instant (REQ-FN-094). Read in that order so a
+                // phase bundle previews with a real date range instead of an empty one.
+                var vTs = vRecord?.GetType().GetProperty("Ts")?.GetValue(vRecord) as string
+                          ?? vRecord?.GetType().GetProperty("StartedAt")?.GetValue(vRecord) as string;
 
                 if (!DateTimeOffset.TryParse(
                         vTs, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var vMoment))

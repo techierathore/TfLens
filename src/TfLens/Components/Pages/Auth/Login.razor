@@ -11,6 +11,11 @@
 
 <PageTitle>Sign in · TfLens</PageTitle>
 
+@* REQ-UI-001 / BRD-144 clause 2, 2026-08-30: below 768px the brand panel collapses to the 65px row
+   docs/mockups/login.html draws, instead of the 399px desktop block that pushed this document 122px
+   past the viewport at 390. Deliberately opt-in per page — see AuthCompactBrand.razor. *@
+<AuthCompactBrand />
+
 @*
     REQ-UI-001. The credentials are checked from the circuit so a failure keeps the user's typed values
     and never costs a page load; a success hands the same credentials to POST /auth/login, because a

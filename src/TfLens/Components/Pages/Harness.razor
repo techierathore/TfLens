@@ -89,7 +89,7 @@
                                 <LucideIcon Name="git-compare" Size="16" />
                             </span>
                             <div>
-                                <CardTitle>@vColumn.Harness</CardTitle>
+                                <CardTitle Class="text-base">@vColumn.Harness</CardTitle>
                                 <CardDescription>@SubtitleFor(vColumn)</CardDescription>
                             </div>
                         </div>
@@ -118,10 +118,38 @@
                                         <CellTemplate Context="vRow">
                                             @if (vRow.Value is { } vFigure)
                                             {
-                                                @* ADR-007 — a Figure only ever reaches the screen through FigureText. *@
-                                                <FigureText Value="vFigure"
-                                                            Class="tabular-nums font-medium"
-                                                            TestId="@vRow.TestId" />
+                                                @if (vFigure.HasValue)
+                                                {
+                                                    @* REQ-UI-024 — the mockup groups this figure's thousands
+                                                       (`51,300`). The digits are the export's own, taken from
+                                                       Figure.Display() and only punctuated, and the ungrouped
+                                                       string stays reachable as the cell's title. *@
+                                                    <span class="tabular-nums font-medium"
+                                                          title="@vFigure.Display()"
+                                                          data-testid="@vRow.TestId">@GroupedFigureText(vFigure.Display())</span>
+                                                }
+                                                else
+                                                {
+                                                    @* ADR-007 — `insufficient data (n=…)` and `—` are not numbers,
+                                                       so they reach the screen through FigureText, unaltered. *@
+                                                    @* REQ-UI-024 — the refusal string is this page's
+                                                       other long cell, and it gets the design's own
+                                                       answer to a long cell: the `sm` 13px the mockup
+                                                       puts on `Runs by cmd`. At 14px
+                                                       `insufficient data (n=0)` needs ~150px against
+                                                       the 136px this column gives at 1280 and came out
+                                                       over two lines, which is the owner's standing
+                                                       finding on this row. The size lives on a wrapper
+                                                       because `FigureText`'s root carries ITS scope
+                                                       attribute, not this page's — `font-size`
+                                                       inherits through it, a class would not
+                                                       (REQ-NFR-021). *@
+                                                    <span class="tflens-kv-small">
+                                                        <FigureText Value="vFigure"
+                                                                    Class="tabular-nums font-medium"
+                                                                    TestId="@vRow.TestId" />
+                                                    </span>
+                                                }
                                             }
                                             else if (vRow.PassShare is { } vShare)
                                             {
@@ -138,7 +166,15 @@
                                             }
                                             else
                                             {
-                                                <span class="tabular-nums" data-testid="@vRow.TestId">@vRow.Text</span>
+                                                @* REQ-UI-024 — an abbreviated token count carries the exact
+                                                   number as its native tooltip, so nothing is lost by rounding
+                                                   it on screen. `Exact` is null on every other row.
+
+                                                   REQ-UI-023 — `IsSmall` is the mockup's own `sm` class, which
+                                                   it puts on exactly one cell: the long `Runs by cmd` list. *@
+                                                <span class="@ValueClassFor(vRow)"
+                                                      title="@vRow.Exact"
+                                                      data-testid="@vRow.TestId">@vRow.Text</span>
                                             }
                                         </CellTemplate>
                                     </DataTableColumn>
@@ -167,39 +203,65 @@
             @* REQ-UI-023 — the chart is supplementary; the table beside it carries the same numbers as text. *@
             <Card Class="h-full">
                 <CardHeader>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <CardTitle>Total tokens by harness</CardTitle>
-                            <CardDescription>
-                                in + out + cache read + cache write · every value also appears as text
-                            </CardDescription>
+                    @* No `flex-wrap`: the design puts the unit badge on the right of this header, and
+                       wrapping dropped it onto a line of its own under the description. *@
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <CardTitle Class="text-base">Total tokens by harness</CardTitle>
+                            <CardDescription>in + out + cache read + cache write</CardDescription>
                         </div>
-                        <Badge Variant="BadgeVariant.Outline">tokens, not dollars</Badge>
+                        @* The design's unit chip. The text differs — the mockup's `millions` is a single
+                           unit, and these bars carry a unit each (`3.2B`, `814k`), so a global "millions"
+                           would be a false statement about two of the three. It says what is true of all
+                           three instead, which is also BRD-53's standing rule for this page. *@
+                        <Badge Variant="BadgeVariant.Outline" Class="tflens-unit-badge">tokens, not dollars</Badge>
                     </div>
                 </CardHeader>
                 <CardContent Class="pt-0">
                     @if (objTokenRows.Any(aRow => aRow.Tokens > 0))
                     {
                         @* TR-005: the chart types carry no XValue/YValue and draw nothing from `Items` alone,
-                           so the series is declared with the component the wrapper wraps. *@
+                           so the series is declared with the component the wrapper wraps.
+
+                           TR-027 (raised 2026-09-01, REQ-UI-023): `BarChart` exposes ShowLegend / ShowTooltip /
+                           ShowDataLabels and nothing else — no axis switch, no grid switch, and no way to reach
+                           `ApexChartOptions`. It therefore CANNOT be made to match this screen's approved design,
+                           which draws no y axis, no gridlines, and one value label above each bar. Left as it
+                           shipped, the axis printed raw counts (`3000000000`) with no unit scaling and no labels,
+                           and claude-code at 2.86B flattened the other two bars to nothing — the owner could not
+                           read two of the three figures the card exists to compare. `ApexChart` is the component
+                           `BarChart` wraps, so it is used directly here to reach `Options`; `ChartContainer` still
+                           provides the sizing wrapper the design names. *@
                         <div class="tflens-chart" data-testid="tokens-chart">
                             <ChartContainer>
-                                <BarChart TItem="HarnessTokenTotal"
-                                          Items="@objChartRows"
-                                          Height="260px"
-                                          Width="100%"
-                                          ShowLegend="false"
-                                          ShowTooltip="true">
+                                <ApexChart TItem="HarnessTokenTotal"
+                                           Options="@objChartOptions"
+                                           Height="260"
+                                           Width="@("100%")">
                                     <ApexPointSeries TItem="HarnessTokenTotal"
                                                      Items="@objChartRows"
                                                      Name="Total tokens"
                                                      SeriesType="SeriesType.Bar"
+                                                     ShowDataLabels="true"
                                                      XValue="@(aRow => aRow.Harness)"
                                                      YValue="@(aRow => (decimal)aRow.Tokens)"
                                                      PointColor="@(aRow => ChartColourFor(aRow.Harness))" />
-                                </BarChart>
+                                </ApexChart>
                             </ChartContainer>
                         </div>
+
+                        @* REQ-UI-023 — the bars carry SVG text, which a screen reader announces as a graphic.
+                           The same three figures are repeated here as an off-screen list so the card is readable
+                           without sight of it; this is not the `Harness | Total tokens` table the design does not
+                           have, and it occupies no space. *@
+                        <ul class="sr-only" data-testid="tokens-chart-values">
+                            @foreach (var vRow in objTokenRows)
+                            {
+                                <li data-testid="@($"tokens-total-{vRow.Harness}")">
+                                    @vRow.Harness: @vRow.Display tokens
+                                </li>
+                            }
+                        </ul>
                     }
                     else
                     {
@@ -213,32 +275,13 @@
                         </Empty>
                     }
 
-                    <div class="tflens-kv overflow-x-auto">
-                        <DataTable TData="HarnessTokens"
-                                   Data="@objTokenRows"
-                                   ShowToolbar="false"
-                                   ShowPagination="false"
-                                   InitialPageSize="50"
-                                   AriaLabel="Total tokens by harness"
-                                   data-testid="tokens-table">
-                            <Columns>
-                                <DataTableColumn TData="HarnessTokens" TValue="string"
-                                                 Property="@(aRow => aRow.Harness)" Header="Harness">
-                                    <CellTemplate Context="vRow">
-                                        <span class="text-muted-foreground">@vRow.Harness</span>
-                                    </CellTemplate>
-                                </DataTableColumn>
-                                <DataTableColumn TData="HarnessTokens" TValue="string"
-                                                 Property="@(aRow => aRow.Display)" Header="Total tokens"
-                                                 CellClass="text-right">
-                                    <CellTemplate Context="vRow">
-                                        <span class="tabular-nums font-medium"
-                                              data-testid="@($"tokens-total-{vRow.Harness}")">@vRow.Display</span>
-                                    </CellTemplate>
-                                </DataTableColumn>
-                            </Columns>
-                        </DataTable>
-                    </div>
+                    @* REQ-UI-023, removed 2026-09-01 — a `Harness | Total tokens` DataTable stood here,
+                       repeating each bar's figure as a row. `docs/mockups/harness.html` has no such table:
+                       its chart card is bars and nothing else, because the value is printed ABOVE the bar
+                       it belongs to. The table was this page's own workaround for a chart that carried no
+                       labels; the labels now exist, so the table is a second rendering of the same three
+                       numbers, and the owner reported it as drift on 2026-08-30. The accessible list above
+                       keeps the figures reachable without sight. *@
                 </CardContent>
             </Card>
 
@@ -247,7 +290,7 @@
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
                         <div class="tflens-cost-heading">
-                            <CardTitle>Measured dollars (OpenCode only)</CardTitle>
+                            <CardTitle Class="text-base">Measured dollars (OpenCode only)</CardTitle>
                             <CardDescription>
                                 <Badge Variant="BadgeVariant.Secondary">the only measured dollars in the system</Badge>
                             </CardDescription>
@@ -317,9 +360,77 @@
         }
     }
 
+    /// <summary>
+    /// The JavaScript the chart's value labels are rendered with — the browser-side twin of
+    /// <see cref="TokenText"/>.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-023 — <c>docs/mockups/harness.html</c> prints one label above each bar (<c>68.6M</c>,
+    /// <c>19.0M</c>, <c>0.61M</c>) and draws no axis at all. ApexCharts renders its data labels in the
+    /// browser, so the abbreviation has to be expressed as JavaScript rather than as C#. The thresholds,
+    /// the precision and the suffixes are the same ones <see cref="TokenText"/> applies to the column
+    /// cells, so a bar and its column can never disagree about the same figure.
+    /// </remarks>
+    private const string TokenLabelFormatter = """
+        function (aValue) {
+            if (aValue === null || aValue === undefined) { return ''; }
+            var vMagnitude = Math.abs(aValue);
+            if (vMagnitude >= 1e9) { return (aValue / 1e9).toFixed(1) + 'B'; }
+            if (vMagnitude >= 1e6) { return (aValue / 1e6).toFixed(1) + 'M'; }
+            if (vMagnitude >= 1e3) { return Math.round(aValue / 1e3) + 'k'; }
+            return String(aValue);
+        }
+        """;
+
     private HarnessComparison objComparison = new([], 0, null, 0);
     private IReadOnlyList<HarnessTokens> objTokenRows = [];
     private IReadOnlyList<HarnessTokenTotal> objChartRows = [];
+
+    /// <summary>
+    /// The chart's options — no y axis, no gridlines, one abbreviated value label above each bar.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-023, 2026-09-01. The shipped chart drew ApexCharts' defaults: a linear y axis printing raw
+    /// token counts (<c>3000000000</c>), horizontal gridlines, and no labels. On this data — claude-code
+    /// 2.86B against opencode's 814k — that made two of the three bars a sub-pixel line with no figure
+    /// anywhere near them, on the one card whose whole job is to compare the three. The approved design
+    /// answers exactly this: it drops the axis and puts the number on the bar, so a bar that is too short
+    /// to see still states its own value.
+    /// </remarks>
+    private readonly ApexChartOptions<HarnessTokenTotal> objChartOptions = new()
+    {
+        Chart = new Chart
+        {
+            Toolbar = new Toolbar { Show = false },
+            Background = "transparent",
+            FontFamily = "inherit"
+        },
+        Theme = new Theme { Mode = Mode.Dark },
+        Legend = new Legend { Show = false },
+        Tooltip = new ApexCharts.Tooltip { Enabled = true },
+        // The mockup draws neither, and both were actively harmful here: the gridlines carried the raw
+        // counts that made the card unreadable.
+        Grid = new Grid { Show = false, BorderColor = "transparent", Padding = new Padding { Left = 0, Right = 0 } },
+        Yaxis = [new YAxis { Show = false }],
+        Xaxis = new XAxis
+        {
+            AxisBorder = new AxisBorder { Show = false },
+            AxisTicks = new AxisTicks { Show = false }
+        },
+        DataLabels = new DataLabels
+        {
+            Enabled = true,
+            // Above the bar, as the design draws it — ApexCharts centres a bar's label inside it by
+            // default, where a 3px bar has nowhere to put one.
+            OffsetY = -20,
+            Formatter = TokenLabelFormatter,
+            Style = new DataLabelsStyle { FontSize = "12px", FontWeight = "600", Colors = ["#a1a1aa"] }
+        },
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar { DataLabels = new PlotOptionsBarDataLabels { Position = BarDataLabelPosition.Top } }
+        }
+    };
     private string? objLoadError;
     private bool objIsLoaded;
     private int? objUserId;
@@ -428,7 +539,17 @@
         return
         [
             new ColumnRow("Runs", CountText(vIsEmpty, aColumn.Runs), null, $"harness-{vHarness}-runs"),
-            new ColumnRow("Runs by cmd (top 3)", PairsText(aColumn.RunsByCmd, 3), null, $"harness-{vHarness}-cmds"),
+
+            // REQ-UI-023 — the one cell the mockup marks `sm`: a three-command list is the longest text on
+            // the page, and the approved design answers that with 13px type rather than with more rows.
+            new ColumnRow(
+                "Runs by cmd (top 3)",
+                PairsText(aColumn.RunsByCmd, 3),
+                null,
+                $"harness-{vHarness}-cmds",
+                null,
+                null,
+                true),
             new ColumnRow("Gate records", CountText(vIsEmpty, aColumn.GateRecords), null, $"harness-{vHarness}-gates"),
             // REQ-UI-023 — the mockup shows a pass-share bar and one percentage here, not every verdict.
             // The full breakdown stays available as the cell's tooltip; nothing is hidden, it is ranked.
@@ -439,10 +560,38 @@
                 $"harness-{vHarness}-verdicts",
                 PassShareOf(aColumn.VerdictMix)),
             new ColumnRow("Sessions", CountText(vIsEmpty, aColumn.Sessions), null, $"harness-{vHarness}-sessions"),
-            new ColumnRow("Tokens in", CountText(vIsEmpty, aColumn.TokensIn), null, $"harness-{vHarness}-tokens-in"),
-            new ColumnRow("Tokens out", CountText(vIsEmpty, aColumn.TokensOut), null, $"harness-{vHarness}-tokens-out"),
-            new ColumnRow("Cache read", CountText(vIsEmpty, aColumn.TokensCacheRead), null, $"harness-{vHarness}-cache-read"),
-            new ColumnRow("Cache write", CountText(vIsEmpty, aColumn.TokensCacheWrite), null, $"harness-{vHarness}-cache-write"),
+
+            // REQ-UI-024 — the four token rows read in the mockup's compact notation (`18.4M`, `212k`).
+            // Every one of them carries the exact count as its title, so an abbreviated cell is still a
+            // quotable cell (BRD §1) and the export is untouched either way.
+            new ColumnRow(
+                "Tokens in",
+                TokenText(vIsEmpty, aColumn.TokensIn),
+                null,
+                $"harness-{vHarness}-tokens-in",
+                null,
+                ExactTokenText(vIsEmpty, aColumn.TokensIn)),
+            new ColumnRow(
+                "Tokens out",
+                TokenText(vIsEmpty, aColumn.TokensOut),
+                null,
+                $"harness-{vHarness}-tokens-out",
+                null,
+                ExactTokenText(vIsEmpty, aColumn.TokensOut)),
+            new ColumnRow(
+                "Cache read",
+                TokenText(vIsEmpty, aColumn.TokensCacheRead),
+                null,
+                $"harness-{vHarness}-cache-read",
+                null,
+                ExactTokenText(vIsEmpty, aColumn.TokensCacheRead)),
+            new ColumnRow(
+                "Cache write",
+                TokenText(vIsEmpty, aColumn.TokensCacheWrite),
+                null,
+                $"harness-{vHarness}-cache-write",
+                null,
+                ExactTokenText(vIsEmpty, aColumn.TokensCacheWrite)),
 
             // REQ-UI-024 — computed per harness, never pooled, and never a number below the minimum n.
             new ColumnRow(
@@ -500,6 +649,102 @@
     /// <returns>The grouped number, or the dash.</returns>
     private static string CountText(bool aIsEmpty, long aValue) =>
         aIsEmpty ? Dash : aValue.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Renders a token count in the approved mockup's compact notation.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-024 — <c>docs/mockups/harness.html</c> prints these four rows as <c>18.4M</c>, <c>2.9M</c>,
+    /// <c>41.2M</c>, <c>6.1M</c>, <c>212k</c>, <c>48k</c>, <c>318k</c>, <c>32k</c>: one decimal above a
+    /// million, whole thousands below it. Billions follow the same rule one magnitude up, which the
+    /// mockup has no example of but this data does (<c>2,811,924,108</c> cache reads).
+    /// <para>
+    /// Abbreviating is a <b>presentation</b> choice and it is never the only rendering: every cell built
+    /// from this also carries <see cref="ExactTokenText"/> as its <c>title</c>, and the export path
+    /// (<c>SnapshotJson</c>/<c>SnapshotMarkdown</c>) never passes through here at all, so REQ-FN-058
+    /// key-for-key parity is unaffected.
+    /// </para>
+    /// </remarks>
+    /// <param name="aIsEmpty">Whether the whole column is empty.</param>
+    /// <param name="aValue">The token count.</param>
+    /// <returns>The compact count, or the dash.</returns>
+    private static string TokenText(bool aIsEmpty, long aValue)
+    {
+        if (aIsEmpty)
+        {
+            return Dash;
+        }
+
+        var vMagnitude = Math.Abs(aValue);
+
+        if (vMagnitude >= 1_000_000_000L)
+        {
+            return (aValue / 1_000_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "B";
+        }
+
+        if (vMagnitude >= 1_000_000L)
+        {
+            return (aValue / 1_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "M";
+        }
+
+        if (vMagnitude >= 1_000L)
+        {
+            return (aValue / 1_000d).ToString("0", CultureInfo.InvariantCulture) + "k";
+        }
+
+        return aValue.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The exact token count an abbreviated cell keeps as its native tooltip (REQ-UI-024).
+    /// </summary>
+    /// <param name="aIsEmpty">Whether the whole column is empty.</param>
+    /// <param name="aValue">The token count.</param>
+    /// <returns>
+    /// The grouped count, or <c>null</c> when there is nothing to disclose — an empty column, or a count
+    /// small enough that the compact rendering already is the exact one.
+    /// </returns>
+    private static string? ExactTokenText(bool aIsEmpty, long aValue) =>
+        aIsEmpty || Math.Abs(aValue) < 1_000L
+            ? null
+            : aValue.ToString("N0", CultureInfo.InvariantCulture) + " tokens";
+
+    /// <summary>
+    /// Groups the thousands of a figure's own rendered string without changing a digit of it.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-024 — the mockup prints <c>Tokens per Verified REQ</c> as <c>51,300</c>, grouped. The digits
+    /// are taken from <see cref="Figure.Display"/> and only punctuated — never re-derived from the double
+    /// and never re-rounded — so the cell cannot disagree with the exported
+    /// <c>extras.harness.columns[*].tokens_per_verified_req</c>, which keeps its ungrouped form and stays
+    /// reachable here as the cell's <c>title</c>.
+    /// </remarks>
+    /// <param name="aRendered">The figure's display string, e.g. <c>2377395.2</c>.</param>
+    /// <returns>The same string with grouped thousands, e.g. <c>2,377,395.2</c>.</returns>
+    private static string GroupedFigureText(string aRendered)
+    {
+        var vPoint = aRendered.IndexOf('.', StringComparison.Ordinal);
+        var vWhole = vPoint < 0 ? aRendered : aRendered[..vPoint];
+        var vFraction = vPoint < 0 ? string.Empty : aRendered[vPoint..];
+
+        return long.TryParse(vWhole, NumberStyles.Integer, CultureInfo.InvariantCulture, out var vDigits)
+            ? vDigits.ToString("N0", CultureInfo.InvariantCulture) + vFraction
+            : aRendered;
+    }
+
+    /// <summary>
+    /// The classes on a plain value cell.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-023 — <c>docs/mockups/harness.html</c> writes its key/value cells as <c>&lt;td class="r"&gt;</c>
+    /// and adds <c>sm</c> to exactly one of them, the <c>Runs by cmd</c> list (<c>.sm{font-size:13px}</c>
+    /// against the table's own 14px). That is the design's own answer to this cell being long, so it is
+    /// applied here rather than letting the list take a third row.
+    /// </remarks>
+    /// <param name="aRow">The row being rendered.</param>
+    /// <returns>The cell's class list.</returns>
+    private static string ValueClassFor(ColumnRow aRow) =>
+        aRow.IsSmall ? "tabular-nums tflens-kv-small" : "tabular-nums";
 
     /// <summary>
     /// Renders a label/count list such as the top commands or the verdict mix.
@@ -645,7 +890,23 @@
     /// and <c>null</c> too when the harness recorded no gates at all, so an empty column reads
     /// <c>—</c> rather than a confident <c>0% pass</c> drawn from nothing.
     /// </param>
-    private sealed record ColumnRow(string Label, string Text, Figure? Value, string TestId, double? PassShare = null);
+    /// <param name="Exact">
+    /// The precise value an abbreviated cell keeps as its native tooltip (REQ-UI-024). Set only on the
+    /// four token rows, where <see cref="TokenText"/> rounds for the screen; <c>null</c> everywhere else,
+    /// and <c>null</c> too when the compact rendering already is the exact one.
+    /// </param>
+    /// <param name="IsSmall">
+    /// True on the one row the approved mockup marks <c>sm</c> — <c>Runs by cmd (top 3)</c>, whose value
+    /// is a three-command list and the longest text on the page (REQ-UI-023).
+    /// </param>
+    private sealed record ColumnRow(
+        string Label,
+        string Text,
+        Figure? Value,
+        string TestId,
+        double? PassShare = null,
+        string? Exact = null,
+        bool IsSmall = false);
 
     /// <summary>One bar of the tokens-by-harness chart, and one row of the text table beside it.</summary>
     /// <param name="Harness">The harness name.</param>

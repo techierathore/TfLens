@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Text.Json;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.Playbook;
 using TfLens.Core.Provenance;
 
 namespace TfLens.Core.Parsing;
@@ -36,6 +38,14 @@ namespace TfLens.Core.Parsing;
 /// <c>tokens_out</c>→<c>TokensOut</c>, <c>tokens_cache_read</c>→<c>TokensCacheRead</c>,
 /// <c>tokens_cache_write</c>→<c>TokensCacheWrite</c>, <c>cost_usd</c>→<c>CostUsd</c>,
 /// <c>tokens_scope</c>→<c>TokensScope</c>, <c>attempt</c>→<c>Attempt</c>.
+/// </para>
+/// <para>
+/// <c>runs</c> (§2.6, added to the stream 2026-08-31 — REQ-FN-088, BRD-145):
+/// <c>subagent_runs</c>→<c>SubagentRuns</c>, <c>tokens_out_subagents</c>→<c>TokensOutSubagents</c>,
+/// <c>model_tokens_out</c>→<c>ModelTokensOut</c> (a <c>{model_id: tokens}</c> object, stored whole as
+/// <c>jsonb</c>). All three are <b>nullable by design</b>: a run written before that date, or under a
+/// <c>main</c>-scope window that never read the sub-agent transcripts, carries <c>null</c> — which is
+/// not the same fact as a measured zero (ADR-026).
 /// </para>
 /// <para>
 /// <c>gates</c> (§3): <c>run_id</c>→<c>RunId</c>, <c>req_id</c>→<c>ReqId</c>,
@@ -116,7 +126,11 @@ public sealed class StreamParser : IStreamParser
         "cmd", "mode", "started", "ended", "duration_s", "reqs_touched", "reqs_count", "subagents",
         "files_written", "build_result", "tier", "tier_model", "model", "models", "routed",
         "tokens_in", "tokens_out", "tokens_cache_read", "tokens_cache_write", "cost_usd",
-        "tokens_scope", "attempt"
+        "tokens_scope", "attempt",
+        // §2.6, added to the stream 2026-08-31 (REQ-FN-088, BRD-145). Listing them here is what stops
+        // Coverage reporting them as fields SCHEMA.md does not document, and what gives them columns
+        // rather than an Overflow payload.
+        "subagent_runs", "tokens_out_subagents", "model_tokens_out"
     ];
 
     /// <summary>Fields SCHEMA.md §3 documents for <c>gates</c>.</summary>
@@ -223,6 +237,19 @@ public sealed class StreamParser : IStreamParser
     private static readonly HashSet<string> EventKnown = BuildKnown(EventDocumented);
 
     /// <summary>
+    /// Every wire name the schema-2 <c>phase-metric</c> contract documents (added 2026-09-01,
+    /// REQ-FN-094).
+    /// </summary>
+    /// <remarks>
+    /// Built from the contract's own field list rather than through <see cref="BuildKnown"/>: the
+    /// schema-2 record has its own vocabulary and does not carry SCHEMA.md's §1 envelope at all — it
+    /// versions itself with <c>schema</c>, not <c>v</c>. The list lives on
+    /// <see cref="PlaybookPhaseAdapter"/> so the mapper and the Coverage report cannot drift apart.
+    /// </remarks>
+    private static readonly HashSet<string> PhaseMetricKnown =
+        PlaybookPhaseAdapter.DocumentedFields.ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
     /// Every wire name SCHEMA.md documents for <c>misses</c> — the <b>union</b> of the three kinds.
     /// </summary>
     /// <remarks>
@@ -265,6 +292,7 @@ public sealed class StreamParser : IStreamParser
             StreamKind.Commits => CommitKnown.Contains(aField),
             StreamKind.Misses => MissesKnown.Contains(aField),
             StreamKind.Events => EventKnown.Contains(aField),
+            StreamKind.PhaseMetrics => PhaseMetricKnown.Contains(aField),
             _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream kind.")
         };
     }
@@ -280,6 +308,22 @@ public sealed class StreamParser : IStreamParser
         // refused outright rather than stored as an empty string, which is what a row nobody can trace
         // back to a fetch or an upload would be.
         ProvenanceRules.RequireObtained(aUserId, aRepo, aSourceSha);
+
+        // REQ-FN-103 / BRD-164 / ADR-024 — the Playbook miss export is mapped WHOLE-FILE rather than
+        // line by line, because its rows key on an immutable hash of each source line and the exporter's
+        // stream order is part of the record. That is a different mapping, not a different ingest path:
+        // it is reached through this one door, returns the same `ParseResult`, and is written by the same
+        // `UpsertAsync` (BRD-132). The mapping itself lives with the adapter that owns the edition.
+        //
+        // The axis is NOT re-checked here — this method is handed a repository NAME and never the
+        // `UserRepo` row, so a check made here would be a check made on nothing. It is made twice where
+        // it can be: `ImportStreamCatalog.TryResolveFramework` refuses a bundle that mixes editions
+        // before these bytes are recognised, and `PlaybookMissNormalizer.ReadAsync` takes the framework
+        // as a mandatory read parameter, which is where pooling would actually occur (ADR-016).
+        if (aStream == StreamKind.PlaybookMisses)
+        {
+            return PlaybookMissNormalizer.Normalize(aUserId, aRepo, aSourceSha, aText ?? string.Empty).Parsed;
+        }
 
         var vState = new ParseState(aUserId, aRepo, aSourceSha, aStream);
 
@@ -372,9 +416,52 @@ public sealed class StreamParser : IStreamParser
                 CollectUnknown(aObj, EventKnown, aState);
                 aState.PbEvents.Add(BuildPbEvent(aObj, aState, vTs, vIsAboveV1));
                 break;
+            case StreamKind.PhaseMetrics:
+                AddPhaseMetric(aObj, aState);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(aState), aState.Stream, "Unknown stream kind.");
         }
+    }
+
+    /// <summary>
+    /// Reads one schema-2 <c>phase-metric</c> line into its execution row and two child row sets
+    /// (REQ-FN-094, BRD-153, ADR-023).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The mapping itself lives in <see cref="PlaybookPhaseAdapter"/> — this is the same seam
+    /// <see cref="AddMissRecord"/> occupies, and keeping it here is what makes the phase record type
+    /// reach the store through the one parse-and-upsert path every other stream uses (BRD-132).
+    /// </para>
+    /// <para>
+    /// A line that is not a <c>phase-metric</c> record, or that names no <c>phase_execution_id</c>, is
+    /// counted as an invalid line and skipped. It is emphatically <b>not</b> stored as a run of zeroes:
+    /// an unreadable window and a window that spent nothing are different facts (BRD-153).
+    /// </para>
+    /// <para>
+    /// The invariant findings are written onto the row here, before it is ever stored, so a quarantined
+    /// row can state its own reason. They are re-derived at read time all the same — nothing downstream
+    /// trusts a stored verdict (REQ-FN-096).
+    /// </para>
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    private static void AddPhaseMetric(JsonElement aObj, ParseState aState)
+    {
+        var vRows = PlaybookPhaseAdapter.Read(
+            aObj, aState.UserId, aState.Repo, aState.SourceSha, aState.ImportedAt);
+
+        if (vRows is null)
+        {
+            aState.InvalidLines++;
+            return;
+        }
+
+        CollectUnknown(aObj, PhaseMetricKnown, aState);
+        aState.PhaseExecutions.Add(PlaybookPhaseInvariants.Annotate(vRows.Execution));
+        aState.PhaseModelUsages.AddRange(vRows.Models);
+        aState.PhaseSubagents.AddRange(vRows.Subagents);
     }
 
     /// <summary>
@@ -655,6 +742,12 @@ public sealed class StreamParser : IStreamParser
             CostUsd = ReadDecimal(aObj, "cost_usd"),
             TokensScope = ReadString(aObj, "tokens_scope"),
             Attempt = ReadInt(aObj, "attempt"),
+            // SCHEMA.md §2.6. Every one of these three reads through the same absent-is-null helpers as
+            // every other optional: a run written before 2026-08-31, or under a main-scope window that
+            // never read the sub-agent transcripts, carries null and NOT zero (REQ-FN-088, ADR-026).
+            SubagentRuns = ReadInt(aObj, "subagent_runs"),
+            TokensOutSubagents = ReadInt(aObj, "tokens_out_subagents"),
+            ModelTokensOut = ReadLongMap(aObj, "model_tokens_out"),
             Overflow = vOverflow
         };
     }
@@ -1020,6 +1113,44 @@ public sealed class StreamParser : IStreamParser
     }
 
     /// <summary>
+    /// Reads a <c>{key: number}</c> object as a string-to-64-bit map — SCHEMA.md §2.6's
+    /// <c>model_tokens_out</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Absent, JSON-null or not-an-object all yield <c>null</c>, never an empty map: "no per-model split
+    /// was captured" and "the split was captured and named no models" are different facts, and only the
+    /// second one is an empty dictionary (REQ-FN-088).
+    /// </para>
+    /// <para>
+    /// The values are 64-bit because they are cumulative output-token counts over a whole window; a
+    /// non-numeric member is skipped rather than failing the line, on the same principle that a
+    /// malformed record is counted and skipped instead of being thrown (REQ-FN-032).
+    /// </para>
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aName">The SCHEMA.md wire name.</param>
+    /// <returns>The map, or <c>null</c> when the field was not captured.</returns>
+    private static IReadOnlyDictionary<string, long>? ReadLongMap(JsonElement aObj, string aName)
+    {
+        if (!aObj.TryGetProperty(aName, out var vValue) || vValue.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var vMap = new Dictionary<string, long>(StringComparer.Ordinal);
+        foreach (var vProperty in vValue.EnumerateObject())
+        {
+            if (vProperty.Value.ValueKind == JsonValueKind.Number && vProperty.Value.TryGetInt64(out var vTokens))
+            {
+                vMap[vProperty.Name] = vTokens;
+            }
+        }
+
+        return vMap;
+    }
+
+    /// <summary>
     /// Reads a decimal property. Absent stays <c>null</c> so an unmeasured cost never reads as zero spend.
     /// </summary>
     /// <param name="aObj">The record's JSON object.</param>
@@ -1131,6 +1262,25 @@ public sealed class StreamParser : IStreamParser
         /// <summary><c>miss-amend</c> records read so far, before dedupe.</summary>
         public List<MissAmendRecord> MissAmends { get; } = [];
 
+        /// <summary>Schema-2 phase executions read so far, before dedupe.</summary>
+        public List<PbPhaseExecutionRecord> PhaseExecutions { get; } = [];
+
+        /// <summary>Per-model rows read so far, before dedupe.</summary>
+        public List<PbPhaseModelUsageRecord> PhaseModelUsages { get; } = [];
+
+        /// <summary>Sub-agent rows read so far, before dedupe.</summary>
+        public List<PbPhaseSubagentRecord> PhaseSubagents { get; } = [];
+
+        /// <summary>
+        /// When this parse ran, as ISO-8601 UTC — the import timestamp every phase row retains.
+        /// </summary>
+        /// <remarks>
+        /// Taken once per file rather than per record, so every row of one bundle carries the same
+        /// checkpoint instant. Storage and filtering are UTC; only display is localized (BRD-161).
+        /// </remarks>
+        public string ImportedAt { get; } =
+            DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+
         /// <summary>Distinct field names SCHEMA.md does not document, in first-seen order.</summary>
         public HashSet<string> UnknownFields { get; } = new(StringComparer.Ordinal);
 
@@ -1162,6 +1312,12 @@ public sealed class StreamParser : IStreamParser
             var vMissFixes = Dedupe.MissFixes(MissFixes);
             var vMissAmends = Dedupe.MissAmends(MissAmends);
 
+            // The exporter re-emits every currently readable window, so a repeated phase execution id
+            // inside one file is the same window read further on: keep the last (REQ-FN-094).
+            var vPhases = PlaybookPhaseAdapter.DedupeExecutions(PhaseExecutions);
+            var vPhaseModels = PlaybookPhaseAdapter.DedupeModelUsages(PhaseModelUsages);
+            var vPhaseSubagents = PlaybookPhaseAdapter.DedupeSubagents(PhaseSubagents);
+
             return new ParseResult
             {
                 UserId = UserId,
@@ -1176,10 +1332,14 @@ public sealed class StreamParser : IStreamParser
                 Misses = vMisses.Records,
                 MissFixes = vMissFixes.Records,
                 MissAmends = vMissAmends.Records,
+                PhaseExecutions = vPhases.Records,
+                PhaseModelUsages = vPhaseModels.Records,
+                PhaseSubagents = vPhaseSubagents.Records,
                 InvalidLines = InvalidLines,
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
                     + vCommits.Collapsed + vEvents.Collapsed
-                    + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed,
+                    + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed
+                    + vPhases.Collapsed + vPhaseModels.Collapsed + vPhaseSubagents.Collapsed,
                 SessionDuplicatesCollapsed = vSessions.Collapsed,
                 UnknownFields = UnknownFields.OrderBy(aN => aN, StringComparer.Ordinal).ToList(),
                 RecordsAboveSchemaV1 = RecordsAboveSchemaV1

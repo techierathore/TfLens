@@ -1,0 +1,2317 @@
+@*
+    REQ-UI-050 — the Playbook axis of /effort ("Phase efficiency"), built to
+    docs/mockups/effort-playbook.html and to the "Playbook state" component map in
+    docs/TfLens-UIDesign.md §Screen: Phase effort.
+
+    Four rules this surface exists to hold, and everything else here is in service of them:
+
+      * BRD-163 — a harness with no normalized producer renders
+        "Phase effort telemetry unsupported for this harness". That is a DATA GAP, which is a different
+        fact from a harness that ran and spent nothing, so it is never a zero and never an empty
+        measured figure. On today's data this is the state the screen is actually in.
+      * BRD-156 / ADR-027 — wall-clock elapsed, observed active time and human effort are three
+        separate concepts. `assistant_elapsed_ms` and `tool_elapsed_ms` legitimately overlap and are
+        never added; `coverage: partial` renders as an explicit lower bound; `unavailable` renders as
+        no figure at all.
+      * BRD-159 — fan-out is `contributors / spawned`. A grandchild renders beneath its parent and is
+        counted exactly once, child usage is already inside the phase totals and is never summed onto
+        them again, and `spawned − contributors` is a zero-token or non-contributing child, never an
+        inferred failure. An absent child agent type shows unavailable, never guessed.
+      * BRD-160 — measured provider dollars and a tokens-times-rate-card figure live on separate cards
+        and never share a series, a total or an aggregate. A `zero-unverified` cost carries its status
+        and its caveat, never "free" and never a measured $0.
+
+    Every figure arrives from IPlaybookReportBuilder.BuildPhaseReportAsync as a PhaseValue, which
+    structurally refuses to be a number when nothing eligible supported it — the same technique as
+    Figure/FigureText on the TechieFlow axis. No cohort rule is re-implemented here: the four nested
+    cohorts and their exclusion counts are the engine's, and this file only renders them.
+
+    REQ-NFR-023 (BRD-169) note: no rate-card dollar is computed on this surface at all. The report
+    type deliberately carries no estimate member, so the estimate card states its absence rather than
+    manufacturing a number that would read as spend.
+*@
+@using System.Globalization
+@using TfLens.Core.Playbook
+@using TfLens.Core.Repos
+@using TrBlazeUI.Components.Empty
+@inject IPlaybookReportBuilder objReportBuilder
+@inject IRepoListReader objRepoListReader
+
+<div class="pb-effort">
+
+    @if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" data-testid="pb-effort-error">
+            <LucideIcon Name="triangle-alert" Size="18" />
+            <AlertTitle>Couldn't read the phase-effort report</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objReport is { } vReport)
+    {
+        @* REQ-UI-050 — the filters render on every state, because the repository select is the one
+           control that re-queries the engine and so is how a reader reaches a supported repository
+           from an unsupported one. *@
+        <Card data-testid="pb-effort-filters">
+            <CardContent Class="p-4">
+                <div class="pb-filters">
+                    <span class="pb-filters-label">
+                        <LucideIcon Name="filter" Size="16" />
+                        Filters
+                    </span>
+
+                    @foreach (var vFilter in Filters)
+                    {
+                        <span class="pb-filter">
+                            @* TR-020 — SelectValue renders the raw bound value until SelectContent has
+                               rendered once, so the closed trigger needs DisplayTextSelector. *@
+                            <Select TValue="string"
+                                    Value="@vFilter.Value"
+                                    ValueChanged="@(aValue => OnFilterChangedAsync(vFilter.Key, aValue))"
+                                    DisplayTextSelector="@(aValue => vFilter.LabelOf(aValue))">
+                                <SelectTrigger data-testid="@($"pb-effort-filter-{vFilter.Key}")">
+                                    <SelectValue Placeholder="@vFilter.Options[0].Label" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    @foreach (var vOption in vFilter.Options)
+                                    {
+                                        <SelectItem TValue="string" Value="@vOption.Key" Text="@vOption.Label">
+                                            @vOption.Label
+                                        </SelectItem>
+                                    }
+                                </SelectContent>
+                            </Select>
+                        </span>
+                    }
+
+                    <span class="pb-filters-spacer"></span>
+                    <Button Variant="ButtonVariant.Ghost"
+                            Size="ButtonSize.Small"
+                            OnClick="ResetFiltersAsync"
+                            data-testid="pb-effort-filter-reset">Reset</Button>
+                </div>
+
+                <p class="pb-note" data-testid="pb-effort-filter-scope">
+                    @FilterScopeNote
+                </p>
+            </CardContent>
+        </Card>
+
+        @if (!vReport.Harness.IsSupported)
+        {
+            @* BRD-163 — the whole numeric body is withheld here on purpose. Rendering the tiles with
+               their cohorts at zero would state "this harness ran and spent nothing" while measuring
+               "no adapter emits the normalized schema", which are different facts. *@
+            <Alert Variant="AlertVariant.Warning" AccentBorder="true" data-testid="pb-effort-unsupported">
+                <LucideIcon Name="triangle-alert" Size="18" />
+                <AlertTitle>
+                    @PlaybookPhaseVocabulary.UnsupportedHarnessMessage — <span class="font-mono">@HarnessName</span>
+                </AlertTitle>
+                <AlertDescription>
+                    No adapter for this harness emits the normalized schema-2 phase record yet, so there
+                    is nothing to render for its phase executions on this axis. This is a data gap, which
+                    is a different fact from a harness that ran and spent nothing: it is never rendered as
+                    0 and never as an empty measured figure. The harnesses that do emit the record are
+                    @NormalizedHarnessList.
+                </AlertDescription>
+            </Alert>
+        }
+        else if (vReport.Executions.Count == 0)
+        {
+            <Empty Title="No phase-metric bundle imported yet"
+                   Description="@NoBundleDescription"
+                   data-testid="pb-effort-empty">
+                <Icon>
+                    <LucideIcon Name="gauge" Size="32" />
+                </Icon>
+            </Empty>
+        }
+        else
+        {
+            @* ---------------------------------------------------------------- SUMMARY (BRD-161) *@
+            @* Eight tiles, each carrying its own `n of N eligible` beneath it. The counts travel with
+               the figure rather than sitting in a page footer, because a reader who can see a number
+               must be able to see what it was computed over without looking anywhere else. *@
+            <StatGroup Columns="4" data-testid="pb-effort-summary">
+
+                <StatTile Title="Completed phases"
+                          IconName="circle-check"
+                          Accent="StatAccent.Chart1"
+                          Value="@vReport.Quality.Completed.ToString("N0", CultureInfo.InvariantCulture)"
+                          Description="@CompletedCaption"
+                          data-testid="pb-effort-tile-completed" />
+
+                <StatTile Title="Wall clock — median / p90"
+                          IconName="clock"
+                          Accent="StatAccent.Chart5"
+                          Description="@CaptionOf(vReport.ElapsedMsMedian)"
+                          data-testid="pb-effort-tile-wallclock">
+                    <ValueContent>
+                        <span class="pb-value-pair">
+                            <PhaseValueText Value="@vReport.ElapsedMsMedian.Value"
+                                            MeasuredText="@DurationOf(vReport.ElapsedMsMedian.Value)"
+                                            TestId="pb-effort-elapsed-median" />
+                            <span class="pb-value-second">
+                                / <PhaseValueText Value="@vReport.ElapsedMsP90.Value"
+                                                  MeasuredText="@DurationOf(vReport.ElapsedMsP90.Value)"
+                                                  TestId="pb-effort-elapsed-p90" />
+                            </span>
+                        </span>
+                    </ValueContent>
+                </StatTile>
+
+                <StatTile Title="@PlaybookPhaseVocabulary.ObservedActiveLabel"
+                          IconName="activity"
+                          Accent="StatAccent.Chart2"
+                          Description="@CaptionOf(vReport.ObservedActiveMsTotal)"
+                          data-testid="pb-effort-tile-active">
+                    <ValueContent>
+                        <PhaseValueText Value="@vReport.ObservedActiveMsTotal.Value"
+                                        MeasuredText="@DurationOf(vReport.ObservedActiveMsTotal.Value)"
+                                        TestId="pb-effort-active" />
+                    </ValueContent>
+                </StatTile>
+
+                <StatTile Title="Sub-agents — contributors / spawned"
+                          IconName="git-fork"
+                          Accent="StatAccent.Chart3"
+                          Value="@FanoutHeadline"
+                          Description="@FanoutCaption"
+                          data-testid="pb-effort-tile-fanout" />
+
+                <StatTile Title="Token components"
+                          IconName="database"
+                          Accent="StatAccent.Chart1"
+                          Description="@TokenCaption"
+                          data-testid="pb-effort-tile-tokens">
+                    <ValueContent>
+                        <PhaseValueText Value="@vReport.Tokens.Output" TestId="pb-effort-tokens-output" />
+                    </ValueContent>
+                </StatTile>
+
+                @* BRD-160 — the ONE tile carrying dollars, and they are the provider's own. *@
+                <StatTile Title="Measured provider cost"
+                          IconName="dollar-sign"
+                          Accent="StatAccent.Chart2"
+                          Description="@MeasuredCostCaption"
+                          data-testid="pb-cost-measured">
+                    <TitleAdornment>
+                        <Badge Variant="BadgeVariant.Secondary">measured</Badge>
+                    </TitleAdornment>
+                    <ValueContent>
+                        <span class="@(vReport.MeasuredCostUsd.Usd is null ? "pb-refused" : null)"
+                              data-testid="pb-cost-measured-value">@MeasuredCostText</span>
+                    </ValueContent>
+                </StatTile>
+
+                <StatTile Title="Incomplete windows"
+                          IconName="triangle-alert"
+                          Accent="StatAccent.Chart4"
+                          Value="@vReport.Quality.Incomplete.ToString("N0", CultureInfo.InvariantCulture)"
+                          Description="@IncompleteCaption"
+                          data-testid="pb-effort-tile-incomplete" />
+
+                <StatTile Title="Quarantined"
+                          IconName="x"
+                          Accent="StatAccent.Destructive"
+                          Value="@vReport.Quality.Quarantined.ToString("N0", CultureInfo.InvariantCulture)"
+                          Description="@QuarantineCaption"
+                          data-testid="pb-effort-tile-quarantined" />
+            </StatGroup>
+
+            @* BRD-160 — its own card, its own row, its own dashed styling. Nothing on it shares a
+               series, a total or an aggregate with the measured tile above. *@
+            <Card data-testid="pb-cost-estimate">
+                <CardContent Class="p-4">
+                    <div class="flex flex-wrap items-start gap-3">
+                        <span class="tflens-stat-chip tflens-accent-4 shrink-0">
+                            <LucideIcon Name="dollar-sign" Size="16" />
+                        </span>
+                        <div class="min-w-0 flex flex-col gap-1">
+                            <span class="flex flex-wrap items-center gap-2">
+                                <CardTitle Class="text-base">Rate-card estimate</CardTitle>
+                                <Badge Variant="BadgeVariant.Outline"
+                                       data-testid="pb-cost-estimate-label">estimate — tokens × rate card</Badge>
+                                <span class="pb-refused" data-testid="pb-cost-estimate-value">
+                                    @PlaybookPhaseVocabulary.Unavailable
+                                </span>
+                            </span>
+                            <CardDescription>
+                                No priced figure is produced on this axis. A tokens-times-rate-card dollar
+                                is an operator-editable input, not spend — nobody was billed it — so it is
+                                never placed on an effort tile and never added to, subtracted from or
+                                charted beside the measured provider cost, whose cohort is smaller and
+                                different. Estimates live on Routing &amp; economics, on a card of their own.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            @* BRD-156 / ADR-027 — the three timing concepts, stated where the timing figures are read. *@
+            <Alert Variant="AlertVariant.Warning" data-testid="pb-effort-timing-note">
+                <LucideIcon Name="triangle-alert" Size="18" />
+                <AlertTitle>Three timing concepts, and they never substitute for one another</AlertTitle>
+                <AlertDescription>
+                    Wall-clock elapsed is how long the command window stayed open. Observed active time is
+                    the producer's union of assistant and tool intervals across main and child sessions,
+                    with overlapping and nested work counted once — <span class="font-mono">assistant_elapsed_ms</span>
+                    and <span class="font-mono">tool_elapsed_ms</span> legitimately overlap and are never
+                    added together. Human effort is never captured and never inferred. Active time is busy
+                    wall time; it is not human effort, not CPU time, not utilization and not additive compute.
+                </AlertDescription>
+            </Alert>
+
+            @* ---------------------------------------------------------------------- CHARTS *@
+            <div class="pb-section-head">
+                <h3 class="pb-h3">Trends</h3>
+                <span class="text-sm text-muted-foreground">
+                    Read these as a description of what ran, not as a ranking of phases — a command that
+                    costs more than another is a fact about what that command is.
+                </span>
+            </div>
+
+            @* TR-028 — BarChart exposes no axis, grid or data-label control and no route to
+               ApexChartOptions, and ChartContainer paints a card of its own inside the card a chart
+               already sits in. The approved design draws segmented bars with the value printed above
+               each one and no axis at all, so these are the mockup's own CSS bars rather than a chart
+               component fought into shape; every segment is also printed as text in the tables below,
+               so nothing here is readable only as a picture. *@
+            <div class="pb-grid-2" data-testid="pb-effort-charts">
+
+                <Card Class="h-full" data-testid="pb-chart-tokens">
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Tokens by command phase</CardTitle>
+                                <CardDescription>
+                                    Stacked into the five token legs · valid rows with
+                                    <span class="font-mono">token_status: complete</span>
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">@PhaseCommandGroup.DimensionLabel</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        @if (TokenBars.Count > 0)
+                        {
+                            <div class="pb-bars">
+                                @foreach (var vBar in TokenBars)
+                                {
+                                    <span class="pb-bar">
+                                        <span class="pb-bar-value">@TokenText(vBar.Total)</span>
+                                        <span class="pb-bar-stack" style="@BarHeightCss(vBar.Total, TokenBarMax)">
+                                            @foreach (var vLeg in vBar.Legs)
+                                            {
+                                                <i class="@vLeg.CssClass"
+                                                   style="@LegHeightCss(vLeg.Tokens, vBar.Total)"
+                                                   title="@($"{vLeg.Label}: {vLeg.Tokens:N0}")"></i>
+                                            }
+                                        </span>
+                                        <span class="pb-bar-label font-mono">@vBar.CommandPhase</span>
+                                    </span>
+                                }
+                            </div>
+                            <div class="pb-legend">
+                                @foreach (var vLeg in LegendLegs)
+                                {
+                                    <span class="pb-legend-item">
+                                        <i class="@vLeg.CssClass"></i>
+                                        <span class="font-mono">@vLeg.Label</span>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="pb-refused" data-testid="pb-chart-tokens-empty">
+                                No window has a complete token status yet, so there is no series to draw.
+                            </p>
+                        }
+                    </CardContent>
+                </Card>
+
+                <Card Class="h-full" data-testid="pb-chart-duration">
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Duration distribution</CardTitle>
+                                <CardDescription>Complete windows only</CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline" data-testid="pb-chart-duration-excluded">
+                                @vReport.Quality.Incomplete incomplete excluded
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="pb-bars">
+                            @foreach (var vBucket in DurationBuckets)
+                            {
+                                <span class="pb-bar">
+                                    <span class="pb-bar-value">@vBucket.Count</span>
+                                    <span class="pb-bar-stack" style="@BarHeightCss(vBucket.Count, DurationBucketMax)">
+                                        <i class="pb-leg-5" style="height:100%"></i>
+                                    </span>
+                                    <span class="pb-bar-label">@vBucket.Label</span>
+                                </span>
+                            }
+                        </div>
+                        <p class="pb-note">
+                            The excluded count is on the card face. An <span class="font-mono">eof</span>
+                            window has no end timestamp and no elapsed time — it is not a fast run, and
+                            dropping it silently would make this distribution look tighter than it is.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                @* BRD-159 — fan-out as contributors / spawned, with the difference named for what it is. *@
+                <Card Class="h-full" data-testid="pb-chart-fanout">
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Sub-agent fan-out</CardTitle>
+                                <CardDescription>
+                                    Windows whose <span class="font-mono">tokens_scope</span> could have
+                                    seen a child; the rest never read the transcripts and are excluded
+                                    rather than counted as a zero
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">contributors / spawned</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="pb-bars">
+                            @foreach (var vBar in FanoutBars)
+                            {
+                                <span class="pb-bar">
+                                    <span class="pb-bar-value">@vBar.Text</span>
+                                    <span class="pb-bar-stack" style="@BarHeightCss(vBar.Count, FanoutBarMax)">
+                                        <i class="@vBar.CssClass" style="height:100%"></i>
+                                    </span>
+                                    <span class="pb-bar-label">@vBar.Label</span>
+                                </span>
+                            }
+                        </div>
+                        <p class="pb-note" data-testid="pb-fanout-note">@FanoutNote</p>
+                    </CardContent>
+                </Card>
+
+                @* BRD-160 — dollars and tokens on one card, and every dollar on it is measured. There is
+                   no estimated series here to separate them from, because none is computed on this axis. *@
+                <Card Class="h-full" data-testid="pb-chart-cost">
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Measured cost and tokens by model</CardTitle>
+                                <CardDescription>
+                                    Provider-reported dollars only, over the executions whose
+                                    <span class="font-mono">cost_status</span> was complete on every
+                                    contributing model
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Secondary">measured, never estimated</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        @if (CostBars.Count > 0)
+                        {
+                            <div class="pb-bars">
+                                @foreach (var vBar in CostBars)
+                                {
+                                    <span class="pb-bar">
+                                        <span class="pb-bar-value">@vBar.Text</span>
+                                        <span class="pb-bar-stack" style="@BarHeightCss(vBar.Amount, CostBarMax)">
+                                            <i class="pb-leg-2" style="height:100%"></i>
+                                        </span>
+                                        <span class="pb-bar-label font-mono">@vBar.Model</span>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="pb-refused" data-testid="pb-chart-cost-empty">
+                                No model reported its dollars completely, so there is no measured series to
+                                draw. A <span class="font-mono">zero-unverified</span> cost is excluded here
+                                rather than drawn as a bar of height zero.
+                            </p>
+                        }
+                        <p class="pb-note">
+                            Token totals for the same cohort are in the command-phase table below. A
+                            tokens-times-rate-card dollar never appears on this card, in this series or in
+                            any total it feeds.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            @* ---------------------------------------------------------------------- TABLES *@
+            <div class="tflens-stack" data-testid="pb-effort-tables">
+
+                <Card>
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Tokens by command phase</CardTitle>
+                                <CardDescription>
+                                    The five legs, per command phase — the text twin of the stacked bars above
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">@PhaseCommandGroup.DimensionKey</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="pb-table-scroll">
+                            @* TR-009 — ShowPagination="false" hides the pager but still truncates to
+                               InitialPageSize, so the page size has to cover every row. *@
+                            <DataTable TData="PhaseCommandGroup"
+                                       Data="@vReport.CommandPhases"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="200"
+                                       AriaLabel="Tokens by command phase"
+                                       data-testid="pb-effort-command-phases">
+                                <Columns>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.CommandPhase)"
+                                                     Header="@PhaseCommandGroup.DimensionLabel">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono">@vRow.CommandPhase</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="int"
+                                                     Property="@(aRow => aRow.Executions)"
+                                                     Header="Executions" CellClass="text-right" />
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.ElapsedMsMedian.Value.Display())"
+                                                     Header="Median elapsed" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.ElapsedMsMedian.Value"
+                                                            MeasuredText="@DurationOf(vRow.ElapsedMsMedian.Value)"
+                                                            TestId="@($"pb-phase-elapsed-{vRow.CommandPhase}")" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.Tokens.Input.Display())"
+                                                     Header="Input" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Tokens.Input" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.Tokens.CacheRead.Display())"
+                                                     Header="Cache read" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Tokens.CacheRead" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.Tokens.CacheWrite.Display())"
+                                                     Header="Cache write" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Tokens.CacheWrite" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.Tokens.Output.Display())"
+                                                     Header="Output" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Tokens.Output" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PhaseCommandGroup" TValue="string"
+                                                     Property="@(aRow => aRow.Tokens.Reasoning.Display())"
+                                                     Header="Reasoning" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Tokens.Reasoning" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                        <p class="pb-note">
+                            The dimension is the command phase — the measured slash command. One command
+                            can contain several conceptual lifecycle stages, and its window is never split
+                            between them by token proportion, because that would be arithmetic dressed as
+                            measurement.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Active vs wall clock</CardTitle>
+                                <CardDescription>Eligible executions only — never a productivity ratio</CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline" data-testid="pb-active-eligible">
+                                @ActiveEligibleText
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="pb-table-scroll">
+                            <DataTable TData="ActiveRow"
+                                       Data="@ActiveRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="200"
+                                       AriaLabel="Active time against wall clock"
+                                       data-testid="pb-effort-active-table">
+                                <Columns>
+                                    <DataTableColumn TData="ActiveRow" TValue="string"
+                                                     Property="@(aRow => aRow.CommandPhase)"
+                                                     Header="@PhaseCommandGroup.DimensionLabel">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono">@vRow.CommandPhase</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ActiveRow" TValue="string"
+                                                     Property="@(aRow => aRow.Wall.Display())"
+                                                     Header="Median wall" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.Wall"
+                                                            TestId="@($"pb-active-wall-{vRow.CommandPhase}")" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ActiveRow" TValue="string"
+                                                     Property="@(aRow => aRow.ActiveText)"
+                                                     Header="Median active" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            @if (vRow.Active is { } vActive)
+                                            {
+                                                <PhaseValueText Value="@vActive"
+                                                                TestId="@($"pb-active-active-{vRow.CommandPhase}")" />
+                                            }
+                                            else
+                                            {
+                                                @* BRD-156 — partial coverage is an explicit lower bound and
+                                                   unavailable coverage is no figure at all. Neither is ever
+                                                   completed with an estimate. *@
+                                                <span class="pb-refused pb-lower-bound"
+                                                      data-testid="@($"pb-active-active-{vRow.CommandPhase}")">@vRow.ActiveText</span>
+                                            }
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ActiveRow" TValue="string"
+                                                     Property="@(aRow => aRow.ShareText)"
+                                                     Header="Active share">
+                                        <CellTemplate Context="vRow">
+                                            @if (vRow.Share is { } vShare)
+                                            {
+                                                <span class="pb-share">
+                                                    <span class="pb-share-track">
+                                                        <span class="pb-share-fill" style="@PercentCss(vShare)"></span>
+                                                    </span>
+                                                    <span class="pb-share-pct">@vRow.ShareText</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="pb-refused font-mono">@vRow.ShareText</span>
+                                            }
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                        <p class="pb-note">
+                            <span class="font-mono">partial</span> renders as an explicit lower bound;
+                            <span class="font-mono">unavailable</span> renders as no figure at all. Neither
+                            is ever completed with an estimate, and neither joins a comparison. A cohort
+                            below @MetricsConstants.MinN records refuses to be a number.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Model mix</CardTitle>
+                                <CardDescription>
+                                    Token share and turn share are two different measures
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline">from&nbsp;<span class="font-mono">phase_model_usage</span></Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="pb-table-scroll">
+                            <DataTable TData="ModelRow"
+                                       Data="@ModelRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       InitialPageSize="200"
+                                       AriaLabel="Model mix"
+                                       data-testid="pb-effort-model-mix">
+                                <Columns>
+                                    <DataTableColumn TData="ModelRow" TValue="string"
+                                                     Property="@(aRow => aRow.Model)" Header="Model">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono">@vRow.Model</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ModelRow" TValue="string"
+                                                     Property="@(aRow => aRow.TokenShareText)" Header="Token share">
+                                        <CellTemplate Context="vRow">
+                                            <span class="pb-share">
+                                                <span class="pb-share-track">
+                                                    <span class="pb-share-fill" style="@PercentCss(vRow.TokenShare)"></span>
+                                                </span>
+                                                <span class="pb-share-pct"
+                                                      data-testid="@($"pb-model-tokens-{vRow.Model}")">@vRow.TokenShareText</span>
+                                            </span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ModelRow" TValue="string"
+                                                     Property="@(aRow => aRow.TurnShareText)" Header="Turn share">
+                                        <CellTemplate Context="vRow">
+                                            <span class="pb-share">
+                                                <span class="pb-share-track">
+                                                    <span class="pb-share-fill pb-share-turns"
+                                                          style="@PercentCss(vRow.TurnShare)"></span>
+                                                </span>
+                                                <span class="pb-share-pct">@vRow.TurnShareText</span>
+                                            </span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ModelRow" TValue="int"
+                                                     Property="@(aRow => aRow.Executions)"
+                                                     Header="Executions" CellClass="text-right" />
+                                    <DataTableColumn TData="ModelRow" TValue="string"
+                                                     Property="@(aRow => aRow.CostText)"
+                                                     Header="Measured cost" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="@(vRow.HasCost ? "tabular-nums" : "pb-refused")">@vRow.CostText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                        <p class="pb-note">
+                            Executions can sum past the phase count because a mixed-model execution is
+                            counted under every model that ran in it, never under its dominant label alone.
+                            A model filter matches any member of <span class="font-mono">models[]</span>.
+                            This describes what ran; it is not a causal claim about which model is better.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            @* -------------------------------------------------------------- EXECUTION TABLE *@
+            <div class="pb-section-head">
+                <h3 class="pb-h3">Executions</h3>
+                <span class="text-sm text-muted-foreground">
+                    One row per phase execution, upserted on
+                    <span class="font-mono">(user, repo, phase_execution_id)</span> — re-import is expected.
+                    The whole-task total is @PlaybookPhaseVocabulary.Unavailable: the producer emits no
+                    trustworthy cross-command task id, and a reused session id is not a cohort.
+                </span>
+            </div>
+
+            <Card data-testid="pb-effort-executions">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <span class="flex min-w-0 flex-col gap-1">
+                            <CardTitle Class="text-base">Phase executions</CardTitle>
+                            <CardDescription>@ExecutionsCaption</CardDescription>
+                        </span>
+                        <Badge Variant="BadgeVariant.Outline" data-testid="pb-executions-count">
+                            @FilteredExecutions.Count of @vReport.Executions.Count
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent Class="pt-0">
+                    @if (FilteredExecutions.Count == 0)
+                    {
+                        <Alert Variant="AlertVariant.Warning" data-testid="pb-effort-no-eligible">
+                            <LucideIcon Name="filter" Size="16" />
+                            <AlertTitle>Every row is filtered out</AlertTitle>
+                            <AlertDescription>
+                                @vReport.Executions.Count stored executions, none matching the current
+                                filters. The count and the reason are shown rather than an aggregate
+                                printed from zero rows.
+                            </AlertDescription>
+                        </Alert>
+                    }
+                    else
+                    {
+                        <div class="pb-table-scroll">
+                            <DataTable TData="PbExecutionRow"
+                                       Data="@FilteredExecutions"
+                                       ShowToolbar="false"
+                                       ShowPagination="true"
+                                       InitialPageSize="25"
+                                       AriaLabel="Phase executions"
+                                       data-testid="pb-executions-table">
+                                <Columns>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.CommandPhase)"
+                                                     Header="@PhaseCommandGroup.DimensionLabel">
+                                        <CellTemplate Context="vRow">
+                                            <Button Variant="ButtonVariant.Ghost"
+                                                    Size="ButtonSize.Small"
+                                                    Class="pb-row-trigger"
+                                                    OnClick="@(() => SelectExecution(vRow.Id))"
+                                                    data-testid="@($"pb-execution-open-{vRow.Id}")">
+                                                <LucideIcon Name="@(IsSelected(vRow.Id) ? "chevron-down" : "chevron-right")"
+                                                            Size="14" />
+                                                <span class="font-mono">@vRow.CommandPhase</span>
+                                            </Button>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.StartedText)" Header="Started (UTC)">
+                                        <CellTemplate Context="vRow">
+                                            <span class="pb-small pb-when">@vRow.StartedText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.View.ElapsedMs.Display())"
+                                                     Header="Elapsed" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.View.ElapsedMs"
+                                                            MeasuredText="@DurationOf(vRow.View.ElapsedMs)"
+                                                            TestId="@($"pb-execution-elapsed-{vRow.Id}")" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.View.ObservedActiveMs.Display())"
+                                                     Header="Active" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <PhaseValueText Value="@vRow.View.ObservedActiveMs"
+                                                            MeasuredText="@ActiveTextOf(vRow.View)" />
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.OutTokensText)"
+                                                     Header="Out tokens" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="@(vRow.View.TokensOutput is null ? "pb-refused" : "tabular-nums")">
+                                                @vRow.OutTokensText
+                                            </span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.View.Cost.Display())"
+                                                     Header="Cost" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            @* BRD-160 — a zero-unverified cost shows its status, never $0
+                                               as spend and never "free". *@
+                                            <span class="@(vRow.View.Cost.IsMeasured ? "tabular-nums" : "pb-refused")"
+                                                  title="@vRow.View.Cost.Caveat"
+                                                  data-testid="@($"pb-execution-cost-{vRow.Id}")">@CostTextOf(vRow.View.Cost)</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.View.Fanout.Display())"
+                                                     Header="Sub-agents" CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <span class="@(vRow.View.Fanout.Spawned is null ? "pb-refused" : "tabular-nums")">
+                                                @vRow.View.Fanout.Display()
+                                            </span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="PbExecutionRow" TValue="string"
+                                                     Property="@(aRow => aRow.QualityText)" Header="Data quality">
+                                        <CellTemplate Context="vRow">
+                                            <span class="pb-quality">
+                                                <Badge Variant="@vRow.QualityVariant"
+                                                       data-testid="@($"pb-execution-quality-{vRow.Id}")">@vRow.QualityText</Badge>
+                                                @if (vRow.QualityDetail is { } vDetail)
+                                                {
+                                                    @* The reason codes are the row's own, and they are
+                                                       shown rather than hidden: a quarantined row must
+                                                       never read as work that never happened. *@
+                                                    <span class="pb-quality-detail font-mono">@vDetail</span>
+                                                }
+                                            </span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+
+                        @if (SelectedExecution is { } vSelected)
+                        {
+                            <Collapsible @bind-Open="objIsDetailOpen" data-testid="pb-execution-detail">
+                                <div class="pb-detail">
+                                    <CollapsibleTrigger>
+                                        <span class="pb-detail-trigger">
+                                            <LucideIcon Name="chevron-down" Size="16" />
+                                            <span class="font-mono">@(vSelected.CommandPhase ?? PlaybookPhaseVocabulary.Unavailable)</span>
+                                            <span class="pb-small">— @StartedText(vSelected)</span>
+                                            <span class="pb-filters-spacer"></span>
+                                            <Badge Variant="BadgeVariant.Secondary">expanded</Badge>
+                                        </span>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <div class="pb-panels">
+
+                                            @* Panel 1 — per-model usage and active time. *@
+                                            <div class="pb-panel" data-testid="pb-detail-models">
+                                                <div class="pb-panel-label">Per-model usage and active time</div>
+                                                <div class="pb-chips">
+                                                    @if (vSelected.Models.Count == 0)
+                                                    {
+                                                        <span class="pb-refused">
+                                                            No per-model row was stored for this execution.
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        @foreach (var vModel in vSelected.Models)
+                                                        {
+                                                            <Badge Variant="BadgeVariant.Outline">
+                                                                <span class="font-mono">@vModel</span>
+                                                            </Badge>
+                                                        }
+                                                    }
+                                                </div>
+                                                <table class="pb-kv">
+                                                    <tbody>
+                                                        @foreach (var vRow in ModelPanelRows(vSelected))
+                                                        {
+                                                            <tr>
+                                                                <td>@vRow.Label</td>
+                                                                <td class="pb-kv-value">@vRow.Text</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                                <p class="pb-note">
+                                                    Invariants checked at ingest:
+                                                    <span class="font-mono">tokens_in = input + cache_read + cache_write</span>
+                                                    and <span class="font-mono">tokens_out = output + reasoning</span>.
+                                                    A row failing either is quarantined with its reason and never
+                                                    repaired. The report publishes per-model usage as an
+                                                    aggregate over the whole cohort — see Model mix above —
+                                                    and not as a split of one execution's window, because
+                                                    apportioning one window across the models that ran in it
+                                                    would be a figure the transcripts do not support.
+                                                </p>
+                                            </div>
+
+                                            @* Panel 2 — the recursive session tree (BRD-159). *@
+                                            <div class="pb-panel" data-testid="pb-detail-subagents">
+                                                <div class="pb-panel-label">
+                                                    Sub-agent tree — contributors / spawned
+                                                    <span class="font-mono">@vSelected.Fanout.Display()</span>
+                                                </div>
+                                                @if (vSelected.Fanout.Tree.Count == 0)
+                                                {
+                                                    <p class="pb-refused">
+                                                        No child session was stored for this execution.
+                                                        @(vSelected.Fanout.Spawned is null
+                                                            ? "The window's scope never read the sub-agent transcripts, so it reported nothing rather than none."
+                                                            : string.Empty)
+                                                    </p>
+                                                }
+                                                else
+                                                {
+                                                    <table class="pb-tree">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Session</th>
+                                                                <th>Agent type</th>
+                                                                <th class="pb-right">Out tokens</th>
+                                                                <th class="pb-right">Provider cost</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var vNode in Flatten(vSelected.Fanout.Tree, 0))
+                                                            {
+                                                                <tr class="@(vNode.Node.TokensOut is > 0 ? null : "pb-muted-row")">
+                                                                    <td style="@IndentCss(vNode.Depth)">
+                                                                        <span class="font-mono">@Marker(vNode.Depth)@vNode.Node.SessionId</span>
+                                                                    </td>
+                                                                    <td class="pb-small">
+                                                                        <span class="@(IsNamed(vNode.Node.AgentDisplay) ? "font-mono" : "pb-refused")">
+                                                                            @vNode.Node.AgentDisplay
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="pb-right">
+                                                                        <span class="@(vNode.Node.TokensOut is null ? "pb-refused" : "tabular-nums")">
+                                                                            @NullableTokenText(vNode.Node.TokensOut)
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="pb-right">
+                                                                        <span class="@(vNode.Node.CostUsd is null ? "pb-refused" : "tabular-nums")">
+                                                                            @DollarText(vNode.Node.CostUsd)
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                }
+                                                <p class="pb-note">
+                                                    Child usage is already inside the phase totals and is never
+                                                    summed onto them again; a grandchild renders beneath its
+                                                    parent and counts exactly once. The
+                                                    <span class="font-mono">spawned − contributors</span> gap is a
+                                                    @vSelected.Fanout.NonContributingLabel, not an inferred
+                                                    failure. An absent child agent type shows
+                                                    <span class="font-mono">@PlaybookPhaseVocabulary.Unavailable</span>;
+                                                    it is never guessed as
+                                                    <span class="font-mono">"unknown"</span> from a title or a
+                                                    model name. Dollars here are the provider's own per-session
+                                                    figures; no dollar is apportioned across children.
+                                                </p>
+                                            </div>
+
+                                            @* Panel 3 — the five data-quality explanations. *@
+                                            <div class="pb-panel" data-testid="pb-detail-quality">
+                                                <div class="pb-panel-label">Data quality</div>
+                                                <table class="pb-kv">
+                                                    <tbody>
+                                                        @foreach (var vRow in QualityPanelRows(vSelected))
+                                                        {
+                                                            <tr>
+                                                                <td>@vRow.Label</td>
+                                                                <td class="pb-kv-value">
+                                                                    <span class="@(vRow.IsRefused ? "pb-refused" : null)">@vRow.Text</span>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                                @if (vSelected.QuarantineReasons.Count > 0)
+                                                {
+                                                    <ul class="pb-reasons" data-testid="pb-detail-quarantine">
+                                                        @foreach (var vReason in vSelected.QuarantineReasons)
+                                                        {
+                                                            <li>
+                                                                <span class="font-mono">@vReason.Code</span> —
+                                                                @vReason.Explanation
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                }
+                                            </div>
+                                        </div>
+                                    </CollapsibleContent>
+                                </div>
+                            </Collapsible>
+                        }
+                    }
+                </CardContent>
+            </Card>
+
+            @* BRD-163 — the standing statement, rendered on the supported state too, because a reader
+               looking at OpenCode figures must not read them as covering every harness. *@
+            <div class="pb-section-head">
+                <h3 class="pb-h3">Harnesses with no normalized producer</h3>
+            </div>
+            <Alert Variant="AlertVariant.Warning" AccentBorder="true" data-testid="pb-effort-unsupported">
+                <LucideIcon Name="triangle-alert" Size="18" />
+                <AlertTitle>
+                    @PlaybookPhaseVocabulary.UnsupportedHarnessMessage —
+                    <span class="font-mono">@UnsupportedHarnessList</span>
+                </AlertTitle>
+                <AlertDescription>
+                    Only @NormalizedHarnessList emits the normalized schema-2 phase record, so there is
+                    nothing to render for any other harness on this axis. That is a data gap, which is a
+                    different fact from a harness that ran and spent nothing — it is never rendered as 0
+                    and never as an empty measured figure, and none of the figures above claims to cover it.
+                </AlertDescription>
+            </Alert>
+        }
+
+        @* The five states, always on the page, because "nothing here" has five different causes. *@
+        <Card data-testid="pb-effort-states">
+            <CardHeader>
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <span class="flex min-w-0 flex-col gap-1">
+                        <CardTitle Class="text-base">Empty and unsupported states</CardTitle>
+                        <CardDescription>
+                            Five distinct conditions — each says which one it is
+                        </CardDescription>
+                    </span>
+                    <Badge Variant="BadgeVariant.Outline" data-testid="pb-effort-state-active">@ActiveStateName</Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <div class="pb-table-scroll">
+                    <DataTable TData="StateRow"
+                               Data="@StateRows"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="20"
+                               AriaLabel="Empty and unsupported states"
+                               data-testid="pb-effort-states-table">
+                        <Columns>
+                            <DataTableColumn TData="StateRow" TValue="string"
+                                             Property="@(aRow => aRow.Name)" Header="State">
+                                <CellTemplate Context="vRow">
+                                    <span class="font-mono @(vRow.IsActive ? "font-semibold" : null)"
+                                          data-testid="@($"pb-effort-state-{vRow.Name}")">@vRow.Name</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="StateRow" TValue="string"
+                                             Property="@(aRow => aRow.Description)" Header="What is shown">
+                                <CellTemplate Context="vRow">
+                                    <span class="pb-small">@vRow.Description</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                </div>
+                <p class="pb-note">
+                    Storage and filtering are UTC; only display is localized. Any comparative cohort below
+                    @MetricsConstants.MinN records renders <i>insufficient data (n=…)</i>. No figure on this
+                    page, in the API, in the export or in parity is grouped by
+                    <span class="font-mono">actor</span>.
+                </p>
+            </CardContent>
+        </Card>
+    }
+</div>
+
+@code {
+    /// <summary>What a value the producer never carried renders as — never a zero.</summary>
+    private const string Dash = "—";
+
+    /// <summary>The filter key of the repository select, which is the one filter that re-queries.</summary>
+    private const string RepoFilterKey = "repository";
+
+    /// <summary>The option key every "all …" filter option carries.</summary>
+    private const string AllKey = "all";
+
+    /// <summary>
+    /// The culture every dollar on this surface is formatted in.
+    /// </summary>
+    /// <remarks>
+    /// The engine renders with the invariant culture, whose currency sign is the placeholder glyph. The
+    /// number is the engine's; only the symbol is chosen here, and it matches every other dollar in the
+    /// product.
+    /// </remarks>
+    private static readonly CultureInfo Money = CultureInfo.GetCultureInfo("en-US");
+
+    private PlaybookPhaseReport? objReport;
+    private IReadOnlyList<RepoListItem> objRepos = [];
+    private bool objIsLoaded;
+    private string? objLoadError;
+    private int? objLoadedUserId;
+    private string? objSelectedExecutionId;
+    private bool objIsDetailOpen = true;
+    private readonly Dictionary<string, string> objFilters = new(StringComparer.Ordinal);
+
+    /// <summary>The signed-in user whose phase figures are shown; nothing loads without one (ADR-013).</summary>
+    [Parameter]
+    [EditorRequired]
+    public int? UserId { get; set; }
+
+    /// <summary>The report the surface renders, exposed so the page can tell whether a read failed.</summary>
+    public PlaybookPhaseReport? Report => objReport;
+
+    /// <summary>The harnesses that do emit the normalized schema-2 record, as a sentence fragment.</summary>
+    private static string NormalizedHarnessList =>
+        string.Join(", ", PlaybookPhaseAdapter.NormalizedHarnesses);
+
+    /// <summary>The harnesses TfLens detects that have no normalized phase producer.</summary>
+    /// <remarks>
+    /// Named from the harness vocabulary rather than from the connected repositories, because the
+    /// statement is standing: it is true whether or not this user happens to have such a repository.
+    /// </remarks>
+    private static string UnsupportedHarnessList =>
+        string.Join(", ", new[] { "claude-code", "codex" });
+
+    /// <summary>The harness the report was judged on, or the word for "none was detected".</summary>
+    private string HarnessName =>
+        objRepos.Count == 0 ? PlaybookPhaseVocabulary.Unavailable : "claude-code";
+
+    /// <summary>The sentence under the no-bundle empty state.</summary>
+    private static string NoBundleDescription =>
+        "The harness emits the normalized record, but no phase-metric bundle has been imported for it "
+        + "yet. Import one through Repos → Add source → Import metric files: the exporter's input event "
+        + "file is transient and rotates by design, so TfLens never fetches it.";
+
+    /// <summary>What the filters narrow, stated plainly rather than left for a reader to infer.</summary>
+    private static string FilterScopeNote =>
+        "The repository select re-queries the engine, so every figure changes with it. The other filters "
+        + "narrow the execution table only: the summary figures are the engine's four nested cohorts with "
+        + "their own exclusion counts, and re-deriving them from a filtered row set here would be a second "
+        + "implementation of the rules that keep an unmeasured value from becoming a zero. Tier and tokens "
+        + "scope are not carried on the published execution view, so those two select nothing yet.";
+
+    /// <summary>The caption beneath the completed-phases tile.</summary>
+    private string CompletedCaption =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.Quality.Completed} of {objReport.Quality.Records} executions eligible · "
+              + $"{objReport.Quality.Incomplete} windows ended at eof and carry no elapsed time";
+
+    /// <summary>The caption beneath the token tile — the five legs, each over the same cohort.</summary>
+    private string TokenCaption
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return string.Empty;
+            }
+
+            var vTokens = objReport.Tokens;
+
+            return $"output shown · input {vTokens.Input.Display()} · cache read {vTokens.CacheRead.Display()}"
+                   + $" · cache write {vTokens.CacheWrite.Display()} · reasoning {vTokens.Reasoning.Display()}"
+                   + $" · {vTokens.N} of {objReport.Quality.Records} eligible (valid + token_status complete)";
+        }
+    }
+
+    /// <summary>The measured total, or the engine's own refusal — never a zero standing in for one.</summary>
+    private string MeasuredCostText =>
+        objReport?.MeasuredCostUsd.Usd is { } vUsd
+            ? vUsd.ToString("C4", Money)
+            : objReport?.MeasuredCostUsd.Display() ?? PlaybookPhaseVocabulary.Unavailable;
+
+    /// <summary>The caption beneath the measured-cost tile, naming what it left out and why.</summary>
+    private string MeasuredCostCaption
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return string.Empty;
+            }
+
+            var vCost = objReport.MeasuredCostUsd;
+            var vExcluded = string.Join(
+                " · ", vCost.Exclusions.Select(aExclusion => $"{aExclusion.Explanation} ({aExclusion.Records})"));
+
+            return $"{vCost.N} of {objReport.Quality.Records} eligible · {vExcluded}";
+        }
+    }
+
+    /// <summary>The caption beneath the incomplete-windows tile.</summary>
+    private string IncompleteCaption =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.Quality.Incomplete} of {objReport.Quality.Records} eligible · complete:false with "
+              + "end_reason eof — visible in the table, absent from every duration figure";
+
+    /// <summary>The caption beneath the quarantined tile.</summary>
+    private string QuarantineCaption =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.Quality.Quarantined} of {objReport.Quality.Records} eligible · a failed invariant "
+              + "or a producer verdict of invalid — out of every numeric aggregate, still listed with its reason";
+
+    /// <summary>The fan-out headline, <c>contributors / spawned</c>, or the refusal.</summary>
+    private string FanoutHeadline
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return Dash;
+            }
+
+            var vContributors = objReport.SubagentsContributors.Value;
+            var vSpawned = objReport.SubagentsSpawned.Value;
+
+            return vContributors.HasValue && vSpawned.HasValue
+                ? $"{vContributors.Display()} / {vSpawned.Display()}"
+                : PlaybookPhaseVocabulary.Unavailable;
+        }
+    }
+
+    /// <summary>The caption beneath the fan-out tile — the cohort and the standing BRD-159 wording.</summary>
+    private string FanoutCaption =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.SubagentsSpawned.N} of {objReport.Quality.Records} eligible · {NonContributingText}";
+
+    /// <summary>The sentence under the fan-out chart.</summary>
+    private string FanoutNote =>
+        objReport is null
+            ? string.Empty
+            : NonContributingText
+              + " Child usage is already inside the phase totals and is never summed onto them again.";
+
+    /// <summary>How the gap between spawned and contributing children is described — never a failure.</summary>
+    private string NonContributingText
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return string.Empty;
+            }
+
+            var vContributors = objReport.SubagentsContributors.Value;
+            var vSpawned = objReport.SubagentsSpawned.Value;
+
+            if (!vContributors.TryGetValue(out var vHave) || !vSpawned.TryGetValue(out var vLaunched))
+            {
+                return "No window in tree scope reported both counts, so the gap is "
+                       + PlaybookPhaseVocabulary.Unavailable + " rather than zero.";
+            }
+
+            var vGap = (long)(vLaunched - vHave);
+
+            return $"{vGap:N0} spawned children produced no tokens — a "
+                   + PlaybookPhaseVocabulary.NonContributingChildLabel + ", not an inferred failure.";
+        }
+    }
+
+    /// <summary>The caption on the executions card.</summary>
+    private string ExecutionsCaption =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.Quality.LegacyUnverified} schema-1 legacy-unverified rows are reachable here for "
+              + "drill-down and are excluded from every schema-2 comparison rather than mixed in.";
+
+    /// <summary>Which of the five states the page is actually in.</summary>
+    private string ActiveStateName
+    {
+        get
+        {
+            if (objRepos.Count == 0)
+            {
+                return "NoPlaybookRepo";
+            }
+
+            if (objReport is null || !objReport.Harness.IsSupported)
+            {
+                return "HarnessUnsupported";
+            }
+
+            if (objReport.Executions.Count == 0)
+            {
+                return "NoBundleImported";
+            }
+
+            if (objReport.Quality.LegacyUnverified == objReport.Quality.Records)
+            {
+                return "LegacySchemaOnly";
+            }
+
+            return FilteredExecutions.Count == 0 ? "NoEligibleRows" : "Rows eligible";
+        }
+    }
+
+    /// <summary>The five states and what each of them shows.</summary>
+    private IReadOnlyList<StateRow> StateRows =>
+    [
+        new("NoPlaybookRepo",
+            "Empty — \"No Playbook repository connected\", with a Connect a repo action",
+            ActiveStateName),
+        new("NoBundleImported",
+            "Empty — \"No phase-metric bundle imported yet\", pointing at Repos → Add source → Import "
+            + "metric files. The exporter's input event file is transient; TfLens cannot fetch it",
+            ActiveStateName),
+        new("HarnessUnsupported",
+            "The banner on this page — never a zero, never an empty measured figure",
+            ActiveStateName),
+        new("LegacySchemaOnly",
+            "Schema-1 legacy-unverified rows are available for drill-down and are excluded from every "
+            + "schema-2 comparison; the page says so rather than mixing them in",
+            ActiveStateName),
+        new("NoEligibleRows",
+            "Every row filtered out or quarantined — the count and the reason are shown, and no aggregate "
+            + "is printed from zero rows",
+            ActiveStateName)
+    ];
+
+    /// <summary>The twelve filters, in the order the approved design lists them.</summary>
+    private IReadOnlyList<FilterSpec> Filters
+    {
+        get
+        {
+            var vReport = objReport;
+            var vExecutions = vReport?.Executions ?? [];
+
+            return
+            [
+                new FilterSpec(RepoFilterKey, ValueOf(RepoFilterKey), Options(
+                    "All repositories",
+                    objRepos.Select(aRepo => (string?)aRepo.Repo.Repo))),
+                new FilterSpec("period", ValueOf("period"),
+                [
+                    new FilterOption(AllKey, "All history"),
+                    new FilterOption("7", "Last 7 days"),
+                    new FilterOption("30", "Last 30 days"),
+                    new FilterOption("90", "Last 90 days")
+                ]),
+                new FilterSpec("command-phase", ValueOf("command-phase"), Options(
+                    "All command phases",
+                    vExecutions.Select(aView => aView.CommandPhase))),
+                new FilterSpec("model", ValueOf("model"), Options(
+                    "All models",
+                    vExecutions.SelectMany(aView => aView.Models).Select(aModel => (string?)aModel))),
+                new FilterSpec("tier", ValueOf("tier"),
+                    [new FilterOption(AllKey, "All tiers")]),
+                new FilterSpec("harness", ValueOf("harness"), Options(
+                    "All harnesses",
+                    PlaybookPhaseAdapter.NormalizedHarnesses.Select(aHarness => (string?)aHarness))),
+                new FilterSpec("project-type", ValueOf("project-type"), Options(
+                    "All project types",
+                    vExecutions.Select(aView => aView.ProjectType))),
+                new FilterSpec("completeness", ValueOf("completeness"),
+                [
+                    new FilterOption(AllKey, "Complete + incomplete"),
+                    new FilterOption("complete", "Complete only"),
+                    new FilterOption("incomplete", "Incomplete only")
+                ]),
+                new FilterSpec("coverage", ValueOf("coverage"),
+                [
+                    new FilterOption(AllKey, "Any active coverage"),
+                    new FilterOption(PlaybookPhaseVocabulary.CoverageComplete, "Complete coverage only"),
+                    new FilterOption(PlaybookPhaseVocabulary.CoveragePartial, "Partial coverage only"),
+                    new FilterOption("none", "No observable active interval")
+                ]),
+                new FilterSpec("tokens-scope", ValueOf("tokens-scope"),
+                    [new FilterOption(AllKey, "Any tokens scope")]),
+                new FilterSpec("verdict", ValueOf("verdict"), Options(
+                    "Any verdict snapshot",
+                    vExecutions.Select(aView => aView.GateVerdictSnapshot))),
+                new FilterSpec("fanout", ValueOf("fanout"),
+                [
+                    new FilterOption(AllKey, "Any fan-out"),
+                    new FilterOption("has", "Has sub-agents"),
+                    new FilterOption("none", "No sub-agent observed")
+                ])
+            ];
+        }
+    }
+
+    /// <summary>The execution rows the table shows, after the eleven row-level filters.</summary>
+    private IReadOnlyList<PbExecutionRow> FilteredExecutions
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return [];
+            }
+
+            // REQ-FN-099 / BRD-158 — the model filter goes through the report's own WhereModel, which
+            // matches ANY models[] member. Filtering on the dominant label would make a mixed-model
+            // execution disappear from the very comparison it belongs in.
+            var vModel = ValueOf("model");
+
+            var vRows = string.Equals(vModel, AllKey, StringComparison.Ordinal)
+                ? objReport.Executions
+                : objReport.WhereModel(vModel);
+
+            return vRows.Where(Matches).Select(aView => new PbExecutionRow(aView)).ToList();
+        }
+    }
+
+    /// <summary>The execution whose detail panel is open, defaulting to the first row shown.</summary>
+    private PhaseExecutionView? SelectedExecution
+    {
+        get
+        {
+            var vRows = FilteredExecutions;
+
+            return vRows.FirstOrDefault(aRow => string.Equals(
+                       aRow.Id, objSelectedExecutionId, StringComparison.Ordinal))?.View
+                   ?? vRows.FirstOrDefault()?.View;
+        }
+    }
+
+    /// <summary>One bar per command phase, stacked into the five token legs.</summary>
+    private IReadOnlyList<TokenBar> TokenBars =>
+        objReport is null
+            ? []
+            : objReport.CommandPhases.Select(aGroup => new TokenBar(aGroup)).Where(aBar => aBar.Total > 0).ToList();
+
+    /// <summary>The tallest token bar, so every other bar is drawn as a share of it.</summary>
+    private long TokenBarMax => TokenBars.Count == 0 ? 0 : TokenBars.Max(aBar => aBar.Total);
+
+    /// <summary>The five legs in legend order, used to label the stacked bars.</summary>
+    private static IReadOnlyList<TokenLeg> LegendLegs =>
+    [
+        new("input", 0, "pb-leg-1"),
+        new("cache read", 0, "pb-leg-3"),
+        new("cache write", 0, "pb-leg-4"),
+        new("output", 0, "pb-leg-2"),
+        new("reasoning", 0, "pb-leg-5")
+    ];
+
+    /// <summary>The duration histogram over closed, non-quarantined windows.</summary>
+    private IReadOnlyList<DurationBucket> DurationBuckets
+    {
+        get
+        {
+            var vValues = ClosedWindowMilliseconds;
+
+            return
+            [
+                new DurationBucket("< 5m", vValues.Count(aMs => aMs < 300_000d)),
+                new DurationBucket("5–15m", vValues.Count(aMs => aMs is >= 300_000d and < 900_000d)),
+                new DurationBucket("15–45m", vValues.Count(aMs => aMs is >= 900_000d and < 2_700_000d)),
+                new DurationBucket("> 45m", vValues.Count(aMs => aMs >= 2_700_000d))
+            ];
+        }
+    }
+
+    /// <summary>The tallest histogram bucket, so the bars share one scale.</summary>
+    private int DurationBucketMax =>
+        DurationBuckets.Count == 0 ? 0 : DurationBuckets.Max(aBucket => aBucket.Count);
+
+    /// <summary>Wall-clock milliseconds of every window that closed and was not quarantined.</summary>
+    /// <remarks>
+    /// The eligibility is already inside each row's figure: <c>ElapsedMs</c> is <c>unavailable</c> on an
+    /// open window, so reading it is the same predicate the engine applied rather than a second one.
+    /// </remarks>
+    private IReadOnlyList<double> ClosedWindowMilliseconds =>
+        objReport is null
+            ? []
+            : objReport.Executions
+                .Where(aView => !aView.IsQuarantined)
+                .Select(aView => aView.ElapsedMs.TryGetValue(out var vMs) ? vMs : (double?)null)
+                .Where(aMs => aMs is not null)
+                .Select(aMs => aMs!.Value)
+                .ToList();
+
+    /// <summary>The two fan-out bars — contributing children and every child launched.</summary>
+    private IReadOnlyList<FanoutBar> FanoutBars
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return [];
+            }
+
+            return
+            [
+                new FanoutBar(
+                    "contributors",
+                    CountOf(objReport.SubagentsContributors.Value),
+                    objReport.SubagentsContributors.Value.Display(),
+                    "pb-leg-2"),
+                new FanoutBar(
+                    "spawned",
+                    CountOf(objReport.SubagentsSpawned.Value),
+                    objReport.SubagentsSpawned.Value.Display(),
+                    "pb-leg-3")
+            ];
+        }
+    }
+
+    /// <summary>The taller fan-out bar, so both are drawn on one scale.</summary>
+    private double FanoutBarMax => FanoutBars.Count == 0 ? 0d : FanoutBars.Max(aBar => aBar.Count);
+
+    /// <summary>One bar per model that reported its dollars completely.</summary>
+    private IReadOnlyList<CostBar> CostBars =>
+        objReport is null
+            ? []
+            : objReport.Models
+                .Where(aModel => aModel.MeasuredCostUsd is not null)
+                .Select(aModel => new CostBar(
+                    aModel.Model,
+                    (double)aModel.MeasuredCostUsd!.Value,
+                    aModel.MeasuredCostUsd!.Value.ToString("C2", Money)))
+                .ToList();
+
+    /// <summary>The largest measured model cost, so the bars share one scale.</summary>
+    private double CostBarMax => CostBars.Count == 0 ? 0d : CostBars.Max(aBar => aBar.Amount);
+
+    /// <summary>The per-command-phase active-versus-wall rows.</summary>
+    private IReadOnlyList<ActiveRow> ActiveRows
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return [];
+            }
+
+            return objReport.Executions
+                .Where(aView => !aView.IsQuarantined)
+                .GroupBy(aView => aView.CommandPhase ?? PlaybookPhaseVocabulary.Unavailable, StringComparer.Ordinal)
+                .OrderBy(aGroup => aGroup.Key, StringComparer.Ordinal)
+                .Select(aGroup => ActiveRowOf(aGroup.Key, aGroup.ToList()))
+                .ToList();
+        }
+    }
+
+    /// <summary>The cohort badge on the active-versus-wall card.</summary>
+    private string ActiveEligibleText =>
+        objReport is null
+            ? string.Empty
+            : $"{objReport.ObservedActiveMsTotal.N} of {objReport.Quality.Records} eligible";
+
+    /// <summary>The model-mix rows, with token and turn share taken over the same cohort.</summary>
+    private IReadOnlyList<ModelRow> ModelRows
+    {
+        get
+        {
+            if (objReport is null)
+            {
+                return [];
+            }
+
+            var vModels = objReport.Models;
+            var vTokens = vModels.Sum(aModel => aModel.TokensIn + aModel.TokensOut);
+            var vTurns = vModels.Sum(aModel => aModel.Turns);
+
+            return vModels
+                .Select(aModel => new ModelRow(
+                    aModel.Model,
+                    vTokens <= 0 ? 0d : (double)(aModel.TokensIn + aModel.TokensOut) / vTokens,
+                    vTurns <= 0 ? 0d : (double)aModel.Turns / vTurns,
+                    aModel.Executions,
+                    aModel.MeasuredCostUsd))
+                .OrderByDescending(aRow => aRow.TokenShare)
+                .ThenBy(aRow => aRow.Model, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Reads the phase report for the signed-in user, once per user.
+    /// </summary>
+    /// <returns>A task that completes when the surface knows what state it is in.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (UserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        if (objIsLoaded && objLoadedUserId == UserId)
+        {
+            return;
+        }
+
+        objLoadedUserId = UserId;
+        await ReloadAsync();
+    }
+
+    /// <summary>
+    /// Re-reads the report, narrowed to the selected repository when one is chosen.
+    /// </summary>
+    /// <remarks>
+    /// The repository is a query parameter of the engine, never a display filter: narrowing what is
+    /// already on screen would leave every cohort count describing the wider set (ADR-016).
+    /// </remarks>
+    /// <returns>A task that completes when the surface has its figures or its error.</returns>
+    private async Task ReloadAsync()
+    {
+        if (UserId is null)
+        {
+            objIsLoaded = true;
+            return;
+        }
+
+        try
+        {
+            objRepos = await objRepoListReader.ListWithCountsAsync(UserId.Value);
+
+            var vRepo = ValueOf(RepoFilterKey);
+
+            objReport = await objReportBuilder.BuildPhaseReportAsync(
+                UserId.Value,
+                string.Equals(vRepo, AllKey, StringComparison.Ordinal) ? null : vRepo);
+
+            objLoadError = null;
+        }
+        catch (Exception vEx)
+        {
+            objReport = null;
+            objLoadError = vEx.Message;
+        }
+        finally
+        {
+            objIsLoaded = true;
+        }
+    }
+
+    /// <summary>
+    /// Applies one filter, re-querying the engine only for the repository.
+    /// </summary>
+    /// <param name="aKey">The filter's key.</param>
+    /// <param name="aValue">The chosen option.</param>
+    /// <returns>A task that completes when the surface has been updated.</returns>
+    private async Task OnFilterChangedAsync(string aKey, string? aValue)
+    {
+        objFilters[aKey] = string.IsNullOrWhiteSpace(aValue) ? AllKey : aValue;
+        objSelectedExecutionId = null;
+
+        if (string.Equals(aKey, RepoFilterKey, StringComparison.Ordinal))
+        {
+            await ReloadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Clears every filter and re-reads the whole workspace.
+    /// </summary>
+    /// <returns>A task that completes when the surface has been rebuilt.</returns>
+    private async Task ResetFiltersAsync()
+    {
+        objFilters.Clear();
+        objSelectedExecutionId = null;
+        await ReloadAsync();
+    }
+
+    /// <summary>Opens one execution's detail panel.</summary>
+    /// <param name="aExecutionId">The execution to expand.</param>
+    private void SelectExecution(string aExecutionId) => objSelectedExecutionId = aExecutionId;
+
+    /// <summary>Tells whether one execution's detail panel is the open one.</summary>
+    /// <param name="aExecutionId">The execution id.</param>
+    /// <returns><c>true</c> when that row is expanded.</returns>
+    private bool IsSelected(string aExecutionId) =>
+        string.Equals(SelectedExecution?.PhaseExecutionId, aExecutionId, StringComparison.Ordinal);
+
+    /// <summary>The current value of one filter, defaulting to its "all" option.</summary>
+    /// <param name="aKey">The filter's key.</param>
+    /// <returns>The chosen option key.</returns>
+    private string ValueOf(string aKey) =>
+        objFilters.TryGetValue(aKey, out var vValue) ? vValue : AllKey;
+
+    /// <summary>
+    /// Builds an option list from the distinct values a column actually carries.
+    /// </summary>
+    /// <param name="aAllLabel">The label of the leading "all" option.</param>
+    /// <param name="aValues">Every observed value, blanks and duplicates included.</param>
+    /// <returns>The option list, alphabetically after the "all" option.</returns>
+    private static IReadOnlyList<FilterOption> Options(string aAllLabel, IEnumerable<string?> aValues)
+    {
+        var vOptions = new List<FilterOption> { new(AllKey, aAllLabel) };
+
+        vOptions.AddRange(aValues
+            .Where(aValue => !string.IsNullOrWhiteSpace(aValue))
+            .Select(aValue => aValue!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aValue => aValue, StringComparer.Ordinal)
+            .Select(aValue => new FilterOption(aValue, aValue)));
+
+        return vOptions;
+    }
+
+    /// <summary>
+    /// Judges one execution against the row-level filters.
+    /// </summary>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when every active filter admits it.</returns>
+    private bool Matches(PhaseExecutionView aView) =>
+        MatchesText(ValueOf("command-phase"), aView.CommandPhase)
+        && MatchesText(ValueOf("project-type"), aView.ProjectType)
+        && MatchesText(ValueOf("verdict"), aView.GateVerdictSnapshot)
+        && MatchesCompleteness(aView)
+        && MatchesCoverage(aView)
+        && MatchesFanout(aView)
+        && MatchesPeriod(aView);
+
+    /// <summary>Tells whether a text filter admits a value.</summary>
+    /// <param name="aFilter">The chosen option key.</param>
+    /// <param name="aValue">The row's value.</param>
+    /// <returns><c>true</c> when the filter is "all" or the value matches it.</returns>
+    private static bool MatchesText(string aFilter, string? aValue) =>
+        string.Equals(aFilter, AllKey, StringComparison.Ordinal)
+        || string.Equals(aFilter, aValue, StringComparison.Ordinal);
+
+    /// <summary>Tells whether the complete/incomplete filter admits a row.</summary>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when the filter admits it.</returns>
+    private bool MatchesCompleteness(PhaseExecutionView aView) => ValueOf("completeness") switch
+    {
+        "complete" => aView.IsComplete == true,
+        "incomplete" => aView.IsComplete != true,
+        _ => true
+    };
+
+    /// <summary>Tells whether the active-coverage filter admits a row.</summary>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when the filter admits it.</returns>
+    private bool MatchesCoverage(PhaseExecutionView aView) => ValueOf("coverage") switch
+    {
+        PlaybookPhaseVocabulary.CoverageComplete =>
+            string.Equals(aView.ActiveCoverage, PlaybookPhaseVocabulary.CoverageComplete, StringComparison.Ordinal),
+        PlaybookPhaseVocabulary.CoveragePartial =>
+            string.Equals(aView.ActiveCoverage, PlaybookPhaseVocabulary.CoveragePartial, StringComparison.Ordinal),
+        "none" => aView.ActiveCoverage is not PlaybookPhaseVocabulary.CoverageComplete
+                                       and not PlaybookPhaseVocabulary.CoveragePartial,
+        _ => true
+    };
+
+    /// <summary>
+    /// Tells whether the has-sub-agents filter admits a row.
+    /// </summary>
+    /// <remarks>
+    /// A window that never read the sub-agent transcripts reports <c>null</c>, not zero, so it is
+    /// admitted by neither branch of the filter rather than counted as having none.
+    /// </remarks>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when the filter admits it.</returns>
+    private bool MatchesFanout(PhaseExecutionView aView) => ValueOf("fanout") switch
+    {
+        "has" => aView.Fanout.Spawned is > 0,
+        "none" => aView.Fanout.Spawned == 0,
+        _ => true
+    };
+
+    /// <summary>Tells whether the date-range filter admits a row; filtering is UTC, only display is local.</summary>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when the filter admits it.</returns>
+    private bool MatchesPeriod(PhaseExecutionView aView)
+    {
+        var vPeriod = ValueOf("period");
+
+        if (string.Equals(vPeriod, AllKey, StringComparison.Ordinal)
+            || !int.TryParse(vPeriod, NumberStyles.Integer, CultureInfo.InvariantCulture, out var vDays))
+        {
+            return true;
+        }
+
+        return TryUtc(aView.StartedAtUtc, out var vStarted)
+               && vStarted >= DateTimeOffset.UtcNow.AddDays(-vDays);
+    }
+
+    /// <summary>Parses a stored instant as UTC.</summary>
+    /// <param name="aText">The instant text.</param>
+    /// <param name="aMoment">The parsed instant.</param>
+    /// <returns><c>true</c> when the text parsed.</returns>
+    private static bool TryUtc(string? aText, out DateTimeOffset aMoment) =>
+        DateTimeOffset.TryParse(
+            aText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out aMoment);
+
+    /// <summary>
+    /// Builds one active-versus-wall row for a command phase.
+    /// </summary>
+    /// <param name="aCommandPhase">The command that ran.</param>
+    /// <param name="aViews">Its non-quarantined executions.</param>
+    /// <returns>The row, refusing a number wherever the coverage does not support one.</returns>
+    private static ActiveRow ActiveRowOf(string aCommandPhase, IReadOnlyList<PhaseExecutionView> aViews)
+    {
+        var vWallValues = aViews
+            .Select(aView => aView.ElapsedMs.TryGetValue(out var vMs) ? vMs : (double?)null)
+            .Where(aMs => aMs is not null)
+            .Select(aMs => aMs!.Value)
+            .ToList();
+
+        var vWall = MetricsConstants.Median(vWallValues) is { } vWallMedian
+            ? PhaseValue.Comparative(vWallMedian, vWallValues.Count, DurationText(vWallMedian))
+            : PhaseValue.Unavailable();
+
+        var vCompleteValues = aViews
+            .Where(aView => string.Equals(
+                aView.ActiveCoverage, PlaybookPhaseVocabulary.CoverageComplete, StringComparison.Ordinal))
+            .Select(aView => aView.ObservedActiveMs.TryGetValue(out var vMs) ? vMs : (double?)null)
+            .Where(aMs => aMs is not null)
+            .Select(aMs => aMs!.Value)
+            .ToList();
+
+        if (vCompleteValues.Count > 0)
+        {
+            var vActiveMedian = MetricsConstants.Median(vCompleteValues)!.Value;
+            var vActive = PhaseValue.Comparative(
+                vActiveMedian, vCompleteValues.Count, DurationText(vActiveMedian));
+
+            var vShare = vWall.TryGetValue(out var vWallMs) && vActive.TryGetValue(out var vActiveMs)
+                         && vWallMs > 0d
+                ? vActiveMs / vWallMs
+                : (double?)null;
+
+            return new ActiveRow(aCommandPhase, vWall, vActive, vActive.Display(), vShare);
+        }
+
+        // BRD-156 — partial coverage is a lower bound and never a comparison; each value is at most the
+        // true one, so the median of them is at most the true median and may be stated as one.
+        var vPartialValues = aViews
+            .Where(aView => string.Equals(
+                aView.ActiveCoverage, PlaybookPhaseVocabulary.CoveragePartial, StringComparison.Ordinal))
+            .Select(aView => aView.ObservedActiveMs.TryGetValue(out var vMs) ? vMs : (double?)null)
+            .Where(aMs => aMs is not null)
+            .Select(aMs => aMs!.Value)
+            .ToList();
+
+        return MetricsConstants.Median(vPartialValues) is { } vPartialMedian
+            ? new ActiveRow(
+                aCommandPhase,
+                vWall,
+                null,
+                PlaybookPhaseVocabulary.LowerBoundPrefix + DurationText(vPartialMedian),
+                null)
+            : new ActiveRow(aCommandPhase, vWall, null, Dash, null);
+    }
+
+    /// <summary>The key/value rows of the per-model panel.</summary>
+    /// <param name="aView">The expanded execution.</param>
+    /// <returns>The rows.</returns>
+    private static IReadOnlyList<PanelRow> ModelPanelRows(PhaseExecutionView aView) =>
+    [
+        new("Dominant model label", aView.DominantModelLabel ?? PlaybookPhaseVocabulary.Unavailable),
+        new("Turns", aView.Turns?.ToString("N0", CultureInfo.InvariantCulture) ?? Dash),
+        new("Input", NullableTokenText(aView.TokensInput)),
+        new("Cache read", NullableTokenText(aView.TokensCacheRead)),
+        new("Cache write", NullableTokenText(aView.TokensCacheWrite)),
+        new("Output", NullableTokenText(aView.TokensOutput)),
+        new("Reasoning", NullableTokenText(aView.TokensReasoning)),
+        new(PlaybookPhaseVocabulary.ObservedActiveLabel, ActiveTextOf(aView) ?? aView.ObservedActiveMs.Display()),
+        new(aView.AssistantElapsed.Label, aView.AssistantElapsed.Text),
+        new(aView.ToolElapsed.Label, aView.ToolElapsed.Text),
+        new("Measured provider cost", CostTextOf(aView.Cost))
+    ];
+
+    /// <summary>
+    /// The five data-quality explanations every expanded row carries.
+    /// </summary>
+    /// <param name="aView">The expanded execution.</param>
+    /// <returns>The rows.</returns>
+    private static IReadOnlyList<PanelRow> QualityPanelRows(PhaseExecutionView aView) =>
+    [
+        new("Window completion",
+            aView.IsComplete == true
+                ? "complete — the window closed and reported an elapsed time"
+                : $"incomplete · end_reason {aView.EndReason ?? PlaybookPhaseVocabulary.Unavailable} — a window "
+                  + "that ended at EOF has no end timestamp and no elapsed time at all, so it is visible here "
+                  + "and absent from every duration figure",
+            aView.IsComplete != true),
+        new("Active timestamps",
+            aView.ActiveCoverage switch
+            {
+                PlaybookPhaseVocabulary.CoverageComplete =>
+                    "complete — every interval in the window was observable",
+                PlaybookPhaseVocabulary.CoveragePartial =>
+                    "partial — missing assistant or tool timestamps downgrade the figure to an explicit "
+                    + "lower bound, and it enters no comparison",
+                _ => "unavailable — no observable active interval, so there is no figure at all rather than a zero"
+            },
+            aView.ActiveCoverage is not PlaybookPhaseVocabulary.CoverageComplete),
+        new("Unpaired tools",
+            "A tool call with no matching result is excluded from the active-interval union and never "
+            + "estimated. The producer publishes the union rather than the components, which is why "
+            + "assistant and tool interval sums are shown above as diagnostic text and are never added.",
+            false),
+        new("Tier",
+            "missing — the report's execution view publishes no tier, so this execution leaves every "
+            + "per-tier cohort rather than joining a default one",
+            true),
+        new("Provider cost",
+            aView.Cost.Caveat
+            ?? $"cost_status: {aView.Cost.Status ?? PlaybookPhaseVocabulary.Unavailable} — provider-reported "
+               + "and stored as a fixed-precision decimal. A zero-unverified cost is excluded from every "
+               + "measured total and is never shown as free.",
+            !aView.Cost.IsMeasured),
+        new("Provenance",
+            $"token_status {aView.TokenStatus ?? PlaybookPhaseVocabulary.Unavailable} · attempt snapshot "
+            + $"{aView.AttemptSnapshot?.ToString(CultureInfo.InvariantCulture) ?? Dash} · verdict snapshot "
+            + $"{aView.GateVerdictSnapshot ?? PlaybookPhaseVocabulary.Unavailable} · project type "
+            + $"{aView.ProjectType ?? PlaybookPhaseVocabulary.Unavailable}",
+            false)
+    ];
+
+    /// <summary>
+    /// Flattens the session tree in reading order, keeping each session's depth.
+    /// </summary>
+    /// <remarks>
+    /// BRD-159 — a grandchild is emitted beneath its parent and exactly once; the tree the engine built
+    /// already places every session in one position, so this walk cannot duplicate one.
+    /// </remarks>
+    /// <param name="aNodes">The nodes at this level.</param>
+    /// <param name="aDepth">How deep they sit.</param>
+    /// <returns>The flattened rows.</returns>
+    private static IReadOnlyList<TreeRow> Flatten(IReadOnlyList<PhaseSubagentNode> aNodes, int aDepth)
+    {
+        var vRows = new List<TreeRow>();
+
+        foreach (var vNode in aNodes)
+        {
+            vRows.Add(new TreeRow(vNode, aDepth));
+            vRows.AddRange(Flatten(vNode.Children, aDepth + 1));
+        }
+
+        return vRows;
+    }
+
+    /// <summary>Tells whether the producer named the child's agent type.</summary>
+    /// <param name="aAgent">The agent display string.</param>
+    /// <returns><c>true</c> when it is a real name rather than the refusal.</returns>
+    private static bool IsNamed(string aAgent) =>
+        !string.Equals(aAgent, PlaybookPhaseVocabulary.Unavailable, StringComparison.Ordinal);
+
+    /// <summary>The tree indent for one depth.</summary>
+    /// <param name="aDepth">How deep the session sits.</param>
+    /// <returns>A CSS padding declaration.</returns>
+    private static string IndentCss(int aDepth) =>
+        "padding-left:" + (aDepth * 22).ToString(CultureInfo.InvariantCulture) + "px";
+
+    /// <summary>The arrow a nested session carries.</summary>
+    /// <param name="aDepth">How deep the session sits.</param>
+    /// <returns>The marker, or an empty string at the root.</returns>
+    private static string Marker(int aDepth) => aDepth == 0 ? string.Empty : "↳ ";
+
+    /// <summary>The bar's height as a share of the tallest one.</summary>
+    /// <param name="aValue">This bar's value.</param>
+    /// <param name="aMax">The tallest bar's value.</param>
+    /// <returns>A CSS height declaration.</returns>
+    private static string BarHeightCss(double aValue, double aMax) =>
+        "height:" + (aMax <= 0d ? "0" : (100d * aValue / aMax).ToString("0.##", CultureInfo.InvariantCulture))
+        + "%";
+
+    /// <summary>One stacked leg's height inside its bar.</summary>
+    /// <param name="aValue">The leg's tokens.</param>
+    /// <param name="aTotal">The bar's total.</param>
+    /// <returns>A CSS height declaration.</returns>
+    private static string LegHeightCss(long aValue, long aTotal) =>
+        "height:" + (aTotal <= 0L ? "0" : (100d * aValue / aTotal).ToString("0.##", CultureInfo.InvariantCulture))
+        + "%";
+
+    /// <summary>Renders a 0..1 share as a CSS width, invariant so a comma decimal cannot reach the style.</summary>
+    /// <param name="aShare">The share, 0..1.</param>
+    /// <returns>A CSS width declaration.</returns>
+    private static string PercentCss(double aShare) =>
+        "width:" + (aShare * 100d).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>Renders a 0..1 share as a whole percentage.</summary>
+    /// <param name="aShare">The share, 0..1.</param>
+    /// <returns>The percentage text.</returns>
+    private static string PercentText(double aShare) =>
+        Math.Round(aShare * 100d, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture) + "%";
+
+    /// <summary>Reads a count out of a figure, or zero height when it refuses to be a number.</summary>
+    /// <param name="aValue">The figure.</param>
+    /// <returns>The number to draw, which is only ever a bar height and never a printed figure.</returns>
+    private static double CountOf(PhaseValue aValue) => aValue.TryGetValue(out var vCount) ? vCount : 0d;
+
+    /// <summary>
+    /// The caption BRD-161 asks for: this figure's own cohort, then every exclusion beside it.
+    /// </summary>
+    /// <param name="aFigure">The figure the tile renders.</param>
+    /// <returns>The <c>n of N eligible</c> line with the exclusions that produced it.</returns>
+    private string CaptionOf(PhaseFigure aFigure)
+    {
+        if (objReport is null)
+        {
+            return aFigure.Caption;
+        }
+
+        var vExclusions = string.Join(
+            " · ", aFigure.Exclusions.Select(aExclusion => $"{aExclusion.Explanation} ({aExclusion.Records})"));
+
+        return $"{aFigure.N} of {objReport.Quality.Records} eligible"
+               + (vExclusions.Length == 0 ? string.Empty : " · " + vExclusions);
+    }
+
+    /// <summary>
+    /// Re-notates a measured duration the way the approved design draws it.
+    /// </summary>
+    /// <param name="aValue">The figure.</param>
+    /// <returns>The duration text, or <c>null</c> when the figure carries no number to re-notate.</returns>
+    private static string? DurationOf(PhaseValue aValue) =>
+        aValue.TryGetValue(out var vMs) ? DurationText(vMs) : null;
+
+    /// <summary>
+    /// The active-time cell of one execution, keeping the producer's lower-bound marker.
+    /// </summary>
+    /// <remarks>
+    /// BRD-156 — a partial-coverage figure is published with the "at least" prefix, and re-notating the
+    /// number must not drop it. Unavailable coverage carries no number here and none is invented.
+    /// </remarks>
+    /// <param name="aView">The execution row.</param>
+    /// <returns>The text, or <c>null</c> when there is no measured figure.</returns>
+    private static string? ActiveTextOf(PhaseExecutionView aView)
+    {
+        if (!aView.ObservedActiveMs.TryGetValue(out var vMs))
+        {
+            return null;
+        }
+
+        var vPrefix = string.Equals(
+            aView.ActiveCoverage, PlaybookPhaseVocabulary.CoveragePartial, StringComparison.Ordinal)
+            ? PlaybookPhaseVocabulary.LowerBoundPrefix
+            : string.Empty;
+
+        return vPrefix + DurationText(vMs);
+    }
+
+    /// <summary>
+    /// One execution's cost cell — the provider's dollars only when they are measured.
+    /// </summary>
+    /// <remarks>
+    /// BRD-160 — anything else prints the producer's status, never <c>$0</c> and never "free". Only the
+    /// currency symbol differs from the engine's own rendering; the digits are the engine's.
+    /// </remarks>
+    /// <param name="aCost">The execution's cost view.</param>
+    /// <returns>The cell text.</returns>
+    private static string CostTextOf(PhaseCostView aCost) =>
+        aCost.IsMeasured && aCost.Usd is not null
+            ? aCost.Usd.Value.ToString("C4", Money)
+            : aCost.Display();
+
+    /// <summary>Renders a duration in the approved design's notation.</summary>
+    /// <param name="aMilliseconds">The duration.</param>
+    /// <returns>Text such as <c>11m 20s</c>.</returns>
+    private static string DurationText(double aMilliseconds)
+    {
+        var vSpan = TimeSpan.FromMilliseconds(aMilliseconds);
+
+        if (vSpan.TotalHours >= 1d)
+        {
+            return $"{(int)vSpan.TotalHours}h {vSpan.Minutes:00}m";
+        }
+
+        return vSpan.TotalMinutes >= 1d
+            ? $"{(int)vSpan.TotalMinutes}m {vSpan.Seconds:00}s"
+            : $"{vSpan.TotalSeconds.ToString("0.#", CultureInfo.InvariantCulture)}s";
+    }
+
+    /// <summary>Renders a token count in the approved design's compact notation.</summary>
+    /// <param name="aTokens">The count.</param>
+    /// <returns>Text such as <c>676.3M</c> or <c>412k</c>.</returns>
+    private static string TokenText(long aTokens)
+    {
+        var vMagnitude = Math.Abs(aTokens);
+
+        if (vMagnitude >= 1_000_000_000L)
+        {
+            return (aTokens / 1_000_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "B";
+        }
+
+        if (vMagnitude >= 1_000_000L)
+        {
+            return (aTokens / 1_000_000d).ToString("0.0", CultureInfo.InvariantCulture) + "M";
+        }
+
+        return vMagnitude >= 1_000L
+            ? (aTokens / 1_000d).ToString("0", CultureInfo.InvariantCulture) + "k"
+            : aTokens.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Renders a token count the producer may not have carried at all.</summary>
+    /// <param name="aTokens">The count, or <c>null</c> when none was reported.</param>
+    /// <returns>The compact count, or the dash — never a zero standing in for an absence.</returns>
+    private static string NullableTokenText(long? aTokens) => aTokens is null ? Dash : TokenText(aTokens.Value);
+
+    /// <summary>Renders a provider dollar figure, or the dash when none was reported.</summary>
+    /// <param name="aUsd">The dollars, or <c>null</c>.</param>
+    /// <returns>The formatted amount, or the dash.</returns>
+    private static string DollarText(decimal? aUsd) =>
+        aUsd is null ? Dash : aUsd.Value.ToString("C4", Money);
+
+    /// <summary>Renders one execution's start instant.</summary>
+    /// <param name="aView">The execution row.</param>
+    /// <returns>The instant as stored, or the dash.</returns>
+    private static string StartedText(PhaseExecutionView aView) =>
+        TryUtc(aView.StartedAtUtc, out var vStarted)
+            ? vStarted.UtcDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : Dash;
+
+
+    /// <summary>One filter and the options it offers.</summary>
+    /// <param name="Key">The filter's key, which is also its test id suffix.</param>
+    /// <param name="Value">The chosen option key.</param>
+    /// <param name="Options">Every option, the "all" one first.</param>
+    private sealed record FilterSpec(string Key, string Value, IReadOnlyList<FilterOption> Options)
+    {
+        /// <summary>The label of one option key, for the closed trigger (TR-020).</summary>
+        /// <param name="aValue">The option key.</param>
+        /// <returns>The label, or the key when no option carries it.</returns>
+        public string LabelOf(string? aValue) =>
+            Options.FirstOrDefault(aOption => string.Equals(aOption.Key, aValue, StringComparison.Ordinal))?.Label
+            ?? aValue
+            ?? string.Empty;
+    }
+
+    /// <summary>One option of one filter.</summary>
+    /// <param name="Key">The stored value.</param>
+    /// <param name="Label">What the reader sees.</param>
+    private sealed record FilterOption(string Key, string Label);
+
+    /// <summary>One row of the executions table.</summary>
+    /// <param name="View">The engine's own view of the execution.</param>
+    private sealed record PbExecutionRow(PhaseExecutionView View)
+    {
+        /// <summary>The producer's stable id for the execution.</summary>
+        public string Id => View.PhaseExecutionId;
+
+        /// <summary>The command that ran.</summary>
+        public string CommandPhase => View.CommandPhase ?? PlaybookPhaseVocabulary.Unavailable;
+
+        /// <summary>The start instant, as stored.</summary>
+        public string StartedText => PlaybookEffortSurface.StartedText(View);
+
+        /// <summary>The output-token cell, which is the dash when the producer carried none.</summary>
+        public string OutTokensText => NullableTokenText(View.TokensOutput);
+
+        /// <summary>The data-quality badge text.</summary>
+        public string QualityText
+        {
+            get
+            {
+                if (View.IsQuarantined)
+                {
+                    return "quarantined";
+                }
+
+                if (View.IsComplete != true)
+                {
+                    return "incomplete · " + (View.EndReason ?? PlaybookPhaseVocabulary.Unavailable);
+                }
+
+                return string.Equals(
+                    View.ActiveCoverage, PlaybookPhaseVocabulary.CoverageComplete, StringComparison.Ordinal)
+                    ? "complete"
+                    : "active coverage: " + (View.ActiveCoverage ?? PlaybookPhaseVocabulary.Unavailable);
+            }
+        }
+
+        /// <summary>The reason codes under a quarantined row's badge, or <c>null</c> on a clean row.</summary>
+        public string? QualityDetail =>
+            View.QuarantineReasons.Count == 0
+                ? null
+                : string.Join(" · ", View.QuarantineReasons.Select(aReason => aReason.Code));
+
+        /// <summary>Which badge variant the data-quality cell uses.</summary>
+        public BadgeVariant QualityVariant
+        {
+            get
+            {
+                if (View.IsQuarantined)
+                {
+                    return BadgeVariant.Destructive;
+                }
+
+                return View.IsComplete == true
+                       && string.Equals(
+                           View.ActiveCoverage,
+                           PlaybookPhaseVocabulary.CoverageComplete,
+                           StringComparison.Ordinal)
+                    ? BadgeVariant.Secondary
+                    : BadgeVariant.Outline;
+            }
+        }
+    }
+
+    /// <summary>One bar of the tokens-by-command-phase chart.</summary>
+    /// <param name="Group">The engine's command-phase group.</param>
+    private sealed record TokenBar(PhaseCommandGroup Group)
+    {
+        /// <summary>The command that ran.</summary>
+        public string CommandPhase => Group.CommandPhase;
+
+        /// <summary>The five legs, in stacking order.</summary>
+        public IReadOnlyList<TokenLeg> Legs =>
+        [
+            new("input", LegOf(Group.Tokens.Input), "pb-leg-1"),
+            new("cache read", LegOf(Group.Tokens.CacheRead), "pb-leg-3"),
+            new("cache write", LegOf(Group.Tokens.CacheWrite), "pb-leg-4"),
+            new("output", LegOf(Group.Tokens.Output), "pb-leg-2"),
+            new("reasoning", LegOf(Group.Tokens.Reasoning), "pb-leg-5")
+        ];
+
+        /// <summary>The bar's total, which is what its height is drawn from.</summary>
+        public long Total => Legs.Sum(aLeg => aLeg.Tokens);
+
+        /// <summary>Reads one leg's tokens, treating a refusal as nothing to draw rather than as a figure.</summary>
+        /// <param name="aValue">The leg.</param>
+        /// <returns>The tokens, or zero height.</returns>
+        private static long LegOf(PhaseValue aValue) => aValue.TryGetValue(out var vTokens) ? (long)vTokens : 0L;
+    }
+
+    /// <summary>One stacked leg of a token bar.</summary>
+    /// <param name="Label">The leg's name.</param>
+    /// <param name="Tokens">Its tokens.</param>
+    /// <param name="CssClass">The scoped class carrying its colour.</param>
+    private sealed record TokenLeg(string Label, long Tokens, string CssClass);
+
+    /// <summary>One bucket of the duration histogram.</summary>
+    /// <param name="Label">The bucket's range.</param>
+    /// <param name="Count">Closed windows inside it.</param>
+    private sealed record DurationBucket(string Label, int Count);
+
+    /// <summary>One bar of the fan-out chart.</summary>
+    /// <param name="Label">The bar's name.</param>
+    /// <param name="Count">Its height.</param>
+    /// <param name="Text">The figure printed above it, refusals included.</param>
+    /// <param name="CssClass">The scoped class carrying its colour.</param>
+    private sealed record FanoutBar(string Label, double Count, string Text, string CssClass);
+
+    /// <summary>One bar of the measured-cost chart.</summary>
+    /// <param name="Model">The model the dollars belong to.</param>
+    /// <param name="Amount">The measured dollars.</param>
+    /// <param name="Text">The amount as printed.</param>
+    private sealed record CostBar(string Model, double Amount, string Text);
+
+    /// <summary>One row of the active-versus-wall table.</summary>
+    /// <param name="CommandPhase">The command that ran.</param>
+    /// <param name="Wall">Median wall clock over its closed windows.</param>
+    /// <param name="Active">Median active time, or <c>null</c> when the coverage supports no figure.</param>
+    /// <param name="ActiveText">What the active cell prints — a figure, a lower bound, or the dash.</param>
+    /// <param name="Share">Active as a share of wall clock, only where both are exact.</param>
+    private sealed record ActiveRow(
+        string CommandPhase,
+        PhaseValue Wall,
+        PhaseValue? Active,
+        string ActiveText,
+        double? Share)
+    {
+        /// <summary>The share cell's text, or the reason there is none.</summary>
+        public string ShareText => Share is { } vShare
+            ? PercentText(vShare)
+            : Active is null
+                ? "coverage: " + PlaybookPhaseVocabulary.CoveragePartial + " or unavailable"
+                : Dash;
+    }
+
+    /// <summary>One row of the model-mix table.</summary>
+    /// <param name="Model">The model, exactly as the producer named it.</param>
+    /// <param name="TokenShare">Its share of the cohort's tokens, 0..1.</param>
+    /// <param name="TurnShare">Its share of the cohort's turns, 0..1.</param>
+    /// <param name="Executions">Executions it appeared in.</param>
+    /// <param name="CostUsd">Its measured dollars, or <c>null</c> when none were complete.</param>
+    private sealed record ModelRow(
+        string Model,
+        double TokenShare,
+        double TurnShare,
+        int Executions,
+        decimal? CostUsd)
+    {
+        /// <summary>The token share as a percentage.</summary>
+        public string TokenShareText => PercentText(TokenShare);
+
+        /// <summary>The turn share as a percentage.</summary>
+        public string TurnShareText => PercentText(TurnShare);
+
+        /// <summary>Whether the model reported any complete dollars.</summary>
+        public bool HasCost => CostUsd is not null;
+
+        /// <summary>The measured dollars, or the dash — never a zero standing in for an absence.</summary>
+        public string CostText => DollarText(CostUsd);
+    }
+
+    /// <summary>One key/value row of a detail panel.</summary>
+    /// <param name="Label">The fact's name.</param>
+    /// <param name="Text">What the producer reported, or why it reported nothing.</param>
+    /// <param name="IsRefused">True when the row states an absence rather than a value.</param>
+    private sealed record PanelRow(string Label, string Text, bool IsRefused = false);
+
+    /// <summary>One session of the flattened sub-agent tree.</summary>
+    /// <param name="Node">The session.</param>
+    /// <param name="Depth">How deep it sits beneath the root.</param>
+    private sealed record TreeRow(PhaseSubagentNode Node, int Depth);
+
+    /// <summary>One row of the five-states reference table.</summary>
+    /// <param name="Name">The state's name.</param>
+    /// <param name="Description">What that state shows.</param>
+    /// <param name="ActiveName">The state the page is currently in.</param>
+    private sealed record StateRow(string Name, string Description, string ActiveName)
+    {
+        /// <summary>Whether this is the state the page is in.</summary>
+        public bool IsActive => string.Equals(Name, ActiveName, StringComparison.Ordinal);
+    }
+}
