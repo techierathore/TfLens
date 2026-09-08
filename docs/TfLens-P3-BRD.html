@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Business Requirements — Phase 3: Depth</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — Business Requirements — Phase 3: Depth</h1>
+    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-P3-BRD.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#summary">1. Summary</a></li>
+        <li><a href="#development-status">2. Development status</a></li>
+        <li><a href="#screens-and-flow">3. Screens and flow</a></li>
+        <li><a href="#feature-catalog">4. Feature catalog</a></li>
+        <li class="h3"><a href="#f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics</a></li>
+        <li class="h3"><a href="#f-effort-phase-effort-and-efficiency-what-each-phase-cost">F-EFFORT: Phase effort and efficiency — what each phase cost</a></li>
+        <li class="h3"><a href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)</a></li>
+        <li><a href="#requirements">5. Requirements</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-miss-telemetry-and-rework-economics">Amendment 2026-08-28 — miss telemetry and rework economics</a></li>
+        <li class="h3"><a href="#amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">Amendment 2026-08-28 (round 2) — imported telemetry: private and corporate repos</a></li>
+        <li class="h3"><a href="#amendment-2026-09-01-phase-effort-and-efficiency-from-both-frameworks">Amendment 2026-09-01 — phase effort and efficiency, from both frameworks</a></li>
+        <li class="h3"><a href="#amendment-2026-09-08-whose-gap-it-was-and-three-sums-tflens-is-getting-wrong">Amendment 2026-09-08 — whose gap it was, and three sums TfLens is getting wrong</a></li>
+        <li><a href="#where-the-rest-lives">6. Where the rest lives</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Kind</td><td>app</td></tr>
+<tr><td>Size</td><td>Large</td></tr>
+<tr><td>Phase</td><td>3 of 3</td></tr>
+<tr><td>Status</td><td>Target</td></tr>
+<tr><td>Stack answer set</td><td>Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker</td></tr>
+<tr><td>Date</td><td>2026-09-08</td></tr>
+</tbody>
+</table>
+<p><strong>Phase 3 of 3 — misses, phase effort, the Playbook axis, imported sources.</strong> Requirement ids: <strong>BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181</strong>. Ids run on across the three phases and are never reused or renumbered.</p>
+<p>Other phases: <a href="./TfLens-BRD.md">Phase 1 — Foundation</a> · <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · The map is <a href="./TfLens-Phases.md">TfLens-Phases.md</a>.</p>
+<p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens, its features and its requirements.</p>
+<h2 id="summary">1. Summary<a class="anchor-link" href="#summary">#</a></h2>
+<p>Everything added after the first report set shipped, and the largest of the three phases. The miss
+and rework economics page; the phase-effort page fed by two different producers; the Playbook axis of
+every report; imported telemetry, which is how a private or corporate repository reaches TfLens
+without it ever holding a credential; and the 2026-09-07 stream fields that answer <strong>whose gap a miss
+was</strong> rather than only what broke.</p>
+<p>One rule runs through all of it, arriving under a different name each time: <strong>an unmeasured thing is
+unmeasured, not zero.</strong> <code>tokens_scope: "none"</code>, a fan-out window that never looked, an EOF-truncated
+Playbook execution, a <code>sort</code> field that did not exist when the record was written — each is absence,
+and each is reported as absence with its denominator beside it.</p>
+<h2 id="development-status">2. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+<p>Written by the status gate after every build, verify and handoff; not by hand.</p>
+<p><strong>Snapshot as of 2026-09-08.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P3-Checklist.md</code>.</p>
+<table>
+<thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>UI / Pages</td><td>12</td><td>8</td><td>4</td><td>Partial</td></tr>
+<tr><td>Functional requirements</td><td>50</td><td>34</td><td>16</td><td>Partial</td></tr>
+<tr><td>Non-functional</td><td>11</td><td>9</td><td>2</td><td>Partial</td></tr>
+</tbody>
+</table>
+<h2 id="screens-and-flow">3. Screens and flow<a class="anchor-link" href="#screens-and-flow">#</a></h2>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>What it answers</th><th>Feature</th><th>Requirements</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td><strong>What was missed, which practice let it through, and what did the repair cost?</strong> This is the schema's <strong>fourth</strong> question (added 2026-08-28) and it is deliberately its <strong>own page rather than a fourth band on Gate outcomes</strong> — the three questions are canon and a well-understood surface, and adding to them would dilute it. Its <em>escape share</em> is a different measurement from Gate outcomes' <em>escape rate</em> and the two are never merged.</td><td>F-MISS</td><td><a href="#brd-118">BRD‑118</a> · <a href="#brd-119">BRD‑119</a> · <a href="#brd-120">BRD‑120</a> · <a href="#brd-121">BRD‑121</a> · <a href="#brd-122">BRD‑122</a> · <a href="#brd-123">BRD‑123</a> · <a href="#brd-124">BRD‑124</a> · <a href="#brd-125">BRD‑125</a> · <a href="#brd-126">BRD‑126</a> · <a href="#brd-167">BRD‑167</a> · <a href="#brd-171">BRD‑171</a> · <a href="#brd-172">BRD‑172</a> · <a href="#brd-173">BRD‑173</a> · <a href="#brd-175">BRD‑175</a> · <a href="#brd-176">BRD‑176</a></td><td><a href="./mockups/misses.html">misses.html</a> · Playbook state: <a href="./mockups/misses-playbook.html">misses-playbook.html</a></td></tr>
+<tr><td>Phase effort</td><td><code>/effort</code></td><td><strong>What did each phase cost — in time, tokens, models and subagents?</strong> A <strong>budgeting and capacity</strong> view, never a quality scoreboard: <code>*build-phase</code> costing more than <code>*log-miss</code> is a fact about what those phases <em>are</em>. Quality lives on <code>/misses</code> and Coverage. Every figure carries its own denominator on screen, because a run whose token window was never computed is not a run that spent nothing.</td><td>F-EFFORT</td><td><a href="#brd-146">BRD‑146</a> · <a href="#brd-147">BRD‑147</a> · <a href="#brd-148">BRD‑148</a> · <a href="#brd-149">BRD‑149</a> · <a href="#brd-150">BRD‑150</a> · <a href="#brd-151">BRD‑151</a></td><td><a href="./mockups/effort.html">effort.html</a></td></tr>
+<tr><td>Playbook framework state of the report pages</td><td><code>/effort</code></td><td><strong>Phase efficiency — the same question, answered from the Playbook's own producer.</strong> Normalized schema-2 phase metrics with stricter bounds of their own: incomplete (<code>eof</code>) windows carry no duration, partial active-time coverage renders as an explicit lower bound, and a harness with no normalized producer reads <em>unsupported</em>, never zero.</td><td>F-EFFORT, F-FRAMEWORK</td><td><a href="#brd-156">BRD‑156</a> · <a href="#brd-157">BRD‑157</a> · <a href="#brd-158">BRD‑158</a> · <a href="#brd-159">BRD‑159</a> · <a href="#brd-160">BRD‑160</a> · <a href="#brd-161">BRD‑161</a> · <a href="#brd-162">BRD‑162</a> · <a href="#brd-163">BRD‑163</a></td><td><a href="./mockups/effort-playbook.html">effort-playbook.html</a></td></tr>
+</tbody>
+</table>
+<h2 id="feature-catalog">4. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
+<h3 id="f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics<a class="anchor-link" href="#f-miss-misses-and-rework-economics">#</a></h3>
+<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 3 <em>(added 2026-08-28 — source: <code>docs/Miss-Telemetry-TfLens.md</code>)</em></p>
+<p>TechieFlow gained a <strong>fifth stream</strong> on 2026-08-28, <code>docs/metrics/misses.jsonl</code>, and it is the first stream whose records do not all have the same shape. It carries three record kinds linked by <code>miss_id</code>: a <strong><code>miss</code></strong> (what was missed, which phase/agent/model let it through, who found it), a <strong><code>miss-fix</code></strong> (the repair run, its outcome, its token and cost window) and a <strong><code>miss-amend</code></strong> (an append-only way to <em>complete</em> a field the <code>miss</code> left <code>null</code> — it may fill a <code>null</code>, and may never overwrite a value, including one an earlier amend set). TfLens pulls it, archives it, parses it, stores it, computes over it and shows it on a sixth report page, under the same provenance discipline it already applies to the four existing streams. The producing side is real, not hypothetical: <code>tf-metrics.sh --rollup --json</code> already reports a <code>misses</code> block, so every figure here is parity-diffable from the first commit and none ships marked unverified.</p>
+<p><strong>Why this feature gets its own guards.</strong> The product's stated dangerous failure mode is a <em>plausible wrong number</em> (§1), and miss data is the most seductive material in the system for producing one, because it invites three specific mistakes that all look like ordinary arithmetic:</p>
+<ol>
+<li><strong>Presenting an apportioned cost as a measured one.</strong> A fix run that repaired three misses has <strong>one</strong> token window. Dividing by three is arithmetic, not measurement.
+</li>
+<li><strong>Presenting an inferred attribution as an observed one.</strong> <em>"This model produces the most misses"</em> is a career-shaping claim if half the attributions were guessed.
+</li>
+<li><strong>Rendering an optional field's distribution over the whole population.</strong> <code>why_missed</code> is optional and <code>null</code> means <em>not assessed</em>, never a zero in some category; using the miss count as the denominator understates every category at once.
+</li>
+</ol>
+<p>All three are handled the way TfLens already handles live-vs-backfilled: <strong>in the shape of the result type, with no switch to relax it</strong> (ADR-007's technique, applied twice more — ADR-019).</p>
+<p><strong>Two open predicates that deliberately disagree.</strong> The lifecycle splits three ways and TfLens must not reconcile the first two, because they answer different questions:</p>
+<table>
+<thead><tr><th>Question</th><th>Predicate</th><th>Where it belongs</th></tr></thead>
+<tbody>
+<tr><td>How much work is outstanding? (the backlog the owner reads)</td><td>latest <code>MissFix.VerdictAfter ∉ {Verified, wont-fix}</code></td><td>the KPI tile <strong>open misses</strong></td></tr>
+<tr><td>Is this defect still live? (the producer's collapse check)</td><td>latest <code>VerdictAfter != "Verified"</code> — <strong><code>wont-fix</code> is still live</strong></td><td>not TfLens's job; it explains the gap</td></tr>
+<tr><td>Deliberately declined</td><td>latest <code>VerdictAfter == "wont-fix"</code></td><td>its own tile, never folded into open</td></tr>
+</tbody>
+</table>
+<p><code>deferred</code> is outstanding work and stays <strong>open</strong> in both. <code>wont-fix</code> is a decision, not a backlog item — but the next failure on that REQ is still the same defect, which is why the producer's check keeps it live. A reviewer will eventually try to "fix" one of these to match the other; the standing comment in <code>tf-metrics.sh</code> and BRD-120 exist to stop that.</p>
+<p><em>Amended 2026-09-08 (the <code>sort</code> / <code>what</code> / <code>review</code> fields).</em> The stream gained two fields and a <strong>fourth record kind</strong> on 2026-09-07, and together they change what this page is for. <code>miss_class</code> says <strong>what broke</strong>; the new <strong><code>sort</code></strong> says <strong>whose gap it was</strong> — the project's own specification, something the framework never said anywhere, a check that existed and was too weak, or a rule that was written down and ignored — and each of those four has a <strong>different fixed remedy</strong>. On the framework's own 126 misses roughly half sorted <code>weak-check</code>: the dominant failure is not a missing rule but a weak check, which no class-only chart can show. The page therefore carries the two distributions <strong>side by side and never merged</strong> (BRD-171), written out in words rather than as raw values. <strong><code>what</code></strong> puts the owner's own sentence on the row (BRD-173), because a miss identified only by a class and a date is unrecognisable a month later. The fourth kind, <strong><code>review</code></strong>, is not a miss at all and is never counted as one (BRD-174) — it prices what an owner review cost, which is the only record anywhere in the streams that puts a number on a <strong>specification</strong> defect. The honest denominator is the whole difficulty: both fields arrived after most of the records did — <strong>286 of 359 misses across the estate carry no <code>sort</code></strong> — and those records are reported as <strong>predating the field, never as unsorted</strong> (BRD-172).</p>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Misses &amp; rework</td><td><code>/misses</code></td><td>Four bands: KPI row · where misses come from (origin phase × class, <strong>beside the <code>sort</code> distribution — whose gap it was — in words, with its <code>n of N sorted</code> denominator</strong>, and beside the failed-practice distribution) · who was running (model + agent, <code>linked</code> only, labelled observational) · cost of rework (measured | apportioned | unattributable) <strong>and what reviews cost, per review phase, copied never computed</strong>; per-miss detail table <strong>carrying the one-sentence <code>what</code> description</strong> with the raw record behind a disclosure; period filter defaulting to <strong>all history</strong>; Framework switch</td><td><a href="./mockups/misses.html">misses.html</a> · Playbook state: <a href="./mockups/misses-playbook.html">misses-playbook.html</a></td></tr>
+</tbody>
+</table>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  A["misses.jsonl (raw archive)"] --&gt; B{"record kind?"}
+  B --&gt;|"miss"| C["Miss table"]
+  B --&gt;|"miss-fix"| D["MissFix table"]
+  B --&gt;|"miss-amend"| E["MissAmend table (stored, never collapsed)"]
+  B --&gt;|"anything else"| F["InvalidLines++ and skip"]
+  C --&gt; G["Fold amendments at READ time, oldest first&lt;br/&gt;fill null only, allowlist + closed vocabulary"]
+  E --&gt; G
+  G --&gt; H{"OriginConfidence == linked?"}
+  H --&gt;|"no"| I["MissAttributionTaint: excluded and COUNTED"]
+  H --&gt;|"yes"| J["per-phase / per-model / per-agent figures"]
+  D --&gt; K{"CostAttribution"}
+  K --&gt;|"sole"| L["MissCost.Sole (measured)"]
+  K --&gt;|"shared:n"| M["MissCost.Apportioned (labelled)"]
+  K --&gt;|"none"| N["MissCost.NoneCount (no numbers at all)"]</pre>
+</div>
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Sync fetches <code>misses.jsonl</code> at the pinned SHA, archives it verbatim, and parses it — dispatching on each record's own <code>kind</code> <strong>within</strong> the misses stream. An unknown <code>kind</code> is counted as an invalid line and skipped, never thrown (the same contract as a malformed line, BRD-25).
+</li>
+<li>Storage upserts into <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> on their natural keys. Amend rows are <strong>stored, not collapsed</strong> — folding is a read-time operation, so <code>rebuild</code> re-derives identical values.
+</li>
+<li><code>MissMetrics</code> folds amendments oldest-first (re-applying the null-check while folding — a merged stream from several machines can carry an amend and a later-written value in either order), applies <code>MissAttributionTaint</code>, and returns each figure as a <code>Figure</code> and each cost as a <code>MissCost</code>.
+</li>
+<li><code>/misses</code> renders the four bands; Coverage renders the data-quality facts; the export writes the <code>misses</code> section; <code>parity-compare.py</code> diffs the whole block against the oracle.
+</li>
+</ol>
+<p><strong>Requirements:</strong> BRD-112, BRD-113, BRD-114, BRD-115, BRD-116, BRD-117, BRD-118, BRD-119, BRD-120, BRD-121, BRD-122, BRD-123, BRD-124, BRD-125, BRD-126, BRD-127, BRD-128, BRD-129, BRD-130, BRD-164, BRD-165, BRD-166, BRD-167, BRD-170, BRD-171, BRD-172, BRD-173, BRD-174, BRD-175, BRD-176</p>
+<h3 id="f-effort-phase-effort-and-efficiency-what-each-phase-cost">F-EFFORT: Phase effort and efficiency — what each phase cost<a class="anchor-link" href="#f-effort-phase-effort-and-efficiency-what-each-phase-cost">#</a></h3>
+<p><strong>Personas:</strong> Owner, Author, Ops (capacity) · <strong>Phase:</strong> 3 <em>(added 2026-09-01 — sources: <code>docs/Phase-Effort-Telemetry-TfLens.md</code> (TechieFlow), <code>docs/Phase-Efficiency-TfLens-Contract.md</code> and <code>docs/Miss-Telemetry-TfLens-From-AIFP.md</code> (AI-First-Playbook))</em></p>
+<p>The owner's question is one sentence: <strong>"how much effort, time and tokens went into each phase — with which model, for how long, and how many subagents did it spin up?"</strong> Both frameworks now answer it, and both shipped their producer before this consumer existed, so nothing here is speculative.</p>
+<p><strong>What was already there, and what genuinely was not.</strong> On the TechieFlow side, most of the answer had been in <code>runs.jsonl</code> since the stream started: <code>cmd</code> is the phase, <code>started</code>/<code>ended</code>/<code>duration_s</code> the time, the §2.5 fields the tokens and the model, <code>harness</code> the harness, <code>mode</code>/<code>attempt</code> the build-vs-rework split. What was missing was <strong>an aggregation</strong> — nothing grouped by <code>cmd</code> — plus three fields that were self-reported or not represented at all, shipped 2026-08-31 as SCHEMA §2.6:</p>
+<table>
+<thead><tr><th>Field</th><th>Type</th><th>Why it had to exist</th></tr></thead>
+<tbody>
+<tr><td><code>subagent_runs</code></td><td><code>int?</code></td><td><em>"How many subagents did it spin?"</em> had <strong>no honest answer</strong>. <code>subagents</code> is a list of agent <em>kinds</em> the agent types into its own emit — it carries no count when the same kind is spawned four times, and nothing checked it against reality. <code>subagent_runs</code> is <strong>counted from the harness's own store</strong></td></tr>
+<tr><td><code>tokens_out_subagents</code></td><td><code>int?</code></td><td>The share of the window the children actually consumed; <code>tokens_out − tokens_out_subagents</code> is the main thread's own</td></tr>
+<tr><td><code>model_tokens_out</code></td><td><code>Dictionary&lt;string,long&gt;?</code></td><td>The per-model <strong>split</strong>, not just the winner's name</td></tr>
+</tbody>
+</table>
+<p><code>subagents</code> stays alongside <code>subagent_runs</code> because they answer different questions — <em>which kinds were invoked</em> (only the agent knows) versus <em>how many actually ran</em> (only the harness knows) — and <strong>where they disagree the measured one is right</strong>. The gap between them is itself a finding about how accurately tasks self-report, so the page shows both (BRD-149).</p>
+<p>The model split matters more than the model name. A run that spent 90% of its output on one model and 10% on another, and a run that split evenly, are different facts about cost and about routing; <code>model</code> (dominant) and <code>models</code> (the set) cannot tell them apart, so <strong>any per-model effort figure built on <code>model</code> alone silently attributes the whole window to the winner</strong> (BRD-150). The Playbook states the identical rule from the other side: never group a mixed-model execution solely under its dominant model (BRD-158).</p>
+<p><strong>The three denominators — the whole feature rests on these.</strong> Every figure on this page is bounded, and the bound is <strong>on screen next to the figure</strong>, never in a tooltip. This is the same discipline <code>/misses</code> applies to <code>n of N assessed</code>, for the same reason: <em>an exclusion the reader cannot see is indistinguishable from a bug.</em></p>
+<table>
+<thead><tr><th>Bound</th><th>Excludes</th><th>Renders as</th></tr></thead>
+<tbody>
+<tr><td><strong>Token window</strong> (BRD-146)</td><td>runs with <code>tokens_scope: "none"</code> or no scope — no token numbers exist for them</td><td><code>measured on n of N runs</code> on every token tile</td></tr>
+<tr><td><strong>Fan-out observation</strong> (BRD-147)</td><td>runs whose window was not <code>tree</code> scope, split <strong>two ways</strong>: <code>unobserved_not_tree</code> (<em>we did not look</em>) and <code>unobserved_predates_field</code> (<em>we could not have looked</em> — written before 2026-08-31)</td><td><code>observed_n of runs</code> <strong>first</strong>, numbers second; <code>observed_n == 0</code> reads <strong>"not observed"</strong></td></tr>
+<tr><td><strong>Playbook completeness</strong> (BRD-155, BRD-161)</td><td><code>complete:false</code> / EOF windows from duration figures; <code>active_coverage != "complete"</code> from active-time comparisons; <code>data_quality.valid:false</code> from every numeric aggregate</td><td><code>n of N eligible</code> beneath each card; incomplete rows stay visible in the table</td></tr>
+</tbody>
+</table>
+<p>The fan-out bound is the one most likely to be got wrong, <strong>and it fails silently</strong>. A <code>main</code>-scope window never read the subagent transcripts at all, so <code>subagent_runs</code> is absent — and a consumer that coerces that to <code>0</code> reports <em>"this phase spawns no subagents"</em> when the truth is <em>"we did not look."</em> Pooling the two produces a confident fan-out average largely composed of runs that could not have seen a subagent. On today's framework data the honest headline is <strong>1 of 13 runs observed</strong>, which is why the KPI row carries fan-out <strong>coverage</strong> rather than a fan-out average.</p>
+<p><strong>Three timing concepts that must never substitute for one another</strong> (BRD-156), from the Playbook contract:</p>
+<table>
+<thead><tr><th>Concept</th><th>What it means</th><th>Summable?</th></tr></thead>
+<tbody>
+<tr><td><strong>Wall-clock elapsed</strong></td><td>how long the command window stayed open</td><td>across non-overlapping executions</td></tr>
+<tr><td><strong>Observed active time</strong></td><td>the <strong>union</strong> of assistant-message and tool intervals across main and child sessions; overlapping and nested work counted <strong>once</strong></td><td>across non-overlapping executions</td></tr>
+<tr><td><strong>Human effort</strong></td><td>time a person spent reading, deciding, waiting, reviewing</td><td><strong>never captured, never inferred</strong></td></tr>
+</tbody>
+</table>
+<p><code>assistant_elapsed_ms</code> and <code>tool_elapsed_ms</code> are diagnostic sums that legitimately overlap — an assistant envelope can contain tool execution — so the producer unions the intervals and TfLens <strong>never adds the components</strong>. Observed active time is busy wall time and is never labelled human effort, CPU time, utilization or additive compute.</p>
+<p><strong>Command phase, not conceptual phase</strong> (BRD-157). The Playbook's <code>phase</code> field is the slash command, and one command can contain several lifecycle stages — <code>/implement</code> covers build <em>and</em> self-review, <code>/verify</code> covers verify <em>and</em> the results gate. TfLens labels the dimension <strong>Command phase</strong> and never splits one window between conceptual phases by token proportion. The same producer has <strong>no trustworthy cross-command task identity</strong>, so a whole-task total requires an explicit cohort (repository + checklist + the exact execution IDs or time boundary) supplied by ingestion; a reused <code>session_id</code> is <strong>not</strong> sufficient, because one session may execute several tasks, and inferring a cohort from it would group unrelated work under a confident total.</p>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Phase effort (TechieFlow)</td><td><code>/effort</code></td><td>KPI row (runs · wall clock · output tokens with <code>measured on n of N</code> · heaviest phase · <strong>fan-out coverage</strong>) · phase table one row per <code>cmd</code> sorted by output share, with <code>Measured</code> as a <strong>column</strong> · expandable per-phase detail (Time · Tokens with mean beside median · By model · Fan-out with the declared-vs-measured line) · routing band · Framework switch</td><td><a href="./mockups/effort.html">effort.html</a></td></tr>
+<tr><td>Phase efficiency (Playbook)</td><td><code>/effort</code></td><td>Summary cards (completed phases · median &amp; p90 wall clock · complete-coverage active time with <code>n of N eligible</code> · five-part token breakdown · measured cost, with rate-card estimates on a <strong>separate</strong> card · <code>contributors / spawned</code> · data-quality cards) · charts · execution table with expandable per-model usage, subagent tree and data-quality explanations · filters · empty &amp; unsupported states</td><td><a href="./mockups/effort-playbook.html">effort-playbook.html</a></td></tr>
+</tbody>
+</table>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart TB
+  A["runs.jsonl (TechieFlow)"] --&gt; B{"tokens_scope?"}
+  B --&gt;|"none / absent"| C["tokens_unmeasured_n&lt;br/&gt;excluded, NEVER counted as zero"]
+  B --&gt;|"main / conversation"| D["token figures OK&lt;br/&gt;fan-out: unobserved_not_tree"]
+  B --&gt;|"tree"| E{"subagent_runs present?"}
+  E --&gt;|"no (pre 2026-08-31)"| F["fan-out: unobserved_predates_field"]
+  E --&gt;|"yes"| G["fanout.observed_n&lt;br/&gt;the DENOMINATOR, shown first"]
+  H["phase-metric NDJSON (Playbook, schema 2)"] --&gt; I{"data_quality.valid?"}
+  I --&gt;|"false"| J["QUARANTINE&lt;br/&gt;zero-valued totals never aggregate"]
+  I --&gt;|"true"| K{"complete?"}
+  K --&gt;|"false (eof)"| L["no elapsed, no duration figure&lt;br/&gt;visible in the table"]
+  K --&gt;|"true"| M{"active_coverage?"}
+  M --&gt;|"partial / unavailable"| N["lower bound only&lt;br/&gt;excluded from comparisons"]
+  M --&gt;|"complete"| O["eligible for active-time comparison"]
+  D --&gt; P["/effort — every figure beside its denominator"]
+  G --&gt; P
+  O --&gt; P
+  L --&gt; P
+  N --&gt; P</pre>
+</div>
+<p><strong>What this page is not.</strong> Effort per phase is a <strong>budgeting and capacity</strong> view, not a quality scoreboard — quality lives on <code>/misses</code> and <code>/coverage</code>. <code>*build-phase</code> costing more than <code>*log-miss</code> is a fact about what those phases <em>are</em>, not evidence that one is inefficient, and the page must not frame it as such (BRD-169). Nor is there a per-REQ effort view, per-subagent detail, or an estimated dollar anywhere on it.</p>
+<p><strong>Workflow:</strong></p>
+<ol>
+<li><strong>TechieFlow:</strong> the ordinary sync fetches <code>runs.jsonl</code> at the pinned SHA; the parser stores the three §2.6 fields as <strong>nullable</strong> (BRD-145) and an unrecognised producer field goes to <code>Overflow</code>, never to <code>InvalidLines</code> — §2.5 added fields in August, §2.6 added more, and it will happen again.
+</li>
+<li><strong>Playbook:</strong> the user runs the framework's own exporter and uploads its stdout through <strong>Import metric files</strong> (BRD-153); <code>TelemetryImportService</code> recognises the two new entries, archives the bytes verbatim, and hands them to the same parser — no second ingest path (BRD-132).
+</li>
+<li><code>PhaseMetrics</code> groups TechieFlow runs by <code>cmd</code> and applies the three denominators; the Playbook adapter validates the §3.1 invariants, quarantines invalid rows, and aggregates <code>phase_model_usage</code> for anything per-model.
+</li>
+<li><code>/effort</code> renders both axes behind the Framework switch; the export writes an <code>effort</code> section; <code>parity-compare.py</code> diffs the whole <code>phases</code> block against the oracle (BRD-152).
+</li>
+</ol>
+<p><strong>Requirements:</strong> BRD-145, BRD-146, BRD-147, BRD-148, BRD-149, BRD-150, BRD-151, BRD-152, BRD-153, BRD-154, BRD-155, BRD-156, BRD-157, BRD-158, BRD-159, BRD-160, BRD-161, BRD-162, BRD-163, BRD-168, BRD-169</p>
+<h3 id="f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)<a class="anchor-link" href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">#</a></h3>
+<p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 3 <em>(amended 2026-08-26: replaces "F-PB: Playbook adapter and page")</em></p>
+<p>TfLens is a lens over <strong>both</strong> frameworks. The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data deserves the same reports as TechieFlow data — not a single page. <strong>Framework</strong> is therefore a third provenance axis beside live/backfilled and <code>project_type</code>: every report page (Coverage, Gate outcomes, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong>, <strong>Phase effort</strong> and Snapshot export) carries a <strong>Framework switch</strong> (TechieFlow | Playbook) in the header, and no figure ever pools across frameworks — the same rule, applied once more. The single <code>/playbook</code> page is retired; its content becomes the Playbook state of the report pages.</p>
+<p><em>Amended 2026-09-01.</em> The Playbook is <strong>no longer a schema-discovery problem</strong>. It now publishes two normalized producer contracts — a schema-2 <code>phase-metric</code> record (<code>docs/Phase-Efficiency-TfLens-Contract.md</code>) and a normalized miss export (<code>docs/Miss-Telemetry-TfLens-From-AIFP.md</code>) — both emitted as NDJSON on the exporter's <strong>stdout</strong>, with diagnostics on stderr. That changes what path 2 below actually is, and it changes what the Playbook axis of <code>/misses</code> shows: real figures where the Playbook emits them, not a blanket empty state (BRD-167). What does <strong>not</strong> change is the axis separation: Playbook <code>item_id</code> and TechieFlow <code>req_id</code> are two names for the requirement axis, and Playbook process <code>found_phase_gate</code> and TechieFlow assertion <code>found_gate</code> are two genuinely different measurements — neither pair ever shares a column or a chart (BRD-165), for the same reason <code>phase_gate</code> and <code>gate</code> never have.</p>
+<p>Two ingestion paths, one set of pages:</p>
+<ol>
+<li><strong>Schema v1 streams from a Playbook repo.</strong> SCHEMA.md §11 says the Playbook will emit the same four streams (plus <code>actor</code>) when it grows agents. A repo whose telemetry path is <code>docs/metrics/</code> flows through the <em>same</em> parser, engine and pages automatically, tagged <code>framework: playbook</code> at connect time — zero new code beyond the tag and the switch.
+</li>
+<li><strong>The Playbook's own normalized exports</strong> (rewritten 2026-09-01). <code>verification/telemetry/events.ndjson</code> is <strong>transient and rotates</strong> — it is the exporter's input, not TfLens's. What TfLens consumes is the exporter's normalized stdout: schema-2 <code>phase-metric</code> rows (→ three tables, <code>PbPhaseExecution</code> / <code>PbPhaseModelUsage</code> / <code>PbPhaseSubagent</code>, BRD-154) and normalized <code>miss</code> / <code>miss-fix</code> / <code>miss-amend</code> rows (→ the <strong>existing</strong> three miss tables, with the Playbook axes as their own nullable columns, BRD-164). Because the file rotates, TfLens cannot fetch it on a schedule and must not ask the Playbook to commit it, so it arrives through <strong>Import metric files</strong> (BRD-153) — the mode that already exists for exactly this shape of problem. Playbook-native equivalents still cover the three questions per <strong><code>phase_gate</code></strong> (plan review · verify · gap report · post-verification bugs), phase token/cost totals, main-vs-subagent split and routing/tokens by model. Playbook process-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or a chart (SCHEMA.md §11). Schema discovery is <strong>satisfied for these two record types</strong> — the contracts document every field — and remains open only for anything the exporter does not yet normalize. When the Playbook converges on schema v1, path 2 shrinks to nothing.
+</li>
+</ol>
+<p>Phase order (owner decision 2026-08-26): Phase 3 — after the TechieFlow reports ship and pass parity. Until then the Playbook state of each page shows the "No Playbook data yet" empty state.</p>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Framework switch</td><td>(header, every report page)</td><td>Segmented control TechieFlow / Playbook; persisted per user; badge with each framework's repo count</td><td><a href="./mockups/coverage.html">coverage.html</a> (header)</td></tr>
+<tr><td>Report pages — Playbook state</td><td><code>/</code>, <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code>, <code>/misses</code>, <code>/effort</code>, <code>/export</code></td><td>Same layouts as the TechieFlow state; Gate outcomes keyed by <code>phase_gate</code>; Coverage shows the imported Playbook streams; <code>/misses</code> and <code>/effort</code> render real figures where the Playbook emits them (BRD-162, BRD-167), empty state elsewhere</td><td><a href="./mockups/playbook.html">playbook.html</a> (Coverage) · <a href="./mockups/gate-outcomes-playbook.html">gate-outcomes-playbook.html</a> · <a href="./mockups/harness-playbook.html">harness-playbook.html</a> · <a href="./mockups/routing-playbook.html">routing-playbook.html</a> · <a href="./mockups/misses-playbook.html">misses-playbook.html</a> · <a href="./mockups/effort-playbook.html">effort-playbook.html</a> · <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
+</tbody>
+</table>
+<div class="diagram">
+  <div class="dt">
+    <button data-zout title="Zoom out">&minus;</button>
+    <span class="zlabel">100%</span>
+    <button data-zin title="Zoom in">+</button>
+    <button data-fit title="Fit to width">Fit</button>
+    <button data-one title="Actual size">1:1</button>
+    <button data-fs title="Fullscreen">&#9166;</button>
+    <button data-pop title="Open in new tab">&#8599;</button>
+  </div>
+  <pre class="mermaid">flowchart LR
+  A["Connected repo"] --&gt; B{"Telemetry path?"}
+  B --&gt;|"docs/metrics (schema v1)"| C["StreamParser + MetricsEngine&lt;br/&gt;framework tag = techieflow or playbook"]
+  B --&gt;|"verification/telemetry/events.ndjson"| D["PlaybookAdapter (Phase 3)&lt;br/&gt;PbEvent tables, phase_gate axis"]
+  C --&gt; E["Report pages&lt;br/&gt;Framework switch"]
+  D --&gt; E
+  E --&gt; F["Never pooled across frameworks"]</pre>
+</div>
+<p><strong>Workflow:</strong></p>
+<ol>
+<li>Connect detects the path → tags the repo <code>framework</code> (F-REPOS).
+</li>
+<li>Sync archives raw and parses via the matching path.
+</li>
+<li>Every page filters by the selected framework; export writes one snapshot per framework.
+</li>
+</ol>
+<p><strong>Requirements:</strong> BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110, BRD-126, BRD-153, BRD-162, BRD-163, BRD-165, BRD-167</p>
+<h2 id="requirements">5. Requirements<a class="anchor-link" href="#requirements">#</a></h2>
+<ul>
+<li><a id="brd-73"></a><strong>BRD-73</strong> — System shall fetch <code>verification/telemetry/events.ndjson</code> (and the joiner output if committed) for Playbook repos that carry it, archive raw, and parse into separate <code>PbEvent</code> tables with overflow. <strong>Amended 2026-09-01:</strong> <code>events.ndjson</code> is the Playbook exporter's <strong>transient</strong> input — it rotates by design and is frequently absent — so it is a best-effort fetch, never a required one, and its absence is never an error nor a zero-valued run. The Playbook's durable, normalized inputs are the exporter's stdout (schema-2 <code>phase-metric</code> rows, BRD-153) and its committed <code>misses.ndjson</code>, and TfLens never runs the exporter itself. <em>(F-FRAMEWORK — amended 2026-08-26, 2026-09-01)</em>
+</li>
+<li><a id="brd-74"></a><strong>BRD-74</strong> — System shall keep Playbook <code>phase_gate</code> data in separate tables and charts from TechieFlow <code>gate</code> data — never a shared column or chart. <em>(F-FRAMEWORK)</em>
+</li>
+<li><a id="brd-75"></a><strong>BRD-75</strong> — User can see, in the Playbook state of the report pages, the Playbook-native three questions per <code>phase_gate</code>, phase token/cost totals, the main-vs-subagent split via <code>parentID</code>, and routing/tokens where present. <em>(F-FRAMEWORK — amended 2026-08-26; replaces the single <code>/playbook</code> page)</em>
+</li>
+<li><a id="brd-76"></a><strong>BRD-76</strong> — System shall record the observed <code>events.ndjson</code> field names in DECISIONS.md before the adapter's columns are fixed (schema-discovery first). <em>(F-FRAMEWORK)</em>
+</li>
+<li><a id="brd-109"></a><strong>BRD-109</strong> — System shall run a Playbook repo that emits schema v1 streams (<code>docs/metrics/*.jsonl</code>) through the same parser, engine and pages as TechieFlow repos, tagged <code>framework: playbook</code> at connect time. <em>(F-FRAMEWORK)</em>
+</li>
+<li><a id="brd-110"></a><strong>BRD-110</strong> — System shall produce Playbook-native equivalents of the full report set (three questions per <code>phase_gate</code>, phase totals, main-vs-subagent split, routing/tokens where present, snapshot export) from separate tables — Phase 3. <strong>Amended 2026-09-01:</strong> this is <strong>no longer schema-discovery-first</strong> for the two record types the Playbook now normalizes — schema-2 <code>phase-metric</code> (BRD-153..BRD-163) and the miss export (BRD-164..BRD-167) have published field lists, invariants and reporting guards, so their columns are fixed from the contract rather than from a first parse. Schema discovery, and its DECISIONS.md record (BRD-76), remain required only for anything the exporter does not yet normalize. <em>(F-FRAMEWORK — amended 2026-09-01)</em>
+</li>
+</ul>
+<h3 id="amendment-2026-08-28-miss-telemetry-and-rework-economics">Amendment 2026-08-28 — miss telemetry and rework economics<a class="anchor-link" href="#amendment-2026-08-28-miss-telemetry-and-rework-economics">#</a></h3>
+<p><em>Source: <code>docs/Miss-Telemetry-TfLens.md</code> (and its sibling <code>docs/Miss-Telemetry-TechieFlow.md</code>, the producing side, which shipped 2026-08-28). All Phase 3. Nothing above is renumbered; BRD-101's purge clause and BRD-17's per-stream counts are generic and already reach the new tables and the fifth stream.</em></p>
+<ul>
+<li><a id="brd-112"></a><strong>BRD-112</strong> — System shall fetch, archive raw and parse a fifth TechieFlow stream, <code>docs/metrics/misses.jsonl</code>, on the same SHA-skip / whole-file / 404-means-absent contract as the other four; a repo that does not emit it produces an empty stream row, never an error, and no coordination window is needed in either deploy order. <em>(F-MISS, F-SYNC)</em>
+</li>
+<li><a id="brd-113"></a><strong>BRD-113</strong> — System shall dispatch on each record's own <code>kind</code> <strong>within</strong> the <code>misses</code> stream — <code>miss</code> → <code>MissRecord</code>, <code>miss-fix</code> → <code>MissFixRecord</code>, <code>miss-amend</code> → <code>MissAmendRecord</code>, <strong><code>review</code> → <code>MissReviewRecord</code></strong> (SCHEMA §5.5.9, added 2026-09-07) — and shall count-and-skip any other <code>kind</code> as an invalid line, never throwing; a malformed miss record shall never fail a sync. <strong>Amended 2026-09-08:</strong> a <code>review</code> record is a <strong>fourth kind, not a miss</strong> — it shall never be counted, charted or filtered as one, and it shall never fall through to <code>InvalidLines</code>, which is what an unamended dispatch would do to every review record in the stream. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><a id="brd-114"></a><strong>BRD-114</strong> — System shall dedupe the three kinds on their natural keys per user and repo — <code>miss</code> on <code>(MissId)</code> keeping the <strong>earliest</strong> <code>Ts</code>, <code>miss-fix</code> on <code>(MissId, FixRunId)</code> keeping the latest, <code>miss-amend</code> on <code>(MissId, Field, Ts)</code> keeping the earliest — so that re-parsing an archived file or replaying it during rebuild never double-inserts. <strong>Amended 2026-09-08:</strong> <code>review</code> dedupes on <strong><code>(ReviewPhase, ProducedRunId)</code></strong> keeping the earliest <code>Ts</code> — the run whose output was reviewed is the one thing a review record cannot be written twice about, and re-reading an archived file must not double-count a phase's corrections or double-charge its cost. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><a id="brd-115"></a><strong>BRD-115</strong> — System shall store the stream in <strong>four</strong> tables (<code>Miss</code>, <code>MissFix</code>, <code>MissAmend</code>, <strong><code>MissReview</code></strong>) in the existing house style (<code>UserId</code> a real column and part of every unique index, <code>CREATE TABLE IF NOT EXISTS</code>), and <code>DeleteRepoDataAsync</code> shall purge <strong>all four</strong> — a repo removal that leaves rows behind would reappear in every figure. <strong>Amended 2026-09-08:</strong> <code>MissReview</code> carries the review phase (<code>day1-review</code>, <code>build-review</code>, <code>verify-review</code>, <code>handoff-review</code>), the corrections count, the two run ids the record names, and the two cost figures <strong>as the emitter copied them</strong>; it is a sibling of the other three and not a column on <code>Miss</code>, because a review is about a phase's output and not about any one miss. <em>(F-MISS, F-RAW, F-PARSE)</em>
+</li>
+<li><a id="brd-116"></a><strong>BRD-116</strong> — System shall fold <code>miss-amend</code> records into their parent <strong>at read time, never at ingest</strong> — oldest first, re-applying the null-check while folding (a merged stream can carry an amend and a later-written value in either order), applying only fields on the allowlist with values inside their closed vocabulary. An amend naming no known <code>miss</code>, or carrying a field off the allowlist, is an <strong>orphan</strong>: counted and surfaced on Coverage, never applied. <code>rebuild</code> shall re-derive identical values. <strong>Amended 2026-09-08:</strong> the allowlist gains the two fields added on 2026-09-07 — <strong><code>sort</code></strong> (closed vocabulary: <code>spec</code>, <code>unsaid</code>, <code>weak-check</code>, <code>ignored</code>) and <strong><code>what</code></strong> (free prose, no vocabulary to close, so validated only as non-empty text). Most amendments in the estate today complete <code>sort</code> on records written before the field existed, which is exactly the case this clause was written for; an amend carrying a <code>sort</code> value outside the four is an orphan like any other and is never coerced to the nearest one. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-117"></a><strong>BRD-117</strong> — System shall enforce an eligibility floor per optional field (<code>FIELD_SINCE</code>, <code>why_missed</code> since 2026-08-28, <strong><code>sort</code> and <code>what</code> since 2026-09-07</strong>) in the same code path as the existing <code>LATE_GATES</code> rule: a miss written before the field existed leaves that field's denominator entirely and is reported separately as <code>&lt;field&gt;_eligible</code> / <code>&lt;field&gt;_predates_field</code>. <strong>Amended 2026-09-08:</strong> registering <code>sort</code> and <code>what</code> in <code>FIELD_SINCE</code> is what makes BRD-172's honest denominator automatic rather than hand-written — the floor is declared once, in data, and every figure built on either field inherits it. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-118"></a><strong>BRD-118</strong> — Owner can see, per <code>project_type</code> and live-only: miss class distribution, design-miss share (<code>unspecified-gap</code> ÷ all), escape share of misses (<code>FoundBy ∈ {owner, production}</code> ÷ all), miss rate per origin phase, and median time-to-close. The miss-stream escape share is rendered <strong>beside</strong> the existing <code>gates</code>-derived escape rate and never merged into it — escape rate keeps its definition and its source. <em>(F-MISS)</em>
+</li>
+<li><a id="brd-119"></a><strong>BRD-119</strong> — Owner can see the <strong>failed-practice distribution</strong> (<code>WhyMissed</code>: <code>missing-checklist-item</code> · <code>insufficient-verify-method</code> · <code>code-audit-limitation</code> · <code>ambiguous-acceptance</code> · <code>dependency-not-declared</code> · <code>instruction-ignored</code> · <code>other</code>) whose denominator is <strong>records that carry the field</strong>, printed as <code>n of N misses assessed</code> on its face; <code>null</code> means <em>not assessed</em> and shall never be coerced into a bucket. <em>(F-MISS)</em>
+</li>
+<li><a id="brd-120"></a><strong>BRD-120</strong> — Owner can see <strong>open misses</strong> (latest <code>MissFix.VerdictAfter ∉ {Verified, wont-fix}</code>; <code>deferred</code> stays open) and <strong>declined misses</strong> (<code>wont-fix</code>) as two separate figures; the system shall never fold <code>wont-fix</code> into open, and shall never reconcile this predicate with the producer's collapse check — they ask different questions and agreeing would break one of them. <em>(F-MISS)</em>
+</li>
+<li><a id="brd-121"></a><strong>BRD-121</strong> — System shall compute every per-origin-phase, per-origin-model and per-origin-agent figure from <code>OriginConfidence == "linked"</code> records only (<code>MissAttributionTaint</code>, a sibling of <code>TaintSet</code>), and shall display how many misses were excluded and why — an exclusion the reader cannot see is indistinguishable from a bug. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-122"></a><strong>BRD-122</strong> — System shall return every miss token/cost figure as a result type that carries the attribution split — <code>MissCost(Figure Sole, Figure Apportioned, int NoneCount)</code> — so that a page binding it <strong>cannot render a blended number, because no such property exists</strong>. Headline cost-per-miss is computed over <code>CostAttribution == "sole"</code> only; <code>none</code> (including the deliberate <code>log-miss --fixed</code> path that omits <code>fix_run_id</code>) is a count, never a divisor. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-123"></a><strong>BRD-123</strong> — Owner can see the money answer per harness with no new machinery: <strong>measured USD</strong> from <code>CostUsd</code> for OpenCode (the only measured dollars in the product), and <strong>tokens as the primary figure</strong> for Claude Code and Codex with USD only via <code>RateCard</code>, carrying <code>RateCard.EstimateLabel</code> on its face and a <code>_usd_estimate</code> key in every export. The estimate tile shall be visually distinct from the measured tile — never the same row, never the same styling. <em>(F-MISS, F-ROUTE)</em>
+</li>
+<li><a id="brd-124"></a><strong>BRD-124</strong> — User can open <strong><code>/misses</code> — "Misses &amp; rework"</strong>, a sixth report page and a nav item between Routing and Snapshot export, laid out in four bands: KPI row (open · declined · misses this period · design-miss share · escape share · tokens on rework · measured USD on rework) · <strong>where misses come from</strong> (origin phase × miss class with the excluded-attribution count beneath, beside the failed-practice distribution) · <strong>who was running</strong> (origin model and origin agent, <code>linked</code> only, taint count visible, band labelled <strong>observational</strong> in standing copy because miss counts per model are confounded by which model gets the hard work) · <strong>cost of rework</strong> (<code>MissCost</code> rendered as shaped). A per-miss detail table (id · REQ · class · severity · origin · found by · status · tokens) puts the raw record behind a disclosure. <em>(F-MISS)</em>
+</li>
+<li><a id="brd-125"></a><strong>BRD-125</strong> — The <code>/misses</code> page shall default to <strong>all history</strong>, with a period filter that narrows the view but does not gate the first one — miss counts are low-volume and a default period would routinely render <code>insufficient data (n=…)</code> on a page whose whole job is to show a trend. <em>(F-MISS)</em>
+</li>
+<li><a id="brd-126"></a><strong>BRD-126</strong> — <code>/misses</code> shall carry the header Framework switch like every other report page and shall show the <code>PlaybookEmpty</code> state on the Playbook axis until the Playbook emits miss data; the switch is rendered, never hidden, for a surface one framework has and the other does not. <strong>Amended 2026-09-01:</strong> the Playbook <em>does</em> now emit miss data, so the empty state is no longer the permanent condition of that axis — it is what shows when no Playbook miss records have been imported for the signed-in user. Where they have, the axis renders real figures (BRD-167). <em>(F-MISS, F-FRAMEWORK — amended 2026-09-01)</em>
+</li>
+<li><a id="brd-127"></a><strong>BRD-127</strong> — Owner can see, on Coverage: the per-repo stream table with <strong>five</strong> rows; <code>escapes_missing_why</code> (escapes arriving with no <code>WhyMissed</code> — a data-quality figure, stated here and never on the <code>/misses</code> KPI row); the <strong><code>project_type</code> reclassification split</strong> stated in words whenever a repo's current classification disagrees with its own stored records, each segment described as a <em>period</em> of the project rather than as the whole of it; and the orphan <code>miss-fix</code> / <code>miss-amend</code> counts. A repo emitting misses with no <code>miss-fix</code> records at all is a <strong>warning, not an error</strong>. <strong>Amended 2026-09-08:</strong> Coverage gains <strong>two field-completeness counts</strong> — misses carrying no <code>sort</code> and misses carrying no <code>what</code> — each stated per repo <strong>as a count against that repo's eligible misses</strong>, never as a health failure. Both are large today and will stay large: across the estate <strong>286 of 359 misses carry no <code>sort</code></strong>, and on TfLens's own repository the figure is every record it has. That is a field arriving after the records did, which is why the count belongs on the data-quality page beside the other provenance facts and <strong>never on the <code>/misses</code> KPI row</strong>. <em>(F-MISS, F-COVER)</em>
+</li>
+<li><a id="brd-128"></a><strong>BRD-128</strong> — System shall write a <code>misses</code> section into both export files; the attribution split shall survive into the JSON as <strong>three distinct keys</strong>, never collapsed for tidiness, and every rate-card figure's key shall end <code>_usd_estimate</code> while measured ones do not. <em>(F-MISS, F-EXPORT)</em>
+</li>
+<li><a id="brd-129"></a><strong>BRD-129</strong> — Parity shall cover the miss figures key-for-key against <code>tf-metrics.sh --rollup --json</code>'s <code>misses</code> block (<code>misses_total</code> · <code>miss_fixes_total</code> · <code>orphan_fixes</code> · <code>open_misses</code> · <code>wont_fix</code> · <code>resolved_misses</code> · <code>why_missed_n</code> · <code>why_missed{}</code> · <code>escapes_missing_why</code> · <code>why_missed_eligible</code> · <code>why_missed_predates_field</code> · <code>amendments_applied</code> · <code>orphan_amends</code> · <code>class_distribution{}</code> · <code>found_by{}</code> · <code>design_miss_share</code> · <code>escape_share</code> · <code>attributed_n</code> · <code>attribution_excluded</code> · <code>by_origin_phase{}</code> · <code>by_origin_model{}</code> · <code>by_origin_agent{}</code> · <code>cost_sole_n</code> · <code>cost_shared_n</code> · <code>cost_unattributable_n</code> · <code>tokens_per_miss_measured</code> · <code>tokens_per_miss_apportioned</code> · <code>cost_usd_per_miss_measured</code> · <code>cost_usd_records</code>) — the oracle already ships them, so no miss figure ships marked unverified. <em>(F-MISS, F-PARITY)</em>
+</li>
+<li><a id="brd-130"></a><strong>BRD-130</strong> — Integrity: the miss invariants shall have no configuration switch, no query parameter and no UI toggle that relaxes them — no blended measured-and-apportioned cost anywhere (page, export or parity); no per-model or per-agent figure computed from <code>inferred</code> attributions, and no hidden exclusion count; no <code>WhyMissed</code> distribution rendered over all misses; no <code>wont-fix</code> folded into open; no rate-card dollars presented as spend; no miss record folded into the existing <code>gates</code>-derived escape rate. <em>(F-MISS — the NFR sibling of BRD-89)</em>
+</li>
+</ul>
+<h3 id="amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">Amendment 2026-08-28 (round 2) — imported telemetry: private and corporate repos<a class="anchor-link" href="#amendment-2026-08-28-round-2-imported-telemetry-private-and-corporate-repos">#</a></h3>
+<p><em>Owner decision the same day: <strong>fold this into the Repos screen</strong> rather than give it a screen of its own, so the two ways of adding a source sit side by side in one dialog and the demarcation is visible in one grid. No new nav item, no new route. All Phase 3.</em></p>
+<ul>
+<li><a id="brd-131"></a><strong>BRD-131</strong> — User can choose, in the first step of the Add-source dialog on <code>/repos</code>, between <strong>Fetch via API</strong> (public repos — the existing path, BRD-99) and <strong>Import metric files</strong> (any repo, including <strong>private and corporate</strong> ones). The mode is a deliberate, visible fork, not a fallback the user discovers after a failure — and BRD-100's refusal of a private repo offers the switch inline. <em>(F-REPOS)</em>
+</li>
+<li><a id="brd-132"></a><strong>BRD-132</strong> — System shall record the mode on the source row as <code>SourceKind</code> (<code>api</code> | <code>import</code>) and surface it as a <strong>Source</strong> column on <code>/repos</code> (<code>Synced</code> / <code>Imported</code> badge) — one column, after which every downstream path (per-user isolation, raw archive, parser, dedupe, engine, cache, export) is unchanged and shared. There shall be <strong>no second ingest code path</strong>. <em>(F-REPOS)</em>
+</li>
+<li><a id="brd-133"></a><strong>BRD-133</strong> — In import mode, user can upload a <code>.zip</code> of a telemetry directory (<code>docs/metrics/</code> for TechieFlow, <code>verification/telemetry/</code> for the Playbook) <strong>or</strong> loose <code>.jsonl</code> / <code>.ndjson</code> files, exactly as the frameworks already write them to disk; system shall archive the bytes <strong>verbatim before parsing</strong> them and shall then run the identical parser, dedupe and engine. <strong>Neither framework is asked to add an export command</strong> — TfLens accepts what already exists. <em>(F-REPOS, F-RAW)</em>
+</li>
+<li><a id="brd-134"></a><strong>BRD-134</strong> — System shall compute a <strong>sha256 of the uploaded bundle</strong> and use it as that source's dataset identity wherever a fetched source uses its commit SHA — the raw-archive filename, the Coverage row, the export's <code>per_repo</code> block, and the dataset the parity operator pins (BRD-70, §13). For an imported source this is <em>stronger</em> than a commit SHA: the operator runs <code>tf-metrics.sh</code> against the identical bytes rather than re-cloning and trusting the result matched. <em>(F-REPOS, F-PARITY)</em>
+</li>
+<li><a id="brd-135"></a><strong>BRD-135</strong> — Re-import shall be idempotent: the streams' natural keys already collapse duplicates (BRD-26..BRD-28, BRD-114), so a user may re-upload the same bundle, or a later superset of it, without double-counting; the system shall report records added and duplicates collapsed per stream, exactly as a rebuild does. An imported source's row action is <strong>Re-import</strong>, never a Sync button that would do nothing. <em>(F-REPOS)</em>
+</li>
+<li><a id="brd-136"></a><strong>BRD-136</strong> — System shall <strong>display source origin everywhere and pool on it nowhere</strong>: a <code>Synced</code> / <code>Imported</code> badge per source on <code>/repos</code> and Coverage, and a <code>source_kind</code> key in the export's per-repo block. Origin is a property of <em>delivery</em>, not of the data — a record's <code>backfilled</code>, <code>project_type</code>, <code>harness</code> and <code>origin_confidence</code> fields mean the same thing whichever way the line arrived — so it is <strong>not</strong> a fifth segmentation axis and never divides a figure. This is the same discipline as the taint counts: shown, never hidden, never a divider. <em>(F-REPOS, F-ENGINE)</em>
+</li>
+<li><a id="brd-137"></a><strong>BRD-137</strong> — Coverage shall read staleness differently for an imported source: <strong>days since import</strong>, with the words <em>"this source can't refresh itself — re-import to update"</em>, so a snapshot never reddens the health badge merely for being a snapshot; the hook/pushing diagnosis (BRD-41) applies only to fetched sources, where it is meaningful. <em>(F-COVER)</em>
+</li>
+<li><a id="brd-138"></a><strong>BRD-138</strong> — System shall <strong>preview before it commits</strong>: after unpacking, the dialog shall show records per stream, the date range, invalid lines, unknown field names and the bundle sha256, and shall write nothing until the user presses Import. A malformed or empty bundle is reported in the preview and never partially ingested. <em>(F-REPOS)</em>
+</li>
+<li><a id="brd-139"></a><strong>BRD-139</strong> — The upload surface shall be bounded and is the <strong>only</strong> inbound path: authenticated and per-user; <code>.zip</code>, <code>.jsonl</code> and <code>.ndjson</code> only; a size cap (25 MB) enforced before reading; archive extraction safe against path traversal and archive bombs (entry-count and uncompressed-size limits, no absolute or <code>..</code> paths, no symlinks); nothing in an upload is ever executed, rendered as HTML, or written outside <code>data/raw/&lt;userId&gt;/</code>; there shall be <strong>no unauthenticated endpoint and no machine-to-machine ingest API</strong> (§3). <em>(F-REPOS, F-OPS)</em>
+</li>
+<li><a id="brd-140"></a><strong>BRD-140</strong> — System shall <strong>refuse a precomputed rollup</strong> — <code>tf-metrics.sh --rollup --json</code> output, a <code>tflens.json</code>, or an exported snapshot — with an explicit message naming what to upload instead. TfLens computes every figure at request time from raw records (BRD-30); importing conclusions rather than evidence would let a plausible wrong number in through the front door, which is the one failure this product exists to prevent. <em>(F-REPOS, F-ENGINE)</em>
+</li>
+<li><a id="brd-141"></a><strong>BRD-141</strong> — Removing an imported source shall purge its parsed rows in every stream table and its raw archive exactly as BRD-101 does for a fetched one; no import-only cleanup path shall exist. <em>(F-REPOS)</em>
+</li>
+</ul>
+<p><strong>Why this is a requirement and not a preference.</strong> On 2026-08-29 the owner compared all 18 mockups against the running app and found structural drift on <strong>13 of the 14 comparable screens</strong>, against a checklist that read 145 <code>Verified</code>. Every one of those screens had passed acceptance, the data-render gate and the visual-truth gate — because <strong>no gate compared a built screen to its approved design</strong>. Render-truth asks <em>does the control show data?</em>; visual-truth asks <em>do controls overlap or leave the viewport?</em> A badge rendered as plain text has text and does not overlap; a header that wraps to two rows does not overlap; a 71px value column that splits <code>2,287,975,139</code> across three lines does not overlap; a missing icon is nothing to measure. All of them pass, and all of them are wrong. The gate set measured <strong>liveness, not fidelity</strong> — the same shape as the asset-integrity gap found one day earlier (BRD-140's sibling, <code>REQ-NFR-015</code>). Recorded as <code>REQ-NFR-020</code>; raised upstream against the framework as <code>TF-008</code>.</p>
+<h3 id="amendment-2026-09-01-phase-effort-and-efficiency-from-both-frameworks">Amendment 2026-09-01 — phase effort and efficiency, from both frameworks<a class="anchor-link" href="#amendment-2026-09-01-phase-effort-and-efficiency-from-both-frameworks">#</a></h3>
+<p><em>Sources: <code>docs/Phase-Effort-Telemetry-TfLens.md</code> (TechieFlow — producer shipped 2026-08-31: <code>runs.jsonl</code> §2.6 plus the <code>--phases</code> oracle), <code>docs/Phase-Efficiency-TfLens-Contract.md</code> (AI-First-Playbook — schema-2 <code>phase-metric</code>, producer implemented) and <code>docs/Miss-Telemetry-TfLens-From-AIFP.md</code> (AI-First-Playbook — normalized miss export, producer implemented). A fourth source, <code>docs/Miss-Telemetry-TfLens.md</code>, was re-read during this amendment and required <strong>no change</strong>: every clause of it is already owned by BRD-112..BRD-130.</em></p>
+<p><em>All Phase 3. New feature <strong>F-EFFORT</strong>. Nothing is renumbered and nothing is removed; BRD-5 / BRD-23 / BRD-29 / BRD-73 / BRD-108 / BRD-110 / BRD-126 are amended in place. Two owner decisions were taken at the confirmation gate and are recorded as ADR-023 and ADR-024.</em></p>
+<p><strong>The three producers agree on one rule, and it is the rule this whole amendment is built around.</strong> TechieFlow says <em>an unmeasured thing is unmeasured, not zero, and not passed</em>; the Playbook says <em>never treat file absence, EOF, malformed input, or an unsupported harness as a zero-valued run</em>. It is the same sentence, and it is the seventh appearance of a rule TfLens already enforces under six other names — <code>PERF-UNMEASURED</code>, <code>MOCKUP-UNGRADEABLE</code>, <code>⚠ STATIC-ONLY</code>, <code>origin_confidence != "linked"</code>, <code>cost_attribution != "sole"</code>, <code>project_type_inferred</code>. Every requirement below is an instance of it.</p>
+<p><strong>A — TechieFlow phase effort</strong></p>
+<ul>
+<li><a id="brd-145"></a><strong>BRD-145</strong> — System shall parse and store the three SCHEMA §2.6 fields added to <code>runs.jsonl</code> on 2026-08-31 — <code>subagent_runs</code> (<code>int?</code>), <code>tokens_out_subagents</code> (<code>int?</code>) and <code>model_tokens_out</code> (<code>Dictionary&lt;string,long&gt;?</code>) — as <strong>nullable by design</strong>, storing the raw rows and never collapsing them at ingest so that <code>RebuildAsync</code> re-derives every figure from the stream alone; and a <code>runs</code> record carrying a field TfLens does not know shall go to <code>Overflow</code> and <strong>never</strong> increment <code>InvalidLines</code> — the producer added fields in August (§2.5) and again now (§2.6) and will again. <em>(F-EFFORT, F-PARSE)</em>
+</li>
+<li><a id="brd-146"></a><strong>BRD-146</strong> — System shall exclude from every token figure any run whose token window could not be computed (<code>tokens_scope: "none"</code>, or no scope), count them as <code>tokens_unmeasured_n</code>, and <strong>never average them in as zero</strong>; every token tile shall carry <strong><code>measured on n of N runs</code></strong> as visible text, not a tooltip, and <code>tokens_out_per_run</code> shall be <code>null</code> — rendered <em>insufficient data (n=…)</em>, never <code>0</code> — below the <code>MIN_N = 3</code> floor. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+</ul>
+<p><strong>Why this clause names a specific defect.</strong> This is precisely <code>TF-005</code>, the divergence TfLens itself reported against the framework on the miss stream: <code>or 0</code> cannot tell an absent field from a measured zero, and <strong>the error always runs in the direction that flatters the framework</strong>. The same mistake on the phase stream would report <code>*log-miss</code> costing half what it does on a repo where four of nine runs happen to be unmeasured — and the current data has exactly that shape.</p>
+<ul>
+<li><a id="brd-147"></a><strong>BRD-147</strong> — System shall restrict every fan-out figure to records with <code>tokens_scope == "tree"</code> <strong>and</strong> <code>subagent_runs != null</code>, and shall publish the exclusion <strong>two ways because they are two different facts</strong>: <code>unobserved_not_tree</code> (the window was <code>main</code> / <code>conversation</code> / <code>none</code> — <em>we did not look</em>) and <code>unobserved_predates_field</code> (tree-scope with <strong>no <code>subagent_runs</code> value at all</strong> — <em>we could not have looked</em>). Every fan-out band shall state <strong><code>observed_n of runs</code> first and the numbers second</strong>, and shall render <strong>"not observed"</strong> where <code>observed_n == 0</code> — never <code>0 subagents</code>. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+</ul>
+<p><strong>Amended 2026-09-01 (build): <code>unobserved_predates_field</code> is a NULL-CHECK, not a date check.</strong> As first
+  written this clause said "written before the field existed", which reads as a comparison against
+  <code>2026-08-31</code>. The shipped reference script does no such comparison — <code>analyse_phases</code> counts a run as
+  predating the field when its scope is <code>tree</code> <strong>and</strong> <code>subagent_runs</code> is <code>None</code>, and nothing consults the
+  run's timestamp. The two agree in practice for the reason BRD-148 gives: the field has been emitted on
+  every tree-scope run since 2026-08-31, so a tree-scope run missing it must predate it. But <code>FIELD_SINCE</code>
+  is <strong>why the inference is sound, not how the count is made</strong>, and TfLens matches the script because BRD §13
+  parity is zero-tolerance. Recorded as <code>MISS-TfLens-20260901-07</code>.</p>
+<p><strong>Why this one is called out separately: it fails silently.</strong> A <code>main</code>-scope window never read the subagent transcripts at all. Coercing its absent <code>subagent_runs</code> to <code>0</code> makes a phase report <em>"spawns no subagents"</em> when the truth is <em>"we did not look"</em>, and pooling the two produces a confident fan-out average largely composed of runs that could not have seen a subagent. Nothing about the resulting number looks wrong.</p>
+<ul>
+<li><a id="brd-148"></a><strong>BRD-148</strong> — System shall extend the <code>FIELD_SINCE</code> eligibility floor — already carrying <code>why_missed: 2026-08-28</code> beside <code>LATE_GATES</code>, <strong>in the same table and the same code path</strong> — with <code>subagent_runs</code>, <code>tokens_out_subagents</code> and <code>model_tokens_out</code>, each at <code>2026-08-31</code>, so a run written before a field existed leaves that field's denominator entirely and is reported separately rather than counted against it. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+<li><a id="brd-149"></a><strong>BRD-149</strong> — System shall display <strong>both</strong> the declared subagent list (<code>subagents</code>, typed by the agent — it knows which <em>kinds</em> were invoked) and the measured spawn count (<code>subagent_runs</code>, counted from the harness's own store — it knows how many <em>actually ran</em>), and shall state in words that the measured figure is authoritative wherever they disagree. The gap between them is a finding about how accurately tasks self-report, not an error to reconcile away. <em>(F-EFFORT)</em>
+</li>
+<li><a id="brd-150"></a><strong>BRD-150</strong> — System shall compute every per-model effort figure from <code>model_tokens_out</code> (the per-model <strong>split</strong>) <strong>wherever a run carries one</strong>, and shall never attribute a <em>split-carrying</em> run's whole window to its dominant <code>model</code>; a run carrying <strong>no</strong> split falls back to its dominant <code>model</code> label and shall be <strong>counted apart</strong>, so the weaker provenance is visible rather than blended into the stronger. The per-model band shall carry standing copy stating that the ranking is <strong>observational, not causal</strong> — which model gets the hard phases is not random. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+</ul>
+<p><strong>Amended 2026-09-01 (build): the fallback is required, not a loophole.</strong> As first written this clause forbade the dominant label outright. The shipped reference script falls back to it when a run has no split (<code>analyse_phases</code>: <code>elif r.get("model")</code>), and <strong>every record written before 2026-08-31 has no split</strong> — so refusing the fallback would have failed BRD §13 parity across almost the whole corpus, and would have reported those runs as having no model at all rather than a less precisely attributed one. The defect the clause exists to prevent is untouched: a run that <em>does</em> carry a split is never filed whole under its winner. TfLens additionally publishes <code>PhaseModelEffort.RunsFromLabel</code> so a reader can see how much of a per-model figure rests on the label rather than the split — which the script does not expose and which is the honest addition. Recorded as <code>MISS-TfLens-20260901-08</code>.</p>
+<ul>
+<li><a id="brd-151"></a><strong>BRD-151</strong> — User can open <strong><code>/effort</code> — "Phase effort"</strong>, a seventh report page and an eighth nav item between <em>Misses &amp; rework</em> and <em>Snapshot export</em>: a <strong>KPI row</strong> (runs recorded · total wall clock · total output tokens with its measured-on sub-line · heaviest phase by output share · <strong>fan-out coverage</strong> as <code>Σ observed_n / runs_live</code>, a coverage figure deliberately on the KPI row rather than buried); a <strong>phase table</strong>, one row per <code>cmd</code> sorted by output-token share, in which <strong><code>Measured</code> is a column and not a footnote</strong>; an expandable per-phase detail of four bands in order (Time · Tokens, showing mean <strong>beside</strong> median because a mean far above the median means one long run dominates the phase · By model · Fan-out, <code>observed_n</code> stated first, carrying the declared-vs-measured line whenever they disagree); and a <strong>routing band</strong> in which <code>drifted</code> is drift made visible and is never styled as a failure, because routing is observed and never enforced. <em>(F-EFFORT, F-SHELL)</em>
+</li>
+<li><a id="brd-152"></a><strong>BRD-152</strong> — Parity shall cover the oracle's <code>phases</code> block key-for-key (<code>phases.runs_live</code> · <code>phases.tokens_out_total</code> · <code>phases.duration_s_total</code> · <code>phases.scope_coverage.*</code> · and per <code>cmd</code>: <code>runs</code> · <code>duration_s.{total,median,max,n}</code> · <code>share_of_duration</code> · <code>tokens.{in,out,cache_read,cache_write}</code> · <code>tokens_measured_n</code> · <code>tokens_unmeasured_n</code> · <code>tokens_out_median</code> · <code>tokens_out_per_run</code> · <code>share_of_tokens_out</code> · <code>models.&lt;model&gt;.{runs,tokens_out}</code> · <code>fanout.</code> → <code>observed_n</code>, <code>unobserved_n</code>, <code>unobserved_not_tree</code>, <code>unobserved_predates_field</code>, <code>spawns_total</code>, <code>spawns_median</code>, <code>spawns_max</code>, <code>runs_with_fanout</code>, <code>tokens_out_subagents</code>, <code>subagent_share_of_tokens_out</code> · <code>routing.{routed,drifted,unknown}</code> · <code>cost_usd_by_harness.&lt;harness&gt;.{usd,records}</code>). The block rides inside <code>--report --json</code> / <code>--rollup --json</code>, so <strong>no new oracle invocation is needed</strong>; <code>share_of_*</code> values are the oracle's own <code>"87%"</code> / <code>"—"</code> strings and shall be diffed as strings, not reformatted first. <em>(F-EFFORT, F-PARITY)</em>
+</li>
+</ul>
+<p><strong>B — Playbook phase efficiency (schema 2)</strong></p>
+<ul>
+<li><a id="brd-153"></a><strong>BRD-153</strong> — System shall ingest the Playbook's normalized schema-2 <code>phase-metric</code> NDJSON through the existing <strong>Import metric files</strong> mode (BRD-133) — the exporter reads a <strong>transient</strong> event file that rotates, so TfLens can neither fetch it on a schedule nor ask the Playbook to commit it, and its stdout is uploaded like any other bundle with the bundle sha256 as dataset identity (BRD-134). There shall be <strong>no second ingest code path</strong> (BRD-132). Rows shall upsert on <code>(UserId, Repo, PhaseExecutionId)</code> — re-import is expected, because the exporter emits every currently readable window — and every normalized row shall retain <code>source_schema</code>, <code>source_harness</code>, importer version, repository identity and import timestamp. <strong>File absence, EOF, malformed input and an unsupported harness shall never be treated as a zero-valued run.</strong> <em>(F-EFFORT, F-FRAMEWORK, F-REPOS)</em>
+</li>
+<li><a id="brd-154"></a><strong>BRD-154</strong> — System shall store schema-2 phase data in three tables — <code>PbPhaseExecution</code> (identity, phase, window, completion, <code>end_reason</code>, dominant model, tier, the five token components and compatibility totals, cost, turns, the three active-time columns and coverage, the data-quality columns, <code>tokens_scope</code>, spawned/contributor counts, attempt and verdict snapshots, <code>project_type</code>), <code>PbPhaseModelUsage</code> (per model: turns, five token components, totals, cost, <code>cost_status</code>, <code>active_ms</code>) and <code>PbPhaseSubagent</code> (child session, parent session, nullable agent type, lifecycle, turns, tokens, cost) — in the existing house style, with 64-bit integers, provider cost as <strong>fixed-precision decimal and never a binary float</strong>, and source nulls preserved. <code>DeleteRepoDataAsync</code> shall purge all three. <em>(F-EFFORT, F-PARSE)</em>
+</li>
+<li><a id="brd-155"></a><strong>BRD-155</strong> — System shall validate the producer's invariants on ingest (<code>tokens_in = input + cache_read + cache_write</code>; <code>tokens_out = output + reasoning</code>; <code>subagents.spawned &gt;= contributors</code>; <code>0 &lt;= observed_active_ms &lt;= elapsed_ms</code> on a complete window; <code>complete:false</code> implies <code>end_reason:"eof"</code> with null end and elapsed) and shall <strong>quarantine</strong> from every numeric aggregate any row with <code>data_quality.valid:false</code>, a failed invariant, or no finalized assistant turn. A schema-2 window with no assistant turn is <strong>invalid or incomplete, not a valid zero-usage run</strong>, and the producer may retain zero-valued compatibility totals on an invalid row — those values shall never enter a figure. Quarantined rows stay visible with their reason; nothing is silently repaired. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+<li><a id="brd-156"></a><strong>BRD-156</strong> — System shall keep <strong>wall-clock elapsed</strong>, <strong>observed active time</strong> and <strong>human effort</strong> as three separate concepts and shall never substitute one for another. Observed active time is the producer's <strong>union</strong> of assistant and tool intervals with overlapping and nested work counted once; <code>assistant_elapsed_ms</code> and <code>tool_elapsed_ms</code> are diagnostic sums that legitimately overlap and shall <strong>never be added</strong>. Observed active time shall never be labelled human effort, CPU time, utilization or additive compute; <code>coverage:"partial"</code> renders as an explicit <strong>lower bound</strong>, <code>unavailable</code> as no figure at all. Human effort is not captured and shall never be inferred from wall-clock or agent time. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+<li><a id="brd-157"></a><strong>BRD-157</strong> — System shall label the phase dimension <strong>Command phase</strong>, because the producer's <code>phase</code> is the slash command and one command can contain several lifecycle stages (<code>/implement</code> covers build and self-review; <code>/verify</code> covers verify and the results gate), and shall <strong>never split one command window between conceptual phases by token proportion</strong>. A whole-task total requires a cohort supplied explicitly by ingestion (repository, checklist identity, and the exact phase execution IDs or time boundary); <strong>a reused <code>session_id</code> is not sufficient</strong> — one session may execute several tasks — so without an explicit cohort the page shall show phase rows and label the whole-task total <strong>unavailable</strong> rather than silently group unrelated work. <em>(F-EFFORT)</em>
+</li>
+<li><a id="brd-158"></a><strong>BRD-158</strong> — System shall compute mixed-model attribution by aggregating <code>PbPhaseModelUsage</code> and shall never assign a whole execution's tokens or cost to its dominant <code>model</code> for model-efficiency analysis; a model filter shall match <strong>any</strong> <code>models[]</code> member, not only the dominant one. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+<li><a id="brd-159"></a><strong>BRD-159</strong> — System shall show subagent fan-out as <strong><code>contributors / spawned</code></strong> (a spawned child that produced no tokens is still a spawned child), shall render a recursive grandchild beneath its parent while counting it in the phase total <strong>exactly once</strong>, shall <strong>never sum child usage onto phase totals again</strong> because it is already included, shall describe <code>spawned − contributors</code> as a <em>zero-token or non-contributing child</em> and <strong>never as an inferred failure</strong>, and shall display an absent child agent type as <strong>unavailable</strong> rather than inferring <code>"unknown"</code> from a title or a model name. Child token share shall be computed only where the denominator is positive. <em>(F-EFFORT)</em>
+</li>
+<li><a id="brd-160"></a><strong>BRD-160</strong> — System shall honour the producer's cost statuses: a <code>zero-unverified</code> provider cost (zero dollars reported against non-zero tokens) shall be excluded from every measured-cost aggregate and shall be shown with its status and the engine caveat — <strong>never as "free" and never as a measured <code>$0</code></strong>; a phase whose models do not all report <code>cost_status:"complete"</code> is <strong>partial</strong>, not complete; and measured <code>cost_usd</code> shall never share a series, a total or an aggregate with a rate-card <code>_usd_estimate</code> figure, in the page, the API or the export. <em>(F-EFFORT, F-EXPORT, F-ROUTE)</em>
+</li>
+<li><a id="brd-161"></a><strong>BRD-161</strong> — System shall enforce the producer's aggregation cohorts and state each one's <code>n</code> and exclusions <strong>beside the figure</strong> rather than in a global footer: duration aggregates from <code>complete:true</code> rows only; active-time averages, percentiles, ratios and model comparisons from <code>complete:true</code> <strong>and</strong> <code>active_coverage:"complete"</code> only; token totals additionally requiring <code>data_quality.valid:true</code> and <code>token_status:"complete"</code>; measured-cost totals additionally requiring <code>cost_status:"complete"</code>. <code>legacy-unverified</code> schema-1 rows stay available for drill-down and are excluded from schema-2 comparisons. No status shall be presented as proof of best-effort event-delivery completeness. Any comparative cohort below three records renders <code>insufficient data (n=…)</code>. Storage and filtering shall be UTC; only display is localized. <em>(F-EFFORT, F-ENGINE)</em>
+</li>
+<li><a id="brd-162"></a><strong>BRD-162</strong> — User can open the <strong>Phase efficiency</strong> view — the Playbook axis of <code>/effort</code>, shipped <strong>behind a repository capability check</strong> — carrying: summary cards (completed phases · median and p90 wall clock · complete-window complete-coverage active time with <code>n of N eligible</code> beneath it · input/output/reasoning/cache tokens · measured provider cost, with rate-card estimates on a <strong>separate card</strong> labelled <code>estimate — tokens × rate card</code> · <code>contributors / spawned</code> · incomplete-window and partial-coverage data-quality cards); charts (stacked token trend by command phase · duration distribution excluding incomplete windows and showing the excluded count · active-vs-wall-clock for eligible executions only · model mix by token and turn share · subagent fan-out · cost and token trend with measured and estimated dollars separated); an execution table whose expandable rows show per-model usage and active time, the subagent tree by <code>session_id</code> / <code>parent_id</code> including zero-token children, and a data-quality explanation for each of EOF, missing active timestamps, unpaired tools, missing tier and the provider-cost caveat; filters (repository, date range, command phase, model, tier, harness, project type, complete/incomplete, active coverage, tokens scope, verdict snapshot, has-subagents); and the five empty and unsupported states. <em>(F-EFFORT, F-FRAMEWORK)</em>
+</li>
+<li><a id="brd-163"></a><strong>BRD-163</strong> — System shall render Claude Code phase effort as <strong>"Phase effort telemetry unsupported for this harness"</strong> — <strong>never as zero and never as an empty measured figure</strong> — until a Claude adapter emits the normalized schema; a harness with no normalized producer is a <strong>data gap</strong>, which is a different fact from a harness that ran and spent nothing. <em>(F-EFFORT, F-HARN, F-FRAMEWORK)</em>
+</li>
+</ul>
+<p><strong>C — Playbook misses</strong></p>
+<ul>
+<li><a id="brd-164"></a><strong>BRD-164</strong> — System shall ingest the Playbook's normalized miss export (<code>miss</code> · <code>miss-fix</code> · <code>miss-amend</code>, produced from its committed <code>verification/telemetry/misses.ndjson</code>, with amendments folded and exact fix windows joined by the producer) into the <strong>existing</strong> <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> tables; shall upsert raw source records by <strong>immutable source-line identity/hash</strong> preserving stream order, rather than on the TechieFlow natural keys; shall <strong>re-fold</strong> valid amendments at read time before computing anything, exactly as BRD-116 requires for the TechieFlow stream; and shall surface orphan and overwrite diagnostics on Coverage rather than applying or discarding them silently. <em>(F-MISS, F-FRAMEWORK, F-PARSE)</em>
+</li>
+<li><a id="brd-165"></a><strong>BRD-165</strong> — System shall preserve the two cross-edition axes as <strong>distinct columns and distinct charts, never merged</strong>: the Playbook's <code>item_id</code> beside TechieFlow's <code>req_id</code>, and the Playbook's <strong>process</strong> <code>found_phase_gate</code> beside TechieFlow's <strong>assertion</strong> <code>found_gate</code>. The first pair is one axis under two names and normalizes to two columns on one table; the second pair is two genuinely different measurements and shall never share a column or a chart — the same rule, and the same reason, as <code>phase_gate</code> versus <code>gate</code> (BRD-74). <em>(F-MISS, F-FRAMEWORK)</em>
+</li>
+<li><a id="brd-166"></a><strong>BRD-166</strong> — System shall apply the Playbook's reporting guards, which are <strong>stricter than the TechieFlow stream's and shall not be relaxed to match it</strong>: a model or tier attribution requires <code>origin_confidence:"linked"</code> <strong>and</strong> a complete valid source window <strong>and</strong> a non-null observed model; a headline fix token or cost figure requires <code>cost_attribution:"sole"</code> <strong>and</strong> a complete valid window <strong>and</strong> <code>data_quality.cost_status:"complete"</code>, with <code>shared:&lt;n&gt;</code> shown separately as apportioned and <code>none</code> excluded. An inferred or unknown origin shall <strong>never</strong> be placed in an <em>"unknown model"</em> performance bucket — a bucket named for a model is a claim about a model. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-167"></a><strong>BRD-167</strong> — User can see, on the Playbook axis of <code>/misses</code>, real figures wherever the Playbook emits them: lifecycle <strong>opened / closed / reopened / backlog</strong> counts; miss rate by linked origin phase and model; miss class, <code>why_missed</code>, design-miss share and escape share; <strong>rework incidence and intensity</strong> and <strong>median and p90 time-to-close</strong>; sole measured repair tokens and cost beside separately-labelled apportioned repair cost; and the attribution exclusions, assessment denominators and amendment/orphan diagnostics that bound all of them. The <code>PlaybookEmpty</code> state (BRD-126) is what shows when no Playbook miss records have been imported — no longer the permanent condition of that axis. <em>(F-MISS, F-FRAMEWORK)</em>
+</li>
+</ul>
+<p><strong>D — Cross-cutting integrity</strong></p>
+<ul>
+<li><a id="brd-168"></a><strong>BRD-168</strong> — <strong>No actor-grouped reporting, anywhere.</strong> No TfLens surface — page, API, export or parity — shall group any quality, miss, rework, effort, token, time or cost figure by <code>actor</code>. The Playbook's records carry the field (SCHEMA.md §11) and both AIFP contracts state the prohibition as a hard rule; TfLens honours it structurally, with no query parameter, filter or toggle that could produce such a grouping. <em>(F-EFFORT, F-MISS, F-ENGINE, F-EXPORT — the third NFR sibling of BRD-89 and BRD-130)</em>
+</li>
+</ul>
+<p><strong>Why a producer would forbid a grouping it is perfectly able to emit.</strong> Per-actor development metrics are a measurement whose <em>existence</em> changes the thing measured, and the frameworks emit <code>actor</code> for provenance — knowing whose machine a record came from — not for comparison. A dashboard that can rank people will be read as ranking people whatever its caption says, and TfLens's whole premise is that a number which cannot be defended should not be renderable.</p>
+<ul>
+<li><a id="brd-169"></a><strong>BRD-169</strong> — Integrity: the phase-effort and phase-efficiency invariants shall have <strong>no configuration switch, no query parameter and no UI toggle</strong> that relaxes them — no <code>0</code> rendered where the answer is <em>not measured</em>; measured and unobserved never pooled, and every exclusion count displayed beside its figure; no estimated dollars on any effort tile, and no dollars ever priced from a rate card and presented as spend; <strong>no per-REQ or per-feature effort view</strong> (a run's window divided across the REQs it touched is arithmetic dressed as measurement — both producers state this as a standing non-goal and neither emits a per-REQ timing field); no per-subagent cost attribution, which the transcripts do not carry; and no <em>"phase X costs more than phase Y, therefore X is inefficient"</em> framing — <code>*build-phase</code> costing more than <code>*log-miss</code> is a fact about what those phases <strong>are</strong>. Effort per phase is a <strong>budgeting and capacity</strong> view; quality lives on <code>/misses</code> and <code>/coverage</code>. <em>(F-EFFORT — the NFR sibling of BRD-89, BRD-130 and BRD-168)</em>
+</li>
+</ul>
+<h3 id="amendment-2026-09-08-whose-gap-it-was-and-three-sums-tflens-is-getting-wrong">Amendment 2026-09-08 — whose gap it was, and three sums TfLens is getting wrong<a class="anchor-link" href="#amendment-2026-09-08-whose-gap-it-was-and-three-sums-tflens-is-getting-wrong">#</a></h3>
+<p><em>Source: <code>docs/TfLens-Metrics-Update-Prompt.md</code>, checked against <code>.tfcore/telemetry/SCHEMA.md</code> and against live data across the estate. Nothing is renumbered and nothing is removed; BRD-51, BRD-113, BRD-114, BRD-115, BRD-116, BRD-117 and BRD-127 are amended in place.</em></p>
+<p><strong>What changed upstream, and what did not.</strong> Between 2026-08-31 and 2026-09-07 the framework was rewritten and its streams gained fields. <strong>No framework change is needed for any requirement below</strong> — every field named here is already being written into <code>docs/metrics/*.jsonl</code> in every project. What is missing is a reader. That makes this amendment unusual: it is almost entirely arithmetic and vocabulary, and it adds no screen.</p>
+<p><strong>The half of it that is not new fields is the more valuable half.</strong> BRD-178, BRD-179 and BRD-180 are three sums TfLens is doing <em>today</em>, and each is wrong in the same direction — it flatters the number. Each was a real defect in the framework's own report before it was found and fixed there, and the framework's own figures moved by a wide margin on each: a combined first-pass rate of <strong>72% → 48%</strong>, a reset's total time of <strong>16h49m → 55h57m</strong>, a first-pass rate of <strong>0% → 100%</strong> on twelve verdicts that all passed. TfLens computes all three the pre-fix way. These are not enhancements; they are corrections, and they are the reason the amendment is worth doing before any new chart.</p>
+<p><strong>The rule this amendment is built around is the one TfLens already has, arriving on its eighth field.</strong> An absent value is <em>absent</em>, not zero, not a category and not a failing grade. <code>sort</code> did not exist before 2026-09-07, so a record without it predates the question; <code>duration_s</code> and <code>attempt</code> are absent from records that carry everything needed to work them out, so they are <strong>derived by the reader at read time and never written back</strong> — TfLens does not write to a stream (§3), and deriving a value is not the same as backfilling one. A derived figure is stated with its derived count beside it.</p>
+<p><strong>E — Whose gap was it (the <code>sort</code> field)</strong></p>
+<ul>
+<li><a id="brd-170"></a><strong>BRD-170</strong> — System shall parse and store the <code>sort</code> field on a <code>miss</code> record — the producer's answer to <em>whose gap was it</em>, in a <strong>closed four-value vocabulary</strong>: <code>spec</code> (the project's own specification did not say it), <code>unsaid</code> (the framework never said it anywhere), <code>weak-check</code> (a check existed and did not catch it), <code>ignored</code> (it was written down and ignored anyway). A value outside those four shall be <strong>stored as it stands, counted and surfaced as unrecognised</strong> — never coerced into the nearest of the four, and never dropped. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><a id="brd-171"></a><strong>BRD-171</strong> — User can see, on <code>/misses</code>, the <strong><code>sort</code> distribution beside the existing miss-class distribution</strong> — the two answer different questions and share a band without being merged — with a filter on <code>sort</code>, and with each bucket rendered <strong>in words rather than as the raw value</strong>: <em>"there was a check and it did not catch it"</em>, not <code>weak-check</code>. The raw value means nothing to a reader who has not read SCHEMA.md, and no reader of this page should have to. <em>(F-MISS)</em>
+</li>
+</ul>
+<p><strong>Why this field is the one worth building for.</strong> Across the framework's own 126 misses, roughly half sorted <code>weak-check</code>, a quarter <code>unsaid</code> and a quarter <code>ignored</code>. That distribution says the dominant failure is not <em>"nobody wrote the rule"</em> but <em>"the check was too weak to catch it"</em> — a completely different remedy from the one a class-only chart implies. A dashboard showing <code>miss_class</code> without <code>sort</code> shows <strong>what broke and hides what to do about it</strong>, which is the difference between a report and a diagnosis.</p>
+<ul>
+<li><a id="brd-172"></a><strong>BRD-172</strong> — System shall use, as the denominator of every <code>sort</code> figure, <strong>only the misses eligible to carry it</strong> (BRD-117's <code>FIELD_SINCE</code>, 2026-09-07), shall render it as <strong><code>n of N sorted</code></strong> wherever the distribution appears, and shall report records written before the field existed <strong>separately and in those words — <em>predating the field</em>, never <em>unsorted</em>.</strong> The two shall never be pooled, and a <code>sort</code> figure shall never be expressed as a percentage of all misses. A record from before the question was asked is not a record that declined to answer it. <em>(F-MISS, F-ENGINE — the eighth instance of BRD-146's rule)</em>
+</li>
+</ul>
+<p><strong>F — What actually happened, in words (the <code>what</code> field)</strong></p>
+<ul>
+<li><a id="brd-173"></a><strong>BRD-173</strong> — User can read, on every miss row, the <strong>one-sentence <code>what</code> description in the owner's own words</strong>, and System shall treat that sentence as the <strong>only prose permitted to travel</strong> from a stream onto a TfLens surface: requirement text from a checklist shall never be stored, rendered or exported, which BRD-84 already forbids and this clause does not relax. A miss identified only by a class and a date is unrecognisable a month later, and a page nobody can read is not a page anybody checks. <em>(F-MISS, F-PARSE)</em>
+</li>
+</ul>
+<p><strong>G — What a review cost (the <code>review</code> record)</strong></p>
+<ul>
+<li><a id="brd-174"></a><strong>BRD-174</strong> — System shall accept <code>kind: "review"</code> (SCHEMA §5.5.9) as a <strong>fourth record kind on the misses stream</strong>, parsing and storing it per BRD-113/BRD-114/BRD-115, and shall <strong>never count it as a miss</strong> in any figure, chart, filter or export. Until this ships, every review record in every stream falls into <code>InvalidLines</code> and is discarded — a counter of mistakes silently throwing away the records that price them. <em>(F-MISS, F-PARSE)</em>
+</li>
+<li><a id="brd-175"></a><strong>BRD-175</strong> — User can see, per review phase (<code>day1-review</code>, <code>build-review</code>, <code>verify-review</code>, <code>handoff-review</code>), <strong>how many corrections came back, what it cost to produce the reviewed output, and what applying the corrections cost</strong> — all three <strong>copied from the record</strong>, which the emitter copied from the two runs it names. TfLens shall <strong>never compute, re-derive or apportion</strong> a review cost, and where the record carries no figure the surface shall read <strong>"not available"</strong> and never <code>0</code>. <em>(F-MISS, F-EFFORT)</em>
+</li>
+</ul>
+<p><strong>Why this record matters out of proportion to its size.</strong> It is the only record in any stream that <strong>prices a specification defect</strong>. A dashboard showing build and verify costs but not review costs tells its reader that documents are free — and the owner's own review time is the scarcest input the whole framework consumes.</p>
+<p><strong>H — Three sums that are wrong today</strong></p>
+<ul>
+<li><a id="brd-176"></a><strong>BRD-176</strong> — System shall state, beside any distribution computed over folded records, <strong>how many field values were completed by a <code>miss-amend</code></strong>. A reader who ignores amendments sees nothing false but sees less; a reader who folds them silently cannot tell a field that was answered from one that was answered later. BRD-116 already folds them — this clause requires the count to be <strong>visible</strong>. <em>(F-MISS, F-ENGINE)</em>
+</li>
+<li><a id="brd-177"></a><strong>BRD-177</strong> — System shall segregate gate records carrying <strong><code>req_class: "FR"</code></strong> — the framework grading <strong>itself</strong> against its own requirement lines — from every application figure, and shall never pool them with <code>UI</code>, <code>FN</code>, <code>RAG</code> or <code>NFR</code>. A framework rule and an application screen are not the same unit and a rate computed across both measures nothing. They shall appear in their own segment or not at all; the choice to exclude is legitimate, the choice to average is not. <em>(F-3Q, F-ENGINE — the same boundary as <code>project_type</code>, SCHEMA §6)</em>
+</li>
+<li><a id="brd-178"></a><strong>BRD-178</strong> — System shall key a requirement by <strong><code>(project, req_id)</code></strong> and never by <code>req_id</code> alone, in every rollup, join, distribution, first-pass rate, taint set, export key and parity comparison. Every project emits a <code>REQ-UI-001</code>; a rollup keyed on the id alone silently fuses TfLens's with every other project's and reports one requirement where there are many. <strong>The framework's own combined first-pass rate read 72% under this bug and 48% once keyed correctly</strong> — any cross-project figure TfLens publishes today is wrong by roughly that margin. <em>(F-ENGINE, F-3Q, F-EXPORT, F-PARITY)</em>
+</li>
+<li><a id="brd-179"></a><strong>BRD-179</strong> — System shall <strong>derive a run's <code>duration_s</code> at read time</strong> from <code>started</code> and <code>ended</code> wherever the record omits it, treating <code>ts</code> as <code>ended</code> where <code>ended</code> is absent too (SCHEMA's own definition), and shall state <strong>how many durations were derived</strong> beside every time figure built on them. A summed <code>duration_s</code> that skips these records <strong>counts them as zero time while still counting their tokens</strong> — so a phase's time covers one set of runs and its tokens another. The framework's reset reported <strong>16h49m</strong> under this bug against a true <strong>55h57m</strong>. Across the estate <strong>10 run records carry no duration and do carry <code>started</code> and <code>ended</code></strong>, so every one of them is derivable and none needs a guess. The derivation is a <strong>read-time</strong> operation: TfLens writes to no stream (§3) and nothing is backfilled. <em>(F-ENGINE, F-EFFORT)</em>
+</li>
+<li><a id="brd-180"></a><strong>BRD-180</strong> — System shall <strong>derive <code>attempt</code> at read time</strong> for gate records that omit it — <code>attempt</code> is <em>defined</em> as one plus the number of prior live records for the same <code>(project, req_id)</code>, a count over the stream in order and not a judgement — and shall <strong>never alter a record that carries one</strong>. A record with no <code>attempt</code> drops out of the first-pass rate entirely rather than failing it: <strong>the framework's own twelve requirement verdicts, all passing, reported a first-pass rate of 0%.</strong> Across the estate <strong>80 gate records carry no <code>attempt</code></strong>. Like BRD-179 this is derived by the reader and <strong>never backfilled</strong>, and the derived count is stated beside the rate. <em>(F-ENGINE, F-3Q)</em>
+</li>
+</ul>
+<p><strong>I — Never drop what you do not recognise</strong></p>
+<ul>
+<li><a id="brd-181"></a><strong>BRD-181</strong> — System shall <strong>never discard or hide a record because a value is unfamiliar</strong>. Where a vocabulary is open at the producer — <code>cmd</code>, gate <code>verdict</code>, <code>harness</code> — TfLens shall render the unrecognised value <strong>as it stands</strong> and count it, rather than filtering to a known list. The <code>cmd</code> vocabulary alone grew by five values on 2026-09-07 (<code>metrics-report</code>, <code>generate-html</code>, <code>render-workflow-docs</code>, <code>triage-and-fix</code>, <code>framework-reset</code>) and a whitelist would silently hide <strong>27 records that already exist across the estate</strong>; TfLens's own data carries a <code>rename-page</code> run and <strong>37 off-list verdicts</strong> (33 <code>PASS</code>, 2 <code>NOT-OBSERVABLE</code>, 2 <code>In Progress</code>) that a strict filter would erase. <strong>Showing an unknown value is a data-quality finding; dropping it is a wrong number</strong> — and this product exists to prevent the second one. <em>(F-ENGINE, F-PARSE, F-HARN, F-EFFORT)</em>
+</li>
+</ul>
+<h2 id="where-the-rest-lives">6. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
+<table>
+<thead><tr><th>What</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Executive summary, objectives, scope, stakeholders, diagrams</td><td><a href="./TfLens-BRD.md">phase 1 BRD</a> §1–§8</td></tr>
+<tr><td>Constraints and assumptions</td><td><a href="./TfLens-BRD.md">phase 1 BRD</a> §12</td></tr>
+<tr><td>Parity check — the mandatory acceptance test</td><td><a href="./TfLens-BRD.md">phase 1 BRD</a> §13</td></tr>
+<tr><td>Definition of done, success metrics, risks, glossary</td><td><a href="./TfLens-BRD.md">phase 1 BRD</a> §14–§17</td></tr>
+<tr><td>Architecture, decisions log, data model</td><td><a href="./TfLens-Architecture.md">TfLens-Architecture.md</a> (not phased)</td></tr>
+<tr><td>This phase's work list</td><td><a href="./TfLens-P3-Checklist.md">TfLens-P3-Checklist.md</a></td></tr>
+<tr><td>This phase's screens, control by control</td><td><a href="./TfLens-P3-UIDesign.md">TfLens-P3-UIDesign.md</a></td></tr>
+</tbody>
+</table>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

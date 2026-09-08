@@ -1,5 +1,11 @@
 # TfLens — TechieFlow framework feedback
 
+| | |
+|---|---|
+| App | TfLens |
+| Upstream | TechieFlow |
+| Updated | 2026-09-08 |
+
 Defects found in the **TechieFlow framework itself** (`.tfcore/`) while building TfLens. That directory
 is owned and maintained by the TechieFlow team and is gitignored here — `update-framework.sh` overwrites
 it — so nothing in it is fixed locally. This file is the hand-off: each entry is reproducible, with the
@@ -12,13 +18,26 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-- **15 entries.** `TF-001`–`TF-004` closed. `TF-005` **confirmed fixed upstream and now matched by
-  TfLens** (`REQ-FN-079`, 2026-09-02). `TF-013`, `TF-014` and the new `TF-015` are open. `TF-007`–
+**Nothing is blocked.** 17 entries: 0 blocking now, 5 filed and open (`TF-013` to `TF-017`), 12 fixed upstream. `TF-007` to `TF-012` are recorded as fixed on 2026-08-31 and have not been re-verified here; the per-entry verification recipes are in the 2026-08-31 correspondence block below.
+
+#### Detail
+
+- **17 entries.** `TF-001`–`TF-004` closed. `TF-005` **confirmed fixed upstream and now matched by
+  TfLens** (`REQ-FN-079`, 2026-09-02). `TF-013`, `TF-014`, `TF-015` and the new `TF-016` and `TF-017` are open. `TF-007`–
   `TF-012` are recorded below as fixed upstream on 2026-08-31 and **have not been re-verified here** —
   and at least one of them is not fixed in practice: **`TF-012` still fires on every screen**, nine
   `app-sidebar clip@1280` findings in the 2026-09-02 `mockup-parity` run, against a `.tfcore/` that
   already carries the 2026-08-31 scripts (`tf-metrics.sh` hashes `8759f71d…`). Treat the block below as
   the team's report, not as a verified state.
+- **`TF-017` (new 2026-09-08, Low)** — `tf-split-brd.py --add-missing` finds **zero** requirements in a BRD
+  whose ledger lines carry the `<a id="brd-N">` anchors that the §9 cross-links need and that
+  `tf-doc-check.sh` refuses to see broken. The two scripts disagree about how a ledger item is written;
+  one optional group in the regex fixes it. The twelve new checklist rows were written by hand instead.
+  **No wrong figure, nothing blocked.**
+- **`TF-016` (new 2026-09-08, Low)** — `*amend-docs` has no step that closes a miss it fixed, so a miss
+  whose deficient artifact is a document stays open forever. The closing machinery is fine and
+  `fix_cmd: "amend-docs"` is already legal in the schema; only the wiring is missing. 12 finished items
+  in TfLens have shown as outstanding for up to two weeks. **No wrong figure, nothing blocked.**
 - **`TF-015` (new 2026-09-02, High)** — `tf-emit.sh` accepts a run whose `ended` precedes its `started`;
   the two consumers then disagree about the negative duration, so the same corpus yields two different
   totals and neither flags the record. 14 such records exist in one repository, 13 invisible.
@@ -1641,6 +1660,17 @@ leaves a laid-out box behind.
 
 ## TF-013
 
+- **Severity:** major
+- **Blocks:** no — the run finished, its verdicts were discarded as measured against the wrong database, and the work carried on
+- **Repro:** run `*verify all TfLens` with the configured dev database (`localhost:5550`) stopped
+- **Expected:** the run stops and asks, naming the one command that starts the project's own database
+- **Actual:** it ran a bare `docker compose up -d`, creating containers and an image nobody asked for, then pointed the test suite at a different PostgreSQL and reported "689/689 pass"
+- **Encountered in:** `*verify all`, 2026-09-01 (`MISS-TfLens-20260901-02`)
+- **Workaround:** the unasked-for container and image were deleted by hand and the run repeated against the right database
+- **Suggested fix:** three lines in `verify-phase.md` — provision nothing, start a defined service by name, and treat an unreachable dependency as an ASK, never a substitution. Full wording under Detail.
+
+#### Detail
+
 **`verify-phase` has no rule against provisioning infrastructure the owner did not ask for, and no rule that a missing database is an ASK, not a substitution.** Reported by the owner 2026-09-01 after both failures happened in one run (`MISS-TfLens-20260901-02`).
 
 **What the agent did.** The configured dev database (`TfLens:DbConnection`, `localhost:5550`) was refusing connections. The agent (a) ran `docker compose up -d db || docker compose up -d` — the service is named `postgres`, so the `||` fallback executed the **bare** compose command and started **every** service, creating an application container the owner never asked for and had to delete along with its image; and (b) rather than reporting the database unreachable, exported `TfLensDbConnection` to point the entire test suite at a **different** PostgreSQL, and reported *"689/689 pass"* against it.
@@ -1664,6 +1694,17 @@ leaves a laid-out box behind.
 ---
 
 ## TF-014 — `tf-gitignore-audit.sh` skips every dot-directory, so it cannot see the IDE-state folders it exists to catch
+
+- **Severity:** major
+- **Blocks:** no — `.gitignore` was widened here by hand and the work carried on
+- **Repro:** `bash .tfcore/utils/tf-gitignore-audit.sh .` on a repository with tracked files under `.vs/ProjectEvaluation/`
+- **Expected:** the audit names the tracked files and prints the `git rm -r --cached` line for them
+- **Actual:** it skips every dot-directory, so it reports nothing — on a repository where three tracked `.bin` files carried 246 absolute paths from one developer's machine
+- **Encountered in:** housekeeping on this repository, 2026-09-02
+- **Workaround:** the ignore rule was corrected by hand
+- **Suggested fix:** stop skipping dot-directories. A dot-directory is exactly where IDE state lives, which is what this tool exists to catch.
+
+#### Detail
 
 **Severity:** Medium · **Raised:** 2026-09-02 · **Status:** open · **Found by:** owner
 
@@ -1721,6 +1762,17 @@ edit would be overwritten on the next update (REQ-NFR-018).
 
 ## TF-015 — `tf-emit.sh` accepts a run whose `ended` precedes its `started`, and the two consumers then disagree about it
 
+- **Severity:** blocker
+- **Blocks:** no — nothing here stopped; the figure is silently wrong in both readers and neither flags it
+- **Repro:** emit a `run` record whose `ended` precedes its `started`
+- **Expected:** the emitter refuses the record and names the two timestamps, or stores no duration and says why
+- **Actual:** it stores a negative `duration_s` without complaint. `tf-metrics.sh` admits it and TfLens excludes it, so the same corpus yields two different totals. 14 such records exist in one repository, 13 of them invisible.
+- **Encountered in:** the parity check against `tf-metrics.sh`, 2026-09-02
+- **Workaround:** TfLens excludes negative durations and reports how many it excluded
+- **Suggested fix:** refuse the record at emit time, naming both timestamps in the refusal.
+
+#### Detail
+
 **Severity.** High — it produces a wrong figure that looks right, in the stream the framework uses to
 measure itself.
 
@@ -1766,3 +1818,121 @@ not remove the need for the emit-time one: an impossible record should never be 
 **Encountered in:** TfLens, BRD §13 parity run 2026-09-02. The diff held at 4 findings entirely because
 of this one record. Recorded locally as `REQ-FN-063` and `REQ-NFR-005`. **Not fixable from TfLens** —
 `.tfcore/` is framework-owned and the offending data belongs to another repository (`REQ-NFR-018`).
+
+---
+
+## TF-016 — a document miss stays open forever, because `*amend-docs` is the one fix command with no closing step
+
+- **Severity:** minor
+- **Blocks:** no — nothing is blocked and no figure is wrong; 12 finished items simply show as outstanding, and the work carried on
+- **Repro:** run `*amend-docs` on a change that fixes a miss whose deficient artifact is a document
+- **Expected:** the miss closes when the amendment lands, the way `*fix-issues` closes one when the code lands
+- **Actual:** `amend-docs.md` step 9 asks only the opening question. There is no closing step, so a document miss stays open forever.
+- **Encountered in:** `*amend-docs` on TfLens, 2026-09-08
+- **Workaround:** none — the items stay open in the list
+- **Suggested fix:** call `tf-fix-close.sh` from `amend-docs` after the checklist step. `fix_cmd: "amend-docs"` is already legal in the schema; only the wiring is missing.
+
+#### Detail
+
+**Severity: Low** (ergonomic — no wrong number, no data loss, nothing blocked). Found 2026-09-08 during
+`*amend-docs` on TfLens.
+
+**This is not a hole in the closing machinery.** `tf-fix-close.sh` works, and `fix-issues` and
+`build-phase` both call it. The gap is only about which command is wired to it.
+
+**Expected.** A miss whose deficient artifact is a document (`artifact ∈ {brd, architecture, uidesign,
+checklist, devguide}`) is fixed by `*amend-docs` — that is the command that edits those files. When the
+amendment lands, that miss should be closeable.
+
+**Actual.** `amend-docs.md` step 9 asks only the *opening* question — "is this amendment itself a miss?
+then `*log-miss`". There is no step that closes an existing miss the amendment resolves. Closing happens
+in `fix-issues` (step 5) and `build-phase`, and both close off **checklist rows** the verifier touched —
+which never covers a miss whose artifact is a document and whose fix was an edit to the BRD.
+
+**Consequence.** The miss stays open indefinitely, and the backlog figure that reads it overstates
+outstanding work. It is a display problem, not a data problem: no figure is *wrong*, the open-miss count
+is just permanently inflated by work that is finished.
+
+**Evidence — TfLens, 2026-09-08.** 37 open misses; 16 name a document artifact. Every one that carries a
+`req_id` is already `Verified` or `Implemented` in `docs/TfLens-Checklist.md`, closed by the `*amend-docs`
+runs of 2026-08-29 and 2026-09-01:
+
+| Miss | `req_id` | `artifact` | Checklist status today |
+|---|---|---|---|
+| `MISS-TfLens-20260901-06..12` | `REQ-FN-090`, `-092`, `-093`, `-094`, `-102`, `-103`, `-105` | brd / architecture | **Verified** |
+| `MISS-TfLens-20260830-03` | `REQ-NFR-020` | brd | **Implemented** — owned by `BRD-144`, appended 2026-08-29 |
+| `MISS-TfLens-20260829-01` | `REQ-NFR-019` | architecture | **Implemented** — owned by `BRD-143`, appended 2026-08-29 |
+| `MISS-TfLens-20260830-01` | `REQ-UI-027` | checklist | **Verified** |
+| `MISS-TfLens-20260829-21` | `REQ-UI-011` | devguide | **Verified** |
+
+Twelve finished items reported as outstanding, for between one and two weeks.
+
+**Repro.** On any project with an open miss whose `artifact` is `brd`: run `*amend-docs {App} "<the
+change that fixes it>"`. The BRD is amended correctly; `misses.jsonl` gains no `miss-fix` record; the
+miss remains open.
+
+**Suggested fix.** One step in `amend-docs.md`, between the current steps 8 and 9 — the mirror of the
+question already asked in step 9:
+
+> **Close what this amendment fixed.** List open misses for `{App}` whose `artifact` is a document
+> (`bash .tfcore/utils/tf-emit.sh --open-misses {App} --artifact-class doc`). For each one this
+> amendment resolves, emit a `miss-fix` with `fix_cmd: "amend-docs"` and `verdict_after: "Verified"`.
+> Where the mapping is unclear, ask — do not guess.
+
+`fix_cmd` already admits `amend-docs` in the SCHEMA §5.5.2 vocabulary, so **no schema change is needed**
+— the value is legal today and nothing emits it.
+
+The same gap plausibly applies to `*mockups --update` for `artifact: uidesign`, though we have not hit
+that case here.
+
+**Encountered in:** TfLens, `*amend-docs` 2026-09-08. **Not fixable from TfLens** — `.tfcore/` is
+framework-owned.
+
+---
+
+## TF-017 — `tf-split-brd.py` cannot read a BRD ledger line that carries the HTML anchor its own link checker needs
+
+- **Severity:** minor
+- **Blocks:** no — the checklist rows were written by hand and the amendment completed in full; no figure, gate or document is wrong as a result
+- **Repro:** on any BRD whose ledger items are written `- <a id="brd-N"></a>**BRD-N** — …`, run `bash .tfcore/utils/tf-split-brd.sh {App} --add-missing`
+- **Expected:** the new BRD items are appended to the checklist as rows
+- **Actual:** `tf-split-brd: docs/{App}-BRD.md has no **BRD-N** items in its Requirements section` — it finds **zero** items, not just the new ones
+- **Encountered in:** `*amend-docs` on TfLens, 2026-09-08 (step 7)
+- **Workaround:** write the rows and their detail entries by hand, which is what this amendment did for its twelve new requirements
+- **Suggested fix:** allow an optional anchor before the bold id in the ledger regex at `.tfcore/utils/tf-split-brd.py:88` — `^\s*[-*]\s*(?:<a id="[^"]*"></a>\s*)?\*\*(BRD-\d+)\*\*\s*[—:-]+\s*(.*)$`. One optional group; nothing else changes.
+
+#### Detail
+
+The two halves of the framework disagree about how a ledger item is written.
+
+`tf-split-brd.py:88` matches a ledger item with:
+
+```
+^\s*[-*]\s*\*\*(BRD-\d+)\*\*\s*[—:-]+\s*(.*)$
+```
+
+which requires `**BRD-N**` to follow the bullet immediately. But a BRD's §9 screen inventory links to
+each requirement as `[BRD‑21](#brd-21)`, and markdown generates no id for bold text inside a list item —
+only for headings. The only way to make those links resolve is an explicit anchor on the ledger line,
+which is what TfLens's BRD has carried since day one:
+
+```
+- <a id="brd-21"></a>**BRD-21** — User can see, on Coverage, …
+```
+
+`tf-doc-check.sh` refuses a broken link, so the anchors are required. `tf-split-brd.py` cannot parse a
+line that has one. **Every** item is affected, not only new ones: TfLens's BRD has **179** ledger items
+and the regex matches **0**.
+
+**Why it went unnoticed.** `*split-brd` runs once, at day-1, before the anchors are added; `--add-missing`
+is only reached later, from `*amend-docs`. The first amendment on a project with §9 cross-links is where
+it surfaces. `tf-doc-check.py:617` carries the same regex and the same blind spot, and reports
+`no **BRD-N** items found in the Requirements section` on the same documents.
+
+**What is NOT affected.** The BRD, Architecture, mockups and checklist are all correct — this is a
+convenience script that could not append rows, not a rule that was skipped or a number that is wrong.
+`tf-doc-check.sh --app TfLens` passes on the amended documents. Nothing about the change-set, the twelve
+new requirements or the seven edits depends on the script running.
+
+**Encountered in:** TfLens, `*amend-docs` 2026-09-08. **Not fixable from TfLens** — `.tfcore/` is
+framework-owned.

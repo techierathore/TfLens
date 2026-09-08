@@ -839,19 +839,23 @@
     },
     "techieflow:tasks:fix-issues": {
       "template": "{file:./.tfcore/tasks/fix-issues.md}",
-      "description": "Bug-fix front door: given a folder of screenshots (+ optional description), reproduce with Playwright, triage (layout/data/logic/RAG), fan fixes to the right builder, re-smoke (data+visual) + re-verify, update docs. Driven by /flow-master."
+      "description": "Fixes the bugs in a folder of screenshots: triages and logs them, builds the fix through the builders in FIX mode, smokes, re-verifies the touched rows, closes the misses with the fix cost (tf-fix-close.sh). Driven by /flow-master."
     },
     "techieflow:tasks:log-miss": {
       "template": "{file:./.tfcore/tasks/log-miss.md}",
-      "description": "The 20-second front door for 'you missed this': turns one sentence about something an agent got wrong into a misses.jsonl record (what was missed, which phase/agent/model let it through, who found it) plus the checklist line — demotion with a dated miss Remark, or a new Planned row when nothing owns it. Never boots the app, never reproduces, never edits code. Driven by /flow-master."
+      "description": "The twenty-second record: one sentence from the owner becomes one miss record and one checklist line through tf-log-miss.sh. Never boots, never fixes. Driven by /flow-master."
     },
     "techieflow:tasks:triage-issues": {
       "template": "{file:./.tfcore/tasks/triage-issues.md}",
-      "description": "ANALYZE-ONLY bug front door for human-found (UAT/production) bugs: reproduce with Playwright, triage to the owning REQ, log in the checklist (demote to Needs re-verify / new Planned rows), optional scoped regression re-verify, update PROJECT-STATUS with the *fix-issues pointer. NEVER edits code. Driven by /flow-master."
+      "description": "Analyse-only front door for bugs a person found: reproduces each on its screen, logs it in the checklist and the telemetry through tf-triage.sh (demote, new, note, close), never edits code. Driven by /flow-master."
+    },
+    "techieflow:tasks:triage-and-fix": {
+      "template": "{file:./.tfcore/tasks/triage-and-fix.md}",
+      "description": "The owner's whole bug sequence in YOLO: compare every screen to its mockup, triage the reported bugs, log every root cause with its cost, fix, log every fix with its cost, refresh the metrics, one summary per step. Driven by /flow-master."
     },
     "techieflow:tasks:verify-phase": {
       "template": "{file:./.tfcore/tasks/verify-phase.md}",
-      "description": "Autonomous verification of a scope (ui | functional | all | REQ list | legacy phase-N) — filters the one Checklist by REQ prefix; applies the data-render + visual-truth gates; verdicts land in the Checklist Requirements Status table."
+      "description": "Verifies every checklist row in a scope (ui | functional | all | REQ list) against the running app: boots it, runs the seven checks in order through the tf-verify-* scripts, writes the verdicts into the checklist and the telemetry. YOLO by default. Driven by /verifier."
     },
     "techieflow:tasks:handoff-phase": {
       "template": "{file:./.tfcore/tasks/handoff-phase.md}",
@@ -873,10 +877,6 @@
       "template": "{file:./.tfcore/tasks/generate-html.md}",
       "description": "Render any markdown file(s) or a non-recursive directory to self-contained HTML using the shared shell."
     },
-    "techieflow:tasks:author-brd": {
-      "template": "{file:./.tfcore/tasks/author-brd.md}",
-      "description": "Interactively extend docs/{AppName}-BRD.md with confirmed BRD-N requirements (per-item elicitation)."
-    },
     "techieflow:tasks:amend-docs": {
       "template": "{file:./.tfcore/tasks/amend-docs.md}",
       "description": "Fold an evolving concept / changed requirements into the EXISTING day-1 docs IN PLACE: surgically amends BRD + Architecture (append-only IDs), ripples to PROJECT-STATUS / BRD §4 / checklists, re-renders HTML. Incremental alternative to re-running day1-*."
@@ -893,13 +893,33 @@
       "template": "{file:./.tfcore/tasks/devguide.md}",
       "description": "Generate/refresh the screen-by-screen Developer Guide: traces every screen/control from Razor page → service → data-access → stored proc/query, per user role, documenting the code AS BUILT. Single doc for small apps, split per role for large ones; --update refreshes only changed screens."
     },
-    "techieflow:tasks:document-project": {
-      "template": "{file:./.tfcore/tasks/document-project.md}",
-      "description": "Generate comprehensive documentation for existing projects optimized for AI development agents."
-    },
     "techieflow:tasks:create-doc": {
       "template": "{file:./.tfcore/tasks/create-doc.md}",
       "description": "Create a document from a YAML-driven TechieFlow template (interactive, section by section)."
+    },
+    "techieflow:tasks:verify": {
+      "template": "{file:./.tfcore/tasks/verify-phase.md}",
+      "description": "The verifier's *verify. Boot the app, run the seven checks on every row in scope, write the verdicts."
+    },
+    "techieflow:tasks:metrics": {
+      "template": "{file:./.tfcore/tasks/metrics-report.md}",
+      "description": "The flow-master's *metrics. Read the telemetry streams and write the metrics report."
+    },
+    "techieflow:tasks:brainstorm": {
+      "template": "{file:./.tfcore/tasks/facilitate-brainstorming-session.md}",
+      "description": "The analyst's *brainstorm. Run a structured brainstorming session."
+    },
+    "techieflow:tasks:research-prompt": {
+      "template": "{file:./.tfcore/tasks/create-deep-research-prompt.md}",
+      "description": "The analyst's *research-prompt. Generate a well-structured research prompt."
+    },
+    "techieflow:tasks:research": {
+      "template": "{file:./.tfcore/tasks/create-deep-research-prompt.md}",
+      "description": "The architect's *research. Generate a well-structured research prompt."
+    },
+    "techieflow:tasks:create-project-brief": {
+      "template": "{file:./.tfcore/tasks/create-doc.md}\n\nUse the template .tfcore/templates/project-brief-tmpl.yaml. Write docs/{AppName}-Brief.md.",
+      "description": "Write the one-page project brief that day-1 takes as input: product, users, must-do, out of scope. The analyst's *create-project-brief."
     },
     "techieflow:tasks:create-deep-research-prompt": {
       "template": "{file:./.tfcore/tasks/create-deep-research-prompt.md}",
@@ -908,26 +928,6 @@
     "techieflow:tasks:facilitate-brainstorming-session": {
       "template": "{file:./.tfcore/tasks/facilitate-brainstorming-session.md}",
       "description": "Run a structured brainstorming session; results land in docs/brainstorming-session-results.md."
-    },
-    "techieflow:tasks:advanced-elicitation": {
-      "template": "{file:./.tfcore/tasks/advanced-elicitation.md}",
-      "description": "Reflective/brainstorming actions for deeper exploration and iterative refinement of drafted content."
-    },
-    "techieflow:tasks:execute-checklist": {
-      "template": "{file:./.tfcore/tasks/execute-checklist.md}",
-      "description": "Validate a document or work product against one of the TechieFlow checklists."
-    },
-    "techieflow:tasks:index-docs": {
-      "template": "{file:./.tfcore/tasks/index-docs.md}",
-      "description": "Maintain docs/index.md by scanning all documentation files and indexing them with descriptions."
-    },
-    "techieflow:tasks:kb-mode-interaction": {
-      "template": "{file:./.tfcore/tasks/kb-mode-interaction.md}",
-      "description": "User-friendly interface to the TechieFlow knowledge base."
-    },
-    "techieflow:tasks:shard-doc": {
-      "template": "{file:./.tfcore/tasks/shard-doc.md}",
-      "description": "Split a large document into smaller documents by level-2 sections, preserving content integrity."
     }
   }
 }

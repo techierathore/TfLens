@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — what to add so the framework&#x27;s problems show up</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — what to add so the framework&#x27;s problems show up</h1>
+    <div class="sub">Last rendered: 2026-09-08</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#why-this-exists">1. Why this exists</a></li>
+        <li><a href="#the-one-new-field-that-changes-what-the-dashboard-is-for">2. The one new field that changes what the dashboard is for</a></li>
+        <li class="h3"><a href="#sort-on-a-miss-record-whose-gap-was-it">sort on a miss record — whose gap was it</a></li>
+        <li><a href="#four-more-things-now-in-the-streams">3. Four more things now in the streams</a></li>
+        <li class="h3"><a href="#what-the-sentence-a-human-can-read">3.1 what — the sentence a human can read</a></li>
+        <li class="h3"><a href="#kind-review-what-an-owner-review-cost">3.2 kind: &quot;review&quot; — what an owner review cost</a></li>
+        <li class="h3"><a href="#kind-miss-amend-a-field-completed-later">3.3 kind: &quot;miss-amend&quot; — a field completed later</a></li>
+        <li class="h3"><a href="#reqclass-fr-on-a-gate-record">3.4 req_class: &quot;FR&quot; on a gate record</a></li>
+        <li><a href="#three-reader-side-rules-that-change-numbers-tflens-already-shows">4. Three reader-side rules that change numbers TfLens already shows</a></li>
+        <li class="h3"><a href="#key-a-requirement-by-project-and-id">4.1 Key a requirement by project and id</a></li>
+        <li class="h3"><a href="#derive-a-run-s-duration-when-the-record-omits-it">4.2 Derive a run&#x27;s duration when the record omits it</a></li>
+        <li class="h3"><a href="#derive-attempt-when-the-record-omits-it">4.3 Derive attempt when the record omits it</a></li>
+        <li><a href="#two-vocabulary-changes">5. Two vocabulary changes</a></li>
+        <li><a href="#what-must-not-be-done">6. What must not be done</a></li>
+        <li><a href="#how-the-team-proves-each-item">7. How the team proves each item</a></li>
+        <li><a href="#if-anything-here-is-wrong">8. If anything here is wrong</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — what to add so the framework's problems show up</h1>
+    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-Metrics-Update-Prompt.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#why-this-exists">1. Why this exists</a></li>
+        <li><a href="#the-one-new-field-that-changes-what-the-dashboard-is-for">2. The one new field that changes what the dashboard is for</a></li>
+        <li class="h3"><a href="#sort-on-a-miss-record-whose-gap-was-it">sort on a miss record — whose gap was it</a></li>
+        <li><a href="#four-more-things-now-in-the-streams">3. Four more things now in the streams</a></li>
+        <li class="h3"><a href="#what-the-sentence-a-human-can-read">3.1 what — the sentence a human can read</a></li>
+        <li class="h3"><a href="#kind-review-what-an-owner-review-cost">3.2 kind: &quot;review&quot; — what an owner review cost</a></li>
+        <li class="h3"><a href="#kind-miss-amend-a-field-completed-later">3.3 kind: &quot;miss-amend&quot; — a field completed later</a></li>
+        <li class="h3"><a href="#reqclass-fr-on-a-gate-record">3.4 req_class: &quot;FR&quot; on a gate record</a></li>
+        <li><a href="#three-reader-side-rules-that-change-numbers-tflens-already-shows">4. Three reader-side rules that change numbers TfLens already shows</a></li>
+        <li class="h3"><a href="#key-a-requirement-by-project-and-id">4.1 Key a requirement by project and id</a></li>
+        <li class="h3"><a href="#derive-a-run-s-duration-when-the-record-omits-it">4.2 Derive a run&#x27;s duration when the record omits it</a></li>
+        <li class="h3"><a href="#derive-attempt-when-the-record-omits-it">4.3 Derive attempt when the record omits it</a></li>
+        <li><a href="#two-vocabulary-changes">5. Two vocabulary changes</a></li>
+        <li><a href="#what-must-not-be-done">6. What must not be done</a></li>
+        <li><a href="#how-the-team-proves-each-item">7. How the team proves each item</a></li>
+        <li><a href="#if-anything-here-is-wrong">8. If anything here is wrong</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>Purpose</td><td>Hand this to whoever works on TfLens. It says exactly what changed in the telemetry between 2026-08-31 and 2026-09-07, what TfLens must add to show it, and the three reader-side rules that change numbers TfLens already publishes.</td></tr>
+<tr><td>Audience</td><td>The TfLens team. No knowledge of TechieFlow's internals is assumed.</td></tr>
+<tr><td>Source of truth</td><td><code>.tfcore/telemetry/SCHEMA.md</code> in any repository carrying the framework. Where this document and the schema disagree, the schema wins and this document is wrong.</td></tr>
+<tr><td>Written</td><td>2026-09-07, at the close of the TechieFlow reset.</td></tr>
+</tbody>
+</table>
+<hr>
+<h2 id="why-this-exists">1. Why this exists<a class="anchor-link" href="#why-this-exists">#</a></h2>
+<p>TfLens reads the framework's telemetry and turns it into pages. Between 2026-08-31 and 2026-09-07 the framework was rewritten, and the streams gained fields that answer a question the dashboard cannot answer today: <strong>not "what broke" but "whose fault was it, and would a check have caught it".</strong> Everything below is already being written into <code>docs/metrics/*.jsonl</code> in every project. None of it needs a framework change; it needs a reader.</p>
+<p>One number is also wrong today and will stay wrong until a reader-side rule changes. That is §4, and it matters more than any new page.</p>
+<hr>
+<h2 id="the-one-new-field-that-changes-what-the-dashboard-is-for">2. The one new field that changes what the dashboard is for<a class="anchor-link" href="#the-one-new-field-that-changes-what-the-dashboard-is-for">#</a></h2>
+<h3 id="sort-on-a-miss-record-whose-gap-was-it"><code>sort</code> on a miss record — whose gap was it<a class="anchor-link" href="#sort-on-a-miss-record-whose-gap-was-it">#</a></h3>
+<p>Every miss now carries the answer to four questions asked in order, stored in one field:</p>
+<table>
+<thead><tr><th><code>sort</code></th><th>Means</th><th>The fixed response</th></tr></thead>
+<tbody>
+<tr><td><code>spec</code></td><td>the project's own specification did not say it</td><td>fix the checklist line; the framework is untouched</td></tr>
+<tr><td><code>unsaid</code></td><td>the framework never said it anywhere</td><td>add one requirement line, plus a check</td></tr>
+<tr><td><code>weak-check</code></td><td>there was a check and it did not catch it</td><td>fix the check, not the prose</td></tr>
+<tr><td><code>ignored</code></td><td>it was written down and ignored anyway</td><td>make it a hook or a script, or delete the rule</td></tr>
+</tbody>
+</table>
+<p><strong>Why it is the important one.</strong> Across the framework's own 126 misses, roughly half sorted <code>weak-check</code>, a quarter <code>unsaid</code> and a quarter <code>ignored</code>. That distribution says the dominant failure is not "nobody wrote the rule" but "the check was too weak to catch it" — which is a completely different remedy from the one a class-only chart implies. A dashboard that shows <code>miss_class</code> but not <code>sort</code> shows what broke and hides what to do about it.</p>
+<p><strong>What to build.</strong> A distribution of <code>sort</code> beside the existing class distribution, per project and combined, and a filter. On a project page, the sentence for each bucket in plain words rather than the raw value, because the raw values mean nothing to a reader who has not read the schema.</p>
+<p><strong>Honesty rule.</strong> The field arrived on 2026-09-07 and older records do not carry it. Report the count that carries it as the denominator — "33 of 65 sorted" — never as a percentage of all misses. A miss written before the field existed is not "unsorted by choice", and the two must not be pooled.</p>
+<hr>
+<h2 id="four-more-things-now-in-the-streams">3. Four more things now in the streams<a class="anchor-link" href="#four-more-things-now-in-the-streams">#</a></h2>
+<h3 id="what-the-sentence-a-human-can-read">3.1 <code>what</code> — the sentence a human can read<a class="anchor-link" href="#what-the-sentence-a-human-can-read">#</a></h3>
+<p>Every miss carries a one-sentence description in the owner's words. The framework also rebuilds <code>docs/&lt;App&gt;-Misses.md</code> and its HTML from the stream after every write, so a readable list already exists in each project. TfLens should show the sentence on the miss row: a miss identified only by class and phase cannot be recognised a month later.</p>
+<p><strong>Never store or re-publish requirement text</strong> from a checklist. The <code>what</code> sentence is written for this purpose and is the only prose that travels.</p>
+<h3 id="kind-review-what-an-owner-review-cost">3.2 <code>kind: "review"</code> — what an owner review cost<a class="anchor-link" href="#kind-review-what-an-owner-review-cost">#</a></h3>
+<p>A new record kind on the misses stream (schema §5.5.9). One per phase that ends in an owner review, carrying the phase (<code>day1-review</code>, <code>build-review</code>, <code>verify-review</code>, <code>handoff-review</code>), how many corrections came back, and the cost of producing the reviewed output and of applying the corrections — both <strong>copied by the emitter</strong> from the two runs the record names, never typed.</p>
+<p>This is the only record that prices a specification defect. A dashboard that shows build and verify costs but not review costs tells the reader that documents are free.</p>
+<h3 id="kind-miss-amend-a-field-completed-later">3.3 <code>kind: "miss-amend"</code> — a field completed later<a class="anchor-link" href="#kind-miss-amend-a-field-completed-later">#</a></h3>
+<p>Also on the misses stream. It fills a field that was left <code>null</code> and <strong>never overwrites</strong> one that is not. A reader that ignores amendments sees nothing false, but it sees less: the framework's own stream has 53 of them, mostly completing <code>sort</code> on older records. Fold them in when computing a distribution, and say how many were folded.</p>
+<h3 id="reqclass-fr-on-a-gate-record">3.4 <code>req_class: "FR"</code> on a gate record<a class="anchor-link" href="#reqclass-fr-on-a-gate-record">#</a></h3>
+<p>The framework now grades itself against its own 63 requirement lines and writes one gate record per line, with <code>req_class: "FR"</code>. These are <strong>not</strong> application requirements and must never pool with <code>UI</code>, <code>FN</code>, <code>RAG</code> or <code>NFR</code>: a framework rule and a screen are different units. Segment them, or exclude them, but do not average them together.</p>
+<hr>
+<h2 id="three-reader-side-rules-that-change-numbers-tflens-already-shows">4. Three reader-side rules that change numbers TfLens already shows<a class="anchor-link" href="#three-reader-side-rules-that-change-numbers-tflens-already-shows">#</a></h2>
+<p>These are not new fields. They are arithmetic the reader must do, and TfLens is currently doing two of them differently. Each was a real defect in the framework's own report before it was fixed there.</p>
+<h3 id="key-a-requirement-by-project-and-id">4.1 Key a requirement by project <strong>and</strong> id<a class="anchor-link" href="#key-a-requirement-by-project-and-id">#</a></h3>
+<p>Every project has a <code>REQ-UI-001</code>. A rollup keyed on <code>req_id</code> alone counts TfLens's and TechieBlog's as one requirement. The framework's own combined first-pass rate read <strong>72%</strong> under that bug and <strong>48%</strong> once keyed on <code>(project, req_id)</code>. If TfLens publishes any cross-project figure keyed on the id alone, that figure is wrong by roughly the same margin.</p>
+<h3 id="derive-a-run-s-duration-when-the-record-omits-it">4.2 Derive a run's duration when the record omits it<a class="anchor-link" href="#derive-a-run-s-duration-when-the-record-omits-it">#</a></h3>
+<p><code>duration_s</code> was added after some records were written. Those records carry <code>started</code> and <code>ended</code> but no duration, and a reader that sums <code>duration_s</code> counts them as <strong>zero time while still counting their tokens</strong> — so a phase's time is a sum over some of its runs and its tokens a sum over others. The framework's reset reported <strong>16h49m</strong> under that bug against a true <strong>55h57m</strong>. Derive it from <code>started</code> and <code>ended</code>; where <code>ended</code> is absent too, the schema defines it as the moment the record was written, which is <code>ts</code>. Print how many were derived.</p>
+<h3 id="derive-attempt-when-the-record-omits-it">4.3 Derive <code>attempt</code> when the record omits it<a class="anchor-link" href="#derive-attempt-when-the-record-omits-it">#</a></h3>
+<p>First-pass rate counts records with <code>attempt == 1</code>. <code>attempt</code> is <em>defined</em> as 1 plus the number of prior live records for the same requirement in the same project — a count over the stream, not a judgement. A record without it drops out of the rate entirely: the framework's own 12 requirement verdicts, all passing, reported a first-pass rate of <strong>0%</strong>. Derive it in stream order for records that lack it, and never touch one that carries it.</p>
+<hr>
+<h2 id="two-vocabulary-changes">5. Two vocabulary changes<a class="anchor-link" href="#two-vocabulary-changes">#</a></h2>
+<ul>
+<li><strong><code>harness: "codex"</code> is retired.</strong> The Codex adapter was removed on 2026-09-07. Nothing writes that value any more; records that carry it stay valid and must still render. Do not drop them, and do not add Codex to any new filter.
+</li>
+<li><strong>The <code>cmd</code> vocabulary grew</strong>: <code>metrics-report</code>, <code>generate-html</code>, <code>render-workflow-docs</code>, <code>triage-and-fix</code>, and <code>framework-reset</code> for framework maintenance. A dashboard that whitelists command names will silently hide 27 records that already exist across the estate. Prefer showing an unknown value to dropping it.
+</li>
+</ul>
+<hr>
+<h2 id="what-must-not-be-done">6. What must not be done<a class="anchor-link" href="#what-must-not-be-done">#</a></h2>
+<p>These are the framework's own standing rules for any report built on these streams, and they apply to TfLens.</p>
+<ul>
+<li><strong>Provenance never merges.</strong> Live records never pool with backfilled ones; <code>app</code>, <code>library</code>, <code>docs</code> and <code>framework</code> project types never pool with each other; a miss whose attribution is inferred never enters a per-model or per-phase rate. Data on the wrong side of a boundary may sit in an adjacent labelled column, never summed with the figure beside it.
+</li>
+<li><strong>Every exclusion is printed with the figure it bounds.</strong> An exclusion the reader cannot see is indistinguishable from a bug.
+</li>
+<li><strong>Fewer than three supporting records is <code>insufficient data</code></strong>, not a number.
+</li>
+<li><strong>No estimated dollar figure is ever presented as a measurement.</strong> Real measured dollars exist only on OpenCode records; Claude Code carries <code>cost_usd: null</code> permanently, so report tokens and say why. <strong>No stream ever stores a priced figure</strong> — nothing in the framework multiplies tokens by a price list on the way in. A <strong>read-time</strong> estimate is a different thing and is allowed, on the terms TfLens already meets: labelled an estimate everywhere it appears, on its own card, its JSON key ending <code>_usd_estimate</code>, and never added to a measured cost. That is TfLens's own path (BRD-62, BRD-123, BRD-128, BRD-160) and the framework's own design record blesses it in as many words (<code>docs/Miss-Telemetry-TechieFlow.md</code> §"What a miss costs"). <strong>Correction, 2026-09-08:</strong> this bullet previously read <em>"No rate card, ever"</em>, which turned a producer rule into a consumer ban and contradicted both the schema and the sentence just cited. TfLens's repricing panel and price-list editor stay exactly as they are; no requirement is struck.
+</li>
+<li><strong>A per-model rate is observational, not causal.</strong> Which model gets the hard work is not random, and the page must say so once.
+</li>
+</ul>
+<hr>
+<h2 id="how-the-team-proves-each-item">7. How the team proves each item<a class="anchor-link" href="#how-the-team-proves-each-item">#</a></h2>
+<p>Nothing here is done until it is shown against real data. Every project under <code>/mnt/c/1MyCode</code> and <code>/mnt/c/3AIGenCode</code> carries live streams; TfLens itself has 161 miss records and 809 gate records.</p>
+<table>
+<thead><tr><th>Item</th><th>The proof</th></tr></thead>
+<tbody>
+<tr><td><code>sort</code> distribution</td><td>The three buckets appear with their denominator, and the count of records predating the field is stated separately.</td></tr>
+<tr><td><code>what</code> sentence</td><td>A miss row shows the sentence, and no requirement text appears anywhere on the page.</td></tr>
+<tr><td><code>review</code> records</td><td>A phase with a review shows corrections given, cost to produce and cost to correct, all copied not computed.</td></tr>
+<tr><td><code>miss-amend</code></td><td>A distribution states how many fields were completed by an amendment.</td></tr>
+<tr><td><code>req_class: FR</code></td><td>Framework requirement verdicts appear in their own segment and in no combined application figure.</td></tr>
+<tr><td>Rollup keying</td><td>The combined first-pass rate is recomputed; if it moves by roughly 20 points, the old figure was keyed on the id alone.</td></tr>
+<tr><td>Duration derivation</td><td>A phase's total time and its token total cover the same set of runs, and the page says how many durations were derived.</td></tr>
+<tr><td><code>attempt</code> derivation</td><td>A set of records that all passed reports a first-pass rate of 100%, not 0%.</td></tr>
+</tbody>
+</table>
+<hr>
+<h2 id="if-anything-here-is-wrong">8. If anything here is wrong<a class="anchor-link" href="#if-anything-here-is-wrong">#</a></h2>
+<p>Say so, with the record that disproves it. The framework's own report was wrong about three of these until someone checked, and each correction came from reading the records rather than the documentation. <code>.tfcore/telemetry/SCHEMA.md</code> is the contract; this page is a summary of it written on 2026-09-07 and will age.</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

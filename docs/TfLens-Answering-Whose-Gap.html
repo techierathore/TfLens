@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Status</title>
+<title>TfLens — answering &quot;whose gap was it&quot; on the older mistakes</title>
 <script>
 /* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
    pick by time of day — light 07:00–19:00 local, softened dark at night. */
@@ -105,150 +105,146 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
 <div class="layout">
   <nav class="side">
-    <h1>TfLens — Status</h1>
+    <h1>TfLens — answering &quot;whose gap was it&quot; on the older mistakes</h1>
     <div class="sub">Last rendered: 2026-09-08</div>
     <div class="group">Contents</div>
     <ol>
-        <li><a href="#where-i-am">Where I am</a></li>
-        <li><a href="#next-command-to-run">Next command to run</a></li>
-        <li><a href="#open-requirements">Open requirements</a></li>
-        <li><a href="#known-blockers">Known blockers</a></li>
-        <li><a href="#verification-log">Verification log</a></li>
-        <li><a href="#library-feedback-summary">Library feedback summary</a></li>
-        <li><a href="#standards-compliance">Standards compliance</a></li>
-        <li><a href="#deferred-future">Deferred / future</a></li>
+        <li><a href="#what-this-is-actually-about">1. What this is actually about</a></li>
+        <li><a href="#why-tflens-cannot-do-this-for-you">2. Why TfLens cannot do this for you</a></li>
+        <li><a href="#the-command">3. The command</a></li>
+        <li><a href="#how-to-decide-in-order">4. How to decide, in order</a></li>
+        <li><a href="#which-ones-to-do">5. Which ones to do</a></li>
+        <li><a href="#seeing-what-is-left">6. Seeing what is left</a></li>
+        <li><a href="#what-happens-once-some-are-answered">7. What happens once some are answered</a></li>
     </ol>
   </nav>
   <main>
-    <h1>TfLens — Status</h1>
-    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>PROJECT-STATUS.md</code></div>
-    <div class="cta-next" style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
-      <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *build-phase TfLens</div>
-    </div>
-<table>
-<tbody>
-<tr><th>project</th><td>TfLens</td></tr>
-<tr><th>last_updated</th><td>2026-09-08</td></tr>
-<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Build — 12 not built, 51 of 73 verified</td></tr>
-<tr><th>last_verified_build</th><td>PASS</td></tr>
-<tr><th>last_verified_date</th><td>2026-09-02</td></tr>
-</tbody>
-</table>
+    <h1>TfLens — answering "whose gap was it" on the older mistakes</h1>
+    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-Answering-Whose-Gap.md</code></div>
+
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#where-i-am">Where I am</a></li>
-        <li><a href="#next-command-to-run">Next command to run</a></li>
-        <li><a href="#open-requirements">Open requirements</a></li>
-        <li><a href="#known-blockers">Known blockers</a></li>
-        <li><a href="#verification-log">Verification log</a></li>
-        <li><a href="#library-feedback-summary">Library feedback summary</a></li>
-        <li><a href="#standards-compliance">Standards compliance</a></li>
-        <li><a href="#deferred-future">Deferred / future</a></li>
+        <li><a href="#what-this-is-actually-about">1. What this is actually about</a></li>
+        <li><a href="#why-tflens-cannot-do-this-for-you">2. Why TfLens cannot do this for you</a></li>
+        <li><a href="#the-command">3. The command</a></li>
+        <li><a href="#how-to-decide-in-order">4. How to decide, in order</a></li>
+        <li><a href="#which-ones-to-do">5. Which ones to do</a></li>
+        <li><a href="#seeing-what-is-left">6. Seeing what is left</a></li>
+        <li><a href="#what-happens-once-some-are-answered">7. What happens once some are answered</a></li>
       </ol>
     </div>
-<h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-<p>Amended today for the framework's 2026-09-07 stream changes, <strong>split into three phases</strong>, then
-repaired: every checklist row now has a one-behaviour acceptance line, a valid status and a resolvable
-detail entry, and all three pass strict with nothing suppressed. Phase 3 is the working phase. Three
-new requirements are corrections — the cross-project rate, the time totals and the first-pass rate are
-each computed wrongly today, all flattering the figure. Nothing is built for them yet.</p>
-<h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
-<p>Claude Code:</p>
-<pre><code>/TechieFlow:agents:flow-master *build-phase TfLens</code></pre>
-<p>OpenCode:</p>
-<pre><code>/flow-master *build-phase TfLens</code></pre>
-<p>Works phase 3 (<code>docs/TfLens-P3-Checklist.md</code>). Start with REQ-FN-111/112/113 — they change published numbers.</p>
-<h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
 <table>
-<thead><tr><th>Status</th><th>Count</th></tr></thead>
+<thead><tr><th></th><th></th></tr></thead>
 <tbody>
-<tr><td>Not Started</td><td>12</td></tr>
-<tr><td>In Progress</td><td>2</td></tr>
-<tr><td>Implemented</td><td>4</td></tr>
-<tr><td>Needs re-verify</td><td>11</td></tr>
-<tr><td>Blocked</td><td>0</td></tr>
+<tr><td>Purpose</td><td>The steps for filling in the new "whose gap" answer on mistakes recorded before the field existed.</td></tr>
+<tr><td>Who does it</td><td>You. It is a judgement about your own project, and nothing can make it for you.</td></tr>
+<tr><td>Written</td><td>2026-09-08</td></tr>
+<tr><td>How long</td><td>About a minute a record once you have the hang of it. You do not have to do all of them.</td></tr>
 </tbody>
 </table>
-<ul>
-<li>[ ] REQ-FN-111 — key a requirement by <code>(project, req_id)</code>, never by the id alone (BRD-178)
-</li>
-<li>[ ] REQ-FN-112 — derive a run's <code>duration_s</code> when the record omits it (BRD-179)
-</li>
-<li>[ ] REQ-FN-113 — derive <code>attempt</code> when the record omits it (BRD-180)
-</li>
-<li>[ ] REQ-FN-106 — parse and store <code>sort</code> on a miss, closed vocabulary (BRD-170)
-</li>
-<li>[ ] REQ-FN-107 — <code>sort</code> denominator is the misses eligible to carry it (BRD-172)
-</li>
-<li>[ ] REQ-FN-108 — accept <code>kind: "review"</code> as a fourth record kind (BRD-174)
-</li>
-<li>[ ] REQ-FN-109 — state how many values an amendment completed (BRD-176)
-</li>
-<li>[ ] REQ-FN-110 — keep <code>req_class: "FR"</code> out of every application figure (BRD-177)
-</li>
-<li>[ ] REQ-FN-114 — never drop a record for an unfamiliar value (BRD-181)
-</li>
-<li>[ ] REQ-UI-052/053/054 — the <code>sort</code> band, the <code>what</code> sentence on each row, the review-cost band
-</li>
-<li>(19 more open rows in docs/TfLens-Checklist.md)
-</li>
-</ul>
-<h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
-<ul>
-<li>OWNER — VPS deploy not yet run: DNS A record, hand-written Caddy site file, Seq API key, and the four repo secrets (<code>SEQ_API_KEY</code>, <code>TFLENS_GITHUB_TOKEN</code>, <code>TFLENS_APPMANAGER_API_KEY</code>/<code>_SECRET</code>) are unset — <code>docs/TfLens-Deployment-Checklist.md</code> §3 is the tick list (REQ-NFR-025).
-</li>
-<li>OWNER — TechieBlog's own telemetry carries 14 records with <code>ended</code> before <code>started</code>; not TfLens's to fix (BRD §1). Holds REQ-FN-063's §13 diff at 4 findings.
-</li>
-<li>OWNER — a Playbook-emitting repository would close REQ-UI-050/051, REQ-FN-067/070 (built, owner-gated).
-</li>
-<li>None from the phase split or the checklist repair — both done. <code>docs/TfLens-Phases.md</code> is the map; no id was renumbered. BRD-182..188 now own the seven quality rules that were being graded without one.
-</li>
-<li>UPSTREAM — TF-017 (<code>tf-split-brd.py --add-missing</code> cannot read an anchored ledger line), TF-016, TF-015, TF-011, TF-005/007/008/009/010/013/014 — see <code>docs/TfLens-TechieFlow-Feedback.md</code>.
-</li>
-</ul>
-<h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
-<p>Last five passes; older passes live in <code>docs/metrics/gates.jsonl</code>.</p>
+<hr>
+<h2 id="what-this-is-actually-about">1. What this is actually about<a class="anchor-link" href="#what-this-is-actually-about">#</a></h2>
+<p>Every recorded mistake has always said <strong>what</strong> went wrong — wrong behaviour, a gap in the
+specification, a half-finished implementation. On 7 September the framework added a second column
+that says <strong>whose gap it was</strong>, and that is a different and more useful question, because each answer
+has a different fix.</p>
+<p>The column is called <code>sort</code> and it takes exactly one of four answers:</p>
 <table>
-<thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
+<thead><tr><th>The answer</th><th>What it means</th><th>What you do about it</th></tr></thead>
 <tbody>
-<tr><td>2026-09-08</td><td><code>*amend-docs</code> — stream fields, phase split, checklist repair</td><td>19 added, 7 edited, 194 rows across 3 phases, 194 acceptance lines rewritten, 0 FAIL strict</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-06</td><td><code>deploy-checklist</code> — VPS Deployment Checklist rewritten</td><td>New <code>docs/TfLens-Deployment-Checklist.md</code> (VPS only, 0 FAIL)</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-01</td><td><code>*verify</code> — the <code>/gate-outcomes</code> rename</td><td>0 findings from the rename; <code>REQ-UI-018</code> held on a real colour drift</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-08-30</td><td><code>*build-phase</code> (FIX) — harness repair + mockup anchor sweep</td><td>60 anchors added to 3 mockups: <code>harness</code> 22 → 135 comparisons</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-08-29</td><td><code>*build-phase</code> + <code>*verify all</code></td><td>New <code>mockup-parity</code> gate: 44 findings → 8 UI rows demoted, then repaired to 0</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
+<tr><td><strong>The project's own specification did not say it</strong></td><td>The requirement was ours to write and we did not write it</td><td>Fix the checklist line. The framework is fine.</td></tr>
+<tr><td><strong>The framework never said it anywhere</strong></td><td>No rule existed, in any project</td><td>Add one rule to the framework, plus a check</td></tr>
+<tr><td><strong>There was a check and it did not catch it</strong></td><td>A rule existed, a gate ran, and it passed anyway</td><td>Fix the check. Do not rewrite the prose.</td></tr>
+<tr><td><strong>It was written down and ignored anyway</strong></td><td>The rule existed and was not followed</td><td>Make it a script or a hook, or delete the rule</td></tr>
 </tbody>
 </table>
-<h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
+<p>The reason it matters: across the framework's own mistakes, <strong>about half came out as "there was a
+check and it did not catch it."</strong> That says the dominant problem is not missing rules but weak checks,
+which is a completely different remedy from the one the old column implies. You cannot see that
+distribution until some records carry the answer.</p>
+<h2 id="why-tflens-cannot-do-this-for-you">2. Why TfLens cannot do this for you<a class="anchor-link" href="#why-tflens-cannot-do-this-for-you">#</a></h2>
+<p>Two separate reasons, and both are deliberate:</p>
+<ol>
+<li><strong>TfLens never writes to a log file.</strong> It is a read-only lens. It has no code path that appends to any stream, and that is one of its founding rules, not an oversight.
+</li>
+<li><strong>The answer is a judgement, not a lookup.</strong> Deciding whether a check was too weak or a rule was ignored means knowing what you intended at the time. Nothing in the record says it.
+</li>
+</ol>
+<p>So the answer is added by the framework's own command, run by you, in the repository the mistake
+belongs to.</p>
+<h2 id="the-command">3. The command<a class="anchor-link" href="#the-command">#</a></h2>
+<p>One line per record:</p>
+<pre><code class="language-bash">bash .tfcore/utils/tf-emit.sh --amend &lt;the mistake's id&gt; sort &lt;one of the four words&gt;</code></pre>
+<p>The four words the command accepts are exactly:</p>
+<pre><code>spec          the project's own specification did not say it
+unsaid        the framework never said it anywhere
+weak-check    there was a check and it did not catch it
+ignored       it was written down and ignored anyway</code></pre>
+<p>A real example, using the most recent mistake in this repository:</p>
+<pre><code class="language-bash">bash .tfcore/utils/tf-emit.sh --amend MISS-TfLens-20260902-10 sort spec</code></pre>
+<p><strong>It is safe.</strong> The command refuses a word outside those four, refuses a field that is not meant to be
+filled in later, and <strong>never overwrites an answer that is already there</strong> — it only fills a blank. It
+adds a new line to the log rather than editing the old one, so nothing is ever rewritten and you can
+see afterwards exactly what was answered and when.</p>
+<h2 id="how-to-decide-in-order">4. How to decide, in order<a class="anchor-link" href="#how-to-decide-in-order">#</a></h2>
+<p>Ask these four questions <strong>in this order</strong> and stop at the first "yes". The order is what makes the
+answers consistent between one session and the next.</p>
+<ol>
+<li><strong>Did our own specification say it clearly?</strong> If no → <code>spec</code>.
+</li>
+<li><strong>Did the framework say it anywhere at all?</strong> If no → <code>unsaid</code>.
+</li>
+<li><strong>Was there a check, and did it fail to catch this?</strong> If yes → <code>weak-check</code>.
+</li>
+<li><strong>Was it written down and ignored anyway?</strong> If yes → <code>ignored</code>.
+</li>
+</ol>
+<p>If you genuinely cannot tell, <strong>leave it blank</strong>. A blank is honest and is reported as "written before
+the question was asked". A guess is worse than nothing, because it goes into a distribution that
+someone will later act on.</p>
+<h2 id="which-ones-to-do">5. Which ones to do<a class="anchor-link" href="#which-ones-to-do">#</a></h2>
+<p><strong>Not all of them.</strong> There are 86 unanswered mistakes in this repository and 286 across all your
+projects. Answering all of them would take a day and the oldest ones are the hardest to remember.</p>
+<p>Suggested order:</p>
+<table>
+<thead><tr><th>Do these</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>The 22 from September in this repository</td><td>Recent enough to remember, and they are the ones the dashboard will show first</td></tr>
+<tr><td>Then the 64 from August, if you want</td><td>Diminishing returns; the picture rarely changes after the first twenty or thirty</td></tr>
+<tr><td>The other projects</td><td>Only if you want a combined figure across projects</td></tr>
+</tbody>
+</table>
+<p><strong>Twenty answered records is enough to see the shape.</strong> The page states its own denominator — it will
+read <code>22 of 86 sorted</code> and say the rest predate the field — so a partial answer is a perfectly good
+state to stop in and is never presented as if it were complete.</p>
+<h2 id="seeing-what-is-left">6. Seeing what is left<a class="anchor-link" href="#seeing-what-is-left">#</a></h2>
+<p>To list the unanswered mistakes in a repository, newest first:</p>
+<pre><code class="language-bash">python3 - &lt;&lt;'EOF'
+import json, os
+p = os.path.join('docs', 'metrics', 'misses.jsonl')
+rows = [json.loads(l) for l in open(p, encoding='utf-8') if l.strip()]
+seen = {r['miss_id'] for r in rows if r.get('kind') == 'miss-amend' and r.get('field') == 'sort'}
+todo = [r for r in rows if r.get('kind') == 'miss' and not r.get('sort') and r['miss_id'] not in seen]
+todo.sort(key=lambda r: r.get('ts', ''), reverse=True)
+print(f'{len(todo)} still unanswered\n')
+for r in todo:
+    print(f"{r.get('ts','')[:10]}  {r['miss_id']:30s}  {r.get('miss_class','')}")
+    print(f"    {(r.get('what') or '(no description — this one predates the description field too)')[:110]}")
+EOF</code></pre>
+<p>Run it again after a batch and the list shrinks. It already excludes anything you have answered.</p>
+<h2 id="what-happens-once-some-are-answered">7. What happens once some are answered<a class="anchor-link" href="#what-happens-once-some-are-answered">#</a></h2>
+<p>Nothing is needed from you beyond the answers themselves.</p>
 <ul>
-<li>AppManager: 14 open — docs/TfLens-AppManager-Feedback.md
+<li>The framework rebuilds <code>docs/TfLens-Misses.md</code> and its HTML after each amendment, so the readable list stays current on its own.
 </li>
-<li>TechieFlow: 61 open — docs/TfLens-TechieFlow-Feedback.md
+<li>TfLens picks the answers up on its next sync and shows them on the Misses page — <strong>once the work for it is built.</strong> That is <code>REQ-UI-052</code>, <code>REQ-FN-106</code> and <code>REQ-FN-107</code>, which are not built yet. The page shows the distribution in words beside the existing one, with <code>n of N sorted</code> on its face.
 </li>
-<li>TrBlazeUI: 2 open — docs/TfLens-TrBlazeUI-Feedback.md
+<li>Until then the answers sit safely in the log, losing nothing.
 </li>
 </ul>
-<h2 id="standards-compliance">Standards compliance<a class="anchor-link" href="#standards-compliance">#</a></h2>
-<ul>
-<li>Last check 2026-09-02: Guardrails 119/119, Core 647/647, Integration 49/49 (Release). 11 of 192 checklist rows carry an unescaped <code>|</code> in Remarks — unfixed, see the checklist Remarks.
-</li>
-</ul>
-<h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
-<ul>
-<li>GitHub SSO (BRD-94 → REQ-FN-012) — waits on an AppManager external-login endpoint
-</li>
-<li>Sparklines on Coverage/Gate-outcomes tiles — deliberately not built, no stored series behind them (BRD §1)
-</li>
-<li><code>REQ-UI-027</code>'s <code>models</code> column renders raw JSON — no gate covers it
-</li>
-<li>Chart series colours are ungraded — BRD-144 names them, no anchor exists
-</li>
-<li>Filling <code>sort</code> in on the 286 older misses — the owner's editorial call; the new band has little to show until then
-</li>
-<li>Phases 1 and 2 are complete; <code>appPhase: 3</code> in core-config is what scopes every command from here
-</li>
-</ul>
+<p>So the order does not matter: answer some now and the page will show them when it ships, or build the
+page first and answer afterwards. Neither blocks the other.</p>
   </main>
 </div>
 
