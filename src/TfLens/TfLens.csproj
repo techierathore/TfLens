@@ -8,6 +8,9 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- Central logging on the VPS (runbook v5.2 Part 6). The sink is only registered when Seq__Url is
+         set, so this package costs local development nothing but a few KB in the image. -->
+    <PackageReference Include="Serilog.Sinks.Seq" Version="9.1.0" />
     <PackageReference Include="TrBlazeUI.Components" Version="2.0.0" />
     <PackageReference Include="TrBlazeUI.Icons.Lucide" Version="2.0.0" />
   </ItemGroup>

@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Deployment Checklist</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — Deployment Checklist</h1>
+    <div class="sub">Last rendered: 2026-09-02</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#table-of-contents">Table of contents</a></li>
+        <li><a href="#prerequisites">1. Prerequisites</a></li>
+        <li><a href="#configuration-and-secrets">2. Configuration and secrets</a></li>
+        <li><a href="#tflensgithubtoken-create-it-first">3. TfLensGitHubToken — create it first</a></li>
+        <li class="h3"><a href="#creating-the-token">Creating the token</a></li>
+        <li class="h3"><a href="#verify-it">Verify it</a></li>
+        <li><a href="#appmanager-credentials">4. AppManager credentials</a></li>
+        <li><a href="#deploy-with-docker-compose">5. Deploy with Docker Compose</a></li>
+        <li><a href="#deploy-for-local-development">6. Deploy for local development</a></li>
+        <li><a href="#first-run-verification">7. First-run verification</a></li>
+        <li><a href="#before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run</a></li>
+        <li><a href="#operating-commands">9. Operating commands</a></li>
+        <li><a href="#backup-and-restore">10. Backup and restore</a></li>
+        <li><a href="#known-constraints">11. Known constraints</a></li>
+        <li><a href="#upgrading">12. Upgrading</a></li>
+        <li><a href="#production-deploying-to-the-vps-as-tflens-techierathore-com">13. Production: deploying to the VPS as tflens.techierathore.com</a></li>
+        <li class="h3"><a href="#what-the-pipeline-does-and-what-it-deliberately-does-not">13.1 What the pipeline does, and what it deliberately does not</a></li>
+        <li class="h3"><a href="#tflens-s-per-app-variables">13.2 TfLens&#x27;s per-app variables</a></li>
+        <li class="h3"><a href="#server-prerequisites-verify-do-not-rebuild">13.3 Server prerequisites — verify, do not rebuild</a></li>
+        <li class="h3"><a href="#github-secrets">13.4 GitHub secrets</a></li>
+        <li class="h3"><a href="#seq-create-tflens-s-own-api-key">13.5 Seq — create TfLens&#x27;s own API key</a></li>
+        <li class="h3"><a href="#the-github-token-on-production-terms">13.6 The GitHub token, on production terms</a></li>
+        <li class="h3"><a href="#the-two-manual-server-steps-dns-then-the-caddy-entry">13.7 The two manual server steps: DNS, then the Caddy entry</a></li>
+        <li class="h3"><a href="#pre-flight-the-whole-list-in-one-place">13.8 Pre-flight — the whole list, in one place</a></li>
+        <li class="h3"><a href="#deploy">13.9 Deploy</a></li>
+        <li class="h3"><a href="#after-the-first-green-deploy">13.10 After the first green deploy</a></li>
+        <li class="h3"><a href="#operating-the-production-instance">13.11 Operating the production instance</a></li>
+        <li class="h3"><a href="#changing-routing-and-rolling-back">13.12 Changing routing, and rolling back</a></li>
+        <li class="h3"><a href="#what-persists-and-what-to-back-up">13.13 What persists, and what to back up</a></li>
+        <li class="h3"><a href="#production-differences-you-should-know-about-before-you-meet-them">13.14 Production differences you should know about before you meet them</a></li>
+        <li class="h3"><a href="#when-a-deploy-fails-look-here-first">13.15 When a deploy fails, look here first</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — Deployment Checklist</h1>
+    <div class="subtitle">Rendered 2026-09-02 &middot; source <code>TfLens-Deployment-Checklist.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#table-of-contents">Table of contents</a></li>
+        <li><a href="#prerequisites">1. Prerequisites</a></li>
+        <li><a href="#configuration-and-secrets">2. Configuration and secrets</a></li>
+        <li><a href="#tflensgithubtoken-create-it-first">3. TfLensGitHubToken — create it first</a></li>
+        <li class="h3"><a href="#creating-the-token">Creating the token</a></li>
+        <li class="h3"><a href="#verify-it">Verify it</a></li>
+        <li><a href="#appmanager-credentials">4. AppManager credentials</a></li>
+        <li><a href="#deploy-with-docker-compose">5. Deploy with Docker Compose</a></li>
+        <li><a href="#deploy-for-local-development">6. Deploy for local development</a></li>
+        <li><a href="#first-run-verification">7. First-run verification</a></li>
+        <li><a href="#before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run</a></li>
+        <li><a href="#operating-commands">9. Operating commands</a></li>
+        <li><a href="#backup-and-restore">10. Backup and restore</a></li>
+        <li><a href="#known-constraints">11. Known constraints</a></li>
+        <li><a href="#upgrading">12. Upgrading</a></li>
+        <li><a href="#production-deploying-to-the-vps-as-tflens-techierathore-com">13. Production: deploying to the VPS as tflens.techierathore.com</a></li>
+        <li class="h3"><a href="#what-the-pipeline-does-and-what-it-deliberately-does-not">13.1 What the pipeline does, and what it deliberately does not</a></li>
+        <li class="h3"><a href="#tflens-s-per-app-variables">13.2 TfLens&#x27;s per-app variables</a></li>
+        <li class="h3"><a href="#server-prerequisites-verify-do-not-rebuild">13.3 Server prerequisites — verify, do not rebuild</a></li>
+        <li class="h3"><a href="#github-secrets">13.4 GitHub secrets</a></li>
+        <li class="h3"><a href="#seq-create-tflens-s-own-api-key">13.5 Seq — create TfLens&#x27;s own API key</a></li>
+        <li class="h3"><a href="#the-github-token-on-production-terms">13.6 The GitHub token, on production terms</a></li>
+        <li class="h3"><a href="#the-two-manual-server-steps-dns-then-the-caddy-entry">13.7 The two manual server steps: DNS, then the Caddy entry</a></li>
+        <li class="h3"><a href="#pre-flight-the-whole-list-in-one-place">13.8 Pre-flight — the whole list, in one place</a></li>
+        <li class="h3"><a href="#deploy">13.9 Deploy</a></li>
+        <li class="h3"><a href="#after-the-first-green-deploy">13.10 After the first green deploy</a></li>
+        <li class="h3"><a href="#operating-the-production-instance">13.11 Operating the production instance</a></li>
+        <li class="h3"><a href="#changing-routing-and-rolling-back">13.12 Changing routing, and rolling back</a></li>
+        <li class="h3"><a href="#what-persists-and-what-to-back-up">13.13 What persists, and what to back up</a></li>
+        <li class="h3"><a href="#production-differences-you-should-know-about-before-you-meet-them">13.14 Production differences you should know about before you meet them</a></li>
+        <li class="h3"><a href="#when-a-deploy-fails-look-here-first">13.15 When a deploy fails, look here first</a></li>
+      </ol>
+    </div>
+<p>Everything needed to stand TfLens up on a new machine, in order, with the reason each step exists. Work
+top to bottom; every section ends with something you can check rather than assume.</p>
+<p><strong>Last updated:</strong> 2026-09-02
+<strong>Audience:</strong> whoever deploys and operates TfLens (today: the owner)</p>
+<p>TfLens is one process plus a PostgreSQL 16 database. It is <strong>read-only against every external system</strong> —
+it never writes to GitHub, and it never calls AppManager's licensing, feature-flag, payment or issue
+services. Its persistent state is two directories, <code>data/</code> and <code>logs/</code>; the database is disposable and
+can be rebuilt from <code>data/</code> at any time (<code>DECISIONS.md</code> D-002).</p>
+<blockquote>
+<p><strong>Two deployment paths, and this document covers both.</strong>
+<strong>Sections 1–12 are the self-contained path</strong>: one machine, <code>docker-compose.yml</code> at the repo root,
+TfLens plus its own PostgreSQL container. That is what you run on a laptop, a spare box, or any host
+where TfLens is the only thing living there.
+<strong>Section 13 is the production path</strong>: <code>tflens.techierathore.com</code> on the shared VPS, deployed by
+GitHub Actions, using the server's native PostgreSQL, Caddy and Seq. It reuses §§2–4 for <em>what</em> each
+secret means and <em>how</em> to obtain it — it only changes where you put the value.
+Sections 7–11 (verification, parity, operating commands, backup, constraints) apply to both.</p>
+</blockquote>
+<hr>
+<h2 id="table-of-contents">Table of contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
+<ol>
+<li><a href="#prerequisites">Prerequisites</a>
+</li>
+<li><a href="#configuration-and-secrets">Configuration and secrets</a>
+</li>
+<li><a href="#tflensgithubtoken-create-it-first"><code>TfLensGitHubToken</code> — create it first</a>
+</li>
+<li><a href="#appmanager-credentials">AppManager credentials</a>
+</li>
+<li><a href="#deploy-with-docker-compose">Deploy with Docker Compose</a>
+</li>
+<li><a href="#deploy-for-local-development">Deploy for local development</a>
+</li>
+<li><a href="#first-run-verification">First-run verification</a>
+</li>
+<li><a href="#before-quoting-any-number-the-parity-run">Before quoting any number — the parity run</a>
+</li>
+<li><a href="#operating-commands">Operating commands</a>
+</li>
+<li><a href="#backup-and-restore">Backup and restore</a>
+</li>
+<li><a href="#known-constraints">Known constraints</a>
+</li>
+<li><a href="#upgrading">Upgrading</a>
+</li>
+<li><a href="#13-production-deploying-to-the-vps-as-tflenstechierathorecom">Production: deploying to the VPS as <code>tflens.techierathore.com</code></a>
+</li>
+</ol>
+<hr>
+<h2 id="prerequisites">1. Prerequisites<a class="anchor-link" href="#prerequisites">#</a></h2>
+<table>
+<thead><tr><th>Need</th><th>Version</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Docker + Compose</td><td>any current</td><td>The shipped deployment path (<code>docker-compose.yml</code>)</td></tr>
+<tr><td>PostgreSQL</td><td><strong>16</strong></td><td>The schema uses <code>jsonb</code> and expression indexes; the compose file pins <code>postgres:16</code></td></tr>
+<tr><td>.NET SDK</td><td><strong>10.0.302+</strong></td><td>Local development and running the CLI verbs outside the container</td></tr>
+<tr><td>Python 3</td><td>any current</td><td><code>tools/parity-compare.py</code> and the framework's <code>tf-metrics.sh</code></td></tr>
+<tr><td>Node 20 + Playwright</td><td>any current</td><td>Only for the verification harness; not needed to run the app</td></tr>
+</tbody>
+</table>
+<p>A GitHub account able to create a personal access token — see §3.</p>
+<p>☑ <strong>Check:</strong> <code>docker --version &amp;&amp; docker compose version &amp;&amp; dotnet --version &amp;&amp; python3 --version</code></p>
+<hr>
+<h2 id="configuration-and-secrets">2. Configuration and secrets<a class="anchor-link" href="#configuration-and-secrets">#</a></h2>
+<p>Every setting reaches the process through the <strong>PascalCase environment-variable provider</strong> — the name in
+the environment is the option name prefixed with <code>TfLens</code>. Secrets are never read from a file in the
+repository (BRD-8).</p>
+<table>
+<thead><tr><th>Variable</th><th>Required?</th><th>What happens without it</th></tr></thead>
+<tbody>
+<tr><td><code>TfLensDbConnection</code></td><td><strong>Yes</strong></td><td><strong>Startup fails.</strong> Deliberate — a misconfigured deploy should fail immediately, not at the first user's sign-in (BRD-9).</td></tr>
+<tr><td><code>TfLensAppManagerApiKey</code></td><td><strong>Pair — yes in practice</strong></td><td>Password reset is dead. <code>/AuthSvc/forgot-password</code> and <code>/AuthSvc/reset-password</code> accept the application scope <strong>only</strong> from this header and answer <code>400 APPLICATION_ID_REQUIRED</code> without it. Login, registration and sessions still work.</td></tr>
+<tr><td><code>TfLensAppManagerApiSecret</code></td><td><strong>Pair — yes in practice</strong></td><td>As above. <strong>Set both or neither</strong>: a half pair makes AppManager return <code>401 INVALID_API_KEY</code> on <em>every</em> call, so TfLens refuses to start (<code>DECISIONS.md</code> D-006).</td></tr>
+<tr><td><code>TfLensGitHubToken</code></td><td><strong>Strongly recommended</strong></td><td>Sync is limited to <strong>60 GitHub requests/hour</strong> and cannot complete a pass over more than one or two repositories. See §3.</td></tr>
+<tr><td><code>TfLensDbPassword</code></td><td>Compose only</td><td>Interpolated into <code>TfLensDbConnection</code> and into the <code>postgres</code> service. Compose refuses to start without it.</td></tr>
+<tr><td><code>TfLensAppManagerBaseUrl</code></td><td>No</td><td>Defaults to <code>https://appmgrapi.techierathore.com</code>.</td></tr>
+<tr><td><code>TfLensAppManagerAppId</code></td><td>No</td><td>Defaults to <code>1</code>.</td></tr>
+<tr><td><code>TfLensDataRoot</code></td><td>No</td><td>Defaults to <code>data/</code>, resolved against the working directory. The container sets <code>/app/data</code>.</td></tr>
+<tr><td><code>TfLensPollIntervalMinutes</code></td><td>No</td><td>Defaults to <code>15</code>. How often the background poller sweeps every user's repositories.</td></tr>
+<tr><td><code>TfLensStalenessDays</code></td><td>No</td><td>Defaults to <code>7</code>. Drives the Coverage page's "this clone isn't pushing" warning.</td></tr>
+<tr><td><code>TfLensReferenceScriptPath</code></td><td>No</td><td>Path to <code>tf-metrics.sh</code> for the quotable banner's script-hash check. The default probes <code>.tfcore/telemetry/tf-metrics.sh</code> from the working directory upward, which finds it in a normal checkout. Set it explicitly if the framework lives elsewhere.</td></tr>
+<tr><td><code>TfLensHostPort</code></td><td>Compose only</td><td>Host port for the container. Defaults to <code>8080</code>.</td></tr>
+</tbody>
+</table>
+<p>Put secrets in a <code>.env</code> file beside <code>docker-compose.yml</code>. <strong><code>.env</code> is gitignored — keep it that way.</strong></p>
+<pre><code class="language-dotenv">TfLensDbPassword=&lt;choose a strong password&gt;
+TfLensAppManagerApiKey=ak_live_xxxxxxxxxxxxxxxxxxxx
+TfLensAppManagerApiSecret=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TfLensGitHubToken=github_pat_xxxxxxxxxxxxxxxxxxxx</code></pre>
+<p>☑ <strong>Check:</strong> <code>grep -c . .env</code> returns 4, and <code>git check-ignore .env</code> prints <code>.env</code>.</p>
+<hr>
+<h2 id="tflensgithubtoken-create-it-first">3. <code>TfLensGitHubToken</code> — create it first<a class="anchor-link" href="#tflensgithubtoken-create-it-first">#</a></h2>
+<p><strong>This is the setting most likely to make a fresh deployment look broken.</strong> Without it TfLens reads
+GitHub anonymously, which GitHub caps at <strong>60 requests per hour, per IP</strong>. A single sync pass costs
+several requests per repository (a commit-SHA lookup plus one fetch per stream), so connecting and
+syncing four repositories exhausts the hour's quota outright. Repositories then show <code>error</code> with
+<code>GitHub rate limit reached — try again in N minutes</code>, and the Coverage page reports failed syncs. The
+app is behaving correctly; it has simply run out of anonymous quota.</p>
+<p>With a token the limit is <strong>5,000 requests/hour</strong> — comfortably more than the poller will ever use.</p>
+<h3 id="creating-the-token">Creating the token<a class="anchor-link" href="#creating-the-token">#</a></h3>
+<p>TfLens only ever reads <strong>public</strong> repositories, so the token needs no repository access at all beyond
+public data, and <strong>no write scope of any kind</strong>. Either form works:</p>
+<p><strong>Fine-grained token (preferred — least privilege):</strong></p>
+<ol>
+<li>GitHub → <strong>Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong> → <em>Generate new token</em>.
+</li>
+<li><strong>Token name:</strong> <code>TfLens read-only</code>.
+</li>
+<li><strong>Expiration:</strong> your choice; note the date, because sync starts failing silently-ish when it lapses (you will see the rate-limit message again).
+</li>
+<li><strong>Repository access:</strong> <strong>Public Repositories (read-only)</strong>. Do <strong>not</strong> grant access to private repositories — TfLens refuses to connect a private repo anyway (BRD-100, REQ-FN-015), and a test asserts a configured token cannot be used to reach one.
+</li>
+<li><strong>Permissions:</strong> leave everything at the default <em>no access</em>; public-repository read needs nothing extra. If your UI insists on a repository permission, set <strong>Contents: Read-only</strong> and nothing else.
+</li>
+<li>Generate, copy the value (it is shown once), and put it in <code>.env</code> as <code>TfLensGitHubToken</code>.
+</li>
+</ol>
+<p><strong>Classic token (acceptable):</strong> create one with <strong>no scopes ticked at all</strong>. An unscoped classic token
+still authenticates you for public-data reads and lifts the limit to 5,000/h, while granting nothing.</p>
+<h3 id="verify-it">Verify it<a class="anchor-link" href="#verify-it">#</a></h3>
+<pre><code class="language-bash">set -a; . ./.env; set +a
+curl -s -H "Authorization: Bearer $TfLensGitHubToken" https://api.github.com/rate_limit \
+  | python3 -c "import json,sys; d=json.load(sys.stdin)['resources']['core']; print(f\"limit={d['limit']} remaining={d['remaining']}\")"</code></pre>
+<p>☑ <strong>Check:</strong> <code>limit=5000</code>. If it prints <code>limit=60</code>, the token was not sent or is invalid.</p>
+<blockquote>
+<p><strong>Rotation.</strong> Replace the value in <code>.env</code> and restart the container. Nothing is cached across a
+restart, and the token is never written to the database or the raw archive.</p>
+</blockquote>
+<hr>
+<h2 id="appmanager-credentials">4. AppManager credentials<a class="anchor-link" href="#appmanager-credentials">#</a></h2>
+<p>Identity is AppManager (Application Id <strong>1</strong>); TfLens has no user table of its own. Get the API key and
+secret from the AppManager admin UI, under that application's settings.</p>
+<ul>
+<li><strong>Whole pair or neither.</strong> One without the other fails startup by design.
+</li>
+<li>The pair is sent on <code>/AuthSvc/*</code> only, never on <code>/UserSvc/*</code> — see <code>DECISIONS.md</code> D-006.
+</li>
+</ul>
+<p>Verify the pair reaches AppManager (this sends no mail — the address does not exist):</p>
+<pre><code class="language-bash">set -a; . ./.env; set +a
+curl -s -X POST "$TfLensAppManagerBaseUrl/AuthSvc/forgot-password" \
+  -H 'Content-Type: application/json' \
+  -H "X-Api-Key: $TfLensAppManagerApiKey" -H "X-Api-Secret: $TfLensAppManagerApiSecret" \
+  -d '{"email":"tflens-probe-nonexistent@example.invalid"}'</code></pre>
+<p>☑ <strong>Check:</strong> <code>{"success":true,...}</code>. <code>APPLICATION_ID_REQUIRED</code> means the headers did not arrive;
+<code>INVALID_API_KEY</code> means the pair is wrong or half-configured.</p>
+<blockquote>
+<p><strong>Known AppManager-side gap.</strong> Application 1 currently defines no <code>Manager</code> role, so registration's
+<code>applicationRoleCode: "Manager"</code> is silently downgraded to <code>User</code>, and <code>GET /UserSvc/profile</code> answers
+<code>403 NO_APP_ACCESS</code> when an app context is resolved. TfLens is unaffected — it issues its own
+<code>Manager</code> claim (BRD-95) and scopes the key pair away from <code>/UserSvc/*</code>. Details and reproduction:
+<code>docs/TfLens-AppManager-Feedback.md</code> (AM-001, AM-002).</p>
+</blockquote>
+<hr>
+<h2 id="deploy-with-docker-compose">5. Deploy with Docker Compose<a class="anchor-link" href="#deploy-with-docker-compose">#</a></h2>
+<p><em>This is the self-contained path — TfLens plus its own PostgreSQL container, on a host where nothing
+else is running. For <code>tflens.techierathore.com</code> on the shared VPS, skip to §13; the compose file there
+is a different one and starts no database of its own.</em></p>
+<pre><code class="language-bash">git clone &lt;repo&gt; &amp;&amp; cd TfLens
+# create .env per §2
+docker compose up -d
+docker compose ps
+docker compose logs -f tflens</code></pre>
+<p>What this starts:</p>
+<table>
+<thead><tr><th>Service</th><th>Image</th><th>Port</th><th>Volume</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>postgres:16</code></td><td>not published (compose network only)</td><td>named volume <code>pgdata</code></td></tr>
+<tr><td><code>tflens</code></td><td>built from <code>Dockerfile</code></td><td><code>${TfLensHostPort:-8080}</code> → <code>8080</code></td><td><code>./data</code>, <code>./logs</code> bind-mounted</td></tr>
+</tbody>
+</table>
+<p>The schema script <code>database/001-schema.sql</code> is applied <strong>idempotently at every startup</strong> — there is no
+migration framework and no migration history to manage (<code>DECISIONS.md</code> D-003).</p>
+<p>To publish Postgres locally for inspection, use <code>docker-compose.override.yml</code>; it is deliberately kept
+out of the deploy file (<code>DECISIONS.md</code> D-007).</p>
+<p>☑ <strong>Check:</strong> <code>curl -s localhost:8080/healthz</code> returns JSON with database reachability and last-sync age.</p>
+<hr>
+<h2 id="deploy-for-local-development">6. Deploy for local development<a class="anchor-link" href="#deploy-for-local-development">#</a></h2>
+<pre><code class="language-bash">docker compose up -d postgres          # or point at your own PostgreSQL 16
+set -a; . ./.env; set +a
+export TfLensDbConnection="Host=localhost;Port=5433;Database=tflens;Username=tflens;Password=$TfLensDbPassword"
+dotnet build TfLens.slnx -c Release
+dotnet run --project src/TfLens/TfLens.csproj -c Release --urls http://localhost:5099</code></pre>
+<p>Two things that will bite otherwise:</p>
+<ul>
+<li><strong><code>TfLensDataRoot</code> defaults to <code>data/</code> relative to the working directory.</strong> <code>dotnet run --project src/TfLens</code> runs with the working directory at <code>src/TfLens</code>, so the archive lives at <code>src/TfLens/data/</code>. <strong>Run every CLI verb from <code>src/TfLens</code></strong> or <code>rebuild</code> will find an empty archive, truncate the tables and replay nothing.
+</li>
+<li><strong>Run tests with <code>-m:1</code>.</strong> <code>dotnet test TfLens.slnx -c Release -m:1</code>. Without it, projects run in parallel against one shared database and produce spurious failures.
+</li>
+</ul>
+<p>☑ <strong>Check:</strong> <code>/healthz</code> answers 200 and <code>/login</code> renders.</p>
+<hr>
+<h2 id="first-run-verification">7. First-run verification<a class="anchor-link" href="#first-run-verification">#</a></h2>
+<p>Walk this once on any new deployment. Test accounts are listed in <code>docs/TfLens-UsageGuide.md</code> — use
+those, never invented ones.</p>
+<ol>
+<li><strong>Sign in</strong> at <code>/login</code> (or register a new account at <code>/register</code>).
+</li>
+<li><strong>Connect a repository</strong> on <code>/repos</code> → <em>Connect</em>. Paste a public GitHub URL or <code>owner/name</code> and press <strong>Validate</strong>. All three checks must pass — <em>Repository exists · Public · Telemetry path found</em> — before <em>Connect</em> enables. The kind is auto-detected: <code>docs/metrics</code> → <strong>techieflow</strong>, <code>verification/telemetry</code> → <strong>playbook</strong>.
+</li>
+<li><strong>Sync</strong> with the header's <strong>Sync now</strong>.
+</li>
+<li><strong>Coverage (<code>/</code>)</strong> should show one card per repository with a short SHA and non-empty stream counts.
+</li>
+<li><strong>Check the reports</strong> — <code>/gate-outcomes</code>, <code>/harness</code>, <code>/routing</code> all render.
+</li>
+<li><strong>Export</strong> from <code>/export</code>; confirm <code>data/reports/&lt;userId&gt;/&lt;date&gt;/&lt;framework&gt;/</code> now holds <code>snapshot.md</code> and <code>tflens.json</code>.
+</li>
+</ol>
+<p>☑ <strong>Check:</strong> Coverage is green (or its warnings are ones you recognise), and no repository shows
+<code>error</code>. A rate-limit error here means §3 was skipped.</p>
+<hr>
+<h2 id="before-quoting-any-number-the-parity-run">8. Before quoting any number — the parity run<a class="anchor-link" href="#before-quoting-any-number-the-parity-run">#</a></h2>
+<p><strong>No figure TfLens renders may be quoted until a parity run passes.</strong> Two independent implementations —
+the framework's <code>tf-metrics.sh</code> and TfLens — compute the same metrics from the same files and must agree
+exactly. <code>/export</code> shows this as a <strong>QUOTABLE / NOT QUOTABLE</strong> banner, and it is the product's central
+safety device (BRD §13).</p>
+<p>Re-run it <strong>after every parser or engine change, and after every framework update</strong>, because the record
+stores the reference script's hash and a changed script invalidates the stamp.</p>
+<pre><code class="language-bash"># 1. Materialise the dataset from the raw archive (it is byte-identical to what was fetched)
+PD=tests/.artifacts/parity; rm -rf $PD; mkdir -p $PD
+for d in src/TfLens/data/raw/&lt;userId&gt;/*/; do
+  name=$(basename "$d" | sed 's/^[^_]*__//')
+  mkdir -p "$PD/$name/docs/metrics" "$PD/$name/.tfcore"
+  for s in runs gates sessions commits; do cat "$d"${s}-*.jsonl &gt; "$PD/$name/docs/metrics/${s}.jsonl" 2&gt;/dev/null || : &gt; "$PD/$name/docs/metrics/${s}.jsonl"; done
+  # the oracle reads project_type from the repo's own config; copy the real repo's value
+  printf 'metrics:\n  project_type: &lt;app|library|docs|framework&gt;\n' &gt; "$PD/$name/.tfcore/core-config.yaml"
+done
+
+# 2. The reference
+bash .tfcore/telemetry/tf-metrics.sh --rollup $PD/*/ --json &gt; $PD/reference.json
+
+# 3. TfLens, for the same data — run from src/TfLens
+(cd src/TfLens &amp;&amp; dotnet bin/Release/net10.0/TfLens.dll export --user &lt;userId&gt; --framework techieflow)
+cp src/TfLens/data/reports/&lt;userId&gt;/&lt;date&gt;/techieflow/tflens.json $PD/tflens.json
+
+# 4. Compare
+python3 tools/parity-compare.py $PD/reference.json $PD/tflens.json --allow-environment-keys</code></pre>
+<p>☑ <strong>Check:</strong> exit code 0 and <code>PASS — the two implementations agree key for key</code>. Only then record the
+run in <code>DECISIONS.md</code> §6 and confirm <code>/export</code> reads <strong>QUOTABLE</strong>.</p>
+<p><strong>Any mismatch is by definition a bug in TfLens, not in the reference</strong> — the script is never edited to
+match the app. <code>--allow-environment-keys</code> downgrades only the documented path-vs-<code>owner/name</code> naming
+difference; nothing else may be waved through.</p>
+<hr>
+<h2 id="operating-commands">9. Operating commands<a class="anchor-link" href="#operating-commands">#</a></h2>
+<p>Run from <code>src/TfLens</code> locally, or <code>docker exec tflens dotnet TfLens.dll &lt;verb&gt;</code> in the container.</p>
+<table>
+<thead><tr><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>rebuild --user &lt;id&gt;</code></td><td>Truncates that user's stream tables and replays the whole raw archive. The recovery path for any parser bug.</td></tr>
+<tr><td><code>sync</code></td><td>One poll pass over every connected repository, exactly as the background poller does.</td></tr>
+<tr><td><code>export --user &lt;id&gt; [--framework techieflow|playbook] [--date yyyy-MM-dd]</code></td><td>Writes the snapshot pair. With no <code>--framework</code>, writes one per framework.</td></tr>
+</tbody>
+</table>
+<p><strong><code>rebuild</code> is also the fix for a repository stuck showing stale or missing data.</strong> Sync skips a
+repository whose recorded SHA has not changed, so if its rows are lost the poller will never restore
+them — only <code>rebuild</code> will.</p>
+<hr>
+<h2 id="backup-and-restore">10. Backup and restore<a class="anchor-link" href="#backup-and-restore">#</a></h2>
+<p><strong>Back up <code>data/</code>. Do not bother backing up PostgreSQL.</strong></p>
+<p>Every fetched file is archived byte-for-byte under <code>data/raw/&lt;userId&gt;/&lt;owner&gt;__&lt;name&gt;/</code> <em>before</em> it is
+parsed, so the archive is the source of truth and the database is a derived cache (<code>DECISIONS.md</code> D-002).
+<code>data/</code> also holds <code>reports/</code> (exported snapshots), <code>prices.json</code> (the repricing rate card) and
+<code>parity-last.json</code> (the quotable stamp).</p>
+<p>Restore: put <code>data/</code> back, start the app, run <code>rebuild --user &lt;id&gt;</code> for each user.</p>
+<p>☑ <strong>Check:</strong> after a restore, per-stream counts on Coverage match what they were before.</p>
+<hr>
+<h2 id="known-constraints">11. Known constraints<a class="anchor-link" href="#known-constraints">#</a></h2>
+<ul>
+<li><strong>Public repositories only.</strong> Private repositories are refused at validation; a configured <code>TfLensGitHubToken</code> does not and must not change that (BRD-100).
+</li>
+<li><strong>60 requests/hour without a token.</strong> See §3 — this is the single most common cause of a deployment that looks broken.
+</li>
+<li><strong>Password reset needs the AppManager key pair</strong> (§4). Everything else in the auth flow works without it.
+</li>
+<li><strong>The Playbook axis needs a repository that publishes <code>verification/telemetry/events.ndjson</code>.</strong> None currently does, so the Playbook state of every report page correctly shows its empty state.
+</li>
+<li><strong>Nothing is quotable until §8 passes</strong>, and a framework update invalidates the stamp by design.
+</li>
+</ul>
+<hr>
+<h2 id="upgrading">12. Upgrading<a class="anchor-link" href="#upgrading">#</a></h2>
+<p><em>On the VPS there is no upgrade procedure: <code>git push</code> to <code>main</code> is the upgrade (§13.9). What follows
+is the self-contained path.</em></p>
+<ol>
+<li>Pull the new code.
+</li>
+<li><code>docker compose build tflens &amp;&amp; docker compose up -d</code> (the schema script re-applies itself; no migration step).
+</li>
+<li><strong>Re-run the parity procedure (§8)</strong> — a parser or engine change invalidates the previous stamp, and so does a change to the framework's <code>tf-metrics.sh</code>. <code>/export</code> will read <code>NOT QUOTABLE</code> with the reason until you do.
+</li>
+</ol>
+<p>☑ <strong>Check:</strong> <code>/healthz</code> green, Coverage renders, <code>/export</code> banner reflects a fresh parity run.</p>
+<hr>
+<h2 id="production-deploying-to-the-vps-as-tflens-techierathore-com">13. Production: deploying to the VPS as <code>tflens.techierathore.com</code><a class="anchor-link" href="#production-deploying-to-the-vps-as-tflens-techierathore-com">#</a></h2>
+<p>The production deployment is a GitHub Actions pipeline. <strong>Push to <code>main</code> is the deploy</strong> — there is no
+SSH step you perform, no compose file you edit on the server, and no image you build locally.</p>
+<p>This section is TfLens's filled-in instance of <code>docs/claude-code-deployment-brief-v3.2.md</code>, running on
+the server built by <code>docs/bluehost-vps-runbook-v5.2.md</code>. Read those two if you want the reasoning
+behind the environment; everything you need to <em>do</em> is here.</p>
+<p><strong>Work §§13.1–13.8 top to bottom before the first push.</strong> They take about 20 minutes and most of it is
+copying values into GitHub. Then §13.9 is the deploy and §13.10 is what to check afterwards.</p>
+<h3 id="what-the-pipeline-does-and-what-it-deliberately-does-not">13.1 What the pipeline does, and what it deliberately does not<a class="anchor-link" href="#what-the-pipeline-does-and-what-it-deliberately-does-not">#</a></h3>
+<p>Every push to <code>main</code> runs three jobs (<code>.github/workflows/deploy.yml</code>):</p>
+<pre><code>build    Docker image → ghcr.io/techierathore/tflens  (tags :latest and the short commit SHA)
+deploy   over SSH as ciuser —
+           1. mkdir -p /srv/apps/tflens, /srv/data/tflens/data, /srv/data/tflens/logs
+           2. sudo ensure-db tflens                     (idempotent; no pgvector)
+           3. render docker-compose.prod.template.yml with the secrets → /srv/apps/tflens/docker-compose.yml
+           4. docker compose pull &amp;&amp; up -d &amp;&amp; image prune -f
+verify   curl https://tflens.techierathore.com/healthz, 5 attempts — fails the run on no 200</code></pre>
+<p>Everything is idempotent: the first deploy and the hundredth run the same steps.</p>
+<p>Four things the pipeline will never do, by design — if you find yourself wanting one of them, the want
+is the bug:</p>
+<table>
+<thead><tr><th>It never…</th><th>Because</th></tr></thead>
+<tbody>
+<tr><td>touches DNS</td><td>It holds no DNS credentials. The A record is yours, once, in §13.7.</td></tr>
+<tr><td>touches Caddy</td><td>Routing is yours. You write <code>/srv/caddy/sites/tflens.caddy</code> by hand once (§13.7), exactly the way <code>seq.caddy</code> was written, and edit it there whenever it needs to change. The deployment brief permits a pipeline to create that file; TfLens's does not, so there is one owner of routing and no possibility of a deploy quietly reverting an edit you made on the server.</td></tr>
+<tr><td>runs <code>docker login</code> on the server</td><td>The server already holds a stored GHCR PAT (runbook Step 12). No PAT belongs in this repo's secrets.</td></tr>
+<tr><td>runs any <code>sudo</code> but <code>ensure-db</code></td><td>That is the CI account's entire sudoers allowlist. <code>sudo docker</code> in particular <strong>fails</strong> — <code>ciuser</code> is in the <code>docker</code> group and needs no sudo.</td></tr>
+</tbody>
+</table>
+<h3 id="tflens-s-per-app-variables">13.2 TfLens's per-app variables<a class="anchor-link" href="#tflens-s-per-app-variables">#</a></h3>
+<p>The deployment brief's §3 table, filled in. These are already baked into the workflow and the compose
+template — this is here so you can recognise them, not so you can retype them.</p>
+<table>
+<thead><tr><th>Variable</th><th>Value</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><code>APP_NAME</code></td><td><code>tflens</code></td><td>The single infra identity: container name, image name, <code>/srv</code> folders, Caddy snippet, and the Seq <code>App</code> property. Not the C# project name.</td></tr>
+<tr><td><code>DOMAIN</code></td><td><code>tflens.techierathore.com</code></td><td>Public.</td></tr>
+<tr><td><code>DB_NAME</code></td><td><code>tflens</code></td><td>One database on the VPS's native PostgreSQL, owner <code>appuser</code>.</td></tr>
+<tr><td><code>NEEDS_PGVECTOR</code></td><td>no</td><td></td></tr>
+<tr><td><code>HAS_UPLOADS</code></td><td>no — <strong>but two bind mounts anyway</strong></td><td>TfLens has no user uploads. It does have the raw archive and the log directory, which are mounted under <code>/srv/data/tflens/</code> for exactly the reason uploads are: a container is thrown away on every deploy.</td></tr>
+<tr><td><code>HAS_EF_MIGRATIONS</code></td><td>no</td><td><code>database/001-schema.sql</code> is applied idempotently at every startup. No migration framework, no history (<code>DECISIONS.md</code> D-003).</td></tr>
+<tr><td><code>DOTNET_VERSION</code></td><td>10</td><td></td></tr>
+<tr><td><code>PROJECT_PATH</code></td><td><code>src/TfLens/TfLens.csproj</code></td><td></td></tr>
+<tr><td><code>MEM_LIMIT</code></td><td><code>512m</code></td><td>Blazor Server holds a circuit per open tab and the poller parses whole JSONL streams in memory.</td></tr>
+<tr><td><code>INTERNAL_APIS</code></td><td>none</td><td>TfLens calls AppManager over its <strong>public</strong> URL, <code>https://appmgrapi.techierathore.com</code> — not <code>http://appmgrapi:8080</code>. Changing that is a deliberate decision, not a tidy-up: see §13.14.</td></tr>
+</tbody>
+</table>
+<h3 id="server-prerequisites-verify-do-not-rebuild">13.3 Server prerequisites — verify, do not rebuild<a class="anchor-link" href="#server-prerequisites-verify-do-not-rebuild">#</a></h3>
+<p>The pipeline assumes the runbook build is finished. Confirm it once, from your own machine, before you
+spend time debugging a deploy that was never going to work:</p>
+<pre><code class="language-bash">ssh ravi@YOUR_VPS_IP 'sudo /srv/checkup.sh'</code></pre>
+<p>☑ <strong>Check:</strong> <code>0 failed</code>. Then confirm the five things TfLens specifically needs:</p>
+<pre><code class="language-bash">ssh -i ~/.ssh/vps_ciuser ciuser@YOUR_VPS_IP '
+  whoami                                          # ciuser
+  docker ps --format "{{.Names}}"                 # must list: caddy, seq
+  sudo -l                                         # must list ONLY /usr/local/bin/ensure-db
+  touch /srv/apps/.t &amp;&amp; rm /srv/apps/.t &amp;&amp; echo "APPS WRITE OK"
+  touch /srv/caddy/sites/.t &amp;&amp; rm /srv/caddy/sites/.t &amp;&amp; echo "CADDY WRITE OK"'</code></pre>
+<p>☑ <strong>Check:</strong> all five lines as described. A missing <code>seq</code> container means §13.5 has nothing to create a
+key in; a missing <code>caddy</code> means the site will never be reachable.</p>
+<p><strong>About the PostgreSQL version.</strong> §1 asks for PostgreSQL 16; the VPS runs <strong>18</strong>, natively on Ubuntu
+rather than in a container. That is fine and needs nothing changed — 16 is the floor, not the target,
+and the schema uses only <code>jsonb</code> and expression indexes, which long predate it. What <em>does</em> change is
+ownership of the data: on the VPS the database is one of many in a shared cluster, backed up by the
+server's weekly <code>pg_dumpall</code>, and it is <strong>not</strong> where TfLens's truth lives (§13.13).</p>
+<h3 id="github-secrets">13.4 GitHub secrets<a class="anchor-link" href="#github-secrets">#</a></h3>
+<p>Eight secrets in total. Four are shared by every app in the portfolio and probably already exist; four
+are TfLens's own and definitely do not.</p>
+<p><strong>Organisation-level (runbook §2.2) — reused, not created here:</strong></p>
+<table>
+<thead><tr><th>Secret</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>VPS_HOST</code></td><td>your VPS IP</td></tr>
+<tr><td><code>VPS_USER</code></td><td><code>ciuser</code> — <strong>not</strong> <code>ravi</code></td></tr>
+<tr><td><code>VPS_SSH_KEY</code></td><td>the entire private key from <code>cat ~/.ssh/vps_ciuser</code>, including the <code>-----BEGIN</code>/<code>-----END</code> lines</td></tr>
+<tr><td><code>DB_PASSWORD</code></td><td><code>appuser</code>'s password, from runbook Step 6</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>If this repository is not under a GitHub organisation, add these four as <strong>repository</strong> secrets
+instead. Same names, same values; the workflow cannot tell the difference.</p>
+</blockquote>
+<p><strong>Repository-level — add all four on this repo</strong> (GitHub → this repo → Settings → Secrets and
+variables → Actions → <em>New repository secret</em>):</p>
+<table>
+<thead><tr><th>Secret</th><th>Required?</th><th>Value from</th><th>If left empty</th></tr></thead>
+<tbody>
+<tr><td><code>SEQ_API_KEY</code></td><td>Yes</td><td>§13.5</td><td>Deploy succeeds with a warning; TfLens logs to console and file only, and nothing appears in Seq.</td></tr>
+<tr><td><code>TFLENS_GITHUB_TOKEN</code></td><td>Strongly recommended</td><td>§3 of this document — create the fine-grained, public-read-only token exactly as described there</td><td>Deploy succeeds with a warning, then <strong>sync fails on anything past one or two repositories</strong> and every repo shows <code>error</code>. This is the single most common way a healthy TfLens deployment looks broken.</td></tr>
+<tr><td><code>TFLENS_APPMANAGER_API_KEY</code></td><td>Pair</td><td>§4 — AppManager admin UI, Application 1</td><td>Password reset answers <code>400 APPLICATION_ID_REQUIRED</code>. Login, registration and sessions still work.</td></tr>
+<tr><td><code>TFLENS_APPMANAGER_API_SECRET</code></td><td>Pair</td><td>§4</td><td>As above.</td></tr>
+</tbody>
+</table>
+<p>Three things worth getting right the first time:</p>
+<ul>
+<li><strong>The AppManager pair is whole or nothing.</strong> A key without its secret makes AppManager answer <code>401 INVALID_API_KEY</code> on <em>every</em> call, and TfLens refuses to start (<code>DECISIONS.md</code> D-006). The deploy job checks for a half pair and fails on the runner, before it touches the server.
+</li>
+<li><strong><code>DB_PASSWORD</code> must not contain a <code>$</code> or a <code>;</code>.</strong> The value is substituted into a connection string inside a YAML file that <code>docker compose</code> then interpolates: a <code>$</code> would be read as a compose variable and a <code>;</code> would end the connection string early. The runbook's <code>openssl rand -base64 24</code> produces neither, so this only bites a hand-chosen password.
+</li>
+<li><strong>Never paste a secret into <code>docker-compose.prod.template.yml</code>.</strong> It is a template with placeholders precisely so the repository never holds a value. The real file exists only on the server, rendered at deploy time.
+</li>
+</ul>
+<p>☑ <strong>Check:</strong> the repo's Actions secrets page lists exactly <code>SEQ_API_KEY</code>, <code>TFLENS_APPMANAGER_API_KEY</code>,
+<code>TFLENS_APPMANAGER_API_SECRET</code>, <code>TFLENS_GITHUB_TOKEN</code>, and the four shared ones are visible either
+there or as inherited organisation secrets.</p>
+<p><strong>The settings that are <em>not</em> secrets — you set none of these.</strong> They are already written into
+<code>docker-compose.prod.template.yml</code>, in the repository, because none of them is a credential and a
+value in version control is a value you can review in a diff:</p>
+<table>
+<thead><tr><th>Setting</th><th>Value on the VPS</th><th>Why it is not a secret / not a decision</th></tr></thead>
+<tbody>
+<tr><td><code>TfLensAppManagerAppId</code></td><td><code>1</code></td><td><strong>TfLens <em>is</em> Application 1 in AppManager.</strong> An application id is a public identifier, not a credential — it already travels in the body of every request TfLens makes. It is written into the template explicitly rather than left to the code default, so the file states TfLens's identity instead of implying it. Nothing to set, and nothing to put in a secret.</td></tr>
+<tr><td><code>TfLensAppManagerBaseUrl</code></td><td><code>https://appmgrapi.techierathore.com</code></td><td>The public AppManager URL — see §13.14 for why the container name is not used instead.</td></tr>
+<tr><td><code>TfLensDataRoot</code></td><td><code>/app/data</code></td><td>The bind-mounted archive (§13.13).</td></tr>
+<tr><td><code>TfLensPollIntervalMinutes</code></td><td><code>15</code></td><td>The default.</td></tr>
+<tr><td><code>TfLensStalenessDays</code></td><td>not set → <code>7</code></td><td>The default. Add it to the template if you want a different Coverage warning threshold.</td></tr>
+<tr><td><code>Seq__Url</code></td><td><code>http://seq:5341</code></td><td>Infrastructure, identical for every app on the server. The <em>key</em> is the secret; the address is not.</td></tr>
+<tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td><code>Production</code></td><td>Turns on HSTS, the exception handler and <code>CookieSecurePolicy.Always</code>.</td></tr>
+</tbody>
+</table>
+<p>To change any of them: edit <code>docker-compose.prod.template.yml</code> and push. That is a normal code change
+and goes out with the next deploy.</p>
+<h3 id="seq-create-tflens-s-own-api-key">13.5 Seq — create TfLens's own API key<a class="anchor-link" href="#seq-create-tflens-s-own-api-key">#</a></h3>
+<p>Seq is already running on the server; the pipeline never creates, starts or configures it. All you do
+is issue TfLens a key of its own. <strong>Never reuse another app's</strong> — a per-app key stamps <code>App</code>
+server-side, can be revoked without redeploying anything else, and can be throttled alone if TfLens
+ever gets noisy (runbook §6.3).</p>
+<ol>
+<li>Open <code>https://seq.techierathore.com</code> and sign in as <code>admin</code>.
+</li>
+<li><strong>Settings → API Keys → Add API Key.</strong>
+</li>
+<li><strong>Title:</strong> <code>tflens</code>
+</li>
+<li><strong>Applied properties:</strong> add <code>App</code> = <code>tflens</code>
+</li>
+<li>Leave the minimum level at Information.
+</li>
+<li>Save, and <strong>copy the key immediately</strong> — Seq shows it exactly once.
+</li>
+<li>Paste it into the repo secret <code>SEQ_API_KEY</code> (§13.4).
+</li>
+</ol>
+<p>What this wires up, so you know what to expect: the compose file sets <code>Seq__Url=http://seq:5341</code> and
+<code>Seq__ApiKey</code>, and <code>TfLensLogging</code> registers the Seq sink <strong>only</strong> when a URL is present. Plain HTTP
+over the shared <code>web</code> Docker network is correct — the traffic never leaves the server, so there is no
+TLS and no certificate here, and <code>https://seq.techierathore.com</code> is for your browser only and must
+never appear in app config. If Seq is down or slow, TfLens starts normally and the sink retries;
+logging is never a startup dependency.</p>
+<p>Nothing changes for local development: no Seq URL is configured on your machine, so no sink is
+registered and Serilog writes to console and <code>logs/</code> exactly as before.</p>
+<p>☑ <strong>Check (after the first deploy):</strong> Seq, filtered on <code>App = 'tflens'</code>, shows TfLens's startup lines.</p>
+<h3 id="the-github-token-on-production-terms">13.6 The GitHub token, on production terms<a class="anchor-link" href="#the-github-token-on-production-terms">#</a></h3>
+<p>Create it exactly as §3 describes — fine-grained, <strong>Public Repositories (read-only)</strong>, no other
+permission — and put the value in <code>TFLENS_GITHUB_TOKEN</code>, not in a <code>.env</code> file. There is no <code>.env</code> on
+the VPS: the pipeline injects every value at deploy time.</p>
+<p>Two production-specific notes:</p>
+<ul>
+<li><strong>The rate limit is per token, and now the whole server shares one.</strong> 5,000 requests/hour is far more than the 15-minute poller will use, but it is one budget for every user connected in TfLens, not per user.
+</li>
+<li><strong>Expiry is a silent failure.</strong> When the token lapses, TfLens falls back to anonymous reads and repositories start showing <code>GitHub rate limit reached</code> again. Note the expiry date somewhere you will see it. Rotating is: new token → update the secret → re-run the workflow (§13.11). No code change.
+</li>
+</ul>
+<p>☑ <strong>Check:</strong> run §3's <code>rate_limit</code> curl with the token you are about to store; it must print
+<code>limit=5000</code>.</p>
+<h3 id="the-two-manual-server-steps-dns-then-the-caddy-entry">13.7 The two manual server steps: DNS, then the Caddy entry<a class="anchor-link" href="#the-two-manual-server-steps-dns-then-the-caddy-entry">#</a></h3>
+<p>Both are one-time, both take about two minutes, and both must be done <strong>before the first push</strong>.</p>
+<p>Add this record at the registrar that holds <code>techierathore.com</code>:</p>
+<table>
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Type</td><td><code>A</code></td></tr>
+<tr><td>Name</td><td><code>tflens</code></td></tr>
+<tr><td>Value</td><td>your VPS IP</td></tr>
+<tr><td>TTL</td><td>default / auto</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>On Cloudflare, set it to DNS only (grey cloud).</strong> An orange cloud proxies the request and Caddy can never complete its certificate challenge.
+</li>
+<li><strong>On GoDaddy</strong>, this is <em>Manage DNS → DNS Records</em> — not the nameserver page, which only accepts hostnames and will reject an IP.
+</li>
+</ul>
+<p>Do this <strong>before</strong> the Caddy entry below, so Caddy's first attempt at the certificate succeeds rather
+than being retried, and well before the first push — the <code>verify</code> job resolves the real hostname, so
+without the record the pipeline fails at the last step even though the app is running perfectly.</p>
+<p>☑ <strong>Check:</strong> <code>dig +short tflens.techierathore.com</code> returns your VPS IP.</p>
+<p><strong>Then the Caddy site entry</strong>, on the server, once. This is the same two-command shape as <code>seq.caddy</code>
+in runbook §6.2 — a snippet file in <code>/srv/caddy/sites/</code>, never an edit to the main <code>Caddyfile</code>:</p>
+<pre><code class="language-bash">cat &gt; /srv/caddy/sites/tflens.caddy &lt;&lt; 'EOF'
+tflens.techierathore.com {
+    reverse_proxy tflens:8080
+}
+EOF
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile</code></pre>
+<p><code>tflens:8080</code> is the container name on the shared <code>web</code> network, not a port on the host — TfLens
+publishes nothing on the VPS. Blazor Server's interactivity is a long-lived WebSocket, which Caddy's
+<code>reverse_proxy</code> upgrades with no extra directive, so this really is the whole file.</p>
+<p>There is nothing to do for TLS: Caddy obtains and renews the certificate itself on the first request
+to the hostname.</p>
+<p>You can write this entry before the container exists — Caddy will simply answer 502 until the first
+deploy — so doing it now, in the same sitting as the DNS record, is the least error-prone order.</p>
+<p>☑ <strong>Check:</strong> <code>docker exec caddy caddy validate --config /etc/caddy/Caddyfile</code> passes, and
+<code>curl -I https://tflens.techierathore.com</code> returns a certificate (a <code>502</code> body at this stage is
+correct and expected — nothing is running behind it yet).</p>
+<blockquote>
+<p><strong>This file is yours from here on.</strong> The pipeline never reads, writes or reloads any Caddy config, so
+a change you make here survives every future deploy. To change routing later: edit that same file and
+re-run the <code>caddy reload</code> line.</p>
+</blockquote>
+<h3 id="pre-flight-the-whole-list-in-one-place">13.8 Pre-flight — the whole list, in one place<a class="anchor-link" href="#pre-flight-the-whole-list-in-one-place">#</a></h3>
+<p>Tick all eight before pushing:</p>
+<ul>
+<li>[ ] <code>sudo /srv/checkup.sh</code> reports <code>0 failed</code>, and <code>caddy</code> + <code>seq</code> are both running (§13.3).
+</li>
+<li>[ ] Org (or repo) secrets exist: <code>VPS_HOST</code>, <code>VPS_USER</code> = <code>ciuser</code>, <code>VPS_SSH_KEY</code> (private key, full block), <code>DB_PASSWORD</code>.
+</li>
+<li>[ ] Repo secret <code>SEQ_API_KEY</code> holds a key titled <code>tflens</code> with applied property <code>App=tflens</code> (§13.5).
+</li>
+<li>[ ] Repo secret <code>TFLENS_GITHUB_TOKEN</code> holds a token that prints <code>limit=5000</code> (§13.6).
+</li>
+<li>[ ] Repo secrets <code>TFLENS_APPMANAGER_API_KEY</code> and <code>TFLENS_APPMANAGER_API_SECRET</code> are <strong>both</strong> set or <strong>both</strong> absent (§13.4).
+</li>
+<li>[ ] DNS A record <code>tflens</code> → VPS IP resolves (§13.7).
+</li>
+<li>[ ] <code>/srv/caddy/sites/tflens.caddy</code> exists on the server and Caddy has been reloaded (§13.7).
+</li>
+<li>[ ] <code>docker-compose.prod.template.yml</code> contains no real secret — only placeholders.
+</li>
+</ul>
+<h3 id="deploy">13.9 Deploy<a class="anchor-link" href="#deploy">#</a></h3>
+<pre><code class="language-bash">git push origin main</code></pre>
+<p>Then watch <strong>Actions → deploy</strong>. Roughly: <code>build</code> 3–6 minutes on a cold cache and under two on a warm
+one, <code>deploy</code> under a minute, <code>verify</code> anywhere from 25 seconds to about three minutes — it waits 20
+seconds, then retries up to five times, because on a first deploy it is waiting on a schema apply, a
+database connection and a certificate all at once.</p>
+<p>On the <strong>first</strong> deploy specifically, expect two things that happen only once and then never again:
+<code>ensure-db</code> actually creates the <code>tflens</code> database (on every later run it finds it and returns), and
+Caddy fetches the TLS certificate on the very first request to the new hostname. Both are part of why
+<code>verify</code> retries rather than probing once.</p>
+<p>☑ <strong>Check:</strong> all three jobs green, and <code>https://tflens.techierathore.com/healthz</code> answers
+<code>{"status":"ok","database":"up",...}</code> in your browser.</p>
+<h3 id="after-the-first-green-deploy">13.10 After the first green deploy<a class="anchor-link" href="#after-the-first-green-deploy">#</a></h3>
+<ol>
+<li><strong>Walk §7's first-run verification</strong> against the real URL — sign in, connect a public repository, Sync now, check Coverage, open <code>/gate-outcomes</code>, <code>/harness</code> and <code>/routing</code>, export from <code>/export</code>. That is the acceptance test; a green pipeline only proves the app answers <code>/healthz</code>.
+</li>
+<li><strong>Confirm logs reach Seq</strong>: <code>https://seq.techierathore.com</code>, filter <code>App = 'tflens'</code>.
+</li>
+<li><strong>Add the UptimeRobot monitor</strong> — one HTTP(s) monitor on <code>https://tflens.techierathore.com/healthz</code>. Because <code>/healthz</code> reports database reachability and answers <code>503</code> when it is down, this one monitor catches app crashed, Caddy down, TLS expired and database down, with no keyword matching needed.
+</li>
+<li><strong>Re-run the server checkup</strong>: <code>ssh ravi@YOUR_VPS_IP 'sudo /srv/checkup.sh'</code> — <code>no container restart-looping</code> and <code>caddy config valid</code> must still pass with <code>tflens</code> running.
+</li>
+</ol>
+<p>Backups need nothing: <code>pg_dumpall</code> picks up the new database and the weekly <code>/srv/data</code> archive picks
+up <code>/srv/data/tflens/</code> automatically.</p>
+<h3 id="operating-the-production-instance">13.11 Operating the production instance<a class="anchor-link" href="#operating-the-production-instance">#</a></h3>
+<p>TfLens publishes no port on the VPS — it is reachable only through Caddy, on the <code>web</code> Docker network.
+So everything below goes through <code>docker exec</code>, as <code>ravi</code> (or <code>ciuser</code>; both are in the <code>docker</code> group):</p>
+<table>
+<thead><tr><th>Task</th><th>Command on the server</th></tr></thead>
+<tbody>
+<tr><td>Follow the logs</td><td><code>docker logs -f tflens</code></td></tr>
+<tr><td>Health from inside</td><td><code>docker exec tflens wget -qO- http://localhost:8080/healthz</code></td></tr>
+<tr><td>One sync pass now</td><td><code>docker exec tflens dotnet TfLens.dll sync</code></td></tr>
+<tr><td>Rebuild a user's streams from the archive</td><td><code>docker exec tflens dotnet TfLens.dll rebuild --user &lt;id&gt;</code></td></tr>
+<tr><td>Export a snapshot</td><td><code>docker exec tflens dotnet TfLens.dll export --user &lt;id&gt; [--framework techieflow|playbook]</code></td></tr>
+<tr><td>Restart without redeploying</td><td><code>cd /srv/apps/tflens &amp;&amp; docker compose restart</code></td></tr>
+<tr><td>Re-deploy the current image</td><td><code>cd /srv/apps/tflens &amp;&amp; docker compose up -d</code></td></tr>
+</tbody>
+</table>
+<p>The verbs share the engine the pages use (<code>ADR-005</code>), and the container's working directory is <code>/app</code>
+with <code>TfLensDataRoot=/app/data</code>, so §6's "run every CLI verb from <code>src/TfLens</code>" trap does not exist
+here — the data root is absolute.</p>
+<p><strong><code>rebuild</code> is still the fix for a repository stuck showing stale or missing data</strong>, for the reason in
+§9: sync skips a repository whose recorded SHA has not moved, so lost rows are never restored by
+polling alone.</p>
+<p><strong>Re-running a deploy without a code change:</strong> Actions → deploy → <em>Run workflow</em> (the workflow accepts
+<code>workflow_dispatch</code>). Use this after rotating a secret — secrets are baked into the compose file at
+deploy time, so a rotated value reaches the container only on the next deploy.</p>
+<h3 id="changing-routing-and-rolling-back">13.12 Changing routing, and rolling back<a class="anchor-link" href="#changing-routing-and-rolling-back">#</a></h3>
+<p><strong>Routing.</strong> <code>/srv/caddy/sites/tflens.caddy</code> is a hand-written file (§13.7) and nothing in this
+repository or the pipeline knows it exists. To change it — a redirect, a header, a second hostname —
+edit it on the server and reload:</p>
+<pre><code class="language-bash">nano /srv/caddy/sites/tflens.caddy
+docker exec caddy caddy validate --config /etc/caddy/Caddyfile   # before, not after
+docker exec caddy caddy reload  --config /etc/caddy/Caddyfile</code></pre>
+<p><code>reload</code> on an invalid config leaves the previous one running rather than taking the site down, but
+validating first tells you <em>why</em> in one line instead of sending you to <code>docker logs caddy</code>.</p>
+<p><strong>Rollback, the clean way:</strong> <code>git revert &lt;bad commit&gt; &amp;&amp; git push</code>. The pipeline redeploys the previous
+code exactly like any other release and the history stays honest.</p>
+<p><strong>Rollback, the fast way</strong> (only when Actions itself is down): every deploy pushed the image under its
+short commit SHA as well as <code>:latest</code>, so every version you have ever deployed is already in GHCR.</p>
+<pre><code class="language-bash">cd /srv/apps/tflens
+nano docker-compose.yml     # image: ghcr.io/techierathore/tflens:a1b2c3d
+docker compose pull &amp;&amp; docker compose up -d</code></pre>
+<p>Change the tag back to <code>:latest</code> once the fix is pushed, or the next pipeline run will pin you to the
+old image. Rolling back swaps the <strong>code</strong>, not the data — which for TfLens is unusually safe, because
+the schema is applied idempotently and the archive is the source of truth.</p>
+<h3 id="what-persists-and-what-to-back-up">13.13 What persists, and what to back up<a class="anchor-link" href="#what-persists-and-what-to-back-up">#</a></h3>
+<table>
+<thead><tr><th>Path on the VPS</th><th>What it is</th><th>Backed up by</th></tr></thead>
+<tbody>
+<tr><td><code>/srv/data/tflens/data</code></td><td><strong>The source of truth.</strong> <code>raw/</code> (every fetched file, byte-for-byte, before parsing), <code>reports/</code>, <code>prices.json</code>, <code>parity-last.json</code>, and <code>keys/</code> — the Data Protection key ring.</td><td>The runbook's weekly <code>/srv/data</code> archive → OneDrive + Google Drive</td></tr>
+<tr><td><code>/srv/data/tflens/logs</code></td><td>Rolling Serilog file sink, 14 days</td><td>Same archive</td></tr>
+<tr><td>PostgreSQL database <code>tflens</code></td><td>A derived cache. <code>rebuild</code> reconstructs it from <code>raw/</code>.</td><td>Weekly <code>pg_dumpall</code> — convenient, not load-bearing</td></tr>
+<tr><td><code>/srv/apps/tflens/docker-compose.yml</code></td><td>Rendered config, <strong>contains live secrets</strong></td><td>Same archive. Anyone with the archive has the secrets; treat it accordingly.</td></tr>
+</tbody>
+</table>
+<p>§10's rule holds unchanged on the VPS: <strong>back up <code>data/</code>; do not bother about PostgreSQL.</strong> The one
+addition production makes is <code>keys/</code>. Losing the key ring does not lose data, but it orphans every
+encrypted AppManager token in <code>AuthSession</code> and invalidates every live auth cookie — everyone is simply
+signed out and signs in again (BRD-87). That is why the data directory is a bind mount and not a
+container path.</p>
+<p>Restore is §10's: put <code>/srv/data/tflens/data</code> back, <code>docker compose up -d</code>, then
+<code>docker exec tflens dotnet TfLens.dll rebuild --user &lt;id&gt;</code> for each user.</p>
+<h3 id="production-differences-you-should-know-about-before-you-meet-them">13.14 Production differences you should know about before you meet them<a class="anchor-link" href="#production-differences-you-should-know-about-before-you-meet-them">#</a></h3>
+<ul>
+<li><strong><code>/export</code>'s banner starts at its never-run state on a fresh server</strong>, because <code>parity-last.json</code> lives in <code>data/</code> and a new deployment has none. The parity procedure (§8) is a developer activity on a developer's machine; the server is where the numbers are read, not where they are certified.
+</li>
+<li><strong>TfLens calls AppManager over the public internet</strong>, <code>https://appmgrapi.techierathore.com</code>, even though both containers sit on the same <code>web</code> network. Switching to <code>http://appmgrapi:8080</code> would be faster and would survive a DNS outage, but it also changes TfLens's TLS posture towards a service it sends an API key pair to, and it silently breaks local development, which has no such container. Left as is on purpose.
+</li>
+<li><strong>The container runs as root</strong>, and the Dockerfile must keep having no <code>USER</code> directive. A non-root container user cannot write to the <code>ravi</code>-owned bind mounts, and the failure surfaces at runtime as a permission error on the first archive write — not at deploy time.
+</li>
+<li><strong>The database is shared infrastructure.</strong> <code>tflens</code> is one database in a cluster serving every app. Never <code>DROP</code> it to "start clean"; <code>rebuild</code> is the reset, and it touches only TfLens's tables.
+</li>
+<li><strong><code>/healthz</code> is the only anonymous route that reports anything.</strong> Sign-in and static assets are necessarily anonymous too; everything that renders data requires the auth cookie (BRD-2). That is why the verify job probes <code>/healthz</code> and nothing else — it is the only path a credential-less caller can learn a useful yes/no from, and BRD-78 caps what it may say to database reachability and last-sync age.
+</li>
+</ul>
+<h3 id="when-a-deploy-fails-look-here-first">13.15 When a deploy fails, look here first<a class="anchor-link" href="#when-a-deploy-fails-look-here-first">#</a></h3>
+<p>Read the actual error before changing anything — for a crash-looping container that means
+<code>docker logs tflens</code>, which names the fault. Guessing from symptoms is what makes these expensive.</p>
+<table>
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>SSH step: permission denied</td><td><code>VPS_SSH_KEY</code> holds the <code>.pub</code> file, or <code>VPS_USER</code> is still <code>ravi</code></td><td>Re-paste the full private key including BEGIN/END; set <code>VPS_USER</code> to <code>ciuser</code></td></tr>
+<tr><td><code>sudo: a password is required</code></td><td>A step used sudo for something outside the allowlist</td><td>Only <code>/usr/local/bin/ensure-db</code> is permitted — remove the sudo</td></tr>
+<tr><td><code>docker compose pull</code> → <code>unauthorized</code></td><td>The <strong>server's</strong> stored GHCR PAT expired</td><td>Re-run runbook Step 12 on the server. Not a pipeline change, and no PAT goes in a secret</td></tr>
+<tr><td>verify fails, DNS error</td><td>A record missing or not propagated</td><td>Add it (§13.7), then re-run the job</td></tr>
+<tr><td>verify fails, 502 in the browser</td><td>Container crash-looping</td><td><code>docker logs tflens</code></td></tr>
+<tr><td>Container logs: refuses to start, missing DB connection</td><td><code>DB_PASSWORD</code> empty, or a <code>$</code>/<code>;</code> in the password mangled the connection string</td><td>§13.4</td></tr>
+<tr><td>Container logs: <code>INVALID_API_KEY</code> at startup</td><td>Half an AppManager pair reached the server</td><td>Set both or neither (<code>DECISIONS.md</code> D-006)</td></tr>
+<tr><td>Starts, but <code>/healthz</code> answers 503</td><td>Database unreachable</td><td>The connection string must use <code>172.17.0.1</code> — never <code>localhost</code>, never a container name. Confirm <code>ensure-db</code> ran in the deploy log</td></tr>
+<tr><td>Runs fine, no logs in Seq</td><td><code>SEQ_API_KEY</code> missing or revoked</td><td>Recreate the key (§13.5), update the secret, re-run the workflow</td></tr>
+<tr><td>Every repository shows <code>error</code> with a rate-limit message</td><td><code>TFLENS_GITHUB_TOKEN</code> empty or expired</td><td>§13.6. The app is behaving correctly — it ran out of anonymous quota</td></tr>
+<tr><td>Coverage empty after a restore</td><td>Rows not replayed</td><td><code>docker exec tflens dotnet TfLens.dll rebuild --user &lt;id&gt;</code></td></tr>
+</tbody>
+</table>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

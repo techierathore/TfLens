@@ -1,0 +1,216 @@
+# TfLens — build, deploy, verify. Push to main is the only trigger that matters; the manual one is
+# there so a deploy can be re-run without an empty commit (a re-run is safe: every step is idempotent).
+#
+# Implements docs/claude-code-deployment-brief-v3.2.md for APP_NAME=tflens on the VPS built by
+# docs/bluehost-vps-runbook-v5.2.md. What this workflow deliberately does NOT do:
+#   * no DNS — the pipeline holds no DNS credentials by design; the A record is a one-time manual step
+#   * no Caddy — /srv/caddy/sites/tflens.caddy is written by hand once, the same way seq.caddy was
+#     (runbook §6.2). The brief allows a pipeline to create it; here the owner owns routing, so the
+#     workflow never reads, writes or reloads any Caddy config
+#   * no `docker login` on the server — the server already holds a stored GHCR PAT (runbook Step 12)
+#   * no sudo except /usr/local/bin/ensure-db — the CI account's sudoers allowlist contains that alone
+#   * no chown/chmod, no writes to /srv/backups or the main Caddyfile — CI cannot reach either
+#   * no tests, no staging, no second environment. Build, deploy, verify.
+#
+# Everything it needs is in the secrets listed in docs/TfLens-Deployment-Checklist.md §13.4.
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one in flight: a cancelled run can leave the server with a
+# rendered compose file whose image has not been pulled yet.
+concurrency:
+  group: deploy-tflens
+  cancel-in-progress: false
+
+env:
+  APP_NAME: tflens
+  DOMAIN: tflens.techierathore.com
+  DB_NAME: tflens
+  IMAGE: ghcr.io/techierathore/tflens
+
+jobs:
+  build:
+    name: Build image → GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # GHCR push for the BUILD only. This is unrelated to how the server pulls: it has its own
+      # stored login, and no PAT of any kind belongs in this repository's secrets.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The SHA tag is what makes rollback free: every version ever deployed stays in GHCR, so a bad
+      # release is a one-line image change on the server (runbook §2.3) or a `git revert` here.
+      - name: Short commit SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.sha.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Rendering happens HERE, on the runner, not on the server: the template holds placeholders, the
+      # server holds values, and neither ever holds both. envsubst is given an explicit variable list
+      # so it substitutes those five names and nothing else — an unlisted `$` in any secret value is
+      # left exactly as it was.
+      - name: Render production compose file
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SEQ_API_KEY: ${{ secrets.SEQ_API_KEY }}
+          TFLENS_APPMANAGER_API_KEY: ${{ secrets.TFLENS_APPMANAGER_API_KEY }}
+          TFLENS_APPMANAGER_API_SECRET: ${{ secrets.TFLENS_APPMANAGER_API_SECRET }}
+          TFLENS_GITHUB_TOKEN: ${{ secrets.TFLENS_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Fail here, loudly, rather than three minutes later as an Npgsql authentication error in a
+          # crash-looping container. The two AppManager values are allowed to be empty (password reset
+          # is then dead, everything else works) but they must be empty TOGETHER (DECISIONS.md D-006).
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "::error::Secret DB_PASSWORD is empty. See docs/TfLens-Deployment-Checklist.md §13.4."
+            exit 1
+          fi
+          if { [ -n "$TFLENS_APPMANAGER_API_KEY" ] && [ -z "$TFLENS_APPMANAGER_API_SECRET" ]; } || \
+             { [ -z "$TFLENS_APPMANAGER_API_KEY" ] && [ -n "$TFLENS_APPMANAGER_API_SECRET" ]; }; then
+            echo "::error::TFLENS_APPMANAGER_API_KEY and TFLENS_APPMANAGER_API_SECRET must be set together or not at all (DECISIONS.md D-006). TfLens refuses to start on a half pair."
+            exit 1
+          fi
+          if [ -z "$SEQ_API_KEY" ]; then
+            echo "::warning::Secret SEQ_API_KEY is empty — TfLens will log to console and file only, not to Seq. Create the key per docs/TfLens-Deployment-Checklist.md §13.5."
+          fi
+          if [ -z "$TFLENS_GITHUB_TOKEN" ]; then
+            echo "::warning::Secret TFLENS_GITHUB_TOKEN is empty — GitHub reads fall back to 60/hour and sync will fail on more than ~2 repositories (docs/TfLens-Deployment-Checklist.md §3)."
+          fi
+
+          envsubst '${DB_PASSWORD} ${SEQ_API_KEY} ${TFLENS_APPMANAGER_API_KEY} ${TFLENS_APPMANAGER_API_SECRET} ${TFLENS_GITHUB_TOKEN}' \
+            < docker-compose.prod.template.yml > docker-compose.rendered.yml
+
+          # Proof the render happened, without printing a single value. The pattern names the five
+          # variables rather than matching a bare `${`, so ordinary prose in the template's comments
+          # can never fail the build.
+          if grep -Eq '\$\{(DB_PASSWORD|SEQ_API_KEY|TFLENS_APPMANAGER_API_KEY|TFLENS_APPMANAGER_API_SECRET|TFLENS_GITHUB_TOKEN)\}' docker-compose.rendered.yml; then
+            echo "::error::A placeholder survived envsubst in the rendered compose file."
+            exit 1
+          fi
+          echo "compose rendered: $(wc -l < docker-compose.rendered.yml) lines, all placeholders substituted"
+
+      # Own subfolders only. /srv/apps and /srv/data already exist and carry the setgid bit, so these
+      # inherit the webops group automatically — which is why no chown or chmod appears anywhere here.
+      - name: Ensure server folders
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p /srv/apps/tflens
+            mkdir -p /srv/data/tflens/data /srv/data/tflens/logs
+
+      # Idempotent, and the only privileged command the CI account may run. TfLens needs no pgvector,
+      # so no second argument. The schema itself is applied by the app at startup — there is no
+      # migration framework and no migration history (DECISIONS.md D-003).
+      - name: Ensure database
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            sudo /usr/local/bin/ensure-db tflens
+
+      - name: Upload compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: docker-compose.rendered.yml
+          target: /srv/apps/tflens
+          overwrite: true
+
+      - name: Name the compose file
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            mv /srv/apps/tflens/docker-compose.rendered.yml /srv/apps/tflens/docker-compose.yml
+
+      # No sudo in front of docker: the CI account is in the docker group, and `sudo docker` is
+      # blocked by the sudoers allowlist. `image prune -f` removes only dangling layers — never
+      # `prune -a`, which would delete the SHA-tagged images the rollback path depends on.
+      - name: Pull and start
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/apps/tflens
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+            docker compose ps
+
+  verify:
+    name: Verify https://tflens.techierathore.com/healthz
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      # End to end through the real URL — DNS, Caddy, TLS, the app and the database all have to work
+      # for this to pass, which is the point. /healthz answers 503 while the database is unreachable,
+      # so `curl -sf` treats a running-but-broken container as the failure it is.
+      #
+      # The wait is generous on purpose: TfLens applies its schema and opens a connection before it
+      # serves anything, and on the very first deploy Caddy is also obtaining a certificate.
+      - name: Probe the health endpoint
+        run: |
+          set -uo pipefail
+          sleep 20
+          for vAttempt in 1 2 3 4 5; do
+            if curl -sf --max-time 20 "https://tflens.techierathore.com/healthz" -o response.json; then
+              echo "attempt $vAttempt: healthy"
+              cat response.json
+              exit 0
+            fi
+            echo "attempt $vAttempt: not healthy yet"
+            sleep 15
+          done
+          echo "::error::/healthz did not answer 200 after 5 attempts."
+          echo "Check, in this order: DNS A record for tflens -> VPS IP; 'docker logs tflens' on the"
+          echo "server; and docs/TfLens-Deployment-Checklist.md §13.9. Do not change anything before"
+          echo "reading the container log — it names the actual fault."
+          exit 1

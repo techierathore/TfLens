@@ -20,6 +20,7 @@
 7. [Metrics engine — parity with tf-metrics.sh](#metrics-engine-parity-with-tf-metrics-sh)
 8. [Cross-cutting concerns](#cross-cutting-concerns)
 9. [Deployment architecture](#deployment-architecture)
+9a. [Stack decisions — hosting and production secrets (added 2026-09-06)](#stack-decisions-hosting-and-production-secrets-added-2026-09-06)
 10. [Architectural decisions (ADR-style log)](#architectural-decisions-adr-style-log)
 11. [Target architecture (brownfield only — if enhancement changes structure)](#target-architecture-brownfield-only-if-enhancement-changes-structure)
 12. [Open questions / risks](#open-questions-risks)
@@ -866,6 +867,18 @@ flowchart LR
 ```
 
 Two containers via `docker-compose.yml` (amended 2026-08-26): `tflens` (single process) and `postgres` (PostgreSQL 16, its data directory on a named volume, not exposed outside the compose network). TfLens's own persistent state is `data/` (`raw/<userId>/`, `reports/<userId>/`, `prices.json`) and `logs/`. The image never contains the AppManager secret, the connection string or the PAT; they arrive as environment variables (`TfLensDbConnection` points at the `postgres` service). No inbound endpoint exists other than the authenticated UI, the anonymous auth pages and `/healthz`.
+
+## 9a. Stack decisions — hosting and production secrets (added 2026-09-06)
+
+This document predates the current Architecture template's "Stack decisions" table (Q1–Q11) and never
+carried one. `*deploy-checklist` requires Q9 (hosting) and Q10 (production secrets and pipeline)
+specifically, so only those two rows are added here — the other stack questions are not retrofitted
+onto a document whose Tech stack (§1) and ADR log (§10) already answer them in prose.
+
+| Q | Topic | Decision | Source |
+|---|---|---|---|
+| Q9 | Hosting | Production target is the shared Bluehost VPS at `tflens.techierathore.com`, one container (`tflens`) on the external `web` Docker network behind Caddy, using the server's **native** PostgreSQL 18 (not a container), reached at `172.17.0.1:5432`. No inbound port is published — Caddy terminates TLS and reverse-proxies to `tflens:8080`. | `docs/claude-code-deployment-brief-v3.2.md` §§0–2 (environment contract), filled in for TfLens in `docs/TfLens-Deployment-Checklist.md` §13.2–13.3 |
+| Q10 | Production secrets and pipeline | GitHub Actions (`.github/workflows/deploy.yml`) is the only deploy path — push to `main` builds the image to GHCR, then over SSH as the dedicated `ciuser` account (docker group + `webops` group, sudo limited to `/usr/local/bin/ensure-db`) renders `docker-compose.prod.template.yml` via `envsubst` and starts it. Secrets live only as GitHub Actions secrets, never in the repo: four org-level (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `DB_PASSWORD`) and four repo-level (`SEQ_API_KEY`, `TFLENS_GITHUB_TOKEN`, `TFLENS_APPMANAGER_API_KEY`, `TFLENS_APPMANAGER_API_SECRET`); real values reach only the rendered file on the server. DNS and the Caddy site file are one-time manual steps — the pipeline holds no DNS credentials and, by TfLens's own deliberate deviation from the brief's optional automation, never touches Caddy either. | `docs/claude-code-deployment-brief-v3.2.md` §§2, 4–5 (environment contract, secrets, pipeline contract); `.github/workflows/deploy.yml`; `docker-compose.prod.template.yml` |
 
 ## 10. Architectural decisions (ADR-style log)
 

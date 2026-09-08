@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-09-02</div>
+    <div class="sub">Last rendered: 2026-09-06</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -127,6 +127,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
         <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
         <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
+        <li><a href="#a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">9a. Stack decisions — hosting and production secrets (added 2026-09-06)</a></li>
         <li><a href="#architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)</a></li>
         <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)</a></li>
         <li><a href="#open-questions-risks">12. Open questions / risks</a></li>
@@ -135,7 +136,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Rendered 2026-09-02 &middot; source <code>TfLens-Architecture.md</code></div>
+    <div class="subtitle">Rendered 2026-09-06 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -158,6 +159,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
         <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
         <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
+        <li><a href="#a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">9a. Stack decisions — hosting and production secrets (added 2026-09-06)</a></li>
         <li><a href="#architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)</a></li>
         <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)</a></li>
         <li><a href="#open-questions-risks">12. Open questions / risks</a></li>
@@ -186,6 +188,9 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </li>
 <li><a href="#deployment-architecture">Deployment architecture</a>
 </li>
+</ol>
+<p>9a. <a href="#stack-decisions-hosting-and-production-secrets-added-2026-09-06">Stack decisions — hosting and production secrets (added 2026-09-06)</a></p>
+<ol>
 <li><a href="#architectural-decisions-adr-style-log">Architectural decisions (ADR-style log)</a>
 </li>
 <li><a href="#target-architecture-brownfield-only-if-enhancement-changes-structure">Target architecture (brownfield only — if enhancement changes structure)</a>
@@ -1106,6 +1111,18 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
   Users(["Users' browsers"]) -- "HTTPS + cookie" --&gt; VPS</pre>
 </div>
 <p>Two containers via <code>docker-compose.yml</code> (amended 2026-08-26): <code>tflens</code> (single process) and <code>postgres</code> (PostgreSQL 16, its data directory on a named volume, not exposed outside the compose network). TfLens's own persistent state is <code>data/</code> (<code>raw/&lt;userId&gt;/</code>, <code>reports/&lt;userId&gt;/</code>, <code>prices.json</code>) and <code>logs/</code>. The image never contains the AppManager secret, the connection string or the PAT; they arrive as environment variables (<code>TfLensDbConnection</code> points at the <code>postgres</code> service). No inbound endpoint exists other than the authenticated UI, the anonymous auth pages and <code>/healthz</code>.</p>
+<h2 id="a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">9a. Stack decisions — hosting and production secrets (added 2026-09-06)<a class="anchor-link" href="#a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">#</a></h2>
+<p>This document predates the current Architecture template's "Stack decisions" table (Q1–Q11) and never
+carried one. <code>*deploy-checklist</code> requires Q9 (hosting) and Q10 (production secrets and pipeline)
+specifically, so only those two rows are added here — the other stack questions are not retrofitted
+onto a document whose Tech stack (§1) and ADR log (§10) already answer them in prose.</p>
+<table>
+<thead><tr><th>Q</th><th>Topic</th><th>Decision</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Q9</td><td>Hosting</td><td>Production target is the shared Bluehost VPS at <code>tflens.techierathore.com</code>, one container (<code>tflens</code>) on the external <code>web</code> Docker network behind Caddy, using the server's <strong>native</strong> PostgreSQL 18 (not a container), reached at <code>172.17.0.1:5432</code>. No inbound port is published — Caddy terminates TLS and reverse-proxies to <code>tflens:8080</code>.</td><td><code>docs/claude-code-deployment-brief-v3.2.md</code> §§0–2 (environment contract), filled in for TfLens in <code>docs/TfLens-Deployment-Checklist.md</code> §13.2–13.3</td></tr>
+<tr><td>Q10</td><td>Production secrets and pipeline</td><td>GitHub Actions (<code>.github/workflows/deploy.yml</code>) is the only deploy path — push to <code>main</code> builds the image to GHCR, then over SSH as the dedicated <code>ciuser</code> account (docker group + <code>webops</code> group, sudo limited to <code>/usr/local/bin/ensure-db</code>) renders <code>docker-compose.prod.template.yml</code> via <code>envsubst</code> and starts it. Secrets live only as GitHub Actions secrets, never in the repo: four org-level (<code>VPS_HOST</code>, <code>VPS_USER</code>, <code>VPS_SSH_KEY</code>, <code>DB_PASSWORD</code>) and four repo-level (<code>SEQ_API_KEY</code>, <code>TFLENS_GITHUB_TOKEN</code>, <code>TFLENS_APPMANAGER_API_KEY</code>, <code>TFLENS_APPMANAGER_API_SECRET</code>); real values reach only the rendered file on the server. DNS and the Caddy site file are one-time manual steps — the pipeline holds no DNS credentials and, by TfLens's own deliberate deviation from the brief's optional automation, never touches Caddy either.</td><td><code>docs/claude-code-deployment-brief-v3.2.md</code> §§2, 4–5 (environment contract, secrets, pipeline contract); <code>.github/workflows/deploy.yml</code>; <code>docker-compose.prod.template.yml</code></td></tr>
+</tbody>
+</table>
 <h2 id="architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)<a class="anchor-link" href="#architectural-decisions-adr-style-log">#</a></h2>
 <ul>
 <li><strong>ADR-001 — Blazor Server with TrBlazeUI as the only UI head.</strong> Reason: the brief fixes Blazor Server; dogfooding TrBlazeUI is an explicit goal; a single-user dashboard has no WASM/offline need.

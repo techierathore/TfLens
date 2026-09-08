@@ -43,3 +43,8 @@ PROJECT-STATUS.html
 opencode.jsonc
 Dockerfile
 docker-compose*.yml
+
+# The deploy pipeline describes how the image is RUN; it does not belong inside it. (The production
+# compose template needs no line of its own — it is docker-compose.prod.template.yml at the root, so
+# the pattern above already covers it.)
+.github/

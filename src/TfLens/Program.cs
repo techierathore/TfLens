@@ -21,18 +21,26 @@ using TfLens.Services.Ui;
 using TrBlazeUI.Components.Toast;
 using TrBlazeUI.Primitives.Extensions;
 
-// Serilog is wired before anything else can fail, so a startup exception still reaches a file.
+// Serilog is wired before anything else can fail, so a startup exception still reaches a file — and,
+// in deployment, reaches Seq. Sink selection lives in TfLensLogging; the only thing decided here is
+// where its two Seq settings come from.
 //
-// The reset-token redaction is attached here, at the logger itself, rather than anywhere in the
-// request pipeline: the line that leaked a live password-reset link came from ASP.NET Core's own
-// hosting diagnostics, which runs before any TfLens middleware and logs the whole request URL,
-// query string included (BRD-92).
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .Enrich.With(new ResetTokenRedaction())
-    .WriteTo.Console()
-    .WriteTo.File("logs/tflens-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
-    .CreateLogger();
+// They are read from a throwaway environment-only configuration rather than from the host builder's
+// configuration, because the host builder does not exist yet and moving this below it would put the
+// window where startup can fail outside the logger's reach. The alternative — build a console+file
+// logger now and replace it once configuration exists — briefly has two loggers holding the same
+// rolling log file open, and loses whatever the second one would have sent to Seq. One logger, built
+// once, for the life of the process.
+//
+// Nothing here reads the environment directly (Coding Standards §Environment Variables): the values
+// arrive through IConfiguration, exactly as every other setting does. Seq is deployment-only — the
+// compose file sets Seq__Url / Seq__ApiKey, local development sets neither — so appsettings.json is
+// deliberately not a source for them.
+var vLoggingConfiguration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
+
+Log.Logger = TfLensLogging.Create(
+    vLoggingConfiguration[TfLensLogging.SeqUrlKey],
+    vLoggingConfiguration[TfLensLogging.SeqApiKeyKey]);
 
 AppDomain.CurrentDomain.UnhandledException += (aSender, aArgs) =>
     Log.Fatal(aArgs.ExceptionObject as Exception, "Unhandled exception at the AppDomain boundary");

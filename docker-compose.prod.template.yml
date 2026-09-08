@@ -1,0 +1,99 @@
+# TfLens — PRODUCTION compose template for the VPS. NOT the file you run locally.
+#
+# It sits beside its two siblings on purpose. `docker-compose.yml` is the self-contained stack: it
+# builds the image and starts its own PostgreSQL container. `docker-compose.override.yml` publishes
+# that database for local inspection. This one is the opposite of both — it pulls a prebuilt image
+# from GHCR and uses the shared infrastructure that already runs on the server: native PostgreSQL 18
+# on the Docker bridge, the `web` network, Caddy in front, Seq behind. Nothing here is built and
+# nothing here is created.
+#
+# `docker compose` never loads this file: the name is not one it picks up, and it would not resolve
+# anyway while the placeholders are unsubstituted. That is the intent — the only thing that reads it
+# is the workflow.
+#
+# It is a TEMPLATE. `.github/workflows/deploy.yml` renders it with envsubst and scp's the result to
+# /srv/apps/tflens/docker-compose.yml. envsubst is given an explicit list of five names — DB_PASSWORD,
+# SEQ_API_KEY, TFLENS_APPMANAGER_API_KEY, TFLENS_APPMANAGER_API_SECRET, TFLENS_GITHUB_TOKEN — and
+# substitutes nothing else, so any other dollar sign here would survive untouched. Real secret values
+# never exist in this repository: they live as GitHub secrets and, once rendered, only on the server.
+#
+# See docs/TfLens-Deployment-Checklist.md §13 for what to set up before the first push.
+
+services:
+  tflens:
+    image: ghcr.io/techierathore/tflens:latest
+    container_name: tflens
+    restart: unless-stopped
+
+    # Blazor Server holds a circuit per open tab and the sync poller parses whole JSONL streams in
+    # memory, so TfLens sits at the heavier end of the portfolio. The ceiling matters more than the
+    # average: without it one runaway parse can take the other apps on this 8 GB box down with it.
+    mem_limit: 512m
+
+    environment:
+      # Production, not Development — this is what turns on HSTS, the exception handler and
+      # CookieSecurePolicy.Always in Program.cs. TLS is terminated by Caddy, so the container itself
+      # correctly speaks plain HTTP and reads the real scheme from the forwarded headers (BRD-83).
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      # Required. Startup fails without it, by design (BRD-9).
+      #
+      # 172.17.0.1 is the Docker bridge address of the host — PostgreSQL runs natively on Ubuntu, not
+      # in a container. Never `localhost` (that is this container), never `postgres` (no such
+      # container exists on this server). The database itself is created by the pipeline's
+      # `sudo ensure-db tflens` step, owned by appuser.
+      TfLensDbConnection: "Host=172.17.0.1;Port=5432;Database=tflens;Username=appuser;Password=${DB_PASSWORD}"
+
+      # Whole pair or neither. A half pair makes AppManager answer 401 INVALID_API_KEY on every call
+      # and TfLens refuses to start (DECISIONS.md D-006). Leaving both empty is a supported
+      # configuration — it costs only password reset (docs/TfLens-Deployment-Checklist.md §4).
+      TfLensAppManagerApiKey: "${TFLENS_APPMANAGER_API_KEY}"
+      TfLensAppManagerApiSecret: "${TFLENS_APPMANAGER_API_SECRET}"
+
+      # Strongly recommended: 60 GitHub requests/hour anonymous vs 5,000 with a token. Without it the
+      # poller cannot complete a pass over more than one or two repositories and every repo lands in
+      # `error` — the single most common way a healthy TfLens deployment looks broken (§3).
+      TfLensGitHubToken: "${TFLENS_GITHUB_TOKEN}"
+
+      TfLensAppManagerBaseUrl: "https://appmgrapi.techierathore.com"
+      TfLensAppManagerAppId: "1"
+      TfLensDataRoot: /app/data
+      TfLensPollIntervalMinutes: "15"
+
+      # Central logging. Plain HTTP over the `web` Docker network to the ingestion-only port — the
+      # traffic never leaves the server, so there is no TLS and no certificate here. The Seq web UI at
+      # https://seq.techierathore.com is for humans and must never appear in app config. If Seq is
+      # down, TfLens starts anyway and the sink retries (deployment brief §0).
+      Seq__Url: "http://seq:5341"
+      Seq__ApiKey: "${SEQ_API_KEY}"
+
+    volumes:
+      # data/ is the source of truth, not the database (DECISIONS.md D-002 / ADR-015). Every fetched
+      # file is archived here byte-for-byte before it is parsed, and `rebuild` replays it. It also
+      # holds the Data Protection key ring (BRD-87) — lose it and every stored AppManager token and
+      # every live auth cookie is orphaned on the next deploy. This bind mount is the single most
+      # important line in the file.
+      - /srv/data/tflens/data:/app/data
+      # The rolling Serilog file sink. Seq is the place logs are read; this is what survives on disk
+      # when a container is crash-looping and has never managed to reach Seq at all.
+      - /srv/data/tflens/logs:/app/logs
+
+    # Not what the pipeline verifies with (that is an external curl through the real URL), but what
+    # makes `docker ps` and the server's `/srv/checkup.sh` able to tell "running" from "working".
+    # /healthz answers 503 while the database is unreachable, so this tracks the thing that matters.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - web
+
+# Created once by the runbook (Step 8). Caddy, Seq and every app share it; `external: true` means
+# this file uses it and never owns it.
+networks:
+  web:
+    external: true
