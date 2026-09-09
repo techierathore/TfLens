@@ -247,9 +247,10 @@ CREATE INDEX IF NOT EXISTS "IxCommitUserRepo" ON "Commit" ("UserId", "Repo");
 -- ------------------------------------------------- misses (F-MISS, added 2026-08-28)
 
 -- docs/metrics/misses.jsonl is the ONE stream whose records do not all share a shape: `miss` opens,
--- `miss-fix` closes and `miss-amend` completes a field the miss left null (SCHEMA.md §5.5). It gets
--- three tables rather than one wide nullable table, because the three shapes share only the §1 common
--- set and a single table would make every column of two kinds nullable and every query a discriminator
+-- `miss-fix` closes, `miss-amend` completes a field the miss left null, and `review` prices an owner
+-- review of a phase's output (SCHEMA.md §5.5). It gets FOUR tables rather than one wide nullable table
+-- (amended 2026-09-08, BRD-115), because the four shapes share only the §1 common
+-- set and a single table would make every column of three kinds nullable and every query a discriminator
 -- check (ADR-018). House style is unchanged: every identifier double-quoted, "UserId" a real column and
 -- part of every unique index (ADR-013), CREATE TABLE IF NOT EXISTS so this file stays idempotent.
 
@@ -369,6 +370,51 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs"
 CREATE INDEX IF NOT EXISTS "IxMissAmendUserRepo" ON "MissAmend" ("UserId", "Repo");
 CREATE INDEX IF NOT EXISTS "IxMissAmendMissId" ON "MissAmend" ("UserId", "MissId");
 
+-- BRD-115 (amended 2026-09-08): the three miss tables become FOUR. `review` (SCHEMA.md §5.5.9) is the
+-- owner reading a phase's OUTPUT and giving corrections -- it is about a phase, not about any one miss,
+-- so it is a SIBLING of the other three and not a column on "Miss". It is never counted, charted or
+-- filtered as a miss (BRD-174). The two cost pairs are stored AS THE EMITTER COPIED THEM: a caller's own
+-- figure is discarded upstream, and NULL means "not captured", never a measured zero (SCHEMA.md §5.5.8).
+CREATE TABLE IF NOT EXISTS "MissReview" (
+    "UserId"              integer NOT NULL,
+    "Repo"                text    NOT NULL,
+    "SourceSha"           text    NOT NULL,
+    "V"                   integer NOT NULL DEFAULT 1,
+    "Ts"                  text    NOT NULL,
+    "App"                 text    NULL,
+    "ProjectType"         text    NULL,
+    "ProjectTypeInferred" boolean NULL,
+    "Backfilled"          boolean NULL,
+    "Harness"             text    NULL,
+    -- wire: phase. day1-review | build-review | verify-review | handoff-review (closed vocabulary,
+    -- enforced on write by the producer). Part of the natural key.
+    "ReviewPhase"         text    NOT NULL,
+    -- wire: reviewed_run_id -- the `started` of the run that produced the reviewed output. NULL when the
+    -- reviewed output names no run, which is why the unique index below COALESCEs it.
+    "ProducedRunId"       text    NULL,
+    -- wire: correction_run_id -- NULL when the owner applied the corrections by hand.
+    "CorrectionRunId"     text    NULL,
+    "Corrections"         integer NULL,      -- how many corrections the owner gave
+    "What"                text    NULL,      -- one sentence in the owner's words; the only free text
+    "TokensProduce"       integer NULL,
+    "CostProduceUsd"      numeric NULL,      -- never summed across harnesses
+    "ModelProduce"        text    NULL,
+    "TokensCorrect"       integer NULL,
+    "CostCorrectUsd"      numeric NULL,
+    "ModelCorrect"        text    NULL,
+    "Overflow"            jsonb   NULL
+);
+
+-- BRD-114 (amended 2026-09-08): the run whose output was reviewed is the one thing a review record
+-- cannot be written twice about. COALESCE mirrors the parser's key exactly AND is load-bearing on its
+-- own: a nullable column never collides with itself in a PostgreSQL unique index, so without it a review
+-- carrying no reviewed_run_id would be re-inserted by every sync and double-count that phase.
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunId"
+    ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''));
+
+CREATE INDEX IF NOT EXISTS "IxMissReviewUserRepo" ON "MissReview" ("UserId", "Repo");
+CREATE INDEX IF NOT EXISTS "IxMissReviewPhase" ON "MissReview" ("UserId", "ReviewPhase");
+
 -- ---------------------------------------------------------------- playbook (Phase 3)
 
 -- Columns amended 2026-08-26 (REQ-FN-068, ADR-010) from the Playbook's own emitter,
@@ -454,6 +500,13 @@ ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "FoundPhaseGate" text NULL;
 -- (REQ-FN-103, BRD-164, ADR-024). NULL on every TechieFlow row, which is what the partial index below
 -- depends on. The normalizer that COMPUTES the hash is REQ-FN-103's other half and lives with the
 -- ingest cluster; these columns and that index are the schema half.
+-- The two 2026-09-07 stream fields (SCHEMA.md §5.5.1). "Sort" is the closed four-value "whose gap was
+-- it" vocabulary; "What" is the one free-text sentence. Both are amendable (REQ-FN-075) and both carry a
+-- FIELD_SINCE floor of 2026-09-07, so a row written before they existed leaves their denominators
+-- entirely rather than counting as one that declined to answer (REQ-FN-076, BRD-116, BRD-117).
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "Sort" text NULL;
+ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "What" text NULL;
+
 ALTER TABLE "Miss"      ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
 ALTER TABLE "MissFix"   ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
 ALTER TABLE "MissAmend" ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
@@ -642,7 +695,7 @@ DECLARE
     vTable text;
     vName  text;
 BEGIN
-    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'PbEvent']
+    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'MissReview', 'PbEvent']
     LOOP
         vName := 'Ck' || vTable || 'SourceShaPresent';
 

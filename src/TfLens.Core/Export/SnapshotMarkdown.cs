@@ -542,7 +542,8 @@ internal static class SnapshotMarkdown
         aText.AppendLine(
             "REQs with at least one backfilled record. They are excluded from the **live** first-pass "
             + "rate because their live `attempt` numbering restarts at 1 (SCHEMA.md §3.1); the list is "
-            + "shown rather than silently applied.")
+            + "shown rather than silently applied. Each is named `app:req_id` — a requirement is keyed "
+            + "by project **and** id, so one project's `REQ-UI-001` is not another's (BRD-178).")
             .AppendLine();
 
         aText.AppendLine(aInputs.Analysis.TaintedReqs.Count == 0
@@ -576,8 +577,15 @@ internal static class SnapshotMarkdown
             aText.AppendLine("| Figure | Value |");
             aText.AppendLine("|---|---|");
             aText.Append("| Gate records | ").Append(vSegment.Records).AppendLine(" |");
-            aText.Append("| REQs scored | ").Append(vSegment.ReqsScored).AppendLine(" |");
+            aText.Append("| REQs scored | ").Append(vSegment.ReqsScored)
+                .AppendLine(" (keyed `app:req_id`, never the id alone) |");
             aText.Append("| REQs excluded (backfill taint) | ").Append(vSegment.ReqsExcludedBackfillTaint)
+                .AppendLine(" |");
+
+            // REQ-FN-113 / BRD-180 — the derived count sits in the same table as the rate it feeds. A
+            // first-pass rate resting partly on derived attempts is a different claim from one read
+            // straight off the stream, and a reader of the export must be able to tell them apart.
+            aText.Append("| Attempts derived at read time | ").Append(vSegment.AttemptsDerived)
                 .AppendLine(" |");
             aText.Append("| First-pass REQs | ").Append(vSegment.FirstPassN).AppendLine(" |");
             aText.Append("| First-pass rate | ").Append(vSegment.FirstPassRate.Display()).AppendLine(" |");

@@ -17,13 +17,41 @@ public static class Segment
     /// The segment key one gate record belongs to.
     /// </summary>
     /// <param name="aRecord">The gate record to classify.</param>
-    /// <returns><see cref="MetricsConstants.Unclassified"/> when the type was inferred, else the declared type, defaulting to <c>app</c>.</returns>
+    /// <returns>
+    /// <see cref="MetricsConstants.FrameworkRequirements"/> when the verdict grades a framework
+    /// requirement, else <see cref="MetricsConstants.Unclassified"/> when the type was inferred, else
+    /// the declared type, defaulting to <c>app</c>.
+    /// </returns>
+    /// <remarks>
+    /// <b>REQ-FN-110 / BRD-177 — <c>req_class: "FR"</c> outranks <c>project_type</c> here.</b> A record
+    /// carrying it is the framework grading itself against its own requirement lines, and that is a
+    /// different unit from an application screen or function; pooling the two produces a rate that
+    /// measures nothing. It therefore takes its own segment key rather than being filtered out, so the
+    /// verdicts stay readable — "their own segment or not at all; the choice to exclude is legitimate,
+    /// the choice to average is not". Because the key is a segment key and the segment map has no "all"
+    /// entry, no rate or total in the product can span it and an application segment together.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="aRecord"/> is <c>null</c>.</exception>
     public static string KeyFor(GateRecord aRecord)
     {
         ArgumentNullException.ThrowIfNull(aRecord);
 
-        return KeyFor(aRecord.ProjectType, aRecord.ProjectTypeInferred);
+        return IsFrameworkRequirement(aRecord)
+            ? MetricsConstants.FrameworkRequirements
+            : KeyFor(aRecord.ProjectType, aRecord.ProjectTypeInferred);
+    }
+
+    /// <summary>
+    /// Whether a gate verdict grades one of the framework's own requirement lines (BRD-177).
+    /// </summary>
+    /// <param name="aRecord">The gate record.</param>
+    /// <returns><c>true</c> when its <c>req_class</c> is <see cref="MetricsConstants.FrameworkReqClass"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aRecord"/> is <c>null</c>.</exception>
+    public static bool IsFrameworkRequirement(GateRecord aRecord)
+    {
+        ArgumentNullException.ThrowIfNull(aRecord);
+
+        return string.Equals(aRecord.ReqClass, MetricsConstants.FrameworkReqClass, StringComparison.Ordinal);
     }
 
     /// <summary>

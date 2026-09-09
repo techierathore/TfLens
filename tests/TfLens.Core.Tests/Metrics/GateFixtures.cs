@@ -25,6 +25,9 @@ public static class GateFixtures
     /// <param name="aBackfilled">Whether the record was reconstructed rather than emitted live.</param>
     /// <param name="aTs">The record timestamp.</param>
     /// <param name="aRepo">The repository the record was read from.</param>
+    /// <param name="aApp">The project the requirement belongs to — half of its identity (REQ-FN-111).</param>
+    /// <param name="aReqClass">The requirement class; <c>FR</c> is the framework grading itself (REQ-FN-110).</param>
+    /// <param name="aRunId">The run the verdict belongs to; the stream-order tie-break (REQ-FN-113).</param>
     /// <returns>The record.</returns>
     public static GateRecord Gate(
         string? aReqId = "REQ-FN-001",
@@ -36,18 +39,22 @@ public static class GateFixtures
         bool? aProjectTypeInferred = null,
         bool? aBackfilled = null,
         string aTs = "2026-08-01T00:00:00Z",
-        string aRepo = Repo) => new()
+        string aRepo = Repo,
+        string? aApp = "AlphaApp",
+        string? aReqClass = "FN",
+        string? aRunId = null) => new()
     {
         UserId = UserId,
         Repo = aRepo,
         SourceSha = Sha,
         Ts = aTs,
-        App = "AlphaApp",
+        App = aApp,
         ProjectType = aProjectType,
         ProjectTypeInferred = aProjectTypeInferred,
         Backfilled = aBackfilled,
         ReqId = aReqId,
-        ReqClass = "FN",
+        ReqClass = aReqClass,
+        RunId = aRunId,
         Attempt = aAttempt,
         Verdict = aVerdict,
         Gate = aGate,
@@ -61,19 +68,34 @@ public static class GateFixtures
     /// <param name="aMode">The run mode.</param>
     /// <param name="aDurationS">Wall-clock duration in seconds.</param>
     /// <param name="aReqsCount">REQs touched.</param>
+    /// <param name="aStarted">The window's opening timestamp, for the read-time duration (REQ-FN-112).</param>
+    /// <param name="aEnded">The window's closing timestamp; <c>ts</c> stands in when it is absent.</param>
+    /// <param name="aTs">The record timestamp, which SCHEMA.md defines as the absent <c>ended</c>.</param>
+    /// <param name="aBackfilled">Whether the record was reconstructed rather than emitted live.</param>
     /// <returns>The record.</returns>
-    public static RunRecord Run(string? aCmd = "build-phase", string? aMode = "build", int? aDurationS = 3600, int? aReqsCount = 4) => new()
+    public static RunRecord Run(
+        string? aCmd = "build-phase",
+        string? aMode = "build",
+        int? aDurationS = 3600,
+        int? aReqsCount = 4,
+        string? aStarted = null,
+        string? aEnded = null,
+        string aTs = "2026-08-01T00:00:00Z",
+        bool? aBackfilled = null) => new()
     {
         UserId = UserId,
         Repo = Repo,
         SourceSha = Sha,
-        Ts = "2026-08-01T00:00:00Z",
+        Ts = aTs,
         App = "AlphaApp",
         ProjectType = "app",
         Cmd = aCmd,
         Mode = aMode,
+        Started = aStarted,
+        Ended = aEnded,
         DurationS = aDurationS,
-        ReqsCount = aReqsCount
+        ReqsCount = aReqsCount,
+        Backfilled = aBackfilled
     };
 
     /// <summary>

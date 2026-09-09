@@ -4,7 +4,7 @@
 |---|---|
 | App | TfLens |
 | Upstream | TechieFlow |
-| Updated | 2026-09-08 |
+| Updated | 2026-09-09 |
 
 Defects found in the **TechieFlow framework itself** (`.tfcore/`) while building TfLens. That directory
 is owned and maintained by the TechieFlow team and is gitignored here — `update-framework.sh` overwrites
@@ -18,11 +18,21 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 17 entries: 0 blocking now, 5 filed and open (`TF-013` to `TF-017`), 12 fixed upstream. `TF-007` to `TF-012` are recorded as fixed on 2026-08-31 and have not been re-verified here; the per-entry verification recipes are in the 2026-08-31 correspondence block below.
+**Nothing is blocked.** 18 entries: 0 blocking now, 6 filed and open (`TF-013` to `TF-018`), 12 fixed upstream. `TF-007` to `TF-012` are recorded as fixed on 2026-08-31 and have not been re-verified here; the per-entry verification recipes are in the 2026-08-31 correspondence block below.
 
 #### Detail
 
-- **17 entries.** `TF-001`–`TF-004` closed. `TF-005` **confirmed fixed upstream and now matched by
+- **`TF-020` (new 2026-09-09, major)** — `tf-metrics.sh`'s `seg()` never reads `req_class`, so the
+  framework's own `FR` requirement verdicts are pooled into whichever application `project_type` segment
+  their records carry — which SCHEMA.md §3 forbids in as many words. It is the one item of the
+  2026-09-07 amendment the reference did not implement, and it flatters an application segment's
+  first-pass rate. One line in `seg()`. **No TfLens figure is affected** — TfLens segregates them at the
+  segment key (REQ-FN-110).
+- **`TF-018` (new 2026-09-09, minor)** — `tf-emit.sh` refuses to write a `what` amendment that TfLens's
+  amended BRD-116 requires, and `tf-metrics.sh`'s `FIELD_SINCE` carries no floor for `what`. Two small
+  edits, or an explicit decision that the owner and the framework disagree. `sort` agrees exactly in
+  both directions. **No wrong figure, nothing blocked.**
+- **18 entries.** `TF-001`–`TF-004` closed. `TF-005` **confirmed fixed upstream and now matched by
   TfLens** (`REQ-FN-079`, 2026-09-02). `TF-013`, `TF-014`, `TF-015` and the new `TF-016` and `TF-017` are open. `TF-007`–
   `TF-012` are recorded below as fixed upstream on 2026-08-31 and **have not been re-verified here** —
   and at least one of them is not fixed in practice: **`TF-012` still fires on every screen**, nine
@@ -1936,3 +1946,201 @@ new requirements or the seven edits depends on the script running.
 
 **Encountered in:** TfLens, `*amend-docs` 2026-09-08. **Not fixable from TfLens** — `.tfcore/` is
 framework-owned.
+
+---
+
+## TF-018 — the reference cannot fold a `what` amendment the owner's BRD requires, and its `FIELD_SINCE` carries no floor for `what`
+
+- **Severity:** minor
+- **Blocks:** no — TfLens implements the owner's amended BRD-116 / BRD-117 and every figure it publishes
+  is correct; the divergence is that `tf-emit.sh` will refuse to *write* an amendment TfLens can read
+- **Repro:** `bash .tfcore/utils/tf-emit.sh --amend MISS-App-20260907-01 what "one sentence"`
+- **Expected:** the amendment is written to `docs/metrics/misses.jsonl`, as it is for `why_missed` and `sort`
+- **Actual:** `REFUSED what is not an amendable field (SCHEMA.md §5.5.7)` — `tf-emit.sh:339` `AMENDABLE`
+  holds only `why_missed` and `sort`, and `.tfcore/telemetry/tf-metrics.sh:62` `AMENDABLE_FIELDS` matches it
+- **Encountered in:** TfLens, `*build-phase` cluster A, 2026-09-09 (REQ-FN-075, REQ-FN-076)
+- **Workaround:** none needed here — TfLens accepts the field on read, so an amendment written by any
+  other door still folds. Nothing is blocked; the field simply cannot be amended through `tf-emit.sh`.
+- **Suggested fix:** two small edits, if the framework agrees with the owner's reading:
+  1. `tf-emit.sh:339` and `tf-metrics.sh:62` — allow `what` with a non-empty-text check instead of a
+     vocabulary, and say so in SCHEMA.md §5.5.7's allowlist table beside the "closed vocabularies only"
+     sentence, which currently forbids it outright.
+  2. `tf-metrics.sh:56` — `FIELD_SINCE` gains `"what": "2026-09-07"` beside `"sort"`.
+
+#### Detail
+
+Two independent differences, both in the same direction, both from the 2026-09-08 amendment of TfLens's
+BRD-116 and BRD-117.
+
+**1. `what` is not amendable upstream.** SCHEMA.md §5.5.7 lists exactly two amendable fields —
+`why_missed` and `sort` — and states the extension rule as *"**Closed vocabularies only**, so the kind can
+never become a free-text back door (§9, constraint 7)"*. `what` is §5.5.1's one free-text field, so under
+that sentence it can never join the allowlist. TfLens's owner amended BRD-116 on 2026-09-08 to add it,
+validated only as non-empty text. TfLens therefore folds a `what` amendment; `tf-emit.sh` refuses to
+write one.
+
+The two positions are both defensible and the disagreement is worth an explicit decision rather than a
+silent drift. TfLens keeps the back-door concern addressed structurally: `what` sits in its own
+`AmendableFreeTextFields` set, not as an empty vocabulary inside the closed-vocabulary map, precisely so
+"no legal values" can never be misread as "every value is legal" for some other field later.
+
+**2. `FIELD_SINCE` has no floor for `what`.** `tf-metrics.sh:56` reads
+`{"why_missed": "2026-08-28", "sort": "2026-09-07"}`. TfLens's BRD-117 adds `what` at 2026-09-07 for the
+same reason `sort` is there — a record written before the field existed had nothing to fill, and pooling
+it into a denominator understates every category. Any figure the reference builds over `what` today uses
+the whole record set as its denominator.
+
+**What is NOT affected.** No figure TfLens publishes is wrong, and no gate, sync or parse is blocked.
+`sort` agrees exactly: TfLens and the reference both floor it at 2026-09-07, both hold the same four-value
+vocabulary, and both treat an out-of-vocabulary value as an orphan rather than coercing it. The
+carries-the-field escape (`_eligible`'s `or bool(rec.get(field))`, Session 5) is implemented identically,
+so an old miss completed by an amend counts as sorted in both. `why_missed` is untouched. Nothing in the
+misses stream, the four record kinds or the dedupe keys is in question here.
+
+**Encountered in:** TfLens, `*build-phase` cluster A 2026-09-09. **Not fixable from TfLens** — `.tfcore/`
+is framework-owned.
+
+## TF-019 — one permanently owner-gated row pins `tf-build-list` in FIX mode, so `Not Started` rows are never scheduled again
+
+- **Severity:** major
+- **Blocks:** no — this pass read the checklist directly and built the twelve omitted rows in the same
+  run. But the omission is silent: a pass trusting the printed list reports the phase finished.
+- **Repro:** a checklist holding one row at `Needs re-verify` **and** one at `Not Started`; run
+  `bash .tfcore/utils/tf-build-list.sh {App} --prompts`
+- **Expected:** the working list covers every open row, or names the rows held back
+- **Actual:** `Mode: FIX` over only the failing rows. The twelve `Not Started` rows appear nowhere — not
+  in the list, the clusters, or the counts line `8 row(s) to build; 51 terminal, 0 Blocked, 73 total`.
+- **Encountered in:** TfLens, `*build-phase` 2026-09-09, phase 3
+- **Workaround:** read the Requirements Status table directly and build every non-terminal row.
+- **Suggested fix:** at `tf-build-list.py:117`, fall through to the open rows once the FIX list drains;
+  or state the held-back rows in the counts line so FIX is never mistaken for finished.
+
+#### Detail
+
+`tf-build-list.py:114` collects `fix_rows` for the four `FIX` statuses (line 22) and line 117 returns
+`FIX, fix_rows` whenever that list is non-empty; `FRESH` over `open_rows` (line 119) is reachable only
+when no row carries any of the four. FIX always wins.
+
+What makes that a trap is that a row can sit at `Needs re-verify` **permanently**: `REQ-FN-067` and
+`REQ-FN-070` have been so since 2026-08-27 because their acceptance needs a repository that emits
+`events.ndjson`, and none exists. Every honest verify since re-confirmed that gate rather than clearing
+it — the correct verdict, and exactly what pins the mode.
+
+The counts line is where it turns silent. `51 terminal, 0 Blocked, 73 total` against `8 row(s) to build`
+leaves twelve rows in no category the reader can see.
+
+**What is NOT affected.** `FRESH` and `NOTHING` are correct, and a project with no permanently gated row
+reaches `FRESH` next pass as intended. Cluster formation, the prompt template, the acceptance-line
+refusal and the `Blocked` pass-through behave as documented.
+
+**Not fixable from TfLens** — `.tfcore/` is framework-owned.
+
+## TF-022 — a conditional `test.skip` is counted as a failing test, so "this state does not exist in the data" is reported as a defect
+
+- **Severity:** major
+- **Blocks:** no — the two rows are owner-gated and named under PROJECT-STATUS "Known blockers". But the
+  checklist carries `FAIL` where no defect exists, and under `build-phase.md` step 7 a `FAIL` re-enters
+  FIX mode for up to five cycles against a clause no code can satisfy.
+- **Repro:** a spec guarding a clause on data being present, e.g.
+  `test.skip(!SEEDED, "needs the seeded dataset")`, then `bash .tfcore/utils/tf-verify-tests.sh --base <url>`
+- **Expected:** the clause is recorded as **not measured** — never a pass, and never a defect either
+- **Actual:** the row is `FAIL`. `tf-verify-tests.sh:81` computes `ok = status in ("passed", "expected")`,
+  so `skipped` takes the same path as a failed assertion.
+- **Encountered in:** TfLens, `*build-phase` → chained `*verify all`, 2026-09-09 — `REQ-UI-039`
+  (6 passed, 2 skipped) and `REQ-UI-034` (no Playbook repository emits `events.ndjson`).
+- **Workaround:** none that keeps the verdict honest — grading by hand is refused by the hook, rightly.
+- **Suggested fix:** give `add()` a third outcome, leaving a skipped clause **absent** rather than failed,
+  as `verify-phase.md` prescribes for an unreachable head. The row then lands on `NOT-TESTED`.
+
+**What is NOT affected.** A real assertion failure is still reported correctly, and a row whose tests all
+pass is unaffected — this pass graded 70 rows `PASS` through the same path. Unit-test attribution, the
+browser/unit split and per-row id matching all behave as documented.
+
+**Not fixable from TfLens** — `.tfcore/` is framework-owned.
+
+## TF-021 — `tf-verify-screens.sh` measures an unclipped box inside a horizontal scroller, so a correctly laid-out screen fails the visual check
+
+- **Severity:** major
+- **Blocks:** no — render and visual evidence came from the project's own gate
+  (`tests/.artifacts/gates/render-visual.json`), which prior verified runs also cite. But left alone the
+  tool writes a FAIL onto rows that are correct.
+- **Repro:** any screen whose table sits in a horizontal-scroll container narrower than its content
+  (here `.tflens-scroll-x` on `/misses`), then run `tf-verify-screens.sh` with a signed-in state
+- **Expected:** no visual finding — nothing is drawn on top of anything
+- **Actual:** three overlaps, e.g. `miss-origin-amend-docs overlaps miss-whymissed at 1280px`
+- **Measured, not assumed:** the row's box is 1166.9px wide while its container reports `clientWidth 492`,
+  `scrollWidth 1167`. The tool compares the **unclipped** box, so it reaches x=1480 while the pixels stop
+  at x=805; the neighbouring card starts at x=846, inside the clipped-away region.
+- **Second finding:** `anchored control "app-sidebar" is not on the page` for `/effort` — yet the sidebar
+  is plainly rendered in the tool's **own** screenshot. It measures before the circuit's first render.
+- **Workaround:** grade render and visual from the project's own gate and exclude this `screens.json`.
+- **Suggested fix:** intersect each box with the clip rectangle of every scrollable ancestor before
+  testing overlap (as TF-011/TF-012 ask for `clip`); and wait for a settled render before measuring.
+
+**What is NOT affected.** `--storage-state` sign-in works. `tf-verify-tests.sh`, `tf-mockup-parity.sh`
+and the gate specs are unaffected, and the verdict script faithfully reports what this tool hands it.
+
+**Encountered in:** TfLens, `*build-phase` → chained `*verify all`, 2026-09-09.
+**Not fixable from TfLens** — `.tfcore/` is framework-owned.
+
+## TF-020 — `tf-metrics.sh` pools `req_class: "FR"` verdicts into the application segments its own SCHEMA says they must never join
+
+- **Severity:** major
+- **Blocks:** no — TfLens segregates them itself, so no TfLens figure is affected; the reference's own
+  rollup and any parity run over a dataset carrying FR verdicts are
+- **Repro:** roll up a repository whose `docs/metrics/gates.jsonl` carries records with
+  `"req_class": "FR"` beside `UI`/`FN`/`NFR` ones:
+  `bash .tfcore/telemetry/tf-metrics.sh --rollup <repo> --json`
+- **Expected:** the FR verdicts appear in their own block, or not at all — SCHEMA.md §3 says
+  *"it never pools with the others — a framework line and a screen requirement are not the same unit."*
+- **Actual:** they are counted into whichever `project_type` segment their records carry. `seg()`
+  (`tf-metrics.sh:998`) keys only on `project_type`, and the script's three mentions of `req_class`
+  (`:881`, `:907`, `:918`) all sit in `backfill_gates()`, which *writes* the field and never reads it.
+  So `reqs_scored`, `first_pass_rate`, `escape_rate` and the gate distribution of an application segment
+  can all include framework requirement verdicts.
+- **Encountered in:** TfLens, `*build-phase` cluster C2, 2026-09-09 (REQ-FN-110, BRD-177)
+- **Workaround:** none needed in TfLens — `Segment.KeyFor` gives an FR verdict its own segment key ahead
+  of the `project_type` test, and the segment map has no "all" key and no total row. The divergence is
+  declared in `tools/parity-compare.py`'s `ADDED_KEYS` rather than hidden.
+- **Suggested fix:** one line in `seg()`, in the same shape as the `project_type_inferred` test that is
+  already there:
+  ```python
+  def seg(records):
+      d = defaultdict(list)
+      for r in records:
+          if r.get("req_class") == "FR":
+              key = "framework-requirement"
+          else:
+              key = "unclassified" if r.get("project_type_inferred") else r.get("project_type", "app")
+          d[key].append(r)
+      return d
+  ```
+
+#### Detail
+
+**This is the same shape as the three corrections the framework has already made.** BRD-178, BRD-179 and
+BRD-180 were each a sum the reference was doing wrong in the direction that flatters, and each is now
+fixed in `tf-metrics.sh`: `rk()` keys a requirement `(app, req_id)`, `analyse_phases()` derives
+`duration_s` from `started`/`ended` and publishes `derived_n`, and `analyse()` derives `attempt` in
+stream order. BRD-177 is the fourth item of the same 2026-09-07 amendment and is the one the reference
+did not implement. The schema states the rule; the rollup does not apply it.
+
+**Why it flatters in the same direction.** The framework grades itself against its own 63 requirement
+lines and writes one gate record per line. Those verdicts are written by a purpose-built runner over a
+document the framework controls, so they pass at a far higher rate than application requirements
+verified against a running app. Pooled into an application segment they raise its first-pass rate and
+dilute its escape rate, and — because they are numerous relative to one project's REQ set — they can do
+so by a wide margin. A reader of the pooled figure has no way to see it: nothing on the output says a
+framework rule was counted as an application requirement.
+
+**What is NOT affected.** The `(app, req_id)` keying, the `duration_s` derivation and the `attempt`
+derivation are all correct in the reference and TfLens now matches them key for key — the regenerated
+`tests/TfLens.Core.Tests/Fixtures/Engine/reference.json` is the oracle's own output and the three parity
+tests pass against it. `project_type` segmentation, the live/backfilled split, the taint set, the pooled
+block, `analyse_misses` and `analyse_phases` are all untouched by this entry. No stream, no emitter and
+no gate is involved: this is a read-time segmentation rule in one function. And nothing here affects a
+repository that emits no FR verdicts at all, which today is every repository but the framework's own —
+which is exactly why it can sit unnoticed until the framework reads its own rollup.
+
+**Encountered in:** TfLens, `*build-phase` cluster C2 2026-09-09. **Not fixable from TfLens** —
+`.tfcore/` is framework-owned.

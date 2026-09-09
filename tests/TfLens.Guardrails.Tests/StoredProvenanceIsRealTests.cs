@@ -27,14 +27,14 @@ namespace TfLens.Guardrails.Tests;
 /// </remarks>
 public sealed class StoredProvenanceIsRealTests
 {
-    /// <summary>The eight stream tables a row can land in.</summary>
+    /// <summary>The nine stream tables a row can land in.</summary>
     /// <remarks>
     /// Listed rather than crawled, for the same reason <c>PostgresStore.StreamTables</c> is: a stream
     /// table missing from one place and present in another is exactly how pollution finds somewhere to
     /// hide. This list failing is the notification that a new table needs a decision about provenance.
     /// </remarks>
     private static readonly string[] StreamTables =
-        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "PbEvent"];
+        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "PbEvent"];
 
     /// <summary>
     /// Every stream table's <c>"SourceSha"</c> is <c>NOT NULL</c> and carries a non-blank <c>CHECK</c>.

@@ -186,9 +186,9 @@ public sealed record ParseResult
     /// <c>miss</c> records, when <see cref="Stream"/> is <see cref="StreamKind.Misses"/>.
     /// </summary>
     /// <remarks>
-    /// One <c>misses.jsonl</c> file produces all three of <see cref="Misses"/>,
-    /// <see cref="MissFixes"/> and <see cref="MissAmends"/> in a single pass — the stream's records do
-    /// not all share a shape (ADR-018, REQ-FN-072).
+    /// One <c>misses.jsonl</c> file produces all <b>four</b> of <see cref="Misses"/>,
+    /// <see cref="MissFixes"/>, <see cref="MissAmends"/> and <see cref="MissReviews"/> in a single pass —
+    /// the stream's records do not all share a shape (ADR-018, REQ-FN-072).
     /// </remarks>
     public IReadOnlyList<MissRecord> Misses { get; init; } = [];
 
@@ -197,6 +197,17 @@ public sealed record ParseResult
 
     /// <summary><c>miss-amend</c> records, stored verbatim and folded only at read time (ADR-020).</summary>
     public IReadOnlyList<MissAmendRecord> MissAmends { get; init; } = [];
+
+    /// <summary>
+    /// <c>review</c> records, after the dedupe on <c>(ReviewPhase, COALESCE(ProducedRunId, ''))</c>
+    /// (SCHEMA.md §5.5.9, BRD-113, BRD-174).
+    /// </summary>
+    /// <remarks>
+    /// A fourth kind on the same file, and <b>never a miss</b>: nothing here enters
+    /// <see cref="Misses"/>, and before this list existed every one of these records fell into
+    /// <see cref="InvalidLines"/> and was discarded.
+    /// </remarks>
+    public IReadOnlyList<MissReviewRecord> MissReviews { get; init; } = [];
 
     /// <summary>
     /// Schema-2 <c>phase-metric</c> executions, when <see cref="Stream"/> is
@@ -247,7 +258,7 @@ public sealed record ParseResult
 
     /// <summary>Total records stored from this file, across every record type.</summary>
     public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count
-        + Misses.Count + MissFixes.Count + MissAmends.Count
+        + Misses.Count + MissFixes.Count + MissAmends.Count + MissReviews.Count
         + PhaseExecutions.Count + PhaseModelUsages.Count + PhaseSubagents.Count;
 }
 

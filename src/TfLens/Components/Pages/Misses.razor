@@ -457,6 +457,80 @@
             </Card>
         </div>
 
+        @* ── BAND 2b — whose gap was it (REQ-UI-052, BRD-171, BRD-172) ────────────────── *@
+        <Card data-testid="miss-sort">
+            <CardHeader>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <CardTitle>Whose gap was it</CardTitle>
+                        <CardDescription>
+                            The card beside this one says <b>what broke</b>. This one says
+                            <b>what to do about it</b> — and each answer has a different fixed remedy.
+                        </CardDescription>
+                    </div>
+                    @* BRD-172 — `n of N sorted` on the card's face, never a tooltip, and never a
+                       percentage of all misses. *@
+                    <Badge Variant="BadgeVariant.Outline" data-testid="miss-sort-denominator">
+                        @SortedLine(vSeg)
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                <div class="tflens-scroll-x">
+                    <DataTable TData="SortRow"
+                               Data="@SortRows"
+                               ShowToolbar="false"
+                               ShowPagination="false"
+                               InitialPageSize="16"
+                               AriaLabel="Whose gap it was, over misses that carry the sort field"
+                               data-testid="miss-sort-table">
+                        <Columns>
+                            <DataTableColumn TData="SortRow" TValue="string"
+                                             Property="@(aRow => aRow.Answer)" Header="Whose gap">
+                                <CellTemplate Context="vRow">
+                                    <span class="text-sm">@vRow.Answer</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="SortRow" TValue="string"
+                                             Property="@(aRow => aRow.Share)" Header="@SortShareHeader(vSeg)">
+                                <CellTemplate Context="vRow">
+                                    <div class="flex items-center gap-2">
+                                        <Progress Value="@vRow.SharePercent" Class="w-16" />
+                                        <span class="text-xs tabular-nums">@vRow.Count · @vRow.Share</span>
+                                    </div>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            <DataTableColumn TData="SortRow" TValue="string"
+                                             Property="@(aRow => aRow.Response)" Header="The fixed response">
+                                <CellTemplate Context="vRow">
+                                    <span class="text-xs text-muted-foreground">@vRow.Response</span>
+                                </CellTemplate>
+                            </DataTableColumn>
+                        </Columns>
+                    </DataTable>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <div class="flex flex-col gap-1.5">
+                    @* BRD-172 — the records written before the field existed are stated APART, in those
+                       words. A record from before the question was asked is not a record that declined
+                       to answer it, and the two are never added together. *@
+                    <p class="text-xs text-muted-foreground" data-testid="miss-sort-predates">
+                        @SortPredatesLine(vSeg)
+                    </p>
+                    <p class="text-xs text-muted-foreground" data-testid="miss-sort-amended">
+                        @SortAmendedLine()
+                    </p>
+                    <p class="text-xs text-muted-foreground" data-testid="miss-sort-words">
+                        Written in words, not raw values. The stream stores
+                        <span class="font-mono">spec</span> · <span class="font-mono">unsaid</span> ·
+                        <span class="font-mono">weak-check</span> · <span class="font-mono">ignored</span>;
+                        nobody reading this page should have to know that.
+                    </p>
+                </div>
+            </CardFooter>
+        </Card>
+
         @* ── BAND 3 — who was running ─────────────────────────────────────────────────── *@
         <TypographyH2 Class="text-lg">Who was running</TypographyH2>
 
@@ -700,6 +774,113 @@
             </span>
         </p>
 
+        @* ── BAND 5 — what reviews cost (REQ-UI-054, BRD-175) ─────────────────────────── *@
+        <TypographyH2 Class="text-lg">What reviews cost</TypographyH2>
+
+        <Alert Variant="AlertVariant.Default" data-testid="miss-review-note">
+            <LucideIcon Name="info" Size="16" />
+            <AlertTitle>The only record anywhere that prices a specification defect</AlertTitle>
+            <AlertDescription>
+                A dashboard that shows what building and verifying cost, but not what reviewing cost, tells
+                its reader that documents are free. Every figure below is <b>copied from the record</b> — the
+                emitter copied it from the two runs the record names. TfLens computes none of them, and where
+                a figure is absent it says <span class="font-mono">not available</span> rather than showing a
+                zero. A <span class="font-mono">review</span> record is <b>not a miss</b>: none of these rows
+                appears in any count, chart or filter elsewhere on this page.
+            </AlertDescription>
+        </Alert>
+
+        <Card data-testid="miss-review-cost">
+            <CardHeader>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <CardTitle>Owner review, per phase</CardTitle>
+                        <CardDescription>
+                            Corrections given, what the reviewed output cost to produce, and what applying the
+                            corrections cost
+                        </CardDescription>
+                    </div>
+                    <Badge Variant="BadgeVariant.Outline">copied · never computed</Badge>
+                </div>
+            </CardHeader>
+            <CardContent Class="pt-0">
+                @if (ReviewRows.Count == 0)
+                {
+                    <p class="text-sm text-muted-foreground" data-testid="miss-review-none">
+                        No <span class="font-mono">review</span> record has arrived on this segment's miss
+                        stream yet, so there is nothing to price. That is an absence of records, not a review
+                        that cost nothing.
+                    </p>
+                }
+                else
+                {
+                    @* A plain table for the same reason the origin cross-tab is one: every cell here is a
+                       copied figure that must be able to read `not available`, and the row's own phase is
+                       the key rather than a sortable value. *@
+                    <div class="tflens-scroll-x">
+                        <table class="tflens-table" aria-label="What each owner review cost, copied from the record">
+                            <thead>
+                                <tr>
+                                    <th>Review phase</th>
+                                    <th class="tflens-num">Corrections</th>
+                                    <th class="tflens-num">Cost to produce</th>
+                                    <th class="tflens-num">Cost to correct</th>
+                                    <th class="tflens-num">Correction as share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var vRow in ReviewRows)
+                                {
+                                    <tr data-testid="@($"miss-review-{vRow.Phase}")">
+                                        <td><span class="font-mono text-xs tflens-review-phase">@vRow.Phase</span></td>
+                                        <td class="tflens-num">
+                                            @if (vRow.Corrections is { } vCorrections)
+                                            {
+                                                <span class="tabular-nums">@vCorrections.ToString("N0", CultureInfo.InvariantCulture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-xs italic text-muted-foreground">@NotAvailable</span>
+                                            }
+                                        </td>
+                                        <td class="tflens-num">
+                                            @RenderReviewCost(vRow.TokensProduce, vRow.CostProduceUsd)
+                                        </td>
+                                        <td class="tflens-num">
+                                            @RenderReviewCost(vRow.TokensCorrect, vRow.CostCorrectUsd)
+                                        </td>
+                                        <td class="tflens-num">
+                                            <span class="text-xs @(vRow.CorrectionShare is null ? "text-muted-foreground" : "tabular-nums")">
+                                                @(vRow.CorrectionShare ?? Missing)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </CardContent>
+            <CardFooter>
+                <div class="flex flex-col gap-1.5">
+                    <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-review-notavailable">
+                        <LucideIcon Name="info" Size="14" />
+                        <span>
+                            <b><span class="font-mono">@NotAvailable</span>, never <span class="font-mono">0</span>.</b>
+                            A review whose record names its two runs but whose token windows the emitter could
+                            not copy carries no figure at all, and a zero there would read as a review that
+                            cost nothing. <i>Correction as share</i> is the ratio of the two copied figures and
+                            is left blank unless both are present — it is not a third cost, and nothing on this
+                            row is re-derived, apportioned or summed.
+                        </span>
+                    </p>
+                    <p class="text-xs text-muted-foreground" data-testid="miss-review-phases">
+                        @ReviewPhasesLine()
+                    </p>
+                </div>
+            </CardFooter>
+        </Card>
+
         @* ── Per-miss detail ──────────────────────────────────────────────────────────── *@
         <Card data-testid="miss-detail">
             <CardHeader>
@@ -707,8 +888,11 @@
                     <div>
                         <CardTitle>Every miss</CardTitle>
                         <CardDescription>
-                            @DetailRows.Count @(DetailRows.Count == 1 ? "record" : "records") · amendments folded at
-                            read time, so a <span class="font-mono">why_missed</span> supplied later shows here
+                            @DetailRows.Count @(DetailRows.Count == 1 ? "record" : "records") · each row carries the
+                            one sentence that was written about it · the toolbar filter searches REQ, class and
+                            whose gap · amendments folded at read time, so a
+                            <span class="font-mono">why_missed</span> or a <span class="font-mono">sort</span>
+                            supplied later shows here
                         </CardDescription>
                     </div>
                 </div>
@@ -725,27 +909,43 @@
                                AriaLabel="Every miss in this segment"
                                data-testid="miss-detail-table">
                         <Columns>
+                            @* REQ-UI-053 / BRD-173 — the record's own one-sentence `what`, in the owner's
+                               words, on the row itself. A miss identified only by a class and a date is
+                               unrecognisable a month later. *@
                             <DataTableColumn TData="MissRow" TValue="string"
-                                             Property="@(aRow => aRow.MissId)" Header="Miss">
+                                             Property="@(aRow => aRow.MissId)" Header="Miss — what happened">
                                 <CellTemplate Context="vRow">
-                                    <Button Variant="ButtonVariant.Link"
-                                            Size="ButtonSize.Small"
-                                            OnClick="@(() => ShowRaw(vRow.MissId))"
-                                            data-testid="@($"miss-raw-{vRow.MissId}")">
-                                        <span class="font-mono text-xs">@vRow.MissId</span>
-                                    </Button>
+                                    <div class="tflens-miss-cell">
+                                        <Button Variant="ButtonVariant.Link"
+                                                Size="ButtonSize.Small"
+                                                OnClick="@(() => ShowRaw(vRow.MissId))"
+                                                data-testid="@($"miss-raw-{vRow.MissId}")">
+                                            <span class="font-mono text-xs">@vRow.MissId</span>
+                                        </Button>
+                                        <div class="text-xs text-muted-foreground @(vRow.HasWhat ? string.Empty : "italic")"
+                                             data-testid="miss-what">@vRow.What</div>
+                                    </div>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="MissRow" TValue="string"
-                                             Property="@(aRow => aRow.ReqId)" Header="REQ">
+                                             Property="@(aRow => aRow.ReqId)" Header="REQ" Filterable="true">
                                 <CellTemplate Context="vRow">
                                     <span class="font-mono text-xs">@vRow.ReqId</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="MissRow" TValue="string"
-                                             Property="@(aRow => aRow.MissClass)" Header="Class">
+                                             Property="@(aRow => aRow.MissClass)" Header="Class" Filterable="true">
                                 <CellTemplate Context="vRow">
                                     <Badge Variant="BadgeVariant.Outline"><span class="font-mono text-xs">@vRow.MissClass</span></Badge>
+                                </CellTemplate>
+                            </DataTableColumn>
+                            @* REQ-UI-052 / BRD-171 — the filter on `sort` the band above names. The column
+                               carries the WORDS, so the toolbar search matches what the reader can see; the
+                               raw value never reaches this page. *@
+                            <DataTableColumn TData="MissRow" TValue="string"
+                                             Property="@(aRow => aRow.WhoseGap)" Header="Whose gap" Filterable="true">
+                                <CellTemplate Context="vRow">
+                                    <span class="tflens-gap-cell text-xs @(vRow.HasSort ? string.Empty : "italic text-muted-foreground")">@vRow.WhoseGap</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="MissRow" TValue="string"
@@ -792,6 +992,19 @@
                     </DataTable>
                 </div>
 
+                @* BRD-173 / BRD-84 — the ONE prose field that travels from a stream onto a TfLens
+                   surface, said on the page so a reader can check it. Requirement text from a checklist
+                   is never stored, rendered or exported, and this clause does not relax that. *@
+                <p class="mt-4 flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-what-note">
+                    <LucideIcon Name="info" Size="14" />
+                    <span>
+                        The sentence on each row is the record's own <span class="font-mono">what</span> field,
+                        in the owner's words. It is the <b>only prose that travels</b> from a stream onto this
+                        page — requirement text from a checklist is never stored, rendered or exported.
+                        @WhatEligibilityLine(vSeg)
+                    </span>
+                </p>
+
                 <div class="mt-4">
                     <Collapsible @bind-Open="objIsRawOpen">
                         <Card>
@@ -812,7 +1025,9 @@
                                             <p class="text-xs text-muted-foreground" data-testid="miss-raw-note">
                                                 Field <i>names</i> only for <span class="font-mono">overflow</span> — SCHEMA.md §9
                                                 keeps undocumented payloads off every screen. A
-                                                <span class="font-mono">why_missed</span> shown here may have arrived on a later
+                                                <span class="font-mono">why_missed</span>, a
+                                                <span class="font-mono">sort</span> or a
+                                                <span class="font-mono">what</span> shown here may have arrived on a later
                                                 <span class="font-mono">miss-amend</span> and been folded in at read time; the
                                                 stored <span class="font-mono">miss</span> row still carries
                                                 <span class="font-mono">null</span>, because an amend completes a record and
@@ -833,6 +1048,42 @@
 @code {
     /// <summary>What an absent string or an absent cost renders as — never a blank, never <c>$0.00</c>.</summary>
     private const string Missing = "—";
+
+    /// <summary>
+    /// What an absent <b>review</b> figure reads as (BRD-175).
+    /// </summary>
+    /// <remarks>
+    /// A review's costs are the one place an em dash is not enough: the record names two runs, so a blank
+    /// invites the reader to assume the run cost nothing. It says so in words instead, and never <c>0</c>.
+    /// </remarks>
+    private const string NotAvailable = "not available";
+
+    /// <summary>
+    /// The English each <c>sort</c> value is rendered as, and the fixed remedy it names (BRD-171).
+    /// </summary>
+    /// <remarks>
+    /// One spelling in one place: the band, the per-miss row and the filter all read this table, so the
+    /// raw token — <c>weak-check</c> — never reaches the page. The keys are
+    /// <see cref="MissAmendFolder.AmendableFields"/>'s closed vocabulary for <c>sort</c>, which is the same
+    /// list the producer writes and an amend is validated against; a value outside it is surfaced as it
+    /// stands rather than coerced to the nearest of the four (BRD-170).
+    /// </remarks>
+    private static readonly IReadOnlyDictionary<string, SortWording> SortVocabulary =
+        new Dictionary<string, SortWording>(StringComparer.Ordinal)
+        {
+            [MissSorts.WeakCheck] = new(
+                "There was a check and it did not catch it",
+                "Fix the check, not the prose"),
+            [MissSorts.Unsaid] = new(
+                "The framework never said it anywhere",
+                "Add one requirement line, plus a check"),
+            [MissSorts.Ignored] = new(
+                "It was written down and ignored anyway",
+                "Make it a hook or a script, or delete the rule"),
+            [MissSorts.Spec] = new(
+                "The project's own specification did not say it",
+                "Fix the checklist line; the framework is untouched")
+        };
 
     /// <summary>The period key that means the whole history, and the page's default (BRD-125).</summary>
     private const string AllHistory = "all";
@@ -857,7 +1108,14 @@
     private IReadOnlyList<MissAmendRecord> objAllAmends = [];
     private IReadOnlyList<RunRecord> objAllRuns = [];
 
+    private IReadOnlyList<MissReviewRecord> objAllReviews = [];
+
     private IReadOnlyList<MissFixRecord> objPeriodFixes = [];
+
+    // REQ-UI-054 / BRD-174 — reviews are a FOURTH kind and never a miss. They are kept in their own
+    // list, they are never folded, never counted and never handed to MissFigures.Compute; the only
+    // control that reads them is the review band.
+    private IReadOnlyList<MissReviewRecord> objPeriodReviews = [];
 
     // The window's raw records, kept beside the folded ones because the Playbook surface folds and
     // guards them itself through its own engine (REQ-UI-051) rather than reading this page's
@@ -1047,6 +1305,90 @@
         }
     }
 
+    /// <summary>
+    /// The whose-gap rows, one per value in the closed <c>sort</c> vocabulary (REQ-UI-052, BRD-171).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The counts and the shares come straight off <see cref="MissSegmentFigures.SortDistribution"/>;
+    /// nothing here re-derives a figure. What this page adds is the <b>English</b>: the stream stores
+    /// <c>weak-check</c> and the reader sees <i>there was a check and it did not catch it</i>, because a
+    /// raw value means nothing to anyone who has not read SCHEMA.md.
+    /// </para>
+    /// <para>
+    /// The four are rendered whether or not they were observed, exactly as the failed-practice card
+    /// renders its seven: a value the engine did not report is a real zero against the answered
+    /// denominator. A stored value <b>outside</b> the four keeps its own row under its own name and is
+    /// marked unrecognised — never merged into the nearest legal one (BRD-170).
+    /// </para>
+    /// </remarks>
+    private IReadOnlyList<SortRow> SortRows
+    {
+        get
+        {
+            var vSeg = SegmentOf(objSelectedType);
+            var vObserved = vSeg.SortDistribution
+                .ToDictionary(aRow => aRow.Key, aRow => aRow, StringComparer.Ordinal);
+
+            var vKeys = MissSorts.All
+                .Concat(vObserved.Keys.Where(aKey => !MissSorts.IsRecognised(aKey)))
+                .ToList();
+
+            return vKeys
+                .Select(aKey =>
+                {
+                    var vWording = SortVocabulary.GetValueOrDefault(aKey);
+
+                    // An unrecognised value has no English and no remedy, because nobody chose one for
+                    // it. It says so, under its own stored name.
+                    var vAnswer = vWording?.Answer ?? aKey;
+                    var vResponse = vWording?.Response
+                        ?? "Not one of the four — stored as it stands, counted, and never coerced";
+
+                    if (vObserved.TryGetValue(aKey, out var vRow))
+                    {
+                        return new SortRow(
+                            vAnswer,
+                            vRow.Count,
+                            vRow.Share,
+                            SharePercent(vRow.Count, vSeg.SortN),
+                            vResponse);
+                    }
+
+                    return new SortRow(vAnswer, 0, Missing, 0d, vResponse);
+                })
+                .OrderByDescending(aRow => aRow.Count)
+                .ThenBy(aRow => aRow.Answer, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// The review rows, one per stored <c>review</c> record in the segment (REQ-UI-054, BRD-175).
+    /// </summary>
+    /// <remarks>
+    /// <b>Nothing here is computed, re-derived, apportioned or summed.</b> Each figure is the one the
+    /// emitter copied from the run the record names, carried through as a nullable so an absent one can
+    /// read <c>not available</c> rather than <c>0</c>. Where a phase carries more than one record — the
+    /// owner reviewed two different runs' output — the rows stay separate rather than being added
+    /// together, because adding two copied windows would produce a third figure nobody measured.
+    /// </remarks>
+    private IReadOnlyList<ReviewRow> ReviewRows =>
+        objPeriodReviews
+            .Where(aReview => aReview.Backfilled != true
+                              && Segment.KeyFor(aReview.ProjectType, aReview.ProjectTypeInferred) == objSelectedType)
+            .OrderBy(aReview => PhaseOrder(aReview.ReviewPhase))
+            .ThenBy(aReview => aReview.ReviewPhase, StringComparer.Ordinal)
+            .ThenBy(aReview => aReview.Ts, StringComparer.Ordinal)
+            .Select(aReview => new ReviewRow(
+                aReview.ReviewPhase,
+                aReview.Corrections,
+                aReview.TokensProduce,
+                aReview.CostProduceUsd,
+                aReview.TokensCorrect,
+                aReview.CostCorrectUsd))
+            .ToList();
+
     /// <summary>Misses by origin model — <c>linked</c> records only, straight off the engine.</summary>
     private IReadOnlyList<OriginCountRow> ModelRows =>
         SegmentOf(objSelectedType).Attribution.ByOriginModel
@@ -1100,7 +1442,11 @@
                         FoundByOf(aMiss),
                         StatusOf(vFix),
                         TokensOf(vFix),
-                        vFix?.CostAttribution ?? string.Empty);
+                        vFix?.CostAttribution ?? string.Empty,
+                        WhatOf(aMiss),
+                        aMiss.What is { Length: > 0 },
+                        WhoseGapOf(aMiss),
+                        MissSorts.IsRecognised(aMiss.Sort));
                 })
                 .ToList();
         }
@@ -1143,6 +1489,8 @@
                 ["artifact"] = vMiss.Artifact,
                 ["severity"] = vMiss.Severity,
                 ["why_missed"] = vMiss.WhyMissed,
+                ["sort"] = vMiss.Sort,
+                ["what"] = vMiss.What,
                 ["origin_phase"] = vMiss.OriginPhase,
                 ["origin_agent"] = vMiss.OriginAgent,
                 ["origin_run_id"] = vMiss.OriginRunId,
@@ -1296,6 +1644,7 @@
             objAllMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
             objAllFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
             objAllAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
+            objAllReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework);
             objAllRuns = await objStore.ReadRunsAsync(objUserId.Value, objFramework);
 
             objRateCardPath = objOptions.Value.PricesPath;
@@ -1341,6 +1690,12 @@
         objPeriodMisses = vMisses;
         objPeriodAmends = vAmends;
         objPeriodRuns = vRuns;
+
+        // Reviews follow the same window and stop there. They are NOT passed to MissFigures.Compute —
+        // a review is about a phase's output, not about any one miss, and BRD-174 keeps it out of every
+        // miss count, chart, filter and export.
+        objPeriodReviews = objAllReviews.Where(aReview => IsInPeriod(aReview.Ts, vCutoff)).ToList();
+
         objFold = MissAmendFolder.Fold(vMisses, vAmends);
         objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
 
@@ -1503,6 +1858,200 @@
 
         return $"{vHead} why_missed is optional and null means not assessed — never a zero in some category. "
                + $"Of the {vEligibility.Eligible} eligible to carry it, {vUnassessed} carry no assessment. {vFloor}";
+    }
+
+    /// <summary>The <c>n of N sorted</c> line the whose-gap card carries on its face (BRD-172).</summary>
+    /// <remarks>
+    /// <c>N</c> is <see cref="FieldEligibility.Eligible"/> — the misses that <i>could</i> carry a
+    /// <c>sort</c> — and never the miss count. A <c>sort</c> figure expressed as a percentage of all
+    /// misses is the wrong number this whole shape exists to refuse.
+    /// </remarks>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The denominator sentence.</returns>
+    private static string SortedLine(MissSegmentFigures aSegment) =>
+        $"{aSegment.SortN} of {aSegment.SortEligibility.Eligible} sorted";
+
+    /// <summary>The share column's header, which names the denominator the bars are read against.</summary>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The header text.</returns>
+    private static string SortShareHeader(MissSegmentFigures aSegment) =>
+        aSegment.SortN == 1 ? "Share of the 1 answered" : $"Share of the {aSegment.SortN} answered";
+
+    /// <summary>
+    /// The line that states the records written before <c>sort</c> existed, apart (BRD-172).
+    /// </summary>
+    /// <remarks>
+    /// In those words — <i>predating the field</i>, never <i>unsorted</i>. A record from before the
+    /// question was asked is not a record that declined to answer it, and the two are never added
+    /// together. The unanswered count is stated beside it, and the two remain separate figures.
+    /// </remarks>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The footer sentence.</returns>
+    private static string SortPredatesLine(MissSegmentFigures aSegment)
+    {
+        var vEligibility = aSegment.SortEligibility;
+        var vUnanswered = Math.Max(0, vEligibility.Eligible - vEligibility.Assessed);
+        var vSince = vEligibility.Since is { Length: > 0 } vDate ? $" ({vDate})" : string.Empty;
+
+        var vFloor = vEligibility.PredatesField == 0
+            ? $"No miss here predates the field{vSince}."
+            : $"{vEligibility.PredatesField} {(vEligibility.PredatesField == 1 ? "miss predates" : "misses predate")} "
+              + $"the field{vSince} — written before sort existed, and reported here rather than counted "
+              + "as records that declined to answer. A record from before the question was asked is not a "
+              + "record that declined to answer it, and the two are never added together.";
+
+        var vUnrecognised = aSegment.SortUnrecognised == 0
+            ? string.Empty
+            : $" {aSegment.SortUnrecognised} carry a value outside the four; each keeps its own row rather "
+              + "than being coerced into the nearest legal one.";
+
+        return $"The denominator is {vEligibility.Eligible}. {vFloor} Of those eligible to carry it, "
+               + $"{vUnanswered} carry no answer.{vUnrecognised}";
+    }
+
+    /// <summary>The line that says how many answers arrived on a later <c>miss-amend</c> (BRD-176).</summary>
+    /// <returns>The footer sentence.</returns>
+    private string SortAmendedLine()
+    {
+        var vAmended = SegmentOf(objSelectedType).AmendedValues.GetValueOrDefault(MissSorts.Field);
+
+        return vAmended == 0
+            ? "No answer here arrived on a later miss-amend. An amend completes a record and never edits it, "
+              + "so a stored miss row still carries null wherever one did."
+            : $"{vAmended} of the answers arrived later, by a miss-amend folded in at read time. The stored "
+              + "miss rows still carry null — an amend completes a record and never edits it.";
+    }
+
+    /// <summary>
+    /// The eligibility half of the <c>what</c> note (BRD-173, BRD-117).
+    /// </summary>
+    /// <remarks>
+    /// The same floor as <c>sort</c>: a miss written before 2026-09-07 had no sentence to leave empty, so
+    /// it says it predates the field rather than reading as a record whose owner said nothing.
+    /// </remarks>
+    /// <param name="aSegment">The selected segment.</param>
+    /// <returns>The sentence.</returns>
+    private string WhatEligibilityLine(MissSegmentFigures aSegment)
+    {
+        var vWith = SegmentMisses.Count(aMiss => aMiss.What is { Length: > 0 });
+        var vPredates = SegmentMisses.Count(aMiss =>
+            aMiss.What is null
+            && !LateGateCoverageCalculator.IsEligibleForField(MissAmendFolder.WhatField, aMiss.Ts));
+
+        return $"{vWith} of {aSegment.Misses} misses here carry one; {vPredates} predate the field "
+               + "(2026-09-07) and say so rather than showing a blank.";
+    }
+
+    /// <summary>The order the four review phases are listed in; an unknown phase sorts last.</summary>
+    /// <param name="aPhase">The stored <c>phase</c> value.</param>
+    /// <returns>Its index in the closed vocabulary, or the vocabulary's length.</returns>
+    private static int PhaseOrder(string aPhase)
+    {
+        var vIndex = MissReviewPhases.All.ToList().IndexOf(aPhase);
+        return vIndex < 0 ? MissReviewPhases.All.Count : vIndex;
+    }
+
+    /// <summary>
+    /// The line naming the review phases no record has arrived for (BRD-175).
+    /// </summary>
+    /// <remarks>
+    /// A phase with no record does <b>not</b> get a row of <c>not available</c>s: an invented row reads
+    /// as a review that happened and cost nothing. The absence is stated in a sentence instead.
+    /// </remarks>
+    /// <returns>The sentence.</returns>
+    private string ReviewPhasesLine()
+    {
+        var vSeen = ReviewRows
+            .Select(aRow => aRow.Phase)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var vMissing = MissReviewPhases.All
+            .Where(aPhase => !vSeen.Contains(aPhase))
+            .ToList();
+
+        var vBase = ReviewRows.Count == 1
+            ? "One review record in this segment; each row is one record, never a total over several."
+            : $"{ReviewRows.Count} review records in this segment; each row is one record, never a total over several.";
+
+        return vMissing.Count == 0
+            ? $"{vBase} All four review phases have a record."
+            : $"{vBase} No record has arrived for {string.Join(", ", vMissing)} — an absence of records, "
+              + "which is why there is no row for it rather than a row of zeros.";
+    }
+
+    /// <summary>
+    /// One copied review cost cell — the token window, and the measured dollars only when the record
+    /// carries them.
+    /// </summary>
+    /// <remarks>
+    /// An absent figure reads <c>not available</c>, never <c>0</c>: the record names the run, so a zero
+    /// would read as a run that cost nothing rather than as a window the emitter could not copy.
+    /// </remarks>
+    /// <param name="aTokens">Output tokens the emitter copied, or <c>null</c>.</param>
+    /// <param name="aUsd">Measured dollars the emitter copied, or <c>null</c>.</param>
+    /// <returns>The cell content.</returns>
+    private RenderFragment RenderReviewCost(int? aTokens, decimal? aUsd) =>
+        @<text>
+            @if (aTokens is { } vTokens)
+            {
+                <span class="tabular-nums">@vTokens.ToString("N0", CultureInfo.InvariantCulture)</span>
+                @if (aUsd is { } vUsd)
+                {
+                    <span class="ml-1 text-xs text-muted-foreground">@vUsd.ToString("C2", CultureInfo.GetCultureInfo("en-US"))</span>
+                }
+            }
+            else if (aUsd is { } vOnlyUsd)
+            {
+                <span class="tabular-nums">@vOnlyUsd.ToString("C2", CultureInfo.GetCultureInfo("en-US"))</span>
+            }
+            else
+            {
+                <span class="text-xs italic text-muted-foreground">@NotAvailable</span>
+            }
+        </text>;
+
+    /// <summary>
+    /// The <c>what</c> cell of a detail row — the owner's own sentence, or a statement of its absence.
+    /// </summary>
+    /// <remarks>
+    /// This is the only string on this page that came out of a stream as prose (BRD-173, BRD-84). It is
+    /// rendered verbatim; nothing is truncated, reworded or joined to anything else.
+    /// </remarks>
+    /// <param name="aMiss">The folded miss.</param>
+    /// <returns>The sentence, or the reason there is none.</returns>
+    private static string WhatOf(MissRecord aMiss)
+    {
+        if (aMiss.What is { Length: > 0 } vWhat)
+        {
+            return vWhat;
+        }
+
+        return LateGateCoverageCalculator.IsEligibleForField(MissAmendFolder.WhatField, aMiss.Ts)
+            ? "No description recorded on this miss."
+            : "No description — this record predates the field (7 September 2026).";
+    }
+
+    /// <summary>
+    /// The whose-gap cell of a detail row, in words (BRD-171).
+    /// </summary>
+    /// <remarks>
+    /// The raw token never reaches the page. A stored value outside the four is shown <b>as it stands</b>
+    /// and named as unrecognised rather than coerced to the nearest legal one (BRD-170).
+    /// </remarks>
+    /// <param name="aMiss">The folded miss.</param>
+    /// <returns>The English, or the reason there is none.</returns>
+    private static string WhoseGapOf(MissRecord aMiss)
+    {
+        if (aMiss.Sort is { Length: > 0 } vSort)
+        {
+            return SortVocabulary.TryGetValue(vSort, out var vWording)
+                ? vWording.Answer
+                : $"{vSort} — not one of the four";
+        }
+
+        return LateGateCoverageCalculator.IsEligibleForField(MissSorts.Field, aMiss.Ts)
+            ? "not sorted"
+            : "predates the field";
     }
 
     /// <summary>The breakdown of the excluded records by confidence value, or empty when there are none.</summary>
@@ -1696,6 +2245,48 @@
     /// <param name="SharePercent">The same share as a bar width.</param>
     private sealed record PracticeRow(string Practice, int Count, string Share, double SharePercent);
 
+    /// <summary>The English and the fixed remedy one <c>sort</c> value is rendered as.</summary>
+    /// <param name="Answer">Whose gap it was, in words — never the raw value.</param>
+    /// <param name="Response">The one fixed response that answer names.</param>
+    private sealed record SortWording(string Answer, string Response);
+
+    /// <summary>One row of the whose-gap distribution.</summary>
+    /// <param name="Answer">Whose gap it was, in words.</param>
+    /// <param name="Count">Records carrying it.</param>
+    /// <param name="Share">Its share of the answered denominator, as the engine prints it.</param>
+    /// <param name="SharePercent">The same share as a bar width.</param>
+    /// <param name="Response">The fixed response that answer names.</param>
+    private sealed record SortRow(string Answer, int Count, string Share, double SharePercent, string Response);
+
+    /// <summary>One row of the review-cost band — every figure exactly as the record carries it.</summary>
+    /// <param name="Phase">The review phase.</param>
+    /// <param name="Corrections">Corrections the owner gave, or <c>null</c> when not captured.</param>
+    /// <param name="TokensProduce">Output tokens of the produce run, or <c>null</c>.</param>
+    /// <param name="CostProduceUsd">Measured produce dollars, or <c>null</c>.</param>
+    /// <param name="TokensCorrect">Output tokens of the correction run, or <c>null</c>.</param>
+    /// <param name="CostCorrectUsd">Measured correction dollars, or <c>null</c>.</param>
+    private sealed record ReviewRow(
+        string Phase,
+        int? Corrections,
+        int? TokensProduce,
+        decimal? CostProduceUsd,
+        int? TokensCorrect,
+        decimal? CostCorrectUsd)
+    {
+        /// <summary>
+        /// The corrections' token window as a share of the produce window, or <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// A <b>ratio of the two copied figures</b>, not a third cost and not a re-derivation of either:
+        /// it is the arithmetic a reader would otherwise do in their head, and it refuses to appear at
+        /// all unless both figures are present. BRD-175's rule stands — TfLens computes no review cost.
+        /// </remarks>
+        public string? CorrectionShare =>
+            TokensProduce is { } vProduce and > 0 && TokensCorrect is { } vCorrect
+                ? ((double)vCorrect / vProduce).ToString("P0", CultureInfo.InvariantCulture)
+                : null;
+    }
+
     /// <summary>One row of a per-origin distribution.</summary>
     /// <param name="Key">The model or agent name.</param>
     /// <param name="Count">Linked misses naming it.</param>
@@ -1714,6 +2305,10 @@
     /// <param name="Status">The latest verdict, or <c>open</c>.</param>
     /// <param name="Tokens">Output tokens of the fix window, or an em dash.</param>
     /// <param name="Attribution">The fix's <c>cost_attribution</c>, or empty.</param>
+    /// <param name="What">The record's own one sentence, or a statement that it carries none.</param>
+    /// <param name="HasWhat">True when the sentence is the owner's own rather than this page's.</param>
+    /// <param name="WhoseGap">The <c>sort</c> answer in words, never the raw value.</param>
+    /// <param name="HasSort">True when the record carries a recognised <c>sort</c>.</param>
     private sealed record MissRow(
         string MissId,
         string ReqId,
@@ -1724,7 +2319,11 @@
         string FoundBy,
         string Status,
         string Tokens,
-        string Attribution)
+        string Attribution,
+        string What,
+        bool HasWhat,
+        string WhoseGap,
+        bool HasSort)
     {
         /// <summary>The badge style for the severity — always beside its own word, never colour alone.</summary>
         public BadgeVariant SeverityVariant => Severity switch

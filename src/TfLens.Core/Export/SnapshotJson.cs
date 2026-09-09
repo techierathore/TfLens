@@ -283,6 +283,18 @@ internal static class SnapshotJson
             ["why_missed_predates_field"] = vBlock.WhyMissedEligibility.PredatesField,
             ["why_missed"] = Distribution(vBlock.FailedPracticeDistribution, 0),
             ["escapes_missing_why"] = vTotals.EscapesMissingWhy,
+            // Whose gap it was, in the reference's own three-key shape: the numerator, the eligible
+            // denominator and — as its own key, never folded into either — the records written before
+            // the field existed. A `sort` figure expressed against the miss count would report a record
+            // from before the question was asked as one that declined to answer it (BRD-172).
+            //
+            // The distribution carries every stored value, including any outside the four
+            // `MissSorts.All` names, exactly as the reference's Counter does: nothing here maps an
+            // unexpected value onto the nearest legal one (BRD-170).
+            ["sort_n"] = vBlock.SortN,
+            ["sort_eligible"] = vBlock.SortEligibility.Eligible,
+            ["sort_predates_field"] = vBlock.SortEligibility.PredatesField,
+            ["sort"] = Distribution(vBlock.SortDistribution, 0),
             ["class_distribution"] = Distribution(vBlock.ClassDistribution, vBlock.ClassNotRecorded),
             ["found_by"] = Distribution(vBlock.FoundBy, vBlock.FoundByNotRecorded),
             ["design_miss_share"] = vBlock.DesignMissShare.Display(),
@@ -386,7 +398,13 @@ internal static class SnapshotJson
             ["total"] = aRow.Duration.TotalSeconds,
             ["median"] = aRow.Duration.MedianSeconds,
             ["max"] = aRow.Duration.MaxSeconds,
-            ["n"] = aRow.Duration.TimedN
+            ["n"] = aRow.Duration.TimedN,
+
+            // REQ-FN-112 / BRD-179 — how many of those minutes were computed from the record's own two
+            // timestamps because it predates `duration_s`. The oracle emits this key in the same block;
+            // omitting it would leave a consumer unable to tell a total that was read from one that was
+            // worked out, which is the whole point of deriving it in the open.
+            ["derived_n"] = aRow.Duration.DerivedN
         },
         ["share_of_duration"] = aRow.ShareOfDuration,
         ["tokens_measured_n"] = aRow.TokensMeasuredN,
@@ -561,6 +579,7 @@ internal static class SnapshotJson
         ["records"] = aSegment.Records,
         ["reqs_scored"] = aSegment.ReqsScored,
         ["reqs_excluded_backfill_taint"] = aSegment.ReqsExcludedBackfillTaint,
+        ["attempts_derived"] = aSegment.AttemptsDerived,
         ["first_pass_n"] = aSegment.FirstPassN,
         ["first_pass_rate"] = aSegment.FirstPassRate.Display(),
         ["gate_distribution"] = GateDistribution(aSegment.GateDistribution),

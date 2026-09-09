@@ -132,6 +132,26 @@ public static class MetricsConstants
     /// <summary>The segment key used when <c>project_type</c> was inferred rather than declared.</summary>
     public const string Unclassified = "unclassified";
 
+    /// <summary>
+    /// The <c>req_class</c> the framework grades <b>itself</b> under — its own requirement lines
+    /// (BRD-177, SCHEMA.md §6).
+    /// </summary>
+    public const string FrameworkReqClass = "FR";
+
+    /// <summary>
+    /// The segment every <see cref="FrameworkReqClass"/> verdict lands in, and no application verdict
+    /// ever does (REQ-FN-110, BRD-177).
+    /// </summary>
+    /// <remarks>
+    /// <b>A framework rule and an application screen are not the same unit</b>, so a rate computed
+    /// across both measures nothing. This is the same boundary <c>project_type</c> draws and it is drawn
+    /// the same way — as a <i>segment key</i>, so the separation is structural rather than a filter
+    /// somebody has to remember to apply. Because the segment map has no "all" key and no total row
+    /// (ADR-007), giving these verdicts their own key is what makes "never averaged in" true by
+    /// construction: there is no shape in which a figure could span this segment and an application one.
+    /// </remarks>
+    public const string FrameworkRequirements = "framework-requirement";
+
     /// <summary>The gate bucket used when a failure record names no gate.</summary>
     public const string Unattributed = "unattributed";
 
@@ -200,6 +220,17 @@ public static class MetricsConstants
     /// <c>unobserved_predates_field</c> is therefore a permanent exclusion rather than a gap that a
     /// later sync might fill (ADR-026).
     /// </para>
+    /// <para>
+    /// <b>Extended 2026-09-08 (REQ-FN-076, BRD-117) with the two 2026-09-07 miss fields, <c>sort</c> and
+    /// <c>what</c>.</b> Registering them here is what makes BRD-172's honest denominator automatic rather
+    /// than hand-written: the floor is declared <i>once, in data</i>, and every figure built on either
+    /// field inherits it through the one code path in
+    /// <c>LateGateCoverageCalculator.EligibilityFor</c>. The consequence is the point — a miss written
+    /// before 2026-09-07 is not an <i>unsorted</i> miss, it is a record from before the question was
+    /// asked, so it leaves the denominator entirely and is reported as <c>sort_predates_field</c>
+    /// beside <c>sort_eligible</c>. The two are never pooled, and neither figure may be expressed as a
+    /// percentage of all misses.
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyDictionary<string, string> FieldSince =
         new Dictionary<string, string>
@@ -207,8 +238,38 @@ public static class MetricsConstants
             ["why_missed"] = "2026-08-28",
             ["subagent_runs"] = "2026-08-31",
             ["tokens_out_subagents"] = "2026-08-31",
-            ["model_tokens_out"] = "2026-08-31"
+            ["model_tokens_out"] = "2026-08-31",
+            ["sort"] = "2026-09-07",
+            ["what"] = "2026-09-07"
         };
+
+    /// <summary>
+    /// The parity key naming the records a field's floor excluded — <c>&lt;field&gt;_predates_field</c>.
+    /// </summary>
+    /// <remarks>
+    /// One spelling, in one place. Every field with a row in <see cref="FieldSince"/> reports its
+    /// exclusion under this name beside <see cref="EligibleKey"/>, so a reader checking
+    /// <c>n of N</c> against the oracle finds the same two keys whichever field they are reading
+    /// (REQ-FN-076, BRD-117).
+    /// </remarks>
+    /// <param name="aField">The wire field name, e.g. <c>sort</c>.</param>
+    /// <returns>The key, e.g. <c>sort_predates_field</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aField"/> is <c>null</c>.</exception>
+    public static string PredatesFieldKey(string aField)
+    {
+        ArgumentNullException.ThrowIfNull(aField);
+        return aField + "_predates_field";
+    }
+
+    /// <summary>The parity key naming a field's denominator — <c>&lt;field&gt;_eligible</c>.</summary>
+    /// <param name="aField">The wire field name, e.g. <c>sort</c>.</param>
+    /// <returns>The key, e.g. <c>sort_eligible</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aField"/> is <c>null</c>.</exception>
+    public static string EligibleKey(string aField)
+    {
+        ArgumentNullException.ThrowIfNull(aField);
+        return aField + "_eligible";
+    }
 
     /// <summary>Verdicts that are not failures, and so do not enter the gate distribution.</summary>
     public static readonly IReadOnlyList<string> NonFailureVerdicts = ["Verified", "Done (pre-existing)"];

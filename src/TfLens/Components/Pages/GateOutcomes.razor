@@ -369,8 +369,11 @@
                     <CardContent Class="pt-0">
                         <div class="flex flex-col gap-3">
                             <p class="text-sm text-muted-foreground">
-                                Backfill taint — the REQ had a backfilled verdict before its first live verdict, so it
-                                cannot count as a first pass.
+                                Backfill taint — the requirement had a backfilled verdict before its first live
+                                verdict, so it cannot count as a first pass. Each is named
+                                <span class="font-mono">app:req_id</span>: a requirement is keyed by project
+                                <b>and</b> id, so one project's <span class="font-mono">REQ-UI-001</span> is not
+                                another's.
                             </p>
                             <div class="flex flex-wrap items-center gap-2" data-testid="taint-list">
                                 @if (objTaintedReqs.Count == 0)
@@ -392,12 +395,19 @@
 
 @code {
     /// <summary>The SCHEMA.md §8 formula behind the first-pass tile.</summary>
+    /// <remarks>
+    /// REQ-FN-111 / REQ-FN-113 — the unit is a requirement keyed <c>(project, req_id)</c>, never a bare
+    /// id, and an <c>attempt</c> the record omitted is derived at read time rather than dropping the
+    /// record out of the rate. The segment-facts line under the tiles carries the derived count.
+    /// </remarks>
     private const string FirstPassFormula =
-        "gates where attempt=1 AND verdict=Verified ÷ distinct req_id, live-only, per project_type (SCHEMA.md §8)";
+        "gates where attempt=1 AND verdict=Verified ÷ distinct (project, req_id), live-only, "
+        + "per project_type; attempt derived in stream order where the record omits it (SCHEMA.md §8, §3.1)";
 
     /// <summary>The SCHEMA.md §8 formula behind the escape-rate tile.</summary>
     private const string EscapeFormula =
-        "REQs with a gate=\"escaped\" record ÷ REQs with any failure record, live-only, per project_type (SCHEMA.md §8)";
+        "(project, req_id) with a gate=\"escaped\" record ÷ (project, req_id) with any failure record, "
+        + "live-only, per project_type (SCHEMA.md §8)";
 
     /// <summary>The SCHEMA.md §8 formula behind the failures-scored tile.</summary>
     private const string FailuresFormula =
@@ -409,6 +419,7 @@
         Records = 0,
         ReqsScored = 0,
         ReqsExcludedBackfillTaint = 0,
+        AttemptsDerived = 0,
         FirstPassN = 0,
         FirstPassRate = Figure.NotApplicable(),
         GateDistribution = [],
@@ -555,10 +566,20 @@
     /// <summary>
     /// The tab label for a project type.
     /// </summary>
-    /// <param name="aType">The project type.</param>
-    /// <returns>The type itself, or the inferred-provenance label for <c>unclassified</c>.</returns>
-    private static string LabelFor(string aType) =>
-        aType == MetricsConstants.Unclassified ? "unclassified (project_type inferred)" : aType;
+    /// <remarks>
+    /// REQ-FN-110 / BRD-177 — the <c>framework-requirement</c> tab is the framework grading itself
+    /// against its own requirement lines (<c>req_class: "FR"</c>). It is a segment like any other, which
+    /// is what makes "never averaged in with the application requirements" true by construction: this
+    /// page has no "all" tab and no total row, so no figure on it can span two tabs.
+    /// </remarks>
+    /// <param name="aType">The project type, or the framework-requirement segment.</param>
+    /// <returns>The type itself, or the fuller label the two derived segment keys carry.</returns>
+    private static string LabelFor(string aType) => aType switch
+    {
+        MetricsConstants.Unclassified => "unclassified (project_type inferred)",
+        MetricsConstants.FrameworkRequirements => "framework requirements (req_class FR)",
+        _ => aType
+    };
 
     /// <summary>
     /// The muted line under the KPI row, stating each provenance's facts separately.
@@ -568,7 +589,8 @@
     /// <returns>The segment-facts sentence.</returns>
     private static string SegmentFacts(SegmentFigures aLive, SegmentFigures aBackfilled) =>
         $"live: {aLive.Records} records, {aLive.ReqsScored} REQs scored, " +
-        $"{aLive.ReqsExcludedBackfillTaint} excluded by backfill taint · " +
+        $"{aLive.ReqsExcludedBackfillTaint} excluded by backfill taint, " +
+        $"{aLive.AttemptsDerived} attempt{(aLive.AttemptsDerived == 1 ? string.Empty : "s")} derived · " +
         $"backfilled: {aBackfilled.Records} records, {aBackfilled.ReqsScored} REQs scored";
 
     /// <summary>

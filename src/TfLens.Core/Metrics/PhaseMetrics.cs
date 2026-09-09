@@ -109,7 +109,13 @@ public static class PhaseMetrics
     {
         ArgumentNullException.ThrowIfNull(aRuns);
 
-        var vLive = aRuns.Where(aRun => aRun.Backfilled != true).ToList();
+        // REQ-FN-112 / BRD-179 — a run carrying `started` and `ended` but no `duration_s` was worth ZERO
+        // TIME here while its tokens still counted, so the phase's time covered one set of runs and its
+        // tokens another. The duration is derived from the record's own two timestamps before anything is
+        // grouped, and every row carries the count of derivations in `PhaseDuration.DerivedN`.
+        var vLive = RunDuration.Derive(aRuns).Records
+            .Where(aRun => aRun.Backfilled != true)
+            .ToList();
 
         if (vLive.Count == 0)
         {
@@ -175,7 +181,8 @@ public static class PhaseMetrics
                 vTimed.Sum(aRun => (long)aRun.DurationS!.Value),
                 MetricsConstants.Median(vSeconds),
                 vTimed.Count == 0 ? null : vTimed.Max(aRun => (long)aRun.DurationS!.Value),
-                vTimed.Count),
+                vTimed.Count,
+                aRuns.Count(aRun => aRun.DurationDerivedFrom is not null)),
             ShareOfDuration = MetricsConstants.Pct(
                 vTimed.Sum(aRun => (long)aRun.DurationS!.Value),
                 aDurationTotal),

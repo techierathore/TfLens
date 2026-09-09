@@ -76,9 +76,16 @@ public enum StreamKind
 /// </summary>
 /// <remarks>
 /// Every other stream file declares exactly one kind, so "matches the file" and "is declared by the
-/// file" are the same rule there. <c>misses.jsonl</c> declares three, which is why the parser
+/// file" are the same rule there. <c>misses.jsonl</c> declares <b>four</b>, which is why the parser
 /// dispatches on the record's own <c>kind</c> inside <see cref="StreamKind.Misses"/>; anything else is
 /// counted as an invalid line and skipped, never thrown (REQ-FN-072).
+/// <para>
+/// <b>Amended 2026-09-08 (BRD-113, BRD-174) with <see cref="Review"/>.</b> Until it was added, every
+/// <c>review</c> record in every stream fell through the dispatch into
+/// <c>ParseResult.InvalidLines</c> and was discarded — a counter of mistakes silently throwing away the
+/// records that price them. A review is a <b>fourth kind, not a miss</b>: it is never counted, charted
+/// or filtered as one.
+/// </para>
 /// </remarks>
 public static class MissKinds
 {
@@ -90,6 +97,96 @@ public static class MissKinds
 
     /// <summary>An append-only completion of a field the miss left <c>null</c> — maps to <see cref="MissAmendRecord"/>.</summary>
     public const string MissAmend = "miss-amend";
+
+    /// <summary>
+    /// An owner review of a phase's output, and what it cost — maps to <see cref="MissReviewRecord"/>
+    /// (SCHEMA.md §5.5.9, added 2026-09-07; BRD-113, BRD-174).
+    /// </summary>
+    /// <remarks>
+    /// <b>Never a miss.</b> UAT issues stay <c>miss</c> records; a review record is the owner reading a
+    /// phase's output and giving corrections, so it answers a different question and belongs to no miss
+    /// figure, chart, filter or export.
+    /// </remarks>
+    public const string Review = "review";
+}
+
+/// <summary>
+/// The closed vocabulary of <see cref="MissReviewRecord.ReviewPhase"/> (SCHEMA.md §5.5.9).
+/// </summary>
+/// <remarks>
+/// Enforced on write by the producer. TfLens stores whatever arrives — a value outside these four is
+/// not silently corrected, because a reader who cannot see an unexpected value cannot act on it — but
+/// the four are named here so a figure can be built over them without a magic string.
+/// </remarks>
+public static class MissReviewPhases
+{
+    /// <summary>The day-1 stage-2 review.</summary>
+    public const string Day1 = "day1-review";
+
+    /// <summary>The build-phase review.</summary>
+    public const string Build = "build-review";
+
+    /// <summary>The verify-phase review.</summary>
+    public const string Verify = "verify-review";
+
+    /// <summary>The handoff-phase review.</summary>
+    public const string Handoff = "handoff-review";
+
+    /// <summary>The four values, in the order a report lists them.</summary>
+    public static readonly IReadOnlyList<string> All = [Day1, Build, Verify, Handoff];
+}
+
+/// <summary>
+/// The closed four-value vocabulary of <see cref="MissRecord.Sort"/> — <b>whose gap it was</b>
+/// (SCHEMA.md §5.5.1 and §5.5.10, added 2026-09-07; BRD-170).
+/// </summary>
+/// <remarks>
+/// <para>
+/// The four questions of the miss protocol, asked in order, the first that fits. They are four because
+/// each carries a <b>different fixed remedy</b>: <see cref="Spec"/> fixes a checklist line,
+/// <see cref="Unsaid"/> adds a requirement line and a check, <see cref="WeakCheck"/> repairs the check
+/// that already ran, and <see cref="Ignored"/> adds a hook or deletes the rule nobody follows. A value
+/// filed under the wrong one sends the reader to the wrong repair.
+/// </para>
+/// <para>
+/// <b>The vocabulary is closed, and TfLens is not the thing that closes it.</b> A stored value outside
+/// these four is kept exactly as it arrived, counted, and surfaced as <i>unrecognised</i> — never
+/// coerced into the nearest of the four and never dropped. Coercion would hide a producer's
+/// disagreement inside a figure nobody can audit; dropping would make the totals of a reader that lost
+/// records look entirely normal, which is the whole hazard (BRD-170, BRD-181).
+/// </para>
+/// </remarks>
+public static class MissSorts
+{
+    /// <summary>The wire field name, as <c>MetricsConstants.FieldSince</c> and an amend key it.</summary>
+    public const string Field = "sort";
+
+    /// <summary>The project's own specification did not say it.</summary>
+    public const string Spec = "spec";
+
+    /// <summary>The framework never said it anywhere.</summary>
+    public const string Unsaid = "unsaid";
+
+    /// <summary>A check existed and did not catch it — the dominant sort in the estate.</summary>
+    public const string WeakCheck = "weak-check";
+
+    /// <summary>It was written down and ignored anyway.</summary>
+    public const string Ignored = "ignored";
+
+    /// <summary>The four values, in the order the protocol asks them.</summary>
+    public static readonly IReadOnlyList<string> All = [Spec, Unsaid, WeakCheck, Ignored];
+
+    /// <summary>
+    /// Says whether a stored <c>sort</c> value is one of the four.
+    /// </summary>
+    /// <remarks>
+    /// A <c>null</c> or blank is <b>not</b> unrecognised — it is absence, which the eligibility floor
+    /// reports as <c>sort_predates_field</c> or as a record that carries no sort, never as a bad value.
+    /// </remarks>
+    /// <param name="aValue">The stored value.</param>
+    /// <returns><c>true</c> when the value is one of the four; <c>false</c> for anything else, blank included.</returns>
+    public static bool IsRecognised(string? aValue) =>
+        !string.IsNullOrWhiteSpace(aValue) && All.Contains(aValue, StringComparer.Ordinal);
 }
 
 /// <summary>
@@ -346,6 +443,19 @@ public sealed record RunRecord
 
     /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
     public string? Overflow { get; init; }
+
+    /// <summary>
+    /// Which timestamp closed a <b>read-time derived</b> <see cref="DurationS"/> — <c>ended</c> or
+    /// <c>ts</c> — and <c>null</c> on every record that carried its own duration (REQ-FN-112, BRD-179).
+    /// </summary>
+    /// <remarks>
+    /// <b>Never parsed from the wire and never stored.</b> No <c>runs.jsonl</c> field maps to it, no
+    /// column holds it and no insert names it: it is set only by <c>RunDuration.Derive</c>, on the copy
+    /// of the record a read hands to the engine, and it exists so the count of derivations can be stated
+    /// beside every time figure built on them rather than left for the reader to assume. A run that
+    /// arrives from the store always carries <c>null</c> here.
+    /// </remarks>
+    public string? DurationDerivedFrom { get; init; }
 }
 
 /// <summary>
@@ -423,6 +533,20 @@ public sealed record GateRecord
 
     /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
     public string? Overflow { get; init; }
+
+    /// <summary>
+    /// True when <see cref="Attempt"/> was <b>derived at read time</b> rather than carried by the
+    /// record (REQ-FN-113, BRD-180).
+    /// </summary>
+    /// <remarks>
+    /// <b>Never parsed from the wire and never stored.</b> No <c>gates.jsonl</c> field maps to it, no
+    /// column holds it and no insert names it: it is set only by <c>GateAttempt.Derive</c>, on the copy
+    /// of the record a read hands to the engine. <c>attempt</c> is <i>defined</i> as one plus the prior
+    /// live records for the same <c>(project, req_id)</c>, so the derivation is a count over the stream
+    /// rather than a judgement — but the reader is still told how many of the rate's records needed it.
+    /// A record that carries its own attempt is never altered and always reads <c>false</c> here.
+    /// </remarks>
+    public bool AttemptDerived { get; init; }
 }
 
 /// <summary>
@@ -685,6 +809,32 @@ public sealed record MissRecord
     public string? FailureClass { get; init; }
 
     /// <summary>
+    /// <b>Whose gap it was</b> — the closed vocabulary <c>spec</c> · <c>unsaid</c> · <c>weak-check</c> ·
+    /// <c>ignored</c> (SCHEMA.md §5.5.1, added 2026-09-07).
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> on every record written before the field existed, which is <b>not</b> the same as a
+    /// record that declined to answer: <c>MetricsConstants.FieldSince</c> carries the 2026-09-07 floor,
+    /// so those records leave the denominator entirely and are reported as
+    /// <c>sort_predates_field</c> rather than as unsorted (REQ-FN-076, BRD-117, BRD-172). It is
+    /// amendable (REQ-FN-075), and an amend carrying a value outside the four is an orphan — counted and
+    /// surfaced, never coerced to the nearest legal one.
+    /// </remarks>
+    public string? Sort { get; init; }
+
+    /// <summary>
+    /// The one free-text field — one sentence, in the owner's words, saying what was missed
+    /// (SCHEMA.md §5.5.1, added 2026-09-05).
+    /// </summary>
+    /// <remarks>
+    /// Free prose, so there is no vocabulary to close: an amend completing it is validated only as
+    /// non-empty text (BRD-116). It carries the same eligibility floor as <see cref="Sort"/>
+    /// (2026-09-07, the date the estate began emitting it on this stream), so a record written before it
+    /// existed leaves its denominator rather than counting as one that said nothing.
+    /// </remarks>
+    public string? What { get; init; }
+
+    /// <summary>
     /// The Playbook's natural key: an immutable hash of the exported source line (REQ-FN-103, BRD-164).
     /// </summary>
     /// <remarks>
@@ -885,6 +1035,117 @@ public sealed record MissAmendRecord
     public string? SourceLineHash { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
+    public string? Overflow { get; init; }
+}
+
+/// <summary>
+/// One <c>misses.jsonl</c> record of kind <c>review</c>, stored in the <c>"MissReview"</c> table
+/// (SCHEMA.md §5.5.9, BRD-113, BRD-114, BRD-115, BRD-174).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A fourth kind on the misses stream, and never a miss.</b> A review record is the owner reading a
+/// phase's output and giving corrections; a UAT issue stays a <see cref="MissRecord"/>. It is therefore
+/// a <i>sibling</i> of the other three and not a column on <see cref="MissRecord"/> — a review is about
+/// a phase's output, not about any one miss — and it enters no miss count, chart, filter or export
+/// (BRD-115, BRD-174).
+/// </para>
+/// <para>
+/// Deduped on <c>(UserId, Repo, ReviewPhase, COALESCE(ProducedRunId, ''))</c> keeping the
+/// <b>earliest</b> <see cref="Ts"/>. The run whose output was reviewed is the one thing a review record
+/// cannot be written twice about, so re-reading an archived file must not double-count a phase's
+/// corrections or double-charge its cost. The <c>COALESCE</c> is not optional: a review whose
+/// <c>reviewed_run_id</c> is absent — the owner reviewed something no run record names — would
+/// otherwise never collide with itself, because a <c>NULL</c> never equals a <c>NULL</c> in a
+/// PostgreSQL unique index (BRD-114).
+/// </para>
+/// <para>
+/// The two cost pairs are stored <b>as the emitter copied them</b> and are never recomputed here:
+/// <see cref="TokensProduce"/> / <see cref="CostProduceUsd"/> is what it cost to produce something the
+/// owner had to correct, and <see cref="TokensCorrect"/> / <see cref="CostCorrectUsd"/> is what the
+/// corrections cost. Every nullable means <i>not captured</i>, never zero — a review whose produce cost
+/// was never resolved is not a free one (SCHEMA.md §5.5.8).
+/// </para>
+/// </remarks>
+public sealed record MissReviewRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA the raw file was fetched at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp the review record was written.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the review belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type; figures never pool across it.</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>True when <c>project_type</c> was inferred rather than declared.</summary>
+    public bool? ProjectTypeInferred { get; init; }
+
+    /// <summary>True when the record was backfilled rather than emitted live.</summary>
+    public bool? Backfilled { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary>
+    /// Wire <c>phase</c> — the review's phase, in the closed vocabulary of
+    /// <see cref="MissReviewPhases"/>; part of the dedupe key.
+    /// </summary>
+    public required string ReviewPhase { get; init; }
+
+    /// <summary>
+    /// Wire <c>reviewed_run_id</c> — the <c>started</c> of the run that produced the reviewed output.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> when the reviewed output names no run, which is why the unique index and the parser's
+    /// key both <c>COALESCE</c> it to the empty string rather than leaving it nullable in the key.
+    /// </remarks>
+    public string? ProducedRunId { get; init; }
+
+    /// <summary>
+    /// Wire <c>correction_run_id</c> — the <c>started</c> of the run that applied the corrections;
+    /// <c>null</c> when the owner applied them by hand.
+    /// </summary>
+    public string? CorrectionRunId { get; init; }
+
+    /// <summary>Wire <c>corrections</c> — how many corrections the owner gave.</summary>
+    /// <remarks>Required by the producer; <c>null</c> here means the record did not carry it, never zero.</remarks>
+    public int? Corrections { get; init; }
+
+    /// <summary>Wire <c>what</c> — one sentence in the owner's words; the only free text on the record.</summary>
+    public string? What { get; init; }
+
+    /// <summary>Output tokens of the produce run, copied by the emitter; <c>null</c> means not captured.</summary>
+    public int? TokensProduce { get; init; }
+
+    /// <summary>Measured produce spend in USD, copied by the emitter; never pooled across harnesses.</summary>
+    public decimal? CostProduceUsd { get; init; }
+
+    /// <summary>Model of the produce run, copied by the emitter.</summary>
+    public string? ModelProduce { get; init; }
+
+    /// <summary>Output tokens of the correction run, copied by the emitter.</summary>
+    public int? TokensCorrect { get; init; }
+
+    /// <summary>Measured correction spend in USD, copied by the emitter.</summary>
+    public decimal? CostCorrectUsd { get; init; }
+
+    /// <summary>Model of the correction run, copied by the emitter.</summary>
+    public string? ModelCorrect { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
     public string? Overflow { get; init; }
 }
 

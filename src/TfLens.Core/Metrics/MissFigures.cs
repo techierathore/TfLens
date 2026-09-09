@@ -68,6 +68,29 @@ public static class MissFigures
     /// <summary><c>found_by</c> values that mean no gate caught it before it reached a human.</summary>
     public static readonly IReadOnlyList<string> EscapeFoundBy = ["owner", "production"];
 
+    /// <summary>Wire field name behind <see cref="MissSegmentFigures.ClassDistribution"/>.</summary>
+    public const string MissClassField = "miss_class";
+
+    /// <summary>Wire field name behind <see cref="MissSegmentFigures.FoundBy"/>.</summary>
+    public const string FoundByField = "found_by";
+
+    /// <summary>
+    /// Every wire field a distribution here is computed over, in the order the page prints them.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MissSegmentFigures.AmendedValues"/> carries one entry per name on this list, so a
+    /// distribution can never be rendered without the count of values an amendment completed beside it
+    /// (BRD-176). Two of the four are not amendable at all and report <c>0</c>; that is an answer, and
+    /// leaving the key out would not be.
+    /// </remarks>
+    public static readonly IReadOnlyList<string> DistributionFields =
+    [
+        MissClassField,
+        MissAmendFolder.WhyMissedField,
+        MissSorts.Field,
+        FoundByField
+    ];
+
     /// <summary>
     /// Computes the whole miss block for one user and one framework.
     /// </summary>
@@ -119,7 +142,8 @@ public static class MissFigures
                     && Segment.KeyFor(aRun.ProjectType, aRun.ProjectTypeInferred) == vBucket.Key)
                 .ToList();
 
-            vSegments[vBucket.Key] = FiguresFor(vBucket.Value, vFixesHere, vRunsHere, vFixesByMiss, vKnownMisses);
+            vSegments[vBucket.Key] = FiguresFor(
+                vBucket.Value, vFixesHere, vRunsHere, vFixesByMiss, vKnownMisses, vFolded);
         }
 
         // A fix whose parent miss lives in no live segment still has to be counted somewhere, or the
@@ -160,13 +184,15 @@ public static class MissFigures
     /// <param name="aRuns">The segment's live runs — the per-phase rate's denominator.</param>
     /// <param name="aFixesByMiss">Every live fix, indexed by the miss it names.</param>
     /// <param name="aKnownMisses">Link keys of every stored miss, for the orphan test.</param>
+    /// <param name="aFold">The read-time fold, for the values an amendment completed here.</param>
     /// <returns>The segment's figures.</returns>
     private static MissSegmentFigures FiguresFor(
         IReadOnlyList<MissRecord> aMisses,
         IReadOnlyList<MissFixRecord> aFixes,
         IReadOnlyList<RunRecord> aRuns,
         IReadOnlyDictionary<string, List<MissFixRecord>> aFixesByMiss,
-        IReadOnlySet<string> aKnownMisses)
+        IReadOnlySet<string> aKnownMisses,
+        MissFoldResult aFold)
     {
         // ---- what was missed. The denominator is records that carry the field, not the miss count.
         var vClassCounts = CountBy(aMisses, aMiss => aMiss.MissClass);
@@ -183,6 +209,18 @@ public static class MissFigures
         var vWhyN = vWhyCounts.Sum(aEntry => aEntry.Value);
 
         var vFoundByCounts = CountBy(aMisses, aMiss => aMiss.FoundBy);
+
+        // ---- whose gap it was (BRD-170, BRD-172). Same shape as why_missed and the same floor: the
+        // denominator is the misses ELIGIBLE to carry the field, and the records that predate it are
+        // reported apart rather than pooled in as unsorted.
+        var vSortEligibility = LateGateCoverageCalculator.EligibilityFor(
+            MissSorts.Field,
+            aMisses,
+            aMiss => aMiss.Ts,
+            aMiss => aMiss.Sort);
+
+        var vSortCounts = CountBy(aMisses, aMiss => aMiss.Sort);
+        var vSortN = vSortCounts.Sum(aEntry => aEntry.Value);
 
         var vDesignMisses = aMisses.Count(aMiss =>
             string.Equals(aMiss.MissClass, DesignMissClass, StringComparison.Ordinal));
@@ -210,8 +248,70 @@ public static class MissFigures
             EscapeShare = Share(vEscapes, aMisses.Count),
             MedianTimeToCloseHours = MedianTimeToClose(aMisses, aFixesByMiss),
             Attribution = AttributionFor(aMisses, aRuns),
-            Cost = MoneyFor(aFixes)
+            Cost = MoneyFor(aFixes),
+            SortDistribution = SortRows(vSortCounts, vSortN),
+            SortN = vSortN,
+            SortEligibility = vSortEligibility,
+            SortUnrecognised = aMisses.Count(aMiss =>
+                !string.IsNullOrWhiteSpace(aMiss.Sort) && !MissSorts.IsRecognised(aMiss.Sort)),
+            SortDistributionNote = Note(vSortN),
+            AmendedValues = AmendedValuesFor(aMisses, aFold)
         };
+    }
+
+    /// <summary>
+    /// Renders the <c>sort</c> distribution, marking any value outside the four (BRD-170).
+    /// </summary>
+    /// <remarks>
+    /// <b>An unrecognised value gets its own row, under its own name.</b> It is never mapped to the
+    /// nearest of the four and never filtered out of the distribution: coercion would file a miss under
+    /// a remedy nobody chose, and filtering would leave totals that look entirely normal while records
+    /// went missing. Both failures are invisible to a reader downstream, which is why the flag travels
+    /// with the row rather than being recomputed by whoever renders it.
+    /// </remarks>
+    /// <param name="aCounts">The counts from <see cref="CountBy{T}"/>.</param>
+    /// <param name="aDenominator">Records carrying a <c>sort</c> — never the miss count.</param>
+    /// <returns>One row per stored value observed, ordinally ordered.</returns>
+    private static IReadOnlyList<MissCategoryCount> SortRows(
+        IReadOnlyDictionary<string, int> aCounts,
+        int aDenominator) =>
+        aCounts
+            .Select(aEntry => new MissCategoryCount(
+                aEntry.Key,
+                aEntry.Value,
+                MetricsConstants.Pct(aEntry.Value, aDenominator),
+                MissSorts.IsRecognised(aEntry.Key)))
+            .ToList();
+
+    /// <summary>
+    /// How many values in this segment each distribution's field owes to a <c>miss-amend</c> (BRD-176).
+    /// </summary>
+    /// <remarks>
+    /// Counted over the segment's own misses rather than read off the fold's total, because a total
+    /// spanning every project type would be attached to a distribution that spans one. A field no
+    /// amendment may complete is present with a <c>0</c>: a distribution with no count beside it is
+    /// exactly the silent fold this clause exists to end.
+    /// </remarks>
+    /// <param name="aMisses">The segment's live misses, amendments already folded.</param>
+    /// <param name="aFold">The read-time fold, carrying every completion it applied.</param>
+    /// <returns>One entry per name in <see cref="DistributionFields"/>.</returns>
+    private static IReadOnlyDictionary<string, int> AmendedValuesFor(
+        IReadOnlyList<MissRecord> aMisses,
+        MissFoldResult aFold)
+    {
+        var vHere = aMisses
+            .Select(aMiss => LinkKey(aMiss.Repo, aMiss.MissId))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var vCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var vField in DistributionFields)
+        {
+            vCounts[vField] = aFold.Completions.Count(aCompletion =>
+                string.Equals(aCompletion.Field, vField, StringComparison.Ordinal)
+                && vHere.Contains(LinkKey(aCompletion.Repo, aCompletion.MissId)));
+        }
+
+        return vCounts;
     }
 
     /// <summary>

@@ -177,16 +177,43 @@ public sealed record PhaseTokens(long In, long Out, long CacheRead, long CacheWr
 }
 
 /// <summary>
-/// A phase's wall-clock block — total, median, max and the count of runs that were timed.
+/// A phase's wall-clock block — total, median, max, the count of runs that were timed, and how many of
+/// those durations this read derived (REQ-FN-112, BRD-179).
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b><see cref="DerivedN"/> is why this block can be trusted against the token block beside it.</b>
+/// <c>duration_s</c> entered the stream after some records were written; those records carry
+/// <c>started</c> and <c>ended</c> but no duration, and a reader that simply sums the field counts them
+/// as <b>zero time while still counting their tokens</b> — so a phase's time covers one set of runs and
+/// its tokens another. The framework's own reset reported <b>16h49m</b> under that bug against a true
+/// <b>55h57m</b>.
+/// </para>
+/// <para>
+/// The derivation is arithmetic on two recorded facts, done at <b>read time</b> and written back to
+/// nothing (<c>RunDuration</c>). The count rides on the block rather than being computed and discarded,
+/// so a surface cannot render the total without also holding the number BRD-179 requires beside it —
+/// the same technique as <see cref="TokenWindow"/> and <see cref="FanoutObservation"/>.
+/// </para>
+/// </remarks>
 /// <param name="TotalSeconds">Summed duration over the timed runs.</param>
 /// <param name="MedianSeconds">The median, or <c>null</c> when no run was timed.</param>
 /// <param name="MaxSeconds">The longest timed run, or <c>null</c> when no run was timed.</param>
 /// <param name="TimedN">Runs carrying a non-zero <c>duration_s</c>; the block's own denominator.</param>
-public sealed record PhaseDuration(long TotalSeconds, double? MedianSeconds, long? MaxSeconds, int TimedN)
+/// <param name="DerivedN">
+/// How many of <paramref name="TimedN"/> were computed from the record's own <c>started</c> and
+/// <c>ended</c> — or <c>ts</c>, SCHEMA.md's stand-in for an absent <c>ended</c> — because the record
+/// carried no <c>duration_s</c>. A subset of the timed runs, never an addition to them.
+/// </param>
+public sealed record PhaseDuration(
+    long TotalSeconds,
+    double? MedianSeconds,
+    long? MaxSeconds,
+    int TimedN,
+    int DerivedN)
 {
     /// <summary>The block for a phase in which nothing was timed.</summary>
-    public static PhaseDuration None { get; } = new(0, null, null, 0);
+    public static PhaseDuration None { get; } = new(0, null, null, 0, 0);
 }
 
 /// <summary>
@@ -450,6 +477,19 @@ public sealed record PhaseEffortAnalysis
     /// a page that only looks right once the data is dense is a page nobody trusts in the meantime.
     /// </remarks>
     public int FanoutObservedN => Phases.Sum(aRow => aRow.Fanout.ObservedN);
+
+    /// <summary>
+    /// Durations this read derived, across every phase — the count BRD-179 requires beside every time
+    /// figure built on them (REQ-FN-112).
+    /// </summary>
+    /// <remarks>
+    /// A page-level restatement of the per-phase <see cref="PhaseDuration.DerivedN"/>, so the wall-clock
+    /// headline can carry its own provenance without summing anything the rows do not already hold. It
+    /// is a count of <i>derivations</i>, not of seconds, and it is never subtracted from
+    /// <see cref="DurationSecondsTotal"/> — the derived minutes are real minutes; what the reader is
+    /// being told is how many of them were worked out rather than read.
+    /// </remarks>
+    public int DurationsDerivedN => Phases.Sum(aRow => aRow.Duration.DerivedN);
 }
 
 /// <summary>

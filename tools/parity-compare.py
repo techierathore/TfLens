@@ -69,6 +69,36 @@ ADDED_KEYS = {
         "segmented by it, which is why it appears on this list and nowhere else.",
 }
 
+# The segment keys `live` and `backfilled` are maps of. Enumerated rather than wildcarded because
+# `canonical()` collapses list indices only -- a map key is part of the path, and that is deliberate:
+# a NEW segment key appearing on either side must be a finding, not something a pattern swallows.
+SEGMENT_KEYS = ("app", "library", "docs", "framework", "unclassified", "framework-requirement")
+
+# `attempts_derived` (REQ-FN-113, BRD-180) -- how many of a segment's records had their `attempt`
+# DERIVED at read time because the record omitted it. Both tools derive it and neither writes it back;
+# the reference derives it silently, TfLens states the count beside the rate, because BRD-180 requires
+# a derivation to be visible where the figure it feeds is. It is a COUNT OF RECORDS and never a term
+# in any rate -- `reqs_scored`, `first_pass_n` and `first_pass_rate` are diffed on their own keys and
+# are unaffected by its presence. It is always 0 on the backfilled side: a backfilled record's attempt
+# is assumed rather than observed (SCHEMA.md §3.1), so nothing derives one for it.
+for _provenance in ("live", "backfilled"):
+    for _segment in SEGMENT_KEYS:
+        ADDED_KEYS["%s.%s.attempts_derived" % (_provenance, _segment)] = (
+            "REQ-FN-113 / BRD-180 -- records in this segment whose `attempt` was derived at read "
+            "time, stated beside the rate it feeds. A count of records, never a term in a rate.")
+
+# `framework-requirement` (REQ-FN-110, BRD-177) -- gate verdicts carrying `req_class: "FR"` are the
+# framework grading ITSELF against its own requirement lines. A framework rule and an application
+# screen are not the same unit, so TfLens gives them their own segment key and no rate or total in the
+# product spans them and an application segment together. The reference does not yet draw this
+# boundary: it files those records under their `project_type` like any other. Over a dataset carrying
+# FR verdicts the two documents will therefore also differ in the `framework` segment's own counts --
+# that is the correction BRD-177 asks for, logged upstream as a `.tfcore` gap, not a TfLens defect.
+for _provenance in ("live", "backfilled"):
+    ADDED_KEYS["%s.framework-requirement" % _provenance] = (
+        "REQ-FN-110 / BRD-177 -- the `req_class: \"FR\"` segment. Framework requirement verdicts "
+        "appear in their own segment and in no combined application figure.")
+
 # MISSES_KEYS -- the miss and rework figures BRD-129 requires this script to diff key for key. The
 # walk below would compare them anyway, because it compares everything; this list makes the coverage
 # a CHECKED FACT rather than a happy accident. Every name here must be present on BOTH documents'
@@ -79,6 +109,10 @@ MISSES_KEYS = (
     "misses_total", "miss_fixes_total", "orphan_fixes", "open_misses", "wont_fix",
     "resolved_misses", "why_missed_n", "why_missed", "escapes_missing_why", "why_missed_eligible",
     "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
+    # Whose gap it was (BRD-170/BRD-172, added to both sides 2026-09-07). The three denominator keys
+    # are listed separately on purpose: sort_predates_field is not part of sort_eligible and never
+    # summed into it, so a compare that diffed only the pair would hide either one moving.
+    "sort_n", "sort_eligible", "sort_predates_field", "sort",
     "found_by", "design_miss_share", "escape_share", "attributed_n", "attribution_excluded",
     "by_origin_phase", "by_origin_model", "by_origin_agent", "cost_sole_n", "cost_shared_n",
     "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_apportioned",
@@ -109,7 +143,13 @@ PHASES_PHASE_KEYS = (
     "cost_usd_by_harness",
 )
 PHASES_NESTED_KEYS = {
-    "duration_s": ("total", "median", "max", "n"),
+    # `derived_n` (REQ-FN-112, BRD-179) is a REQUIRED key on both sides, not an addition: the oracle
+    # emits it too. It says how many of a phase's minutes were computed from the record's own `started`
+    # and `ended` because the record predates `duration_s`. Without it a reader cannot tell a total that
+    # was read from one that was worked out -- and the bug it exists to expose scored those runs as ZERO
+    # TIME while still counting their tokens, so a phase's time covered one set of runs and its tokens
+    # another (the framework's own reset: 16h49m reported against a true 55h57m).
+    "duration_s": ("total", "median", "max", "n", "derived_n"),
     "tokens": ("in", "out", "cache_read", "cache_write"),
     "routing": ("routed", "drifted", "unknown"),
     "fanout": (

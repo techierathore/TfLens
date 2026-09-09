@@ -376,6 +376,28 @@ public interface ITelemetryStore
         Task.FromResult<IReadOnlyList<MissAmendRecord>>([]);
 
     /// <summary>
+    /// Reads every <c>review</c> record for a user, optionally narrowed to one repository
+    /// (REQ-FN-074, BRD-115 as amended 2026-09-08).
+    /// </summary>
+    /// <remarks>
+    /// The fourth miss-stream table, and <b>never a miss</b>: nothing these rows carry enters a miss
+    /// count, chart, filter or export. They are read on their own so a report can price an owner review
+    /// — what the reviewed output cost to produce, and what the corrections cost — without any of it
+    /// touching a miss denominator (BRD-174).
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis to read.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching review records, ordered by timestamp.</returns>
+    Task<IReadOnlyList<MissReviewRecord>> ReadMissReviewsAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissReviewRecord>>([]);
+
+    /// <summary>
     /// Reads every Playbook event record for a user, optionally narrowed to one repository.
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
@@ -487,7 +509,8 @@ public interface ITelemetryStore
     /// <remarks>
     /// <b>This removes all three layers</b>, scoped to <c>(aUserId, aRepo)</c>: every stream table row
     /// (<c>"Run"</c>, <c>"Gate"</c>, <c>"Session"</c>, <c>"Commit"</c>, <c>"Miss"</c>,
-    /// <c>"MissFix"</c>, <c>"MissAmend"</c>, <c>"PbEvent"</c> — <b>all three miss tables</b>, because a
+    /// <c>"MissFix"</c>, <c>"MissAmend"</c>, <c>"MissReview"</c>, <c>"PbEvent"</c> — <b>all four miss
+    /// tables</b> since BRD-115 was amended on 2026-09-08, because a
     /// removal that leaves rows behind puts them back into every figure, which is the worst class of bug
     /// in a product whose promise is correct numbers, REQ-FN-074), the
     /// <c>"SyncState"</c> row, and the <c>"UserRepo"</c> row itself — so the repository is *disconnected*,

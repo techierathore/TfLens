@@ -39,11 +39,12 @@ public sealed class PostgresStore : ITelemetryStore
     /// <b>One list, both jobs.</b> <see cref="DeleteRepoDataAsync"/> and the rebuild's
     /// <c>ClearStreamTablesAsync</c> both walk this array, so a new stream table cannot be added to one
     /// and forgotten by the other — which is exactly how a removed repository would keep contributing
-    /// rows to every figure (REQ-FN-074, BRD-115). The three miss tables (2026-08-28) are here for that
-    /// reason and a guardrail test asserts it.
+    /// rows to every figure (REQ-FN-074, BRD-115). The <b>four</b> miss tables are here for that
+    /// reason and a guardrail test asserts it — three from 2026-08-28 and <c>"MissReview"</c> from
+    /// 2026-09-08, when BRD-115 was amended to make the misses stream four tables rather than three.
     /// </remarks>
     private static readonly string[] StreamTables =
-        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "PbEvent"];
+        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "PbEvent"];
 
     /// <summary>
     /// The three schema-2 Playbook phase tables, purged with the stream tables when a repository is
@@ -144,13 +145,17 @@ public sealed class PostgresStore : ITelemetryStore
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(vConnection, InsertCommitSql, aParsed.Commits, aCancellationToken)
             .ConfigureAwait(false);
-        // The misses stream is one file and three tables (ADR-018): the parser has already split the
-        // records by their own `kind`, so this is three ordinary idempotent batches, not a discriminator.
+        // The misses stream is one file and FOUR tables (ADR-018, BRD-115 as amended 2026-09-08): the
+        // parser has already split the records by their own `kind`, so this is four ordinary idempotent
+        // batches, not a discriminator.
         vWritten += await ExecuteBatchAsync(vConnection, InsertMissSql, aParsed.Misses, aCancellationToken)
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(vConnection, InsertMissFixSql, aParsed.MissFixes, aCancellationToken)
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(vConnection, InsertMissAmendSql, aParsed.MissAmends, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(
+            vConnection, InsertMissReviewSql, aParsed.MissReviews, aCancellationToken)
             .ConfigureAwait(false);
         // Playbook events split by record kind: a turn is a cumulative snapshot keyed on its messageID
         // and must overwrite a smaller one, a marker is keyed on kind+ts+session and never changes.
@@ -284,6 +289,11 @@ public sealed class PostgresStore : ITelemetryStore
     public Task<IReadOnlyList<MissAmendRecord>> ReadMissAmendsAsync(
         int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
         ReadStreamAsync<MissAmendRecord>("MissAmend", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissReviewRecord>> ReadMissReviewsAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<MissReviewRecord>("MissReview", aUserId, aFramework, aRepo, aCancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<PbEventRecord>> ReadPbEventsAsync(
@@ -596,11 +606,14 @@ public sealed class PostgresStore : ITelemetryStore
                 "SessionsCount" = (SELECT COUNT(*) FROM "Session" s WHERE s."UserId" = t."UserId" AND s."Repo" = t."Repo"),
                 "CommitsCount"  = (SELECT COUNT(*) FROM "Commit"  c WHERE c."UserId" = t."UserId" AND c."Repo" = t."Repo"),
                 "EventsCount"   = (SELECT COUNT(*) FROM "PbEvent" p WHERE p."UserId" = t."UserId" AND p."Repo" = t."Repo"),
-                -- One stream, three tables: the misses count is their sum, so Coverage reports five
-                -- stream rows per repository rather than seven (REQ-FN-071).
-                "MissesCount"   = (SELECT COUNT(*) FROM "Miss"      m WHERE m."UserId" = t."UserId" AND m."Repo" = t."Repo")
-                                + (SELECT COUNT(*) FROM "MissFix"   f WHERE f."UserId" = t."UserId" AND f."Repo" = t."Repo")
-                                + (SELECT COUNT(*) FROM "MissAmend" a WHERE a."UserId" = t."UserId" AND a."Repo" = t."Repo")
+                -- One stream, FOUR tables: the misses count is their sum, so Coverage reports five
+                -- stream rows per repository rather than eight (REQ-FN-071, BRD-115). This is a count of
+                -- RECORDS ON THE STREAM, which is why a review joins it — it is not a miss figure, and
+                -- no figure that counts misses reads this column.
+                "MissesCount"   = (SELECT COUNT(*) FROM "Miss"       m WHERE m."UserId" = t."UserId" AND m."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissFix"    f WHERE f."UserId" = t."UserId" AND f."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissAmend"  a WHERE a."UserId" = t."UserId" AND a."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissReview" v WHERE v."UserId" = t."UserId" AND v."Repo" = t."Repo")
             WHERE @aUserId IS NULL OR t."UserId" = @aUserId
             """;
 
@@ -1003,6 +1016,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "Ts", "Backfilled" FROM "MissFix"   WHERE "UserId" = @aUserId
             UNION ALL
             SELECT "Repo", "Ts", "Backfilled" FROM "MissAmend" WHERE "UserId" = @aUserId
+            UNION ALL
+            SELECT "Repo", "Ts", "Backfilled" FROM "MissReview" WHERE "UserId" = @aUserId
         ) misses GROUP BY "Repo"
         UNION ALL
         SELECT "Repo", 'events', COUNT(*)::int, 0, MAX("Ts")
@@ -1033,7 +1048,7 @@ public sealed class PostgresStore : ITelemetryStore
         FROM "Commit", LATERAL jsonb_object_keys("Overflow") AS k
         WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL GROUP BY "Repo", k
         UNION ALL
-        -- The three miss tables report as one stream, so their keys are grouped together: a field
+        -- The FOUR miss tables report as one stream, so their keys are grouped together: a field
         -- observed on both a miss and a miss-fix is one undocumented field, not two (REQ-FN-072).
         SELECT "Repo", 'misses', k, COUNT(*)::int
         FROM (
@@ -1042,6 +1057,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "Overflow" FROM "MissFix"   WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
             UNION ALL
             SELECT "Repo", "Overflow" FROM "MissAmend" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
+            UNION ALL
+            SELECT "Repo", "Overflow" FROM "MissReview" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
         ) misses, LATERAL jsonb_object_keys("Overflow") AS k
         GROUP BY "Repo", k
         UNION ALL
@@ -1077,6 +1094,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "V" FROM "MissFix"   WHERE "UserId" = @aUserId AND "V" > 1
             UNION ALL
             SELECT "Repo", "V" FROM "MissAmend" WHERE "UserId" = @aUserId AND "V" > 1
+            UNION ALL
+            SELECT "Repo", "V" FROM "MissReview" WHERE "UserId" = @aUserId AND "V" > 1
         ) misses GROUP BY "Repo"
         """;
 
@@ -1153,13 +1172,13 @@ public sealed class PostgresStore : ITelemetryStore
             "Harness","MissId","ReqId","ItemId","ReqClass","MissClass","Artifact","Severity","WhyMissed",
             "OriginPhase","OriginAgent","OriginRunId","OriginConfidence","OriginModel","OriginHarness",
             "FoundBy","FoundPhase","FoundGate","FoundPhaseGate","FoundRunId","FailureClass",
-            "SourceLineHash","Overflow")
+            "Sort","What","SourceLineHash","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@MissId,@ReqId,@ItemId,@ReqClass,@MissClass,@Artifact,@Severity,@WhyMissed,
             @OriginPhase,@OriginAgent,@OriginRunId,@OriginConfidence,@OriginModel,@OriginHarness,
             @FoundBy,@FoundPhase,@FoundGate,@FoundPhaseGate,@FoundRunId,@FailureClass,
-            @SourceLineHash,CAST(@Overflow AS jsonb))
+            @Sort,@What,@SourceLineHash,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1201,6 +1220,30 @@ public sealed class PostgresStore : ITelemetryStore
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@MissId,@Field,@Value,@SourceLineHash,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Idempotent insert for a <c>review</c>; conflicts on
+    /// <c>UcMissReviewUserRepoPhaseRunId</c> are no-ops (BRD-114, BRD-115).
+    /// </summary>
+    /// <remarks>
+    /// <c>DO NOTHING</c> is earliest-wins across files, matching the parser's within-file rule: a review
+    /// is written once, when the corrections are applied, so a re-fetched archived file has nothing newer
+    /// to offer. The index it conflicts on <c>COALESCE</c>s <c>"ProducedRunId"</c>, which is what makes a
+    /// review naming no produce run idempotent at all.
+    /// </remarks>
+    private const string InsertMissReviewSql = """
+        INSERT INTO "MissReview" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
+            "Harness","ReviewPhase","ProducedRunId","CorrectionRunId","Corrections","What",
+            "TokensProduce","CostProduceUsd","ModelProduce","TokensCorrect","CostCorrectUsd",
+            "ModelCorrect","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
+            @Harness,@ReviewPhase,@ProducedRunId,@CorrectionRunId,@Corrections,@What,
+            @TokensProduce,@CostProduceUsd,@ModelProduce,@TokensCorrect,@CostCorrectUsd,
+            @ModelCorrect,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1364,11 +1407,11 @@ public sealed class PostgresStore : ITelemetryStore
         """;
 
     /// <summary>
-    /// Every distinct <c>(user, repo, source SHA)</c> the eight stream tables hold rows under.
+    /// Every distinct <c>(user, repo, source SHA)</c> the nine stream tables hold rows under.
     /// </summary>
     /// <remarks>
     /// One <c>UNION ALL</c> arm per table so a finding names the table it sits in — the fact the
-    /// 2026-08-29 cleanup had to reconstruct by hand. The list is the same eight tables
+    /// 2026-08-29 cleanup had to reconstruct by hand. The list is the same nine tables
     /// <see cref="StreamTables"/> names, and a guardrail test asserts the two do not drift: a stream
     /// table this query forgot is a table pollution could hide in.
     /// </remarks>
@@ -1393,6 +1436,9 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "UserId", "Repo", "SourceSha", 'MissAmend', COUNT(*)::int
         FROM "MissAmend" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'MissReview', COUNT(*)::int
+        FROM "MissReview" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
         UNION ALL
         SELECT "UserId", "Repo", "SourceSha", 'PbEvent', COUNT(*)::int
         FROM "PbEvent" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3

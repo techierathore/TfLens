@@ -442,112 +442,387 @@
             </div>
         </div>
 
-        @* REQ-UI-039 / BRD-127 — the miss stream's DATA-QUALITY facts. These say how complete the
-           stream is, not how good the work is, which is why they live here and not on the /misses KPI
-           row: an escape with no `why_missed` is a record that arrived incomplete, and reading it as a
-           quality score would be reading a measurement failure as a defect. Every figure is a count;
-           there is no rate anywhere in this card. *@
-        <Card data-testid="miss-quality">
-            <CardHeader>
-                <div class="flex w-full flex-wrap items-center justify-between gap-2">
-                    <span class="flex min-w-0 flex-col gap-1">
-                        <CardTitle Class="text-base">Miss stream — data quality</CardTitle>
-                        <CardDescription>
-                            How complete the <span class="font-mono">misses</span> stream is. These are
-                            facts about the records, not about the work — the quality figures live on
-                            Misses &amp; rework.
-                        </CardDescription>
-                    </span>
-                    <Badge Variant="BadgeVariant.Outline" data-testid="miss-quality-total">
-                        @objMisses.MissesTotal.ToString("N0") misses · @objMisses.MissFixesTotal.ToString("N0") fixes
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent Class="pt-0">
-                <div class="flex flex-col gap-3">
+        @* REQ-UI-039 / BRD-127 (amended 2026-09-08) — the DATA-QUALITY band. Every figure here is a
+           count about the RECORDS, never a rate and never a grade about the work, which is why the band
+           lives on this page and none of it appears on the /misses KPI row. A `—` cell is not a zero:
+           where a field is written by the producer and not yet read by TfLens, the count is absent and
+           says so, because printing 0 would claim a measurement nobody has made. *@
+        <div class="flex flex-col gap-1" data-testid="data-quality">
+            @* TrBlazeUI 2.0.0 ships no Typography components that can carry a test id (TR-005, TR-013),
+               so the band heading is plain markup, as the page heading above is. *@
+            <h3 class="text-lg font-semibold">Data quality</h3>
+            <p class="text-sm text-muted-foreground">
+                Facts about the records themselves. <b>None of these is a warning</b> and none appears on
+                the <a class="underline" href="/misses">Misses</a> KPI row — a figure about the data is
+                not a figure about the work.
+            </p>
+        </div>
 
-                    @* An escape is the most valuable record in the stream: something got past every
-                       gate. One that arrives with no `why_missed` wastes it. *@
-                    <div class="flex flex-wrap items-baseline gap-2 text-sm"
-                         data-testid="escapes-missing-why">
-                        <span class="font-medium">Escapes with no <span class="font-mono">why_missed</span>:</span>
-                        <span class="tabular-nums font-semibold whitespace-nowrap">
-                            @objMisses.EscapesMissingWhy.ToString("N0") of @objMisses.MissesTotal.ToString("N0") misses
-                        </span>
-                        <span class="text-muted-foreground">
-                            Something got past every gate and nobody recorded why nothing caught it — the
-                            most valuable record in the stream, arriving incomplete.
-                        </span>
-                    </div>
+        <div class="trblazeui-grid gap-4" data-testid="miss-quality">
 
-                    @* Link integrity. A dropped orphan is a fact nobody can see, so they are counted
-                       and shown rather than filtered out. *@
-                    <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="orphan-misses">
-                        <span class="font-medium">Records that link to nothing:</span>
-                        <span class="tabular-nums font-semibold whitespace-nowrap">@OrphanRecordTotal.ToString("N0") records</span>
-                        <span class="text-muted-foreground">
-                            @objMisses.OrphanFixes.ToString("N0") miss-fix naming no stored miss ·
-                            @objMisses.OrphanAmends.ToString("N0") amendment that could never be applied ·
-                            @objMisses.AmendmentsIgnored.ToString("N0") amendment arriving at a field that
-                            already had a value. Counted rather than dropped: a dropped orphan is a fact
-                            nobody can see.
-                        </span>
-                    </div>
+            @* BRD-127 amended / BRD-172 — a record written before a field existed is not a record
+               missing it, so the count is stated against the repository's own eligible misses and is
+               never a health failure. *@
+            <div class="trblazeui-col-12 trblazeui-col-md-6">
+                <Card Class="h-full" data-testid="cov-field-completeness">
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Fields that arrived after the records did</CardTitle>
+                                <CardDescription>
+                                    A record written before a field existed is not a record missing it
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline" Class="shrink-0">since 2026-09-07</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="w-full overflow-x-auto coverage-streams">
+                            <DataTable TData="FieldCompletenessRow"
+                                       Data="@FieldCompletenessRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       Sortable="false"
+                                       InitialPageSize="64"
+                                       AriaLabel="Miss field completeness per repository"
+                                       data-testid="cov-field-completeness-table">
+                                <Columns>
+                                    <DataTableColumn TData="FieldCompletenessRow" TValue="string"
+                                                     Property="@(aRow => aRow.Repo)" Header="Repo">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono @(vRow.IsTotal ? "font-semibold" : string.Empty)">@vRow.Repo</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="FieldCompletenessRow" TValue="string"
+                                                     Property="@(aRow => aRow.MissesText)" Header="Misses">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums @(vRow.IsTotal ? "font-semibold" : string.Empty)">@vRow.MissesText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="FieldCompletenessRow" TValue="string"
+                                                     Property="@(aRow => aRow.MissingSortText)" Header="No sort">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums @(vRow.IsTotal ? "font-semibold" : string.Empty)">@vRow.MissingSortText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="FieldCompletenessRow" TValue="string"
+                                                     Property="@(aRow => aRow.MissingWhatText)" Header="No what">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums @(vRow.IsTotal ? "font-semibold" : string.Empty)">@vRow.MissingWhatText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="FieldCompletenessRow" TValue="string"
+                                                     Property="@(aRow => aRow.EligibleText)" Header="Eligible">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums @(vRow.IsTotal ? "font-semibold" : string.Empty)">@vRow.EligibleText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
 
-                    @* The third provenance separation, reported rather than silently applied. *@
-                    <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="miss-backfilled">
-                        <span class="font-medium">Backfilled, held out of every miss figure:</span>
-                        <span class="tabular-nums font-semibold whitespace-nowrap">
-                            @objMisses.BackfilledMissesExcluded.ToString("N0") misses ·
-                            @objMisses.BackfilledMissFixesExcluded.ToString("N0") fix records
-                        </span>
-                        <span class="text-muted-foreground">
-                            They reach no figure on Misses &amp; rework and are reported here instead of
-                            being dropped — the third provenance separation, applied and displayed.
-                        </span>
-                    </div>
+                        <p class="mt-4 text-sm text-muted-foreground" data-testid="cov-sort-note">
+                            @if (AllReposCompleteness is { } vAll)
+                            {
+                                <b>
+                                    @vAll.MissingSort.ToString("N0") of @vAll.Misses.ToString("N0") misses
+                                    carry no <span class="font-mono">sort</span>, and
+                                    @vAll.PredatesField.ToString("N0") of them predate the field.
+                                </b>
+                            }
+                            A miss written before the field existed is reported as <b>predating the
+                            field</b> and never as unsorted; it leaves that field's denominator entirely,
+                            which is why Misses &amp; rework reads
+                            <span class="font-mono">n of N sorted</span> rather than a percentage of
+                            everything. This count is large today and will stay large; it is not a fault in
+                            any repository.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
 
-                    @* REQ-UI-039 — a warning, never an error and never a failed health badge. The word
-                       carries the meaning; the colour only repeats it (REQ-NFR-005). *@
-                    @if (HasMissesWithoutFixes)
-                    {
-                        <Alert Variant="AlertVariant.Warning"
-                               AccentBorder="true"
-                               data-testid="misses-without-fixes">
-                            <LucideIcon Name="triangle-alert" Size="16" />
-                            <AlertTitle>Misses recorded, no fixes recorded</AlertTitle>
-                            <AlertDescription>
-                                @string.Join(", ", objReposWithoutFixes) logged
-                                <span class="font-mono">miss</span> records and not one
-                                <span class="font-mono">miss-fix</span> record. That is a
-                                <b>telemetry gap, not a defect backlog</b>: without fixes there is nothing to
-                                close a miss, so every one of them reads as open and no time-to-close or
-                                rework-cost figure exists for that repository at all. Run
-                                <span class="font-mono">log-miss --fixed</span> when a miss is repaired.
-                            </AlertDescription>
-                        </Alert>
-                    }
+            @* BRD-179 / BRD-180 — deriving is legitimate, but only while the reader can see it happened. *@
+            <div class="trblazeui-col-12 trblazeui-col-md-6">
+                <Card Class="h-full" data-testid="cov-derived">
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Values worked out, not read</CardTitle>
+                                <CardDescription>
+                                    Legitimate — but only while you can see it happened
+                                </CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Secondary" Class="shrink-0">derived at read time</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        <div class="w-full overflow-x-auto coverage-streams">
+                            <DataTable TData="DerivedRow"
+                                       Data="@DerivedRows"
+                                       ShowToolbar="false"
+                                       ShowPagination="false"
+                                       Sortable="false"
+                                       InitialPageSize="16"
+                                       AriaLabel="Values derived at read time"
+                                       data-testid="cov-derived-table">
+                                <Columns>
+                                    <DataTableColumn TData="DerivedRow" TValue="string"
+                                                     Property="@(aRow => aRow.Field)" Header="Field">
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono">@vRow.Field</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="DerivedRow" TValue="string"
+                                                     Property="@(aRow => aRow.DerivableText)" Header="Derived">
+                                        <CellTemplate Context="vRow">
+                                            <span class="tabular-nums">@vRow.DerivableText</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="DerivedRow" TValue="string"
+                                                     Property="@(aRow => aRow.Row.How)" Header="How">
+                                        <CellTemplate Context="vRow">
+                                            <span class="text-sm text-muted-foreground">@vRow.Row.How</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
 
-                    @* The reclassification split, summarised. The per-repository sentence — which names
-                       both segments — is on the affected repository's own card above. *@
-                    @if (ReclassifiedRepos.Count > 0)
-                    {
-                        <Alert Variant="AlertVariant.Warning"
-                               AccentBorder="true"
-                               data-testid="reclassified-summary">
-                            <LucideIcon Name="split" Size="16" />
-                            <AlertTitle>@ReclassifiedRepos.Count repositor@(ReclassifiedRepos.Count == 1 ? "y was" : "ies were") reclassified</AlertTitle>
-                            <AlertDescription>
-                                @string.Join(" · ", ReclassifiedRepos.Select(aPair => $"{aPair.Key}: {string.Join(" and ", aPair.Value)}")).
-                                Each appears under more than one <span class="font-mono">project_type</span>
-                                segment and the segments are never pooled — read each as a period of the
-                                project. The sentence on each card says which periods.
-                            </AlertDescription>
-                        </Alert>
-                    }
-                </div>
-            </CardContent>
-        </Card>
+                        <p class="mt-4 text-sm text-muted-foreground" data-testid="cov-derived-note">
+                            <b>Nothing is written back.</b> TfLens writes to no stream; both values are
+                            recomputed every time a figure is built, and
+                            <span class="font-mono">Rebuild from raw</span> re-derives the same numbers.
+                            Deriving is not backfilling. The alternative is worse than it looks: skipping
+                            the runs counts them as <b>zero time while still counting their tokens</b>, and
+                            dropping the gates removes them from the first-pass rate rather than failing
+                            them. The derivations themselves land with REQ-FN-112 and REQ-FN-113; this is
+                            the count they will have to answer for.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            @* BRD-181 — showing an unknown value is a finding; dropping it is a wrong number. *@
+            <div class="trblazeui-col-12 trblazeui-col-md-6">
+                <Card Class="h-full" data-testid="cov-unrecognised-values">
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Values we don't recognise</CardTitle>
+                                <CardDescription>Shown and counted — never filtered away</CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline"
+                                   Class="shrink-0"
+                                   data-testid="cov-unrecognised-total">
+                                @objDataQuality.UnrecognisedRecordTotal.ToString("N0") records
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        @if (objDataQuality.UnrecognisedValues.Count == 0)
+                        {
+                            <p class="text-sm text-muted-foreground" data-testid="cov-unrecognised-none">
+                                Every stored <span class="font-mono">cmd</span>,
+                                <span class="font-mono">verdict</span> and
+                                <span class="font-mono">harness</span> value is one SCHEMA.md lists. None
+                                was dropped to make that true.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="w-full overflow-x-auto coverage-streams">
+                                <DataTable TData="UnrecognisedRow"
+                                           Data="@UnrecognisedRows"
+                                           ShowToolbar="false"
+                                           ShowPagination="false"
+                                           Sortable="false"
+                                           InitialPageSize="64"
+                                           AriaLabel="Values no SCHEMA.md vocabulary lists"
+                                           data-testid="cov-unrecognised-table">
+                                    <Columns>
+                                        <DataTableColumn TData="UnrecognisedRow" TValue="string"
+                                                         Property="@(aRow => aRow.Row.Where)" Header="Where">
+                                            <CellTemplate Context="vRow">
+                                                <span class="font-mono">@vRow.Row.Where</span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+                                        <DataTableColumn TData="UnrecognisedRow" TValue="string"
+                                                         Property="@(aRow => aRow.Row.Value)" Header="Value">
+                                            <CellTemplate Context="vRow">
+                                                <Badge Variant="BadgeVariant.Outline">
+                                                    <span class="font-mono">@vRow.Row.Value</span>
+                                                </Badge>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+                                        <DataTableColumn TData="UnrecognisedRow" TValue="string"
+                                                         Property="@(aRow => aRow.RecordsText)" Header="Records">
+                                            <CellTemplate Context="vRow">
+                                                <span class="tabular-nums">@vRow.RecordsText</span>
+                                            </CellTemplate>
+                                        </DataTableColumn>
+                                    </Columns>
+                                </DataTable>
+                            </div>
+                        }
+
+                        <p class="mt-4 text-sm text-muted-foreground" data-testid="cov-unrecognised-note">
+                            <b>Showing an unknown value is a finding. Dropping it is a wrong number.</b>
+                            A reader that filtered these to a known list would silently lose
+                            @objDataQuality.UnrecognisedRecordTotal.ToString("N0") records and its totals
+                            would look entirely normal — which is the failure this product exists to
+                            prevent.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            @* BRD-127 / BRD-116 / BRD-176 / BRD-177 — surfaced here rather than applied silently. *@
+            <div class="trblazeui-col-12 trblazeui-col-md-6">
+                <Card Class="h-full" data-testid="cov-miss-diagnostics">
+                    <CardHeader>
+                        <div class="flex w-full flex-wrap items-start justify-between gap-2">
+                            <span class="flex min-w-0 flex-col gap-1">
+                                <CardTitle Class="text-base">Miss-stream diagnostics</CardTitle>
+                                <CardDescription>Surfaced here rather than applied silently</CardDescription>
+                            </span>
+                            <Badge Variant="BadgeVariant.Outline"
+                                   Class="shrink-0"
+                                   data-testid="miss-quality-total">
+                                @objMisses.MissesTotal.ToString("N0") misses · @objMisses.MissFixesTotal.ToString("N0") fixes
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent Class="pt-0">
+                        @* TR-012 — DataTable cannot hide its header row, so a key/value table is written
+                           as rows of markup rather than as a headerless grid. *@
+                        <div class="flex flex-col gap-3">
+
+                            @* An escape is the most valuable record in the stream: something got past
+                               every gate. One that arrives with no `why_missed` wastes it. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm"
+                                 data-testid="escapes-missing-why">
+                                <span class="font-medium">Escapes arriving with no <span class="font-mono">why_missed</span>:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">
+                                    @objMisses.EscapesMissingWhy.ToString("N0") of @objMisses.MissesTotal.ToString("N0") misses
+                                </span>
+                                <span class="text-muted-foreground">
+                                    Something got past every gate and nobody recorded why nothing caught
+                                    it — the most valuable record in the stream, arriving incomplete.
+                                </span>
+                            </div>
+
+                            @* Link integrity. A dropped orphan is a fact nobody can see, so they are
+                               counted and shown rather than filtered out. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="orphan-misses">
+                                <span class="font-medium">Records that link to nothing:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">@OrphanRecordTotal.ToString("N0") records</span>
+                                <span class="text-muted-foreground">
+                                    @objMisses.OrphanFixes.ToString("N0") orphan miss-fix, naming no known
+                                    miss · @objMisses.OrphanAmends.ToString("N0") orphan miss-amend, naming
+                                    no known miss or a field off the allowlist ·
+                                    @objMisses.AmendmentsIgnored.ToString("N0") amendment arriving at a
+                                    field that already had a value. Counted rather than dropped: a dropped
+                                    orphan is a fact nobody can see.
+                                </span>
+                            </div>
+
+                            @* BRD-176 — the fold already happens; this clause requires it to be visible. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="amendments-folded">
+                                <span class="font-medium">Amendments folded at read time:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">@objMisses.AmendmentsApplied.ToString("N0") values</span>
+                                <span class="text-muted-foreground">
+                                    Stated beside every distribution computed over folded records. A reader
+                                    who ignores amendments sees nothing false but sees less; one who folds
+                                    them silently cannot tell a field that was answered from one answered
+                                    later.
+                                </span>
+                            </div>
+
+                            @* BRD-174 — a fourth kind, counted here precisely because it is NOT a miss. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="review-records">
+                                <span class="font-medium"><span class="font-mono">review</span> records read (not misses):</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">
+                                    @objDataQuality.Diagnostics.ReviewRecords.ToString("N0")
+                                    record@(objDataQuality.Diagnostics.ReviewRecords == 1 ? string.Empty : "s")
+                                </span>
+                                <span class="text-muted-foreground">
+                                    The fourth kind on the misses stream. It is stated here <b>because it
+                                    is not a miss</b>: a record about a phase's output sits beside the miss
+                                    figures and never inside them, and it reaches no count, chart or filter
+                                    on Misses &amp; rework.
+                                </span>
+                            </div>
+
+                            @* BRD-177 — the framework grading itself is not an application figure. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="framework-own-verdicts">
+                                <span class="font-medium">Framework's own verdicts (<span class="font-mono">req_class: FR</span>), kept separate:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">@objDataQuality.Diagnostics.FrameworkOwnVerdicts.ToString("N0") gate records</span>
+                                <span class="text-muted-foreground">
+                                    A framework rule and an application screen are not the same unit, so a
+                                    rate computed across both measures nothing. Segregating them in every
+                                    figure is REQ-FN-110; this is the count it applies to.
+                                </span>
+                            </div>
+
+                            @* The third provenance separation, reported rather than silently applied. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="miss-backfilled">
+                                <span class="font-medium">Backfilled, held out of every miss figure:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">
+                                    @objMisses.BackfilledMissesExcluded.ToString("N0") misses ·
+                                    @objMisses.BackfilledMissFixesExcluded.ToString("N0") fix records
+                                </span>
+                                <span class="text-muted-foreground">
+                                    They reach no figure on Misses &amp; rework and are reported here
+                                    instead of being dropped — the third provenance separation, applied and
+                                    displayed.
+                                </span>
+                            </div>
+
+                            @* REQ-UI-039 — a warning, never an error and never a failed health badge. The
+                               word carries the meaning; the colour only repeats it (REQ-NFR-005). *@
+                            @if (HasMissesWithoutFixes)
+                            {
+                                <Alert Variant="AlertVariant.Warning"
+                                       AccentBorder="true"
+                                       data-testid="misses-without-fixes">
+                                    <LucideIcon Name="triangle-alert" Size="16" />
+                                    <AlertTitle>Misses recorded, no fixes recorded</AlertTitle>
+                                    <AlertDescription>
+                                        @string.Join(", ", objReposWithoutFixes) emitted
+                                        <span class="font-mono">miss</span> records and not one
+                                        <span class="font-mono">miss-fix</span> record. That is a
+                                        <b>telemetry gap, not a defect backlog</b>: without fixes there is
+                                        nothing to close a miss, so every one of them reads as open and no
+                                        time-to-close or rework-cost figure exists for that repository at
+                                        all. Most likely the fix path is not wired up there yet — run
+                                        <span class="font-mono">log-miss --fixed</span> when a miss is
+                                        repaired.
+                                    </AlertDescription>
+                                </Alert>
+                            }
+
+                            @* The reclassification split, summarised. The per-repository sentence — which
+                               names both segments — is on the affected repository's own card above. *@
+                            @if (ReclassifiedRepos.Count > 0)
+                            {
+                                <Alert Variant="AlertVariant.Warning"
+                                       AccentBorder="true"
+                                       data-testid="reclassified-summary">
+                                    <LucideIcon Name="split" Size="16" />
+                                    <AlertTitle>@ReclassifiedRepos.Count repositor@(ReclassifiedRepos.Count == 1 ? "y was" : "ies were") reclassified</AlertTitle>
+                                    <AlertDescription>
+                                        @string.Join(" · ", ReclassifiedRepos.Select(aPair => $"{aPair.Key} carries records classified {string.Join(" for its first period and ", aPair.Value)} since")) —
+                                        <b>@(ReclassifiedRepos.Count == 1 ? "two periods of one project" : "several periods of one project each")</b>,
+                                        never one project rendered as two, and never pooled. The sentence on
+                                        each card says which periods.
+                                    </AlertDescription>
+                                </Alert>
+                            }
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
 
         @* REQ-UI-016 — names only. No field value and no Overflow payload is ever rendered. *@
         <div data-testid="unknown-fields">
@@ -658,6 +933,16 @@
     /// rather than the work, and putting them on a KPI row would read as a quality score.
     /// </remarks>
     private MissAnalysis objMisses = MissAnalysis.Empty;
+
+    /// <summary>
+    /// The <b>Data quality</b> band's counts (REQ-UI-039, BRD-127 as amended 2026-09-08).
+    /// </summary>
+    /// <remarks>
+    /// Counts about the records, never rates about the work. A <c>null</c> member is a field the producer
+    /// writes and TfLens does not read yet, and the page prints <i>not read yet</i> for it rather than a
+    /// zero — a zero would be a measurement claim nobody has made.
+    /// </remarks>
+    private CoverageDataQuality objDataQuality = CoverageDataQuality.Empty;
 
     /// <summary>
     /// Per repository, the distinct <c>project_type</c> values its stored records declare.
@@ -782,6 +1067,23 @@
     private int OrphanRecordTotal =>
         objMisses.OrphanFixes + objMisses.OrphanAmends + objMisses.AmendmentsIgnored;
 
+    /// <summary>The field-completeness table's rows, wrapped so the grid can bind string cells.</summary>
+    private IReadOnlyList<FieldCompletenessRow> FieldCompletenessRows =>
+        objDataQuality.FieldCompleteness.Select(aRow => new FieldCompletenessRow(aRow)).ToList();
+
+    /// <summary>The derived-value table's rows.</summary>
+    private IReadOnlyList<DerivedRow> DerivedRows =>
+        objDataQuality.Derived.Select(aRow => new DerivedRow(aRow)).ToList();
+
+    /// <summary>The unrecognised-value table's rows.</summary>
+    private IReadOnlyList<UnrecognisedRow> UnrecognisedRows =>
+        objDataQuality.UnrecognisedValues.Select(aRow => new UnrecognisedRow(aRow)).ToList();
+
+    /// <summary>The workspace-wide field-completeness row, which the card's footnote reads from.</summary>
+    private MissFieldCompleteness? AllReposCompleteness =>
+        objDataQuality.FieldCompleteness.LastOrDefault(aRow =>
+            string.Equals(aRow.Repo, DataQualityFigures.AllReposRow, StringComparison.Ordinal));
+
     /// <summary>Repositories whose stored records declare more than one <c>project_type</c>.</summary>
     private IReadOnlyList<KeyValuePair<string, IReadOnlyList<string>>> ReclassifiedRepos =>
         objDeclaredTypes
@@ -900,6 +1202,7 @@
             objAboveSchemaV1 = [];
             objWarnings = [];
             objMisses = MissAnalysis.Empty;
+            objDataQuality = CoverageDataQuality.Empty;
             objDeclaredTypes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
             objLoadError = vEx.Message;
         }
@@ -928,6 +1231,7 @@
         if (objUserId is null || IsPlaybook)
         {
             objMisses = MissAnalysis.Empty;
+            objDataQuality = CoverageDataQuality.Empty;
             objDeclaredTypes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
             objReposWithoutFixes = [];
             return;
@@ -940,6 +1244,14 @@
         var vGates = await objStore.ReadGatesAsync(objUserId.Value, objFramework);
 
         objMisses = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
+
+        // REQ-UI-039 / BRD-127 amended — the Data quality band. Counted from the same stored records the
+        // miss engine reads, so this page cannot report a different number from /misses; only a different
+        // SELECTION of numbers, and only counts.
+        var vReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework);
+
+        objDataQuality = DataQualityFigures.Compute(
+            vMisses, vAmends, vReviews, vRuns, vGates, objMisses);
 
         // Counted per repository, because a workspace total hides the one repository whose figures
         // cannot be read: with no fix records nothing closes a miss, so every one of them reads as open
@@ -1467,6 +1779,56 @@
 
         /// <summary>Whole days since the newest record, or an em dash.</summary>
         public string DaysSinceText => DaysSince?.ToString("N0") ?? "—";
+    }
+
+    /// <summary>
+    /// One row of the field-completeness table, wrapped so every cell can be bound as a string.
+    /// </summary>
+    /// <remarks>
+    /// The wrapper exists so every column binds a <c>string</c> the cell prints verbatim: the grid's
+    /// <c>Property</c> expression is also its sort and filter key, and a formatted count and a raw
+    /// <c>int</c> would order differently from each other on a table a reader is comparing by eye.
+    /// </remarks>
+    /// <param name="Row">The counted fact.</param>
+    private sealed record FieldCompletenessRow(MissFieldCompleteness Row)
+    {
+        /// <summary><c>owner/name</c>, or the total row's label.</summary>
+        public string Repo => Row.Repo;
+
+        /// <summary>True on the <c>All repos</c> total row, which the table prints in bold.</summary>
+        public bool IsTotal =>
+            string.Equals(Row.Repo, DataQualityFigures.AllReposRow, StringComparison.Ordinal);
+
+        /// <summary>Miss records stored for the repository.</summary>
+        public string MissesText => Row.Misses.ToString("N0");
+
+        /// <summary>Misses carrying no <c>sort</c>.</summary>
+        public string MissingSortText => Row.MissingSort.ToString("N0");
+
+        /// <summary>Misses carrying no <c>what</c>.</summary>
+        public string MissingWhatText => Row.MissingWhat.ToString("N0");
+
+        /// <summary>Misses written on or after the fields' floor date, and so eligible to carry them.</summary>
+        public string EligibleText => Row.Eligible.ToString("N0");
+    }
+
+    /// <summary>One row of the derived-value table.</summary>
+    /// <param name="Row">The derivation and the records it would have to answer for.</param>
+    private sealed record DerivedRow(DerivedValueCount Row)
+    {
+        /// <summary>The field, as the record spells it.</summary>
+        public string Field => Row.Field;
+
+        /// <summary>Records the rule answers for, none of which needs a guess.</summary>
+        public string DerivableText => Row.Derivable.ToString("N0");
+    }
+
+    /// <summary>One row of the unrecognised-value table.</summary>
+    /// <param name="Row">The observed value and its record count.</param>
+    private sealed record UnrecognisedRow(UnrecognisedValueFact Row)
+    {
+        /// <summary>How many stored rows carry the value.</summary>
+        public string RecordsText => Row.Records.ToString("N0");
     }
 
     /// <summary>Undocumented field names observed in one repository's one stream.</summary>

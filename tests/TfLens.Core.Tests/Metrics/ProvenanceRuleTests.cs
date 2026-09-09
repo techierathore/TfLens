@@ -31,7 +31,9 @@ public sealed class ProvenanceRuleTests
         Assert.Equal(3, vLive.ReqsScored);
         Assert.Equal(3, vLive.FirstPassN);
         Assert.Equal(1, vLive.ReqsExcludedBackfillTaint);
-        Assert.Equal(["REQ-FN-004"], vAnalysis.TaintedReqs);
+        // REQ-FN-111 / BRD-178 — the taint set is keyed (project, req_id) and is listed that way, so a
+        // reader can see WHOSE requirement was dropped from the rate.
+        Assert.Equal(["AlphaApp:REQ-FN-004"], vAnalysis.TaintedReqs);
         Assert.Equal("100%", vLive.FirstPassRate.Display());
     }
 

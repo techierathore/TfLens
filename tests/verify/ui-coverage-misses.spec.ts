@@ -55,10 +55,16 @@ test('REQ-UI-014: every per-repo stream table has FIVE rows, misses last', async
   // `misses` carries `backfilled` on every record, so the column prints a number. Sessions and
   // commits never carry the field and print an em dash — "0" there would read as "none were
   // backfilled" rather than "the field does not exist here".
+  //
+  // Read from the FIRST connected repo, for the same reason the row list above is read from the
+  // page: this assertion used to name `TechieFlow` literally and went red the moment a workspace
+  // connected a different set of sources — the test broke while the page was correct.
+  const first = repos[0];
   const backfilled = await page.$$eval(
-    '[data-testid="repo-streams-TechieFlow"] tbody tr',
+    `[data-testid="repo-streams-${first}"] tbody tr`,
     rows => rows.map(r => Array.from(r.querySelectorAll('td')).map(c => (c.textContent || '').trim())));
-  console.log('TechieFlow BACKFILLED COLUMN: ' + JSON.stringify(backfilled.map(r => [r[0].split(/\s+/)[0], r[2]])));
+  console.log(`${first} BACKFILLED COLUMN: ` + JSON.stringify(backfilled.map(r => [r[0].split(/\s+/)[0], r[2]])));
+  expect(backfilled, `${first} rendered no stream rows`).toHaveLength(5);
   expect(backfilled[4][2], 'the misses row prints a backfilled count, not an em dash').toMatch(/^\d/);
   expect(backfilled[2][2], 'the sessions row has no such field').toBe('—');
 });
@@ -71,7 +77,8 @@ test('REQ-UI-039: the miss data-quality card states each fact in words', async (
   console.log('MISS QUALITY: ' + (await card.innerText()).replace(/\s+/g, ' ').slice(0, 700));
 
   // Every fact carries a label, a number and a sentence; a bare figure is what this forbids.
-  for (const id of ['escapes-missing-why', 'orphan-misses', 'miss-backfilled']) {
+  for (const id of ['escapes-missing-why', 'orphan-misses', 'miss-backfilled', 'amendments-folded',
+                    'framework-own-verdicts']) {
     const text = (await (await testid(page, id)).innerText()).trim();
     console.log(`${id}: ${text.replace(/\s+/g, ' ').slice(0, 220)}`);
     expect(text.length, `${id} is empty`).toBeGreaterThan(20);
@@ -79,7 +86,85 @@ test('REQ-UI-039: the miss data-quality card states each fact in words', async (
   }
 
   expect(await (await testid(page, 'escapes-missing-why')).innerText()).toMatch(/why_missed/);
-  expect(await (await testid(page, 'orphan-misses')).innerText()).toMatch(/miss-fix naming no stored miss/);
+  expect(await (await testid(page, 'orphan-misses')).innerText()).toMatch(/orphan miss-fix, naming no known miss/);
+  expect(await (await testid(page, 'orphan-misses')).innerText()).toMatch(/orphan miss-amend/);
+});
+
+// BRD-127 as amended 2026-09-08 — Coverage gains a Data quality band. Four cards, all counts, no rate.
+test('REQ-UI-039: the Data quality band renders all four cards', async ({ page }) => {
+  await signIn(page);
+  await gotoScreen(page, '/');
+
+  const heading = (await (await testid(page, 'data-quality')).innerText()).replace(/\s+/g, ' ');
+  console.log('DATA QUALITY HEADING: ' + heading.slice(0, 300));
+  expect(heading).toMatch(/Data quality/);
+  // The band's standing copy: these are facts about the records, not warnings about the work.
+  expect(heading).toMatch(/None of these is a warning/i);
+
+  for (const id of ['cov-field-completeness', 'cov-derived', 'cov-unrecognised-values',
+                    'cov-miss-diagnostics']) {
+    const text = (await (await testid(page, id)).innerText()).replace(/\s+/g, ' ').trim();
+    console.log(`${id}: ${text.slice(0, 320)}`);
+    expect(text.length, `${id} rendered empty`).toBeGreaterThan(40);
+  }
+
+  // The derived card names both derivations and the count each would answer for, and says plainly
+  // that nothing is written back — deriving is not backfilling (BRD-179, BRD-180).
+  const derived = (await (await testid(page, 'cov-derived')).innerText()).replace(/\s+/g, ' ');
+  expect(derived).toMatch(/duration_s/);
+  expect(derived).toMatch(/attempt/);
+  expect(derived).toMatch(/Nothing is written back/i);
+
+  // A repo-by-repo count against that repo's own misses, plus an All-repos total (BRD-127 amended).
+  const completeness = (await (await testid(page, 'cov-field-completeness')).innerText())
+    .replace(/\s+/g, ' ');
+  expect(completeness).toMatch(/All repos/);
+  expect(completeness).toMatch(/predating the field/i);
+
+  // Unknown values are shown and counted; the card says why dropping them would be the wrong answer.
+  const unrecognised = (await (await testid(page, 'cov-unrecognised-values')).innerText())
+    .replace(/\s+/g, ' ');
+  expect(unrecognised).toMatch(/Dropping it is a wrong number/i);
+});
+
+// BRD-172 — "predating the field" and "carrying no value" are two facts and are stated as two columns.
+// Pooling them would report a record from before the question was asked as one that declined to answer
+// it, which is the whole reason the count lives on this page rather than on a KPI row.
+test('REQ-UI-039: sort / what completeness names both columns and never pools them', async ({ page }) => {
+  await signIn(page);
+  await gotoScreen(page, '/');
+
+  const table = await testid(page, 'cov-field-completeness-table');
+  const header = (await table.innerText()).replace(/\s+/g, ' ');
+  console.log('COMPLETENESS TABLE: ' + header.slice(0, 500));
+
+  for (const column of ['Repo', 'Misses', 'No sort', 'No what', 'Eligible']) {
+    expect(header, `the ${column} column is missing`).toContain(column);
+  }
+
+  // Every cell is a count the reader can check — never a blank standing in for "we did not look".
+  const rows = await page.$$eval('[data-testid="cov-field-completeness-table"] tbody tr',
+    trs => trs.map(r => Array.from(r.querySelectorAll('td')).map(c => (c.textContent || '').trim())));
+  console.log('COMPLETENESS ROWS: ' + JSON.stringify(rows));
+  expect(rows.length, 'the completeness table rendered no rows').toBeGreaterThan(0);
+  for (const row of rows) {
+    for (const cell of row.slice(1)) {
+      expect(cell, `a completeness cell is blank: ${JSON.stringify(row)}`).toMatch(/^[\d,]+$/);
+    }
+  }
+
+  // The footnote states the predating count in those words, never as "unsorted".
+  const note = (await (await testid(page, 'cov-sort-note')).innerText()).replace(/\s+/g, ' ');
+  console.log('SORT NOTE: ' + note.slice(0, 400));
+  expect(note).toMatch(/predate the field/i);
+  expect(note).toMatch(/not a fault in any repository/i);
+
+  // The fourth record kind is counted here BECAUSE it is not a miss (BRD-174).
+  const review = (await (await testid(page, 'review-records')).innerText()).replace(/\s+/g, ' ').trim();
+  console.log('REVIEW RECORDS: ' + review.slice(0, 300));
+  expect(review).toMatch(/review/);
+  expect(review).toMatch(/\d+ records?/);
+  expect(review).toMatch(/because it is not a miss/i);
 });
 
 test('REQ-UI-039: the data-quality facts are on Coverage and NOT on the /misses KPI row', async ({ page }) => {
@@ -151,8 +236,11 @@ test('REQ-UI-039: Coverage is visually clean at 1280 and 390', async ({ page }) 
   await gotoScreen(page, '/');
 
   const ids = [
-    'coverage-status', 'coverage-kpis', 'miss-quality', 'miss-quality-total', 'escapes-missing-why',
-    'orphan-misses', 'miss-backfilled', 'misses-without-fixes', 'reclassified-summary',
+    'coverage-status', 'coverage-kpis', 'data-quality', 'miss-quality', 'miss-quality-total',
+    'cov-field-completeness', 'cov-field-completeness-table', 'cov-derived', 'cov-derived-table',
+    'cov-unrecognised-values', 'cov-unrecognised-total', 'cov-miss-diagnostics',
+    'escapes-missing-why', 'orphan-misses', 'amendments-folded', 'review-records',
+    'framework-own-verdicts', 'miss-backfilled', 'misses-without-fixes', 'reclassified-summary',
     'repo-streams-TechieRag', 'repo-reclassified-TechieRag', 'repo-no-fixes-TechieRag',
     'unknown-fields', 'rebuild-card',
   ];
@@ -163,6 +251,11 @@ test('REQ-UI-039: Coverage is visually clean at 1280 and 390', async ({ page }) 
   console.log('CONTROLS ON /: ' + present.join(', '));
   expect(present).toContain('miss-quality');
   expect(present).toContain('escapes-missing-why');
+  expect(present).toContain('data-quality');
+  expect(present).toContain('cov-field-completeness');
+  expect(present).toContain('cov-derived');
+  expect(present).toContain('cov-unrecognised-values');
+  expect(present).toContain('cov-miss-diagnostics');
   if (SEEDED) {
     expect(present).toContain('misses-without-fixes');
     expect(present).toContain('repo-reclassified-TechieRag');
@@ -198,8 +291,10 @@ test('REQ-UI-039: the Playbook axis has no miss block to be wrong about', async 
   // The Playbook axis emits no misses.jsonl, so the card is ABSENT rather than showing zeros: an
   // empty block on an axis that has no such stream would read as "we looked and found nothing wrong".
   const count = await page.locator('[data-testid="miss-quality"]').count();
-  console.log(`miss-quality ON PLAYBOOK: ${count}`);
+  const band = await page.locator('[data-testid="data-quality"]').count();
+  console.log(`miss-quality ON PLAYBOOK: ${count} · data-quality band: ${band}`);
   expect(count, 'a stream that does not exist reports nothing, not zero').toBe(0);
+  expect(band, 'the whole Data quality band is about a stream this axis does not have').toBe(0);
   expect(await page.locator('[data-testid="playbook-empty"], [data-testid="pb-coverage-surface"]').count())
     .toBeGreaterThan(0);
 

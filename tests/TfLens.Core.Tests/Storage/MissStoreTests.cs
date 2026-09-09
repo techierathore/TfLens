@@ -12,13 +12,13 @@ using TfLens.Core.Tests.TestSupport;
 namespace TfLens.Core.Tests.Storage;
 
 /// <summary>
-/// The three miss tables against the real PostgreSQL 16 database (REQ-FN-074, BRD-115).
+/// The four miss tables against the real PostgreSQL 16 database (REQ-FN-074, BRD-115).
 /// </summary>
 /// <remarks>
 /// <para>
-/// These are integration tests by intent: the unique indexes, the <c>COALESCE("FixRunId", '')</c>
-/// expression key, <c>jsonb</c> round-tripping and NULL-versus-zero are properties of the database and
-/// an in-memory double would prove none of them.
+/// These are integration tests by intent: the unique indexes, the <c>COALESCE("FixRunId", '')</c> and
+/// <c>COALESCE("ProducedRunId", '')</c> expression keys, <c>jsonb</c> round-tripping and
+/// NULL-versus-zero are properties of the database and an in-memory double would prove none of them.
 /// </para>
 /// <para>
 /// <b>Non-destructive.</b> Everything here runs under the reserved ids 90004/90005, which are above any
@@ -42,6 +42,9 @@ public sealed class MissStoreTests : IAsyncLifetime
 
     /// <summary>Amendment records the TrSetup fixture holds.</summary>
     private const int FixtureMissAmends = 2;
+
+    /// <summary>Review records the TrSetup fixture holds (SCHEMA.md §5.5.9, added 2026-09-08).</summary>
+    private const int FixtureMissReviews = 2;
 
     private readonly StreamParser objParser = new();
     private readonly string objDataRoot = Path.Combine(
@@ -74,9 +77,9 @@ public sealed class MissStoreTests : IAsyncLifetime
         }
     }
 
-    /// <summary>All three kinds store and read back through their own <c>ITelemetryStore</c> method.</summary>
+    /// <summary>All four kinds store and read back through their own <c>ITelemetryStore</c> method.</summary>
     [Fact]
-    public async Task AllThreeMissKindsRoundTrip()
+    public async Task AllFourMissKindsRoundTrip()
     {
         const string vRepo = "tflenstest/StoreMisses";
         await ResetAsync(Fixtures.MissStoreTestUserId, vRepo);
@@ -85,11 +88,26 @@ public sealed class MissStoreTests : IAsyncLifetime
         var vMisses = await objStore.ReadMissesAsync(Fixtures.MissStoreTestUserId, FrameworkNames.TechieFlow, vRepo);
         var vFixes = await objStore.ReadMissFixesAsync(Fixtures.MissStoreTestUserId, FrameworkNames.TechieFlow, vRepo);
         var vAmends = await objStore.ReadMissAmendsAsync(Fixtures.MissStoreTestUserId, FrameworkNames.TechieFlow, vRepo);
+        var vReviews = await objStore.ReadMissReviewsAsync(Fixtures.MissStoreTestUserId, FrameworkNames.TechieFlow, vRepo);
 
         vMisses.Should().HaveCount(FixtureMisses);
         vFixes.Should().HaveCount(FixtureMissFixes);
         vAmends.Should().HaveCount(FixtureMissAmends);
+        vReviews.Should().HaveCount(FixtureMissReviews);
         vMisses.Should().OnlyContain(aM => aM.UserId == Fixtures.MissStoreTestUserId);
+
+        // The two cost pairs survive the round trip exactly as the emitter copied them, NULL included:
+        // an uncaptured produce cost is not a free repair (SCHEMA.md §5.5.8).
+        var vDay1 = vReviews.Single(aR => aR.ReviewPhase == MissReviewPhases.Day1);
+        vDay1.ProducedRunId.Should().BeNull();
+        vDay1.Corrections.Should().Be(3);
+        vDay1.TokensProduce.Should().BeNull("an uncaptured produce cost is never a measured zero");
+        vDay1.TokensCorrect.Should().Be(178645);
+
+        var vBuild = vReviews.Single(aR => aR.ReviewPhase == MissReviewPhases.Build);
+        vBuild.ProducedRunId.Should().Be("2026-09-08T14:00:00Z");
+        vBuild.CostProduceUsd.Should().Be(0.9100m);
+        vBuild.CostCorrectUsd.Should().BeNull();
     }
 
     /// <summary>Storing the same file twice writes nothing the second time (REQ-FN-035).</summary>
@@ -102,8 +120,11 @@ public sealed class MissStoreTests : IAsyncLifetime
         var vFirst = await StoreMissesAsync(Fixtures.MissStoreTestUserId, vRepo, Fixtures.TrSetupRepo);
         var vSecond = await StoreMissesAsync(Fixtures.MissStoreTestUserId, vRepo, Fixtures.TrSetupRepo);
 
-        vFirst.Should().Be(FixtureMisses + FixtureMissFixes + FixtureMissAmends);
-        vSecond.Should().Be(0, "every row already exists under its unique index");
+        vFirst.Should().Be(FixtureMisses + FixtureMissFixes + FixtureMissAmends + FixtureMissReviews);
+        vSecond.Should().Be(
+            0,
+            "every row already exists under its unique index — including the review whose ProducedRunId "
+            + "is null, which only COALESCE can make collide with itself");
     }
 
     /// <summary>An absent optional round-trips as NULL and a present zero round-trips as zero (REQ-FN-036).</summary>
@@ -133,8 +154,8 @@ public sealed class MissStoreTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// <b>The guardrail.</b> <c>DeleteRepoDataAsync</c> leaves zero rows in all three miss tables
-    /// (REQ-FN-074, BRD-115).
+    /// <b>The guardrail.</b> <c>DeleteRepoDataAsync</c> leaves zero rows in all four miss tables
+    /// (REQ-FN-074, BRD-115 as amended 2026-09-08).
     /// </summary>
     /// <remarks>
     /// Missing one leaves orphaned rows that reappear in every figure — the worst class of bug in a
@@ -142,8 +163,9 @@ public sealed class MissStoreTests : IAsyncLifetime
     /// than through the store's framework-scoped reads, so a purge that left rows behind but broke the
     /// <c>"UserRepo"</c> join could not pass by looking empty.
     /// </remarks>
-    [Fact]
-    public async Task DeleteRepoDataLeavesZeroRowsInAllThreeMissTables()
+    [Fact(DisplayName =
+        "REQ-FN-074 — miss records occupy their own four tables and removing a repo purges every one of them")]
+    public async Task DeleteRepoDataLeavesZeroRowsInAllFourMissTables()
     {
         const string vRepo = "tflenstest/StoreMissPurge";
         await ResetAsync(Fixtures.MissStoreTestUserId, vRepo);
@@ -152,12 +174,14 @@ public sealed class MissStoreTests : IAsyncLifetime
         (await RawCountAsync("Miss", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(FixtureMisses);
         (await RawCountAsync("MissFix", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(FixtureMissFixes);
         (await RawCountAsync("MissAmend", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(FixtureMissAmends);
+        (await RawCountAsync("MissReview", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(FixtureMissReviews);
 
         await objStore.DeleteRepoDataAsync(Fixtures.MissStoreTestUserId, vRepo);
 
         (await RawCountAsync("Miss", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(0);
         (await RawCountAsync("MissFix", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(0);
         (await RawCountAsync("MissAmend", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(0);
+        (await RawCountAsync("MissReview", Fixtures.MissStoreTestUserId, vRepo)).Should().Be(0);
     }
 
     /// <summary>A purge for one user leaves another user's copy of the same repository alone (ADR-013).</summary>
@@ -198,10 +222,10 @@ public sealed class MissStoreTests : IAsyncLifetime
 
         var vRebuilt = await CountAsync(vStore, Fixtures.MissStoreTestUserId, vRepo);
         vRebuilt.Should().Be(vLive, "a rebuild reads only data/raw and must land on the same numbers");
-        vRebuilt.Should().Be((FixtureMisses, FixtureMissFixes, FixtureMissAmends));
+        vRebuilt.Should().Be((FixtureMisses, FixtureMissFixes, FixtureMissAmends, FixtureMissReviews));
     }
 
-    /// <summary>Coverage reports the misses stream as one row over the three tables (BRD-127).</summary>
+    /// <summary>Coverage reports the misses stream as one row over the four tables (BRD-127).</summary>
     [Fact]
     public async Task CoverageReportsMissesAsOneStreamRow()
     {
@@ -212,8 +236,9 @@ public sealed class MissStoreTests : IAsyncLifetime
         var vFacts = await objStore.ReadCoverageFactsAsync(Fixtures.MissStoreTestUserId);
         var vRows = vFacts.Streams.Where(aS => aS.Repo == vRepo && aS.Stream == StreamNames.Misses).ToList();
 
-        vRows.Should().HaveCount(1, "the stream is one file, so Coverage gains one row and not three");
-        vRows[0].Records.Should().Be(FixtureMisses + FixtureMissFixes + FixtureMissAmends);
+        vRows.Should().HaveCount(1, "the stream is one file, so Coverage gains one row and not four");
+        vRows[0].Records.Should().Be(
+            FixtureMisses + FixtureMissFixes + FixtureMissAmends + FixtureMissReviews);
         vFacts.UnknownFields.Should().NotContain(aF => aF.Repo == vRepo && aF.Stream == StreamNames.Misses);
     }
 
@@ -309,16 +334,17 @@ public sealed class MissStoreTests : IAsyncLifetime
             Fixtures.Read(Fixtures.TrSetupRepo, StreamKind.Misses));
     }
 
-    /// <summary>Reads back the three miss row counts through the store's own reads.</summary>
+    /// <summary>Reads back the four miss row counts through the store's own reads.</summary>
     /// <param name="aStore">The store to read through.</param>
     /// <param name="aUserId">The reserved test user id.</param>
     /// <param name="aRepo">The repository key.</param>
-    /// <returns>The counts of misses, fixes and amendments.</returns>
-    private static async Task<(int Misses, int Fixes, int Amends)> CountAsync(
+    /// <returns>The counts of misses, fixes, amendments and reviews.</returns>
+    private static async Task<(int Misses, int Fixes, int Amends, int Reviews)> CountAsync(
         PostgresStore aStore, int aUserId, string aRepo) =>
         ((await aStore.ReadMissesAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count,
             (await aStore.ReadMissFixesAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count,
-            (await aStore.ReadMissAmendsAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count);
+            (await aStore.ReadMissAmendsAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count,
+            (await aStore.ReadMissReviewsAsync(aUserId, FrameworkNames.TechieFlow, aRepo)).Count);
 
     /// <summary>
     /// Counts rows in one table directly, bypassing the framework join the store's reads use.

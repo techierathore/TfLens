@@ -55,6 +55,13 @@ public sealed class MetricsEngine : IMetricsEngine
         var vEvents = await objStore.ReadPbEventsAsync(aUserId, null, aCancellationToken).ConfigureAwait(false);
         var vSyncStates = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
 
+        // ---- stage 1a: the two read-time derivations, done before anything is grouped or counted.
+        // Neither writes to a stream, a table or a raw archive (§3): each is re-derived on every read
+        // and each returns the count it took, which is published beside every figure built on it
+        // (REQ-FN-112 / BRD-179, REQ-FN-113 / BRD-180).
+        var vAttempts = GateAttempt.Derive(vGates);
+        vGates = vAttempts.Records;
+
         var (vCommits, vDuplicates) = DedupeCommits.PerRepo(vRawCommits);
         var vSessionDuplicates = SessionDuplicatesFor(vRepos, aFramework, vSyncStates);
 
@@ -84,7 +91,7 @@ public sealed class MetricsEngine : IMetricsEngine
         var vPhaseFigures = PhaseMetrics.Compute(vRuns);
 
         objLogger.LogInformation(
-            "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttributionExcluded} misses outside the per-origin figures",
+            "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttemptsDerived} attempts derived, {DurationsDerived} durations derived, {AttributionExcluded} misses outside the per-origin figures",
             aUserId,
             aFramework,
             vGates.Count,
@@ -94,6 +101,8 @@ public sealed class MetricsEngine : IMetricsEngine
             vMissFigures.MissesTotal,
             vMissFigures.MissFixesTotal,
             vTainted.Count,
+            vAttempts.DerivedN,
+            vPhaseFigures.DurationsDerivedN,
             vMissFigures.Live.Values.Sum(aSegment => aSegment.Attribution.AttributionExcluded));
 
         return new AnalysisResult
@@ -285,15 +294,21 @@ public sealed class MetricsEngine : IMetricsEngine
     }
 
     /// <summary>
-    /// Computes one figure block per project type inside a single provenance bucket.
+    /// Computes one figure block per segment inside a single provenance bucket.
     /// </summary>
+    /// <remarks>
+    /// The segment key is <c>project_type</c> for an application verdict and
+    /// <see cref="MetricsConstants.FrameworkRequirements"/> for a <c>req_class: "FR"</c> one, so the
+    /// framework's own requirement lines are never counted into an application figure (REQ-FN-110,
+    /// BRD-177). There is no key that spans two segments.
+    /// </remarks>
     /// <param name="aBucket">The bucket's gate records — either every live record or every backfilled one.</param>
-    /// <param name="aTainted">REQs carrying a backfilled record.</param>
+    /// <param name="aTainted">The <c>(project, req_id)</c> keys carrying a backfilled record.</param>
     /// <param name="aProvenance">Which bucket this is; the taint exclusion is a live-only rule.</param>
-    /// <returns>The segments, ordinally keyed by project type.</returns>
+    /// <returns>The segments, ordinally keyed.</returns>
     private static SortedDictionary<string, SegmentFigures> SegmentsFor(
         IReadOnlyList<GateRecord> aBucket,
-        HashSet<string?> aTainted,
+        HashSet<ReqKey> aTainted,
         Provenance aProvenance)
     {
         var vSegments = new SortedDictionary<string, SegmentFigures>(StringComparer.Ordinal);
@@ -309,48 +324,47 @@ public sealed class MetricsEngine : IMetricsEngine
     /// The reference's per-segment figure block, field for field.
     /// </summary>
     /// <param name="aRecords">The segment's gate records.</param>
-    /// <param name="aTainted">REQs carrying a backfilled record.</param>
+    /// <param name="aTainted">The <c>(project, req_id)</c> keys carrying a backfilled record.</param>
     /// <param name="aProvenance">Which provenance bucket the segment belongs to.</param>
     /// <returns>The segment's figures.</returns>
     private static SegmentFigures FiguresFor(
         IReadOnlyList<GateRecord> aRecords,
-        HashSet<string?> aTainted,
+        HashSet<ReqKey> aTainted,
         Provenance aProvenance)
     {
+        // REQ-FN-111 / BRD-178: every set below is keyed by (project, req_id). Keyed on the id alone,
+        // two projects' REQ-UI-001 were one requirement in the denominator, one in the numerator and one
+        // in the taint set — and the resulting first-pass rate read 72% where the truth was 48%.
         // REQ-FN-049: a REQ with any backfilled record leaves the live numerator AND denominator.
         var vEligible = aProvenance == Provenance.Backfilled
             ? aRecords
-            : aRecords.Where(aRecord => !aTainted.Contains(aRecord.ReqId)).ToList();
+            : aRecords.Where(aRecord => !aTainted.Contains(ReqKey.Of(aRecord))).ToList();
 
-        var vReqs = new HashSet<string?>(vEligible.Select(aRecord => aRecord.ReqId), StringComparer.Ordinal);
-        var vFirstPass = new HashSet<string?>(
+        var vReqs = new HashSet<ReqKey>(vEligible.Select(ReqKey.Of));
+        var vFirstPass = new HashSet<ReqKey>(
             vEligible
                 .Where(aRecord => aRecord.Attempt == 1 && aRecord.Verdict == "Verified")
-                .Select(aRecord => aRecord.ReqId),
-            StringComparer.Ordinal);
+                .Select(ReqKey.Of));
 
         var vFailures = aRecords
             .Where(aRecord => !MetricsConstants.NonFailureVerdicts.Contains(aRecord.Verdict!))
             .ToList();
         var vCounts = GateDistribution.Count(vFailures);
 
-        var vEscapedReqs = new HashSet<string?>(
-            aRecords.Where(aRecord => aRecord.Gate == MetricsConstants.Escaped).Select(aRecord => aRecord.ReqId),
-            StringComparer.Ordinal);
-        var vFailedReqs = new HashSet<string?>(
-            vFailures.Select(aRecord => aRecord.ReqId),
-            StringComparer.Ordinal);
+        var vEscapedReqs = new HashSet<ReqKey>(
+            aRecords.Where(aRecord => aRecord.Gate == MetricsConstants.Escaped).Select(ReqKey.Of));
+        var vFailedReqs = new HashSet<ReqKey>(vFailures.Select(ReqKey.Of));
 
         var vExcluded = aProvenance == Provenance.Live
-            ? new HashSet<string?>(
-                aRecords.Where(aRecord => aTainted.Contains(aRecord.ReqId)).Select(aRecord => aRecord.ReqId),
-                StringComparer.Ordinal).Count
+            ? new HashSet<ReqKey>(
+                aRecords.Select(ReqKey.Of).Where(aKey => aTainted.Contains(aKey))).Count
             : 0;
 
         return new SegmentFigures
         {
             Records = aRecords.Count,
             ReqsScored = vReqs.Count,
+            AttemptsDerived = aRecords.Count(aRecord => aRecord.AttemptDerived),
             ReqsExcludedBackfillTaint = vExcluded,
             FirstPassN = vFirstPass.Count,
             FirstPassRate = Metrics.FirstPassRate.Compute(vFirstPass.Count, vReqs.Count),

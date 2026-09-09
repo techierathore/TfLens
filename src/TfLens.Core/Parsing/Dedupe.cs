@@ -25,9 +25,10 @@ public sealed record DedupeResult<T>(IReadOnlyList<T> Records, int Collapsed);
 ///   <item><term><c>misses</c> / <c>miss</c></term><description><c>(UserId, Repo, MissId)</c> — <c>UcMissUserRepoMissId</c>. <b>Earliest <c>ts</c> wins</b>: a miss is opened once, so a duplicate is a re-parse of the same archived file rather than new information (BRD-114).</description></item>
 ///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, FixRunId)</c> — <c>UcMissFixUserRepoMissIdFixRunId</c>. <b>Latest <c>ts</c> wins</b> (BRD-114).</description></item>
 ///   <item><term><c>misses</c> / <c>miss-amend</c></term><description><c>(UserId, Repo, MissId, Field, Ts)</c> — <c>UcMissAmendUserRepoMissIdFieldTs</c>. <b>Earliest wins</b>; because <c>Ts</c> is itself in the key, a collision is byte-for-byte the same fact (BRD-114, §5.5.7).</description></item>
+///   <item><term><c>misses</c> / <c>review</c></term><description><c>(UserId, Repo, ReviewPhase, COALESCE(ProducedRunId, ''))</c> — <c>UcMissReviewUserRepoPhaseRunId</c>. <b>Earliest <c>ts</c> wins</b> (BRD-114, added 2026-09-08).</description></item>
 /// </list>
 /// <para>
-/// None of the three miss rules needs the <c>merge=union</c> handling <c>commits</c> needs: misses are
+/// None of the four miss rules needs the <c>merge=union</c> handling <c>commits</c> needs: misses are
 /// events on one machine and cannot be independently reconstructed elsewhere (SCHEMA.md §5's reasoning,
 /// applied unchanged — REQ-FN-073).
 /// </para>
@@ -259,6 +260,40 @@ public static class Dedupe
             aR => string.IsNullOrEmpty(aR.MissId)
                 ? null
                 : Key(aR.UserId, aR.Repo, aR.MissId, aR.Field, aR.Ts));
+
+    /// <summary>
+    /// Collapses <c>review</c> records sharing <c>phase + reviewed_run_id</c> within one user and
+    /// repository, keeping the one with the <b>earliest</b> <c>ts</c> (BRD-114, added 2026-09-08).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The run whose output was reviewed is the one thing a review record cannot be written twice about,
+    /// so <c>(phase, reviewed_run_id)</c> is the natural key and the earliest write is the review. Two
+    /// copies are a re-parse of the same archived file, or two archived snapshots overlapping; counting
+    /// both would double a phase's corrections and double-charge its cost.
+    /// </para>
+    /// <para>
+    /// <b>The <c>COALESCE</c> is not optional.</b> A review whose <c>reviewed_run_id</c> is absent — the
+    /// owner reviewed output no run record names, which is the shape of the first review records in the
+    /// estate — keys on the empty string here, exactly as the store's
+    /// <c>COALESCE("ProducedRunId", '')</c> unique index does. Leaving the null in the key would make
+    /// such a record never collide with itself, because a <c>NULL</c> never equals a <c>NULL</c> in a
+    /// PostgreSQL unique index, and every re-sync would insert it again.
+    /// </para>
+    /// <para>
+    /// A record carrying no <c>phase</c> is <b>kept</b> rather than collapsed, on the same reasoning as a
+    /// commit with no SHA: a record with no natural key cannot be proven to be a duplicate of anything.
+    /// </para>
+    /// </remarks>
+    /// <param name="aRecords">The review records as parsed, in file order.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    public static DedupeResult<MissReviewRecord> MissReviews(IReadOnlyList<MissReviewRecord> aRecords) =>
+        KeepBest(
+            aRecords,
+            aR => string.IsNullOrEmpty(aR.ReviewPhase)
+                ? null
+                : Key(aR.UserId, aR.Repo, aR.ReviewPhase, aR.ProducedRunId ?? string.Empty),
+            (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) < 0);
 
     /// <summary>
     /// The shared keyed collapse that keeps whichever record a rule says is better.

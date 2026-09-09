@@ -33,6 +33,7 @@ public sealed class MissExportTests : IDisposable
         "misses_total", "miss_fixes_total", "orphan_fixes", "open_misses", "wont_fix",
         "resolved_misses", "why_missed_n", "why_missed", "escapes_missing_why", "why_missed_eligible",
         "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
+        "sort_n", "sort_eligible", "sort_predates_field", "sort",
         "found_by", "design_miss_share", "escape_share", "attributed_n", "attribution_excluded",
         "by_origin_phase", "by_origin_model", "by_origin_agent", "cost_sole_n", "cost_shared_n",
         "cost_unattributable_n", "tokens_per_miss_measured", "tokens_per_miss_measured_n",
@@ -96,6 +97,32 @@ public sealed class MissExportTests : IDisposable
             new Dictionary<string, int> { ["build-phase"] = 2, ["verify-phase"] = 1 });
         Distribution(vMisses, "by_origin_agent").Should().Equal(
             new Dictionary<string, int> { ["flow-master"] = 2, ["verifier"] = 1 });
+    }
+
+    /// <summary>
+    /// The <c>sort</c> block carries its own three-key denominator, and predating is not unsorted.
+    /// </summary>
+    /// <remarks>
+    /// Every fixture record is dated 2026-08-28, before the 2026-09-07 floor, so all four leave the
+    /// <c>sort</c> denominator entirely: <c>sort_eligible</c> is 0 and <c>sort_predates_field</c> is 4.
+    /// That is the whole point of the split — a document reporting <c>0 of 4 sorted</c> would say these
+    /// records declined to answer a question that had not been asked yet (BRD-172). The distribution is
+    /// present and empty rather than absent, because the compare treats "absent on both sides" as
+    /// something it never diffed.
+    /// </remarks>
+    [Fact]
+    public async Task TheSortDenominatorIsEligibilityAndPredatingIsItsOwnKey()
+    {
+        var vMisses = (await JsonAsync()).GetProperty("misses");
+
+        vMisses.GetProperty("sort_n").GetInt32().Should().Be(0);
+        vMisses.GetProperty("sort_eligible").GetInt32().Should().Be(0);
+        vMisses.GetProperty("sort_predates_field").GetInt32().Should().Be(
+            4, "a record from before the question was asked is not one that declined to answer it");
+
+        Distribution(vMisses, "sort").Should().BeEmpty();
+        vMisses.GetProperty("misses_total").GetInt32().Should().Be(
+            4, "the miss count is untouched by the sort split");
     }
 
     /// <summary>

@@ -22,12 +22,21 @@ public sealed record AnalysisResult
     public required IReadOnlyList<PerRepoFacts> PerRepo { get; init; }
 
     /// <summary>
-    /// REQ IDs with any backfilled gate record, excluded from the live first-pass rate.
+    /// Requirements with any backfilled gate record, excluded from the live first-pass rate, spelled
+    /// <c>app:req_id</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Their live <c>attempt</c> numbering restarts at 1 (SCHEMA.md §3.1), so a live first-pass rate
     /// that included them would be flattering and wrong. The list is shown on screen rather than
     /// silently applied.
+    /// </para>
+    /// <para>
+    /// <b>Each entry names its project (REQ-FN-111, BRD-178).</b> The set is keyed on
+    /// <c>(project, req_id)</c>, so one project's backfilled <c>REQ-UI-001</c> no longer excludes every
+    /// other project's live one — and the rendering says which project's requirement was dropped, which
+    /// a bare id cannot.
+    /// </para>
     /// </remarks>
     public required IReadOnlyList<string> TaintedReqs { get; init; }
 
@@ -100,16 +109,40 @@ public sealed record PerRepoFacts(
 /// <summary>
 /// The figures for one (provenance, project type) segment — the only shape a rate is ever computed in.
 /// </summary>
+/// <remarks>
+/// <b>Segments never merge, and <c>req_class: "FR"</c> is one of them (REQ-FN-110, BRD-177).</b>
+/// Verdicts on the framework's own requirement lines carry the segment key
+/// <see cref="MetricsConstants.FrameworkRequirements"/> and therefore reach no application segment's
+/// figures at all — a framework rule and an application screen are not the same unit, and this type has
+/// no shape in which one figure could span both.
+/// </remarks>
 public sealed record SegmentFigures
 {
     /// <summary>Gate records in this segment.</summary>
     public required int Records { get; init; }
 
-    /// <summary>Distinct REQ IDs eligible to be scored in this segment.</summary>
+    /// <summary>Distinct requirements eligible to be scored in this segment, keyed <c>(project, req_id)</c>.</summary>
+    /// <remarks>
+    /// REQ-FN-111 / BRD-178 — two projects each carrying a <c>REQ-UI-001</c> count as <b>two</b>
+    /// requirements here, not one, in this denominator and in every set behind it.
+    /// </remarks>
     public required int ReqsScored { get; init; }
 
     /// <summary>REQs dropped from the live segment because they carry a backfilled record; zero on backfilled segments.</summary>
     public required int ReqsExcludedBackfillTaint { get; init; }
+
+    /// <summary>
+    /// Records in this segment whose <c>attempt</c> this read derived (REQ-FN-113, BRD-180).
+    /// </summary>
+    /// <remarks>
+    /// <b>Stated beside the rate, never folded into it.</b> <c>attempt</c> is <i>defined</i> as one plus
+    /// the prior live records for the same <c>(project, req_id)</c>, so deriving it is a count over the
+    /// stream rather than a judgement — but a first-pass rate resting partly on derived attempts is a
+    /// different claim from one read straight off the stream, and BRD-180 requires the reader to be told
+    /// which they are looking at. Zero on a backfilled segment: a backfilled record's attempt is assumed
+    /// rather than observed, so nothing derives one for it.
+    /// </remarks>
+    public required int AttemptsDerived { get; init; }
 
     /// <summary>Distinct REQs that passed on their first attempt.</summary>
     public required int FirstPassN { get; init; }
@@ -175,7 +208,44 @@ public sealed record FieldEligibility(
     string? Since,
     int Eligible,
     int PredatesField,
-    int Assessed);
+    int Assessed)
+{
+    /// <summary>
+    /// The <c>n of N</c> a distribution over this field must print on its face (BRD-172).
+    /// </summary>
+    /// <remarks>
+    /// The denominator is <see cref="Eligible"/> and never the record total, so the phrase cannot be
+    /// built out of the wrong one by a caller. <see cref="PredatesField"/> is deliberately <b>not</b>
+    /// in this sentence: it is a separate fact, stated in its own words beside it, and folding the two
+    /// into one phrase is exactly the pooling the rule forbids.
+    /// </remarks>
+    /// <param name="aParticiple">What the assessed records did, e.g. <c>sorted</c> or <c>assessed</c>.</param>
+    /// <returns>The phrase, e.g. <c>73 of 126 sorted</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aParticiple"/> is <c>null</c>.</exception>
+    public string NOfN(string aParticiple)
+    {
+        ArgumentNullException.ThrowIfNull(aParticiple);
+
+        return $"{Assessed} of {Eligible} {aParticiple}";
+    }
+
+    /// <summary>
+    /// The floor for a field over no records at all — the shape an empty block reports.
+    /// </summary>
+    /// <remarks>
+    /// It carries the field's real <c>since</c> date from <see cref="MetricsConstants.FieldSince"/>, so
+    /// an empty segment still says <i>when</i> the field arrived rather than implying it always existed.
+    /// </remarks>
+    /// <param name="aField">The wire field name, e.g. <c>sort</c>.</param>
+    /// <returns>An all-zero eligibility for that field.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aField"/> is <c>null</c>.</exception>
+    public static FieldEligibility NoneFor(string aField)
+    {
+        ArgumentNullException.ThrowIfNull(aField);
+
+        return new FieldEligibility(aField, MetricsConstants.FieldSince.GetValueOrDefault(aField), 0, 0, 0);
+    }
+}
 
 /// <summary>
 /// The metrics the reference exempts from the provenance separations.
@@ -433,13 +503,66 @@ public sealed record MissSegmentFigures
 
     /// <summary>The rework token and cost figures, carrying the attribution split by construction.</summary>
     public required MissMoney Cost { get; init; }
+
+    /// <summary>
+    /// <b>Whose gap it was</b> — parity key <c>sort</c>, ordinally keyed (BRD-170, BRD-172).
+    /// </summary>
+    /// <remarks>
+    /// Every stored value gets a row, including one outside the four
+    /// <see cref="MissSorts.All"/> names: such a row carries
+    /// <see cref="MissCategoryCount.IsRecognised"/> <c>false</c> and is <b>never</b> merged into the
+    /// nearest legal category. The denominator is <see cref="SortN"/> — records that carry the field —
+    /// read against <see cref="SortEligibility"/>, and never the miss count.
+    /// </remarks>
+    public IReadOnlyList<MissCategoryCount> SortDistribution { get; init; } = [];
+
+    /// <summary>Misses carrying a <c>sort</c> — parity key <c>sort_n</c>, and the numerator.</summary>
+    public int SortN { get; init; }
+
+    /// <summary>
+    /// The eligibility floor behind <see cref="SortN"/> — parity keys <c>sort_eligible</c> and
+    /// <c>sort_predates_field</c> (REQ-FN-076, BRD-117, BRD-172).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FieldEligibility.Eligible"/> is the denominator every <c>sort</c> figure is read
+    /// against and <see cref="FieldEligibility.PredatesField"/> is stated <b>apart</b>, in those words.
+    /// The two are never pooled: a record from before the question was asked is not a record that
+    /// declined to answer it, and no <c>sort</c> figure is ever a percentage of all misses.
+    /// </remarks>
+    public FieldEligibility SortEligibility { get; init; } = FieldEligibility.NoneFor(MissSorts.Field);
+
+    /// <summary>Stored <c>sort</c> values outside the four — counted and surfaced, never coerced.</summary>
+    public int SortUnrecognised { get; init; }
+
+    /// <summary><c>insufficient data (n=…)</c> when too few records carry a <c>sort</c>; else <c>null</c>.</summary>
+    public string? SortDistributionNote { get; init; }
+
+    /// <summary>
+    /// How many values in each distribution above were completed by a <c>miss-amend</c> (BRD-176).
+    /// </summary>
+    /// <remarks>
+    /// Keyed by wire field name — <c>miss_class</c>, <c>why_missed</c>, <c>sort</c>, <c>found_by</c> —
+    /// so every distribution computed over folded records has a count of its own beside it. A field no
+    /// amendment may complete reports <c>0</c> rather than being absent: "no amendment touched this" is
+    /// an answer, and a missing key is not. A reader who folds amendments silently sees nothing false
+    /// but cannot tell a field that was answered from one that was answered later.
+    /// </remarks>
+    public IReadOnlyDictionary<string, int> AmendedValues { get; init; } =
+        new Dictionary<string, int>(StringComparer.Ordinal);
 }
 
 /// <summary>One row of a miss distribution — the sibling of <see cref="GateCount"/>.</summary>
+/// <remarks>
+/// <see cref="IsRecognised"/> exists so a value outside a closed vocabulary can be <b>shown as its own
+/// row, in its own words</b> rather than coerced into the nearest legal category or filtered away
+/// (BRD-170, BRD-181). It defaults to <c>true</c> because most distributions here are over open
+/// vocabularies, where there is nothing for a value to be outside of.
+/// </remarks>
 /// <param name="Key">The category, e.g. a <c>miss_class</c> or a <c>why_missed</c> value.</param>
 /// <param name="Count">Records in it.</param>
 /// <param name="Share">Its share of the distribution's own denominator, as the reference prints it.</param>
-public sealed record MissCategoryCount(string Key, int Count, string Share);
+/// <param name="IsRecognised">Whether the key is inside the field's closed vocabulary.</param>
+public sealed record MissCategoryCount(string Key, int Count, string Share, bool IsRecognised = true);
 
 /// <summary>
 /// The per-origin figures, computed from <c>linked</c> records only (REQ-FN-078, BRD-121).

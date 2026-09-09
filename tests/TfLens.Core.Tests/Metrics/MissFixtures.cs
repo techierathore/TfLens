@@ -37,6 +37,7 @@ public static class MissFixtures
     /// <param name="aProjectTypeInferred">Whether that type was inferred.</param>
     /// <param name="aBackfilled">Whether the record was reconstructed rather than emitted live.</param>
     /// <param name="aRepo">The repository the record was read from.</param>
+    /// <param name="aSort">Whose gap it was; <c>null</c> is <b>not sorted</b>, and any string is stored as it stands.</param>
     /// <returns>The record.</returns>
     public static MissRecord Miss(
         string aMissId,
@@ -51,8 +52,10 @@ public static class MissFixtures
         string? aProjectType = "app",
         bool? aProjectTypeInferred = null,
         bool? aBackfilled = null,
-        string aRepo = Repo) => new()
+        string aRepo = Repo,
+        string? aSort = null) => new()
     {
+        Sort = aSort,
         UserId = UserId,
         Repo = aRepo,
         SourceSha = Sha,

@@ -79,10 +79,14 @@ public sealed class MissAmendFolderTests
     [Fact]
     public void EmitterDerivedFieldsAreNotAmendable()
     {
-        MissAmendFolder.AmendableFields.Keys.Should().Equal("why_missed");
+        MissAmendFolder.AmendableFields.Keys.Should().Equal("why_missed", "sort");
+        MissAmendFolder.AmendableFreeTextFields.Should().Equal("what");
         MissAmendFolder.AmendableFields.Should().NotContainKey("origin_model");
         MissAmendFolder.AmendableFields.Should().NotContainKey("origin_confidence");
         MissAmendFolder.AmendableFields.Should().NotContainKey("cost_attribution");
+        MissAmendFolder.IsAmendable("origin_model").Should().BeFalse();
+        MissAmendFolder.IsAmendable("origin_confidence").Should().BeFalse();
+        MissAmendFolder.IsAmendable("cost_attribution").Should().BeFalse();
     }
 
     /// <summary>A value outside the field's closed vocabulary is never applied and counts as an orphan.</summary>
@@ -182,6 +186,210 @@ public sealed class MissAmendFolderTests
         vResult.OrphanAmends.Should().Be(1);
         vResult.Misses.Single(aM => aM.MissId == "MISS-TrSetup-20260825-01")
             .WhyMissed.Should().Be("instruction-ignored");
+    }
+
+    /// <summary>
+    /// <c>sort</c> is amendable in its closed four-value vocabulary (BRD-116, added 2026-09-08).
+    /// </summary>
+    /// <remarks>
+    /// This is the case the clause was written for: most amendments in the estate today complete
+    /// <c>sort</c> on records written before the field existed.
+    /// </remarks>
+    [Theory]
+    [InlineData("spec")]
+    [InlineData("unsaid")]
+    [InlineData("weak-check")]
+    [InlineData("ignored")]
+    public void AmendFillsANullSort(string aValue)
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [Amend("MISS-A-1", "sort", aValue, "2026-09-08T10:00:00Z")]);
+
+        vResult.Misses.Single().Sort.Should().Be(aValue);
+        vResult.AmendmentsApplied.Should().Be(1);
+        vResult.OrphanAmends.Should().Be(0);
+    }
+
+    /// <summary>
+    /// <b>An out-of-vocabulary <c>sort</c> is an orphan, and is never coerced to the nearest legal
+    /// value</b> (BRD-116, BRD-170).
+    /// </summary>
+    [Fact]
+    public void SortOutsideTheVocabularyIsAnOrphanAndIsNeverCoerced()
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [Amend("MISS-A-1", "sort", "specification", "2026-09-08T10:00:00Z")]);
+
+        var vMiss = vResult.Misses.Single();
+        vMiss.Sort.Should().BeNull("an unrecognised judgement is surfaced, never filed under 'spec'");
+        vResult.AmendmentsApplied.Should().Be(0);
+        vResult.OrphanAmends.Should().Be(1);
+
+        var vOrphan = vResult.Orphans.Single();
+        vOrphan.Reason.Should().Be(MissAmendOrphanReasons.ValueOutsideVocabulary);
+        vOrphan.Field.Should().Be("sort");
+        vOrphan.Value.Should().Be("specification", "the reader is shown the value that was refused");
+    }
+
+    /// <summary>An amend never overwrites a <c>sort</c> the record already carries, either order.</summary>
+    [Fact]
+    public void AmendNeverOverwritesAnExistingSort()
+    {
+        var vMiss = Miss("MISS-A-1", null, "2026-09-07T09:00:00Z") with { Sort = "unsaid" };
+        var vLater = Amend("MISS-A-1", "sort", "spec", "2026-09-08T10:00:00Z");
+        var vEarlier = Amend("MISS-A-1", "sort", "spec", "2026-09-06T10:00:00Z");
+
+        MissAmendFolder.Fold([vMiss], [vLater]).Misses.Single().Sort.Should().Be("unsaid");
+        MissAmendFolder.Fold([vMiss], [vEarlier]).Misses.Single().Sort.Should().Be(
+            "unsaid", "arrival order cannot decide whether an amend becomes an edit");
+    }
+
+    /// <summary><c>what</c> is amendable as free prose — there is no vocabulary to close (BRD-116).</summary>
+    [Fact]
+    public void AmendFillsANullWhatAsFreeProse()
+    {
+        const string vSentence = "the export wrote one snapshot and silently defaulted its framework";
+
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [Amend("MISS-A-1", "what", vSentence, "2026-09-08T10:00:00Z")]);
+
+        vResult.Misses.Single().What.Should().Be(vSentence);
+        vResult.AmendmentsApplied.Should().Be(1);
+        vResult.OrphanAmends.Should().Be(0);
+    }
+
+    /// <summary>A blank free-text amendment completes nothing and is an orphan.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void BlankFreeTextIsAnOrphan(string aValue)
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [Amend("MISS-A-1", "what", aValue, "2026-09-08T10:00:00Z")]);
+
+        vResult.Misses.Single().What.Should().BeNull("a blank sentence would make a record look answered");
+        vResult.Orphans.Single().Reason.Should().Be(MissAmendOrphanReasons.ValueOutsideVocabulary);
+    }
+
+    /// <summary>A free-text allowlist entry does not open every other field to free text.</summary>
+    [Fact]
+    public void FreeTextDoesNotOpenTheOtherFields()
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [Amend("MISS-A-1", "severity", "quite bad really", "2026-09-08T10:00:00Z")]);
+
+        vResult.Misses.Single().Severity.Should().BeNull();
+        vResult.Orphans.Single().Reason.Should().Be(MissAmendOrphanReasons.FieldNotAllowlisted);
+    }
+
+    /// <summary>The three amendable fields fold independently, oldest first, in one pass.</summary>
+    [Fact]
+    public void TheThreeAmendableFieldsFoldIndependently()
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [
+                Amend("MISS-A-1", "sort", "weak-check", "2026-09-08T10:00:00Z"),
+                Amend("MISS-A-1", "what", "the check existed and did not fire", "2026-09-08T10:01:00Z"),
+                Amend("MISS-A-1", "why_missed", "insufficient-verify-method", "2026-09-08T10:02:00Z")
+            ]);
+
+        var vMiss = vResult.Misses.Single();
+        vMiss.Sort.Should().Be("weak-check");
+        vMiss.What.Should().Be("the check existed and did not fire");
+        vMiss.WhyMissed.Should().Be("insufficient-verify-method");
+        vResult.AmendmentsApplied.Should().Be(3);
+        vResult.OrphanAmends.Should().Be(0);
+    }
+
+    /// <summary>A second amendment of <c>sort</c> is ignored rather than counted as an orphan.</summary>
+    [Fact]
+    public void ASecondSortAmendmentIsIgnoredNotAnOrphan()
+    {
+        var vResult = MissAmendFolder.Fold(
+            [Miss("MISS-A-1", null, "2026-09-07T09:00:00Z")],
+            [
+                Amend("MISS-A-1", "sort", "spec", "2026-09-08T10:00:00Z"),
+                Amend("MISS-A-1", "sort", "ignored", "2026-09-08T11:00:00Z")
+            ]);
+
+        vResult.Misses.Single().Sort.Should().Be("spec", "oldest first, and the second finds a value");
+        vResult.AmendmentsApplied.Should().Be(1);
+        vResult.AmendmentsIgnored.Should().Be(1);
+        vResult.OrphanAmends.Should().Be(0);
+    }
+
+    /// <summary>Re-folding the same rows re-derives identical values, which is what a rebuild does.</summary>
+    [Fact]
+    public void ReFoldingSortAndWhatReDerivesIdenticalValues()
+    {
+        var vStored = new[] { Miss("MISS-A-1", null, "2026-09-07T09:00:00Z") };
+        var vAmends = new[]
+        {
+            Amend("MISS-A-1", "sort", "ignored", "2026-09-08T10:00:00Z"),
+            Amend("MISS-A-1", "what", "the rule was written and not followed", "2026-09-08T10:01:00Z")
+        };
+
+        var vFirst = MissAmendFolder.Fold(vStored, vAmends);
+        var vSecond = MissAmendFolder.Fold(vStored, vAmends);
+
+        vStored[0].Sort.Should().BeNull("the stored row is the source of truth and is never edited");
+        vStored[0].What.Should().BeNull();
+        vSecond.Misses.Single().Sort.Should().Be(vFirst.Misses.Single().Sort);
+        vSecond.Misses.Single().What.Should().Be(vFirst.Misses.Single().What);
+    }
+
+    /// <summary>
+    /// <b>The acceptance line.</b> Amendments read on <c>/misses</c> are folded oldest first into a
+    /// <c>null</c> field only, and a rebuild — which folds the same stored rows again — re-derives
+    /// identical values (REQ-FN-075, BRD-116).
+    /// </summary>
+    /// <remarks>
+    /// The three clauses are one behaviour and are asserted together here: the older of two amendments of
+    /// the same null field wins, a field the miss already answers is left alone, and neither the stored
+    /// rows nor the folded values change when the fold is run a second time — which is exactly what
+    /// <c>RebuildAsync</c> does after replaying the raw archive. The amendments are supplied newest-first
+    /// so that "oldest wins" cannot be an accident of input order.
+    /// </remarks>
+    [Fact(DisplayName =
+        "REQ-FN-075 — amendments fold oldest-first into a null field only, and a rebuild re-derives "
+        + "identical values")]
+    public void AmendmentsFoldOldestFirstIntoANullFieldOnlyAndARebuildReDerivesIdenticalValues()
+    {
+        var vStored = new[]
+        {
+            Miss("MISS-A-1", null, "2026-09-07T09:00:00Z") with { Sort = "unsaid" }
+        };
+        var vAmends = new[]
+        {
+            Amend("MISS-A-1", "why_missed", "other", "2026-09-08T12:00:00Z"),
+            Amend("MISS-A-1", "why_missed", "instruction-ignored", "2026-09-08T10:00:00Z"),
+            Amend("MISS-A-1", "sort", "spec", "2026-09-08T11:00:00Z")
+        };
+
+        var vFirst = MissAmendFolder.Fold(vStored, vAmends);
+
+        var vFolded = vFirst.Misses.Single();
+        vFolded.WhyMissed.Should().Be("instruction-ignored", "amendments fold oldest first");
+        vFolded.Sort.Should().Be("unsaid", "an amend fills a null and never overwrites an answered field");
+        vFirst.AmendmentsApplied.Should().Be(1);
+        vFirst.AmendmentsIgnored.Should().Be(2, "the later why_missed and the sort both found a value");
+        vFirst.OrphanAmends.Should().Be(0);
+
+        // What a rebuild does: replay the same stored rows and fold them again.
+        var vSecond = MissAmendFolder.Fold(vStored, vAmends);
+
+        vStored[0].WhyMissed.Should().BeNull("the stored row is never edited, so the fold stays re-derivable");
+        vStored[0].Sort.Should().Be("unsaid");
+        vSecond.Misses.Single().WhyMissed.Should().Be(vFolded.WhyMissed);
+        vSecond.Misses.Single().Sort.Should().Be(vFolded.Sort);
+        vSecond.AmendmentsApplied.Should().Be(vFirst.AmendmentsApplied);
+        vSecond.AmendmentsIgnored.Should().Be(vFirst.AmendmentsIgnored);
     }
 
     /// <summary>Builds a miss carrying only what the fold reads.</summary>

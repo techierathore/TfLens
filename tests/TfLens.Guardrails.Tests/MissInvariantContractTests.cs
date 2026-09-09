@@ -222,6 +222,80 @@ public sealed class MissInvariantContractTests
         Assert.Equal([typeof(int), typeof(int)], vOverloads[0].GetParameters().Select(aParameter => aParameter.ParameterType));
     }
 
+    /// <summary>
+    /// BRD-170 — the four <c>sort</c> values are declared once, and nothing can coerce a fifth into them.
+    /// </summary>
+    /// <remarks>
+    /// The amend allowlist and the stored-value check must read the <b>same object</b>, not two lists
+    /// that happen to agree today: a second copy is a second place for the closed set to stop being
+    /// closed, and the drift would show up as misses silently filed under the wrong remedy.
+    /// </remarks>
+    [Fact]
+    public void TheSortVocabularyIsClosedInExactlyOnePlace()
+    {
+        Assert.Equal(["spec", "unsaid", "weak-check", "ignored"], MissSorts.All);
+        Assert.Same(MissSorts.All, MissAmendFolder.AmendableFields[MissAmendFolder.SortField]);
+        Assert.Equal(MissSorts.Field, MissAmendFolder.SortField);
+
+        // A row on the distribution carries whether its key is inside the vocabulary, so an unexpected
+        // value is rendered AS unexpected rather than being recomputed — or forgotten — by whoever
+        // renders it.
+        Assert.Equal(
+            typeof(bool),
+            typeof(MissCategoryCount).GetProperty(nameof(MissCategoryCount.IsRecognised))!.PropertyType);
+        Assert.NotNull(typeof(MissSegmentFigures).GetProperty("SortUnrecognised"));
+    }
+
+    /// <summary>
+    /// BRD-172 — the <c>sort</c> denominator is an eligibility, and predating is its own count.
+    /// </summary>
+    /// <remarks>
+    /// Same shape as <c>why_missed</c>, and for the same reason: a figure whose denominator is the miss
+    /// count would report a record from before the question was asked as one that declined to answer it.
+    /// The type carries no rate, so the wrong denominator is not merely discouraged but absent.
+    /// </remarks>
+    [Fact]
+    public void TheSortDenominatorIsAnEligibilityOnTheResultType()
+    {
+        Assert.NotNull(typeof(MissSegmentFigures).GetProperty("SortN"));
+        Assert.Equal(
+            typeof(FieldEligibility),
+            typeof(MissSegmentFigures).GetProperty("SortEligibility")!.PropertyType);
+
+        Assert.Equal("2026-09-07", MetricsConstants.FieldSince[MissSorts.Field]);
+        Assert.Equal("sort_eligible", MetricsConstants.EligibleKey(MissSorts.Field));
+        Assert.Equal("sort_predates_field", MetricsConstants.PredatesFieldKey(MissSorts.Field));
+    }
+
+    /// <summary>
+    /// BRD-176 — every distribution over folded records has an amended-value count beside it.
+    /// </summary>
+    /// <remarks>
+    /// Asserted as a list rather than as four properties so a distribution added later cannot ship
+    /// without its count: the same list drives both the figures and this check, and a new distribution
+    /// that forgets to join it is the failure the clause names.
+    /// </remarks>
+    [Fact]
+    public void EveryFoldedDistributionHasAnAmendedCountBesideIt()
+    {
+        Assert.NotNull(typeof(MissSegmentFigures).GetProperty("AmendedValues"));
+        Assert.NotNull(typeof(MissFoldResult).GetMethod(nameof(MissFoldResult.CompletedFor)));
+
+        Assert.Equal(
+            ["miss_class", "why_missed", "sort", "found_by"],
+            MissFigures.DistributionFields);
+
+        var vSegment = MissFigures
+            .Compute([], [], [], [])
+            .Live
+            .Values
+            .FirstOrDefault();
+
+        // An empty stream has no segment at all, which is the right answer; the populated case is
+        // asserted in the engine project, where records can be built.
+        Assert.Null(vSegment);
+    }
+
     /// <summary>Unwraps a collection parameter to the element type it carries.</summary>
     /// <param name="aType">The parameter's declared type.</param>
     /// <returns>The element type for a generic collection, else the type itself.</returns>

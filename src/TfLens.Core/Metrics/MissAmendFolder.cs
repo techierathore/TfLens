@@ -20,8 +20,9 @@ namespace TfLens.Core.Metrics;
 /// arrived in — which is the whole point.
 /// </para>
 /// <para>
-/// Three things make an amend an <b>orphan</b>: a field off <see cref="AmendableFields"/>, a value
-/// outside that field's closed vocabulary, or a <c>miss_id</c> naming no known miss. An orphan is
+/// Three things make an amend an <b>orphan</b>: a field on neither <see cref="AmendableFields"/> nor
+/// <see cref="AmendableFreeTextFields"/>, a value outside that field's closed vocabulary (or, for a
+/// free-text field, no text at all), or a <c>miss_id</c> naming no known miss. An orphan is
 /// counted and surfaced on Coverage and <b>never applied</b> — exactly as an orphan <c>miss-fix</c> is.
 /// An amend that is well-formed but arrives at a field already carrying a value is neither applied nor
 /// an orphan: it is <i>ignored</i>, and counted as such, because the producer's own emitter refuses the
@@ -30,18 +31,38 @@ namespace TfLens.Core.Metrics;
 /// </remarks>
 public static class MissAmendFolder
 {
-    /// <summary>Wire field name of <see cref="MissRecord.WhyMissed"/> — the only amendable field today.</summary>
+    /// <summary>Wire field name of <see cref="MissRecord.WhyMissed"/> — which practice failed.</summary>
     public const string WhyMissedField = "why_missed";
+
+    /// <summary>Wire field name of <see cref="MissRecord.Sort"/> — whose gap it was (added 2026-09-07).</summary>
+    /// <remarks>
+    /// The same constant <see cref="MissSorts.Field"/> declares, aliased here so a reader of this class
+    /// sees the field beside its siblings. One spelling, one place.
+    /// </remarks>
+    public const string SortField = MissSorts.Field;
+
+    /// <summary>Wire field name of <see cref="MissRecord.What"/> — the one free-text sentence.</summary>
+    public const string WhatField = "what";
 
     /// <summary>
     /// The allowlist: which wire fields an amend may complete, and the closed vocabulary of each.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A field earns a place here only when it is (a) a closed-vocabulary <i>judgement</i> a reader can
     /// still make correctly later and (b) not derived by the emitter. <c>why_missed</c> qualifies;
     /// <c>found_gate</c> is a fact about a run that is over, and <c>origin_model</c>,
     /// <c>origin_confidence</c> and every token or cost field are emitter-derived and excluded outright
     /// (SCHEMA.md §5.5.7). Kept byte-for-byte in step with <c>AMENDABLE</c> in <c>tf-emit.sh</c>.
+    /// </para>
+    /// <para>
+    /// <b>Extended 2026-09-08 (BRD-116) with <see cref="SortField"/>.</b> Most amendments in the estate
+    /// today complete <c>sort</c> on records written before the field existed, which is exactly the case
+    /// this class was written for. An amend carrying a <c>sort</c> value outside the four is an orphan
+    /// like any other: counted, surfaced on Coverage, and <b>never coerced to the nearest legal one</b> —
+    /// a silently corrected judgement is worse than a missing one, because nothing downstream can see it
+    /// happened.
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> AmendableFields =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
@@ -55,8 +76,47 @@ public static class MissAmendFolder
                 "dependency-not-declared",
                 "instruction-ignored",
                 "other"
-            ]
+            ],
+            // The four values are declared once, in <see cref="MissSorts"/>, so the vocabulary an amend
+            // is checked against and the vocabulary a stored value is checked against can never drift
+            // apart. Two copies would be two places for the closed set to stop being closed (BRD-170).
+            [SortField] = MissSorts.All
         };
+
+    /// <summary>
+    /// Amendable fields carrying <b>free prose</b> — there is no vocabulary to close, so the only check
+    /// is that the amendment actually carries text (BRD-116, added 2026-09-08).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>what</c> is the miss stream's one free-text field: one sentence, in the owner's words. It is
+    /// still a completion rather than a revision — it may fill a <c>null</c> and may never overwrite a
+    /// value — so every other rule in this class applies to it unchanged. What cannot apply is the closed
+    /// vocabulary, and an amend carrying an empty or whitespace-only <c>value</c> is an orphan for that
+    /// reason: a blank sentence completes nothing and would make a record look answered.
+    /// </para>
+    /// <para>
+    /// It is a <b>separate</b> collection rather than an empty vocabulary in
+    /// <see cref="AmendableFields"/>, because an empty list already means "no legal value" and reading it
+    /// as "every value is legal" would be the one mistake that turns the allowlist into a free-text back
+    /// door for every field at once (SCHEMA.md §9, constraint 7).
+    /// </para>
+    /// </remarks>
+    public static readonly IReadOnlySet<string> AmendableFreeTextFields =
+        new HashSet<string>(StringComparer.Ordinal) { WhatField };
+
+    /// <summary>
+    /// Says whether an amend may complete a wire field at all, by either rule.
+    /// </summary>
+    /// <param name="aField">The wire field name.</param>
+    /// <returns><c>true</c> when the field is on the allowlist.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aField"/> is <c>null</c>.</exception>
+    public static bool IsAmendable(string aField)
+    {
+        ArgumentNullException.ThrowIfNull(aField);
+
+        return AmendableFields.ContainsKey(aField) || AmendableFreeTextFields.Contains(aField);
+    }
 
     /// <summary>
     /// Applies every amendment to its parent, oldest first, re-checking the null rule as it goes.
@@ -80,7 +140,7 @@ public static class MissAmendFolder
         var vFolded = aMisses.ToList();
         var vIndexByKey = BuildIndex(vFolded);
 
-        var vApplied = 0;
+        var vCompletions = new List<MissAmendCompletion>();
         var vIgnored = 0;
         var vOrphans = new List<MissAmendOrphan>();
 
@@ -112,10 +172,10 @@ public static class MissAmendFolder
             }
 
             vFolded[vIndex] = Apply(vParent, vAmend);
-            vApplied++;
+            vCompletions.Add(new MissAmendCompletion(vAmend.Repo, vAmend.MissId, vAmend.Field));
         }
 
-        return new MissFoldResult(vFolded, vApplied, vIgnored, vOrphans);
+        return new MissFoldResult(vFolded, vCompletions, vIgnored, vOrphans);
     }
 
     /// <summary>
@@ -126,14 +186,26 @@ public static class MissAmendFolder
     /// <returns>An <see cref="MissAmendOrphanReasons"/> value, or <c>null</c>.</returns>
     private static string? Reject(MissAmendRecord aAmend, IReadOnlyDictionary<string, int> aIndexByKey)
     {
-        if (!AmendableFields.TryGetValue(aAmend.Field, out var vVocabulary))
+        if (AmendableFields.TryGetValue(aAmend.Field, out var vVocabulary))
+        {
+            // Closed vocabulary. A value outside it is an orphan and is NEVER mapped to the nearest
+            // legal one: coercion would hide the disagreement inside a figure nobody could audit.
+            if (aAmend.Value is null || !vVocabulary.Contains(aAmend.Value, StringComparer.Ordinal))
+            {
+                return MissAmendOrphanReasons.ValueOutsideVocabulary;
+            }
+        }
+        else if (AmendableFreeTextFields.Contains(aAmend.Field))
+        {
+            // Free prose: the only thing there is to check is that it says something.
+            if (string.IsNullOrWhiteSpace(aAmend.Value))
+            {
+                return MissAmendOrphanReasons.ValueOutsideVocabulary;
+            }
+        }
+        else
         {
             return MissAmendOrphanReasons.FieldNotAllowlisted;
-        }
-
-        if (aAmend.Value is null || !vVocabulary.Contains(aAmend.Value, StringComparer.Ordinal))
-        {
-            return MissAmendOrphanReasons.ValueOutsideVocabulary;
         }
 
         return aIndexByKey.ContainsKey(KeyOf(aAmend.Repo, aAmend.MissId))
@@ -148,6 +220,8 @@ public static class MissAmendFolder
     private static string? Current(MissRecord aMiss, string aField) => aField switch
     {
         WhyMissedField => aMiss.WhyMissed,
+        SortField => aMiss.Sort,
+        WhatField => aMiss.What,
         _ => null
     };
 
@@ -158,6 +232,8 @@ public static class MissAmendFolder
     private static MissRecord Apply(MissRecord aMiss, MissAmendRecord aAmend) => aAmend.Field switch
     {
         WhyMissedField => aMiss with { WhyMissed = aAmend.Value },
+        SortField => aMiss with { Sort = aAmend.Value },
+        WhatField => aMiss with { What = aAmend.Value },
         _ => aMiss
     };
 
@@ -216,18 +292,53 @@ public sealed record MissAmendOrphan(string Repo, string MissId, string Field, s
 /// the producer's <c>amendments_applied</c> and <c>orphan_amends</c> parity keys.
 /// </remarks>
 /// <param name="Misses">The misses with every legal amendment applied, in the input order.</param>
-/// <param name="AmendmentsApplied">Amendments that filled a <c>null</c> — parity key <c>amendments_applied</c>.</param>
+/// <param name="Completions">Every value an amendment completed — one entry per applied amendment.</param>
 /// <param name="AmendmentsIgnored">Well-formed amendments that arrived at a field already carrying a value.</param>
 /// <param name="Orphans">Amendments that could never be applied, with the reason each was refused.</param>
 public sealed record MissFoldResult(
     IReadOnlyList<MissRecord> Misses,
-    int AmendmentsApplied,
+    IReadOnlyList<MissAmendCompletion> Completions,
     int AmendmentsIgnored,
     IReadOnlyList<MissAmendOrphan> Orphans)
 {
+    /// <summary>Amendments that filled a <c>null</c> — parity key <c>amendments_applied</c>.</summary>
+    public int AmendmentsApplied => Completions.Count;
+
     /// <summary>Orphan amendments — parity key <c>orphan_amends</c>.</summary>
     public int OrphanAmends => Orphans.Count;
 
+    /// <summary>
+    /// How many values an amendment completed for one wire field.
+    /// </summary>
+    /// <remarks>
+    /// The per-field half of <see cref="AmendmentsApplied"/>. BRD-176 requires the count to sit beside
+    /// the distribution it belongs to, and a single total cannot say whether the amendments completed
+    /// the field being charted or a different one.
+    /// </remarks>
+    /// <param name="aField">The wire field name, e.g. <c>sort</c>.</param>
+    /// <returns>The number of records whose value for that field came from an amendment.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aField"/> is <c>null</c>.</exception>
+    public int CompletedFor(string aField)
+    {
+        ArgumentNullException.ThrowIfNull(aField);
+
+        return Completions.Count(aCompletion =>
+            string.Equals(aCompletion.Field, aField, StringComparison.Ordinal));
+    }
+
     /// <summary>What a fold over nothing returns.</summary>
-    public static MissFoldResult Empty { get; } = new([], 0, 0, []);
+    public static MissFoldResult Empty { get; } = new([], [], 0, []);
 }
+
+/// <summary>
+/// One field value an amendment completed on a miss that had left it <c>null</c> (BRD-176).
+/// </summary>
+/// <remarks>
+/// It names the record and the field and carries no value, because its whole purpose is to be
+/// <i>counted</i> beside a distribution: a reader who folds amendments silently cannot tell a field that
+/// was answered from one that was answered later, and the fold is invisible without this count.
+/// </remarks>
+/// <param name="Repo"><c>owner/name</c> of the repository the amendment and its parent came from.</param>
+/// <param name="MissId">The miss whose field the amendment completed.</param>
+/// <param name="Field">The wire field name that was completed.</param>
+public sealed record MissAmendCompletion(string Repo, string MissId, string Field);

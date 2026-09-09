@@ -163,7 +163,8 @@
                       Accent="StatAccent.Chart5"
                       data-testid="kpi-wallclock">
                 <DescriptionContent>
-                    Σ <span class="font-mono">duration_s</span> over @CountText(TimedRuns) timed runs · how
+                    Σ <span class="font-mono">duration_s</span> over @CountText(TimedRuns) timed runs ·
+                    <b data-testid="kpi-wallclock-derived">@DerivedDurationsNote</b> · how
                     long the command windows stayed open, <b>never human effort</b>
                 </DescriptionContent>
             </StatTile>
@@ -1018,6 +1019,22 @@
     /// <summary>Runs carrying a non-zero <c>duration_s</c> — the wall-clock block's own denominator.</summary>
     private int TimedRuns => objPhases.Phases.Sum(aRow => aRow.Duration.TimedN);
 
+    /// <summary>
+    /// The derived-durations sentence the wall-clock tile carries (REQ-FN-112, BRD-179).
+    /// </summary>
+    /// <remarks>
+    /// <b>Stated beside the figure, never inside it.</b> <c>duration_s</c> entered the stream after some
+    /// records were written; those records carry <c>started</c> and <c>ended</c> but no duration, and a
+    /// reader that only sums the field scores them as zero time while still counting their tokens — so
+    /// the time total and the token total beside it would cover different sets of runs. TfLens works the
+    /// duration out from the record's own two timestamps at read time and writes nothing back, and this
+    /// line says how many of the minutes above were worked out rather than read.
+    /// </remarks>
+    private string DerivedDurationsNote =>
+        objPhases.DurationsDerivedN == 0
+            ? "every duration read from the record"
+            : $"{CountText(objPhases.DurationsDerivedN)} derived from started/ended";
+
     /// <summary>The phase with the largest measured output; the engine already orders by it.</summary>
     private PhaseEffortRow? Heaviest => objPhases.Phases.Count == 0 ? null : objPhases.Phases[0];
 
@@ -1473,10 +1490,20 @@
     /// <summary>The timed-runs sentence under the time band.</summary>
     /// <param name="aRow">The phase.</param>
     /// <returns>How many of the phase's runs were actually timed.</returns>
-    private static string TimedRunsNote(PhaseEffortRow aRow) =>
-        aRow.Duration.TimedN == aRow.Runs
+    private static string TimedRunsNote(PhaseEffortRow aRow)
+    {
+        var vTimed = aRow.Duration.TimedN == aRow.Runs
             ? $"All {aRow.Runs} runs were timed."
             : $"Timed on {aRow.Duration.TimedN} of {aRow.Runs} runs; the rest carry no duration_s.";
+
+        // REQ-FN-112 / BRD-179 — the derived count belongs beside the phase's own time figures, not only
+        // on the page headline: a phase whose whole total was worked out from timestamps is a different
+        // claim from one read straight off the stream.
+        return aRow.Duration.DerivedN == 0
+            ? vTimed
+            : $"{vTimed} {aRow.Duration.DerivedN} of those durations were derived from the record's own "
+              + "started and ended (ts where ended is absent).";
+    }
 
     /// <summary>
     /// Says how much of a phase's per-model weight rests on measured splits rather than on labels.

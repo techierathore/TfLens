@@ -41,9 +41,9 @@
     }
   ],
   "tainted_reqs": [
-    "REQ-FN-008",
-    "REQ-FN-020",
-    "REQ-FN-021"
+    "AlphaApp:REQ-FN-008",
+    "AlphaApp:REQ-FN-020",
+    "AlphaApp:REQ-FN-021"
   ],
   "live": {
     "app": {
@@ -207,6 +207,17 @@
     "why_missed_predates_field": 0,
     "why_missed": {},
     "escapes_missing_why": 0,
+    "sort_n": 0,
+    "sort_eligible": 0,
+    "sort_predates_field": 0,
+    "sort": {},
+    "reviews_n": 0,
+    "review_corrections": 0,
+    "reviews_by_phase": {},
+    "review_tokens_produce_mean": null,
+    "review_tokens_produce_n": 0,
+    "review_tokens_correct_mean": null,
+    "review_tokens_correct_n": 0,
     "class_distribution": {},
     "found_by": {},
     "design_miss_share": "insufficient data (n=0)",
@@ -243,7 +254,8 @@
           "total": 13500,
           "median": 2700.0,
           "max": 7200,
-          "n": 4
+          "n": 4,
+          "derived_n": 0
         },
         "share_of_duration": "88%",
         "tokens_measured_n": 0,
@@ -265,6 +277,24 @@
         "modes": {
           "build": 3,
           "fix": 1
+        },
+        "by_mode": {
+          "build": {
+            "runs": 3,
+            "duration_s": 12600,
+            "tokens_out": 0,
+            "tokens_unmeasured_n": 3,
+            "files_written": 38,
+            "first_started": "2026-08-01T09:00:00Z"
+          },
+          "fix": {
+            "runs": 1,
+            "duration_s": 900,
+            "tokens_out": 0,
+            "tokens_unmeasured_n": 1,
+            "files_written": 3,
+            "first_started": "2026-08-02T14:45:00Z"
+          }
         },
         "build_result": {
           "pass": 4
@@ -297,7 +327,8 @@
           "total": 1200,
           "median": 1200,
           "max": 1200,
-          "n": 1
+          "n": 1,
+          "derived_n": 0
         },
         "share_of_duration": "8%",
         "tokens_measured_n": 0,
@@ -317,6 +348,16 @@
         },
         "modes": {
           "fix": 1
+        },
+        "by_mode": {
+          "fix": {
+            "runs": 1,
+            "duration_s": 1200,
+            "tokens_out": 0,
+            "tokens_unmeasured_n": 1,
+            "files_written": 2,
+            "first_started": "2026-08-03T12:40:00Z"
+          }
         },
         "build_result": {
           "pass": 1
@@ -349,7 +390,8 @@
           "total": 600,
           "median": 600,
           "max": 600,
-          "n": 1
+          "n": 1,
+          "derived_n": 0
         },
         "share_of_duration": "4%",
         "tokens_measured_n": 0,
@@ -369,6 +411,16 @@
         },
         "modes": {
           "build": 1
+        },
+        "by_mode": {
+          "build": {
+            "runs": 1,
+            "duration_s": 600,
+            "tokens_out": 0,
+            "tokens_unmeasured_n": 1,
+            "files_written": 0,
+            "first_started": "2026-08-03T09:00:00Z"
+          }
         },
         "build_result": {
           "pass": 1

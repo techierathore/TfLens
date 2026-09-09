@@ -151,6 +151,48 @@
     white-space: nowrap;
 }
 
+/* REQ-UI-053 — the first detail column carries the miss id AND the record's own one sentence, exactly as
+   docs/mockups/misses.html draws it. The sentence is prose, so it must be allowed to wrap; the cell is
+   given a floor and a ceiling so a long sentence neither squeezes the columns beside it to nothing nor
+   stretches the table past the card it scrolls inside. */
+.tflens-miss-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 16rem;
+    max-width: 26rem;
+    white-space: normal;
+}
+
+    .tflens-miss-cell > div {
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+/* REQ-UI-052 — the whose-gap answer is a short sentence, and TR-026's finding applies to it exactly:
+   the DataTable's own table is `w-full` inside its scroll box, so auto table layout compresses a column
+   below its own text rather than letting the box scroll. Left alone, "It was written down and ignored
+   anyway" stacked four words deep in a 90px cell. Giving the span a floor raises the column's
+   min-content width instead, and the overflow lands on `.tflens-scroll-x` — which is what that box is
+   for. The span is authored here, so it carries this file's scope attribute; the `td` around it does not,
+   which is why the rule goes on the span. */
+.tflens-gap-cell {
+    display: inline-block;
+    min-width: 9.5rem;
+    line-height: 1.4;
+}
+
+/* REQ-UI-054 — a review phase is one identifier, not prose, so it must never break mid-token. At 390px
+   `day1-review` needed 86px in an 83px cell and wrapped after "day1-", which reads as two phases. This is
+   TR-026 again: the DataTable-style `w-full` table compresses a column below its own min-content width
+   rather than letting its box scroll. Holding the token on one line raises that width and the overflow
+   lands on `.tflens-scroll-x`, which is what that box is for. */
+.tflens-review-phase {
+    display: inline-block;
+    min-width: 6rem;
+    white-space: nowrap;
+}
+
 /* The three cost headlines. Deliberately large, and deliberately never rendered as one number. */
 .tflens-money {
     font-size: 1.75rem;

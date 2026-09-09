@@ -22,13 +22,40 @@ public sealed class MissStreamContractTests
             .GetField("StreamTables", BindingFlags.NonPublic | BindingFlags.Static)!
             .GetValue(null)!;
 
-    /// <summary>The purge covers all three miss tables, so a repo removal leaves none of them behind.</summary>
+    /// <summary>The purge covers all four miss tables, so a repo removal leaves none of them behind.</summary>
+    /// <remarks>
+    /// <c>"MissReview"</c> joined the list on 2026-09-08 (BRD-115). A miss table this list forgets is a
+    /// table whose rows survive a removal and go on contributing to every figure for a repository the
+    /// owner believes they removed.
+    /// </remarks>
     [Fact]
-    public void ThePurgeCoversAllThreeMissTables()
+    public void ThePurgeCoversAllFourMissTables()
     {
         Assert.Contains("Miss", PurgedTables);
         Assert.Contains("MissFix", PurgedTables);
         Assert.Contains("MissAmend", PurgedTables);
+        Assert.Contains("MissReview", PurgedTables);
+    }
+
+    /// <summary>The DDL declares the fourth table, its COALESCE key and the two 2026-09-07 columns.</summary>
+    /// <remarks>
+    /// The <c>COALESCE("ProducedRunId", '')</c> is asserted as text because it is not cosmetic: a
+    /// nullable column never collides with itself in a PostgreSQL unique index, so without it a review
+    /// naming no produce run would be re-inserted by every sync.
+    /// </remarks>
+    [Fact]
+    public void TheSchemaDeclaresTheFourthMissTable()
+    {
+        var vSchema = File.ReadAllText(Path.Combine(RepoTree.Root.FullName, "database", "001-schema.sql"));
+
+        Assert.Contains("""CREATE TABLE IF NOT EXISTS "MissReview" """.TrimEnd(), vSchema, StringComparison.Ordinal);
+        Assert.Contains(
+            """ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''))""",
+            vSchema,
+            StringComparison.Ordinal);
+        Assert.Contains("""ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "Sort" text NULL;""", vSchema, StringComparison.Ordinal);
+        Assert.Contains("""ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "What" text NULL;""", vSchema, StringComparison.Ordinal);
+        Assert.Contains("'MissReview'", vSchema, StringComparison.Ordinal);
     }
 
     /// <summary>The purge still covers every stream table that existed before the miss stream.</summary>
@@ -41,11 +68,14 @@ public sealed class MissStreamContractTests
         }
     }
 
-    /// <summary>The store exposes a user-scoped read for each of the three miss record kinds.</summary>
+    /// <summary>The store exposes a user-scoped read for each of the four miss record kinds.</summary>
     [Fact]
     public void TheStoreExposesAReadForEachMissKind()
     {
-        foreach (var vName in new[] { "ReadMissesAsync", "ReadMissFixesAsync", "ReadMissAmendsAsync" })
+        foreach (var vName in new[]
+        {
+            "ReadMissesAsync", "ReadMissFixesAsync", "ReadMissAmendsAsync", "ReadMissReviewsAsync"
+        })
         {
             var vMethod = typeof(ITelemetryStore).GetMethod(vName);
             Assert.NotNull(vMethod);

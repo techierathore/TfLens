@@ -66,8 +66,9 @@ namespace TfLens.Core.Parsing;
 /// </para>
 /// <para>
 /// <c>misses</c> (§5.5, added 2026-08-28 — REQ-FN-071, REQ-FN-072, ADR-018): the one stream whose
-/// records do <b>not</b> all share a shape. Three kinds land in three tables, dispatched on the
-/// record's own <c>kind</c>. Common to all three: the §1 set above.
+/// records do <b>not</b> all share a shape. <b>Four</b> kinds land in four tables, dispatched on the
+/// record's own <c>kind</c> (the fourth, <c>review</c>, added 2026-09-08 — BRD-113, BRD-174). Common to
+/// all four: the §1 set above.
 /// </para>
 /// <para>
 /// <c>kind: "miss"</c> (§5.5.1) → <c>"Miss"</c>: <c>miss_id</c>→<c>MissId</c>,
@@ -78,7 +79,8 @@ namespace TfLens.Core.Parsing;
 /// <c>origin_confidence</c>→<c>OriginConfidence</c>, <c>origin_model</c>→<c>OriginModel</c>,
 /// <c>origin_harness</c>→<c>OriginHarness</c>, <c>found_by</c>→<c>FoundBy</c>,
 /// <c>found_phase</c>→<c>FoundPhase</c>, <c>found_gate</c>→<c>FoundGate</c>,
-/// <c>found_run_id</c>→<c>FoundRunId</c>, <c>failure_class</c>→<c>FailureClass</c>.
+/// <c>found_run_id</c>→<c>FoundRunId</c>, <c>failure_class</c>→<c>FailureClass</c>,
+/// <c>what</c>→<c>What</c>, <c>sort</c>→<c>Sort</c>.
 /// </para>
 /// <para>
 /// <c>kind: "miss-fix"</c> (§5.5.2) → <c>"MissFix"</c>: <c>miss_id</c>→<c>MissId</c>,
@@ -91,9 +93,18 @@ namespace TfLens.Core.Parsing;
 /// </para>
 /// <para>
 /// <c>kind: "miss-amend"</c> (§5.5.7) → <c>"MissAmend"</c>: <c>miss_id</c>→<c>MissId</c>,
-/// <c>field</c>→<c>Field</c>, <c>value</c>→<c>Value</c>. Any other <c>kind</c> increments
-/// <see cref="ParseResult.InvalidLines"/> and is skipped — never thrown, because an unknown kind in a
-/// stream TfLens <i>does</i> know is the same class of event as a malformed line (REQ-FN-032).
+/// <c>field</c>→<c>Field</c>, <c>value</c>→<c>Value</c>.
+/// </para>
+/// <para>
+/// <c>kind: "review"</c> (§5.5.9) → <c>"MissReview"</c>: <c>phase</c>→<c>ReviewPhase</c>,
+/// <c>reviewed_run_id</c>→<c>ProducedRunId</c>, <c>correction_run_id</c>→<c>CorrectionRunId</c>,
+/// <c>corrections</c>→<c>Corrections</c>, <c>what</c>→<c>What</c>,
+/// <c>tokens_produce</c>→<c>TokensProduce</c>, <c>cost_produce_usd</c>→<c>CostProduceUsd</c>,
+/// <c>model_produce</c>→<c>ModelProduce</c>, <c>tokens_correct</c>→<c>TokensCorrect</c>,
+/// <c>cost_correct_usd</c>→<c>CostCorrectUsd</c>, <c>model_correct</c>→<c>ModelCorrect</c>. Any other
+/// <c>kind</c> increments <see cref="ParseResult.InvalidLines"/> and is skipped — never thrown, because
+/// an unknown kind in a stream TfLens <i>does</i> know is the same class of event as a malformed line
+/// (REQ-FN-032).
 /// </para>
 /// <para>
 /// <c>events</c> (Playbook, amended 2026-08-26 from the emitter source — REQ-FN-068, ADR-010): this is
@@ -152,11 +163,17 @@ public sealed class StreamParser : IStreamParser
         ["sha", "files", "insertions", "deletions", "subject_prefix", "branch"];
 
     /// <summary>Fields SCHEMA.md §5.5.1 documents for a <c>miss</c> record.</summary>
+    /// <remarks>
+    /// <c>what</c> (2026-09-05) and <c>sort</c> (2026-09-07) are listed here — and given columns below —
+    /// rather than left to <c>Overflow</c>, because a field SCHEMA.md documents must not be reported on
+    /// Coverage as one it does not (REQ-FN-075, REQ-FN-076, BRD-170).
+    /// </remarks>
     private static readonly string[] MissDocumented =
     [
         "miss_id", "req_id", "req_class", "miss_class", "artifact", "severity", "why_missed",
         "origin_phase", "origin_agent", "origin_run_id", "origin_confidence", "origin_model",
-        "origin_harness", "found_by", "found_phase", "found_gate", "found_run_id", "failure_class"
+        "origin_harness", "found_by", "found_phase", "found_gate", "found_run_id", "failure_class",
+        "what", "sort"
     ];
 
     /// <summary>Fields SCHEMA.md §5.5.2 documents for a <c>miss-fix</c> record.</summary>
@@ -169,6 +186,19 @@ public sealed class StreamParser : IStreamParser
 
     /// <summary>Fields SCHEMA.md §5.5.7 documents for a <c>miss-amend</c> record.</summary>
     private static readonly string[] MissAmendDocumented = ["miss_id", "field", "value"];
+
+    /// <summary>Fields SCHEMA.md §5.5.9 documents for a <c>review</c> record (added 2026-09-07).</summary>
+    /// <remarks>
+    /// The last six are <b>derived</b>: the emitter copies them from the two runs the record names, and
+    /// a caller's own cost figure is discarded. They are stored exactly as they arrived and are never
+    /// recomputed here (BRD-115).
+    /// </remarks>
+    private static readonly string[] MissReviewDocumented =
+    [
+        "phase", "reviewed_run_id", "correction_run_id", "corrections", "what",
+        "tokens_produce", "cost_produce_usd", "model_produce",
+        "tokens_correct", "cost_correct_usd", "model_correct"
+    ];
 
     /// <summary>
     /// Playbook <c>events.ndjson</c> wire fields, read off the emitter source (REQ-FN-068, ADR-010).
@@ -215,6 +245,9 @@ public sealed class StreamParser : IStreamParser
     /// <summary>Wire names that <c>"MissAmend"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> MissAmendMapped = BuildMapped(MissAmendDocumented, "inferred");
 
+    /// <summary>Wire names that <c>"MissReview"</c> has a column for; anything else overflows.</summary>
+    private static readonly HashSet<string> MissReviewMapped = BuildMapped(MissReviewDocumented, "inferred");
+
     /// <summary>Wire names that <c>"PbEvent"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> EventMapped = new(EventDocumented, StringComparer.Ordinal)
     {
@@ -250,16 +283,18 @@ public sealed class StreamParser : IStreamParser
         PlaybookPhaseAdapter.DocumentedFields.ToHashSet(StringComparer.Ordinal);
 
     /// <summary>
-    /// Every wire name SCHEMA.md documents for <c>misses</c> — the <b>union</b> of the three kinds.
+    /// Every wire name SCHEMA.md documents for <c>misses</c> — the <b>union</b> of the four kinds.
     /// </summary>
     /// <remarks>
-    /// <see cref="IsDocumented"/> is keyed on the stream, and <c>misses</c> has three field
+    /// <see cref="IsDocumented"/> is keyed on the stream, and <c>misses</c> has four field
     /// vocabularies. Coverage's "fields observed that SCHEMA.md does not document" report takes their
     /// union: a <c>miss-fix</c>-only field seen on a <c>miss</c> record is not worth a separate report
-    /// and would only produce noise (REQ-FN-072, ADR-018).
+    /// and would only produce noise (REQ-FN-072, ADR-018). Extended 2026-09-08 with
+    /// <see cref="MissReviewDocumented"/> — without it every field of a <c>review</c> record would be
+    /// reported as undocumented on the very page whose job is to say what TfLens cannot read.
     /// </remarks>
     private static readonly HashSet<string> MissesKnown =
-        BuildKnown([.. MissDocumented, .. MissFixDocumented, .. MissAmendDocumented]);
+        BuildKnown([.. MissDocumented, .. MissFixDocumented, .. MissAmendDocumented, .. MissReviewDocumented]);
 
     /// <summary>
     /// Says whether SCHEMA.md documents a wire field name for a stream (REQ-UI-016).
@@ -468,12 +503,18 @@ public sealed class StreamParser : IStreamParser
     /// Dispatches one <c>misses.jsonl</c> record on its own <c>kind</c> (REQ-FN-072, ADR-018).
     /// </summary>
     /// <remarks>
-    /// This is the one place <see cref="StreamKind"/> stops being 1:1 with a table. All three kinds
+    /// This is the one place <see cref="StreamKind"/> stops being 1:1 with a table. All four kinds
     /// parse from one file in a single pass, and an unrecognised <c>kind</c> increments
     /// <see cref="ParseResult.InvalidLines"/> and is skipped rather than thrown — the same contract a
     /// malformed line gets (REQ-FN-032), because an unknown kind in a stream TfLens does know is the
-    /// same class of event. The undocumented-field report is collected against the union of the three
+    /// same class of event. The undocumented-field report is collected against the union of the four
     /// vocabularies, matching <see cref="IsDocumented"/>.
+    /// <para>
+    /// <b>The fourth arm, <c>review</c>, was added 2026-09-08 (BRD-113, BRD-174).</b> Without it the
+    /// default arm below did to every review record exactly what it does to a genuinely unknown kind:
+    /// counted it as invalid and threw it away. That is the failure this dispatch exists to make
+    /// impossible, so the arm is here rather than in a reader further downstream.
+    /// </para>
     /// </remarks>
     /// <param name="aObj">The record's JSON object.</param>
     /// <param name="aState">Accumulating parse state.</param>
@@ -498,6 +539,10 @@ public sealed class StreamParser : IStreamParser
             case MissKinds.MissAmend:
                 CollectUnknown(aObj, MissesKnown, aState);
                 aState.MissAmends.Add(BuildMissAmend(aObj, aState, aVersion, aTs, aIsAboveV1));
+                return;
+            case MissKinds.Review:
+                CollectUnknown(aObj, MissesKnown, aState);
+                aState.MissReviews.Add(BuildMissReview(aObj, aState, aVersion, aTs, aIsAboveV1));
                 return;
             default:
                 aState.InvalidLines++;
@@ -563,6 +608,8 @@ public sealed class StreamParser : IStreamParser
             FoundGate = ReadString(aObj, "found_gate"),
             FoundRunId = ReadString(aObj, "found_run_id"),
             FailureClass = ReadString(aObj, "failure_class"),
+            What = ReadString(aObj, "what"),
+            Sort = ReadString(aObj, "sort"),
             Overflow = vOverflow
         };
     }
@@ -676,6 +723,69 @@ public sealed class StreamParser : IStreamParser
             MissId = ReadString(aObj, "miss_id") ?? string.Empty,
             Field = ReadString(aObj, "field") ?? string.Empty,
             Value = ReadString(aObj, "value"),
+            Overflow = vOverflow
+        };
+    }
+
+    /// <summary>
+    /// Builds one <c>review</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <remarks>
+    /// The six derived fields are copied verbatim from the wire. The emitter resolved them from the two
+    /// runs the record names and discarded any figure a caller supplied, so re-deriving them here would
+    /// be a second, weaker answer to a question already settled — and an absent one stays <c>null</c>,
+    /// because a review whose produce cost was never captured is not a free one (SCHEMA.md §5.5.8,
+    /// §5.5.9).
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static MissReviewRecord BuildMissReview(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, MissReviewMapped, aIsAboveV1);
+        if (aIsAboveV1)
+        {
+            return new MissReviewRecord
+            {
+                UserId = aState.UserId,
+                Repo = aState.Repo,
+                SourceSha = aState.SourceSha,
+                V = aVersion,
+                Ts = aTs,
+                App = ReadString(aObj, "app"),
+                ReviewPhase = ReadString(aObj, "phase") ?? string.Empty,
+                ProducedRunId = ReadString(aObj, "reviewed_run_id"),
+                Overflow = vOverflow
+            };
+        }
+
+        return new MissReviewRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = ReadString(aObj, "project_type"),
+            ProjectTypeInferred = ReadBool(aObj, "project_type_inferred"),
+            Backfilled = ReadBool(aObj, "backfilled"),
+            Harness = ReadString(aObj, "harness"),
+            ReviewPhase = ReadString(aObj, "phase") ?? string.Empty,
+            ProducedRunId = ReadString(aObj, "reviewed_run_id"),
+            CorrectionRunId = ReadString(aObj, "correction_run_id"),
+            Corrections = ReadInt(aObj, "corrections"),
+            What = ReadString(aObj, "what"),
+            TokensProduce = ReadInt(aObj, "tokens_produce"),
+            CostProduceUsd = ReadDecimal(aObj, "cost_produce_usd"),
+            ModelProduce = ReadString(aObj, "model_produce"),
+            TokensCorrect = ReadInt(aObj, "tokens_correct"),
+            CostCorrectUsd = ReadDecimal(aObj, "cost_correct_usd"),
+            ModelCorrect = ReadString(aObj, "model_correct"),
             Overflow = vOverflow
         };
     }
@@ -1262,6 +1372,9 @@ public sealed class StreamParser : IStreamParser
         /// <summary><c>miss-amend</c> records read so far, before dedupe.</summary>
         public List<MissAmendRecord> MissAmends { get; } = [];
 
+        /// <summary><c>review</c> records read so far, before dedupe (SCHEMA.md §5.5.9).</summary>
+        public List<MissReviewRecord> MissReviews { get; } = [];
+
         /// <summary>Schema-2 phase executions read so far, before dedupe.</summary>
         public List<PbPhaseExecutionRecord> PhaseExecutions { get; } = [];
 
@@ -1311,6 +1424,7 @@ public sealed class StreamParser : IStreamParser
             var vMisses = Dedupe.Misses(Misses);
             var vMissFixes = Dedupe.MissFixes(MissFixes);
             var vMissAmends = Dedupe.MissAmends(MissAmends);
+            var vMissReviews = Dedupe.MissReviews(MissReviews);
 
             // The exporter re-emits every currently readable window, so a repeated phase execution id
             // inside one file is the same window read further on: keep the last (REQ-FN-094).
@@ -1332,6 +1446,7 @@ public sealed class StreamParser : IStreamParser
                 Misses = vMisses.Records,
                 MissFixes = vMissFixes.Records,
                 MissAmends = vMissAmends.Records,
+                MissReviews = vMissReviews.Records,
                 PhaseExecutions = vPhases.Records,
                 PhaseModelUsages = vPhaseModels.Records,
                 PhaseSubagents = vPhaseSubagents.Records,
@@ -1339,6 +1454,7 @@ public sealed class StreamParser : IStreamParser
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
                     + vCommits.Collapsed + vEvents.Collapsed
                     + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed
+                    + vMissReviews.Collapsed
                     + vPhases.Collapsed + vPhaseModels.Collapsed + vPhaseSubagents.Collapsed,
                 SessionDuplicatesCollapsed = vSessions.Collapsed,
                 UnknownFields = UnknownFields.OrderBy(aN => aN, StringComparer.Ordinal).ToList(),

@@ -67,9 +67,16 @@ public static class LateGateCoverageCalculator
     /// </para>
     /// <para>
     /// <b>Assessed is a subset of eligible, never of the whole set.</b> A record that predates the field
-    /// is not an unassessed record: it never had the chance, so it leaves the denominator entirely
-    /// rather than pushing every category's share down. The two counts are returned together because a
-    /// reader cannot check <c>n of N assessed</c> against the oracle without both.
+    /// <i>and does not carry it</i> is not an unassessed record: it never had the chance, so it leaves
+    /// the denominator entirely rather than pushing every category's share down. The two counts are
+    /// returned together because a reader cannot check <c>n of N assessed</c> against the oracle without
+    /// both.
+    /// </para>
+    /// <para>
+    /// <b>A record that carries the field is eligible whatever its date</b> (amended 2026-09-08,
+    /// BRD-116, BRD-117). An amendment may complete a field on a record written before that field
+    /// existed — which is the ordinary case for <c>sort</c> — and excluding such a record would fold the
+    /// answer in and then discard it, leaving the amendment with no visible effect at all.
     /// </para>
     /// <para>
     /// Timestamps are ISO-8601 UTC text, whose lexical order is chronological, so the comparison is the
@@ -104,14 +111,22 @@ public static class LateGateCoverageCalculator
 
         foreach (var vRecord in aRecords)
         {
-            if (PredatesField(aTimestampOf(vRecord), vSince))
+            var vValue = aValueOf(vRecord);
+
+            // A record that CARRIES the field is eligible whatever its date. This is the case BRD-116
+            // exists for: most amendments in the estate complete `sort` on records written before the
+            // field existed, and a floor that then removed them from the denominator would make the
+            // amendment invisible — it would fold an answer in and immediately throw it away. The
+            // reference states the same rule in the same words ("an older record completed by an amend
+            // is sorted, whatever its date"), so the two agree by construction rather than by luck.
+            if (vValue is null && PredatesField(aTimestampOf(vRecord), vSince))
             {
                 vPredates++;
                 continue;
             }
 
             vEligible++;
-            if (aValueOf(vRecord) is not null)
+            if (vValue is not null)
             {
                 vAssessed++;
             }
@@ -130,6 +145,12 @@ public static class LateGateCoverageCalculator
     /// caller: an escape written before <c>why_missed</c> existed had no field to leave empty, which is
     /// not the same as leaving one empty, and counting it would overstate the warning against exactly
     /// the oldest records nobody can now complete.
+    /// <para>
+    /// This form takes no value, and deliberately does not carry
+    /// <see cref="EligibilityFor{T}"/>'s carries-the-field escape: its callers ask about records that
+    /// are <i>missing</i> the field, so a record that carries it is outside their numerator already and
+    /// the escape could never change an answer.
+    /// </para>
     /// </remarks>
     /// <param name="aField">The field name, e.g. <c>why_missed</c>.</param>
     /// <param name="aTimestamp">The record's ISO-8601 timestamp.</param>

@@ -48,6 +48,46 @@ public sealed class ExtraMetrics : IExtraMetrics
     /// </remarks>
     public static readonly IReadOnlyList<string> HarnessOrder = ["claude-code", "opencode", "codex"];
 
+    /// <summary>
+    /// The columns to build — the standing order, then any harness the records actually name that it
+    /// does not list (REQ-FN-114, BRD-181).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An unrecognised harness gets a column rather than disappearing.</b> Building the comparison
+    /// from <see cref="HarnessOrder"/> alone made the list a whitelist: a record naming a harness outside
+    /// the three was in no column, in no total on the page, and in no footnote either — the
+    /// not-detected count covers a <c>null</c> harness, which is a different fact. Nothing on the screen
+    /// would have looked wrong, which is exactly the hazard: <b>showing an unknown value is a
+    /// data-quality finding, dropping it is a wrong number</b>.
+    /// </para>
+    /// <para>
+    /// The three known harnesses keep their fixed order so the page's columns do not reshuffle as data
+    /// arrives (ADR-017); anything else follows them in ordinal order. <c>codex</c> stays on the list
+    /// though it was retired on 2026-09-07 — its records are still valid and must still render.
+    /// </para>
+    /// </remarks>
+    /// <param name="aRuns">Run records for the user and framework.</param>
+    /// <param name="aGates">Gate records for the user and framework.</param>
+    /// <param name="aSessions">Session records for the user and framework.</param>
+    /// <returns>The harness keys to build columns for, known ones first.</returns>
+    private static IReadOnlyList<string> ColumnOrderOver(
+        IReadOnlyList<RunRecord> aRuns,
+        IReadOnlyList<GateRecord> aGates,
+        IReadOnlyList<SessionRecord> aSessions)
+    {
+        var vObserved = aRuns.Select(aR => aR.Harness)
+            .Concat(aGates.Select(aG => aG.Harness))
+            .Concat(aSessions.Select(aS => aS.Harness))
+            .Where(aH => !string.IsNullOrWhiteSpace(aH))
+            .Select(aH => aH!)
+            .Where(aH => !HarnessOrder.Contains(aH, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aH => aH, StringComparer.Ordinal);
+
+        return [.. HarnessOrder, .. vObserved];
+    }
+
     /// <summary>The <c>tokens_scope</c> value that means the token window could not be computed.</summary>
     private const string TokensScopeNone = "none";
 
@@ -102,7 +142,9 @@ public sealed class ExtraMetrics : IExtraMetrics
         var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
 
-        var vColumns = HarnessOrder.Select(aH => BuildColumn(aH, vRuns, vGates, vSessions)).ToList();
+        var vColumns = ColumnOrderOver(vRuns, vGates, vSessions)
+            .Select(aH => BuildColumn(aH, vRuns, vGates, vSessions))
+            .ToList();
 
         var vNotDetected =
             vRuns.Count(aR => aR.Harness is null)

@@ -33,13 +33,13 @@ and each is reported as absence with its denominator beside it.
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-08.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+**Snapshot as of 2026-09-09.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 12 | 8 | 4 | Partial |
-| Functional requirements | 50 | 34 | 16 | Partial |
-| Non-functional | 11 | 9 | 2 | Partial |
+| UI / Pages | 12 | 10 | 2 | Partial |
+| Functional requirements | 50 | 48 | 2 | Partial |
+| Non-functional | 11 | 11 | 0 | Done |
 
 ## 3. Screens and flow
 
