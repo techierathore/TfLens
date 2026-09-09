@@ -142,6 +142,76 @@ that grew a legal move as a result.
 
 ---
 
+## Resolution status (TechieFlow team, 2026-09-09)
+
+**All five open entries are FIXED upstream — `TF-018`, `TF-019`, `TF-020`, `TF-021`, `TF-022`.** Deploy
+with `update-framework.sh <repo>`, then re-verify from your side and close them; TechieFlow does not
+close a consumer's entries for it. Every fix carries a case in `tests/regression/run.sh`, and each case
+was run against the script **as this file describes it** before the fix and after it: a case that passes
+both ways proves nothing and is not kept.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-019** | Your first option, taken further: the working list is now **every open row**, and `FIX` only says which ones come first. Nothing is held back, so nothing can be silently omitted. An `Order:` line names the failing rows and counts the not-yet-started ones behind them, and the counts line is checked arithmetically — every row must land in exactly one of built / terminal / Blocked, and a row in none of them is printed as a warning naming the status the script does not know. | Run `bash .tfcore/utils/tf-build-list.sh TfLens --prompts` on phase 3 with `REQ-FN-067` and `REQ-FN-070` still at `Needs re-verify`. The twelve rows `REQ-UI-052`…`054` and `REQ-FN-106`…`114` must appear. Reproduced here on a fixture built from your checklist's exact shape: two permanently gated rows plus two never started. |
+| **TF-022** | `add()` has a third outcome. A skipped clause is recorded as skipped — never a pass, never a defect — and a row whose clauses were **all** skipped is `NOT-TESTED`, which `tf-verify-verdict.py` reads as not measured: no gate record, no `Verified`, and no return to FIX mode. The unit path records a skipped test the same way instead of dropping it, so the row shows the evidence rather than looking untested. `tests.json` gains `passed`, `failed` and `skipped` per row and `skipped` on the browser block; the printed line names the NOT-TESTED rows and why. | Re-run `*verify all`. `REQ-UI-039` (6 passed, 2 skipped) must read `PASS`; `REQ-UI-034` (all skipped) must read `NOT-TESTED` with the skip's own reason carried through — your `test.skip` description is what the row now says. A real assertion failure is still `FAIL`: proved on the same run. |
+| **TF-021** | Two changes, one per half of your entry. **(1)** Overlap and off-screen are measured on the rectangle an element **paints** in — its own box intersected with the clip rectangle of every ancestor whose overflow is not `visible` — so a 1167px row inside a 492px scroller no longer reaches the card beside it. Zero-size still uses the element's own box, because a control scrolled out of view is not a collapsed one. **(2)** `--render-wait` (default 5000 ms) waits for the screen's first render before reading the page; when nothing appears in time the page is graded exactly as it stands, so a control that is genuinely missing is still reported. | Your `/misses` case was rebuilt here from the measurements in your entry — a `.tflens-scroll-x` container at `clientWidth 492`, `scrollWidth 1167`, and a neighbouring card at x=846. Before: `miss-origin overlaps miss-whymissed at 1280px`. After: `render OK, visual OK`. The `/effort` case was rebuilt as a screen that paints at 2.5 s: before, `anchored control "app-sidebar" is not on the page`; after, `render OK`. A genuinely overlapping screen still fails — that case is kept precisely so the fix cannot buy its quiet by going blind. |
+| **TF-020** | One line in `seg()`, in the shape your entry suggested. An `FR` verdict lands in its own `framework-requirement` segment ahead of the `project_type` test, so it can never join an application's `records`, `reqs_scored`, `first_pass_rate`, `escape_rate` or gate distribution. | Roll up a repository carrying both kinds: `bash .tfcore/telemetry/tf-metrics.sh --rollup <repo> --json`. The `framework-requirement` key must exist and the `app` segment must hold only the application's records. Your `Segment.KeyFor` and the reference now agree by construction; the `ADDED_KEYS` declaration in `parity-compare.py` can go. |
+| **TF-018** | Both halves, and the owner's reading was taken. `what` is amendable, in its own free-text set (`AMENDABLE_TEXT`) rather than as an empty vocabulary inside the closed-vocabulary map — the structural separation your entry argued for, for the same reason. It is validated as non-empty text. The protection was never the vocabulary: an amend may only fill a field that is still `null` and can never overwrite one that is set, so free text can supply a missing fact and not rewrite one. `FIELD_SINCE` gains `"what": "2026-09-07"`. SCHEMA §5.5.7 says so. | `bash .tfcore/utils/tf-emit.sh --amend <miss_id> what "one sentence"` on a record whose `what` is empty → `amended`. The same command on one that already has it → a printed refusal, exit 0, nothing appended. Both are pinned here. |
+
+**On the numbering.** A defect found *here* while verifying these took the label `TF-021` for a few
+hours in our own regression suite, which was wrong: `TF-` numbers belong to your feedback file. It is
+renamed (`guard_reads`), and `TF-021` means your screens entry and nothing else.
+
+**Logged as misses in the framework's own stream**, since a framework defect is exactly as countable as
+an app's: `MISS-TechieFlow-20260909-04` (TF-021) and `-05` (TF-022), both `wrong-behaviour` / `src` /
+major, both sorted `weak-check` — a check existed and was too weak — with
+`why_missed: insufficient-verify-method`. `-01` to `-03` carry TF-013…TF-020 and the guard defect.
+
+### What changes on YOUR side (deploy `update-framework.sh` first — done here 2026-09-09)
+
+Nothing is required to keep TfLens working, and no figure it publishes today becomes wrong. This is
+the pick-up list, in the order it is worth doing.
+
+1. **Two rows you can re-grade immediately.** `REQ-UI-039` and `REQ-UI-034` carry `FAIL` only because
+   a skipped clause was counted as a failing one. Re-run the verifier: `REQ-UI-039` should come back
+   `PASS`, and `REQ-UI-034` `NOT-TESTED` with your own `test.skip` description as its reason. Neither
+   needs a code change in TfLens.
+2. **`tests.json` has three new per-row fields** — `passed`, `failed`, `skipped` (a list of test
+   names) — and the browser block has `skipped`. A row's `result` may now be `NOT-TESTED`, which was
+   never emitted before. Anything that reads that file and assumes `PASS`/`FAIL` needs the third case.
+3. **`screens.json` entries carry `render_wait_ms`**, and anchor entries carry `cx`/`cy`/`cw`/`ch`
+   and `clipped` — the painted rectangle beside the laid-out one. Nothing was removed.
+4. **A NEW RECORD KIND ON `runs.jsonl`: `kind: "run-void"`** (SCHEMA **§2.7**). This is the one that
+   affects your parser and your parity gate, so it is worth reading before the next parity run. The
+   streams are append-only, so a run record written with a wrong figure could never be corrected —
+   this maintainer wrote one on 2026-09-09 with a guessed start time, five hours against a real
+   nineteen minutes. A `run-void` names a run by `cmd` + `started` and carries a `reason`; the
+   reference then excludes the named run from **every** figure and publishes `runs_voided_n`,
+   `runs_voided` (the reasons) and `run_voids_orphaned_n` (voids naming a run that is not on the
+   stream). What TfLens needs, in the shape it already handles `miss-amend`: **dispatch the new kind
+   rather than counting it as an invalid line, exclude the run it names, and publish the three keys.**
+   Nothing is deleted and nothing is edited — both records stay, in order. TechieFlow's own stream
+   holds one such pair today, so a parity run over this repository will see it.
+
+5. **Your status document has been wrong about itself, and the fix is in this deploy.**
+   `tf-status-facts` read only the last line of `docs/.last-verify.json`, which the verifier writes
+   as one pretty-printed object — so it parsed the closing brace and fell back to "never verified".
+   TfLens, 69 of 73 rows Verified with an 86-line ledger, reported `last_verified_build: not-run`
+   and `last_verified_date: never`. After this update it reads the real date and result. Nothing in
+   TfLens caused it and nothing there needs changing.
+6. **A row the verifier cannot measure no longer points at another verify run.** When every row that
+   is built is `NOT-TESTED`, the status line says so and names what it needs — data, a changed
+   acceptance line, or `N/A` — instead of telling you to run `*verify` again for a result that
+   cannot change. `REQ-UI-034` is exactly that row.
+
+**What is NOT fixed, and is not ours to fix.** Nothing in this block touches TfLens's own documents, its
+`DECISIONS.md`, or the 236 document findings in the second half of your decision request. The
+architecture's `MissReview` table sketch — a `bigserial` key with `UserId` as text and `Ts` as
+`timestamptz`, against four sibling tables with no surrogate key, an integer `UserId` and a text `Ts` —
+is specification territory and belongs to `*amend-docs` in your window, not to a framework session.
+
+---
+
 ## Resolution status (TechieFlow team, 2026-08-31)
 
 **All seven open entries are FIXED upstream — `TF-005`, `TF-007`, `TF-008`, `TF-009`, `TF-010`, `TF-011`, `TF-012`.**
