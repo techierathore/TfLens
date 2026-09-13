@@ -661,11 +661,16 @@ erDiagram
     string SourceSha
     string Ts
     string ReviewPhase
-    int Corrections
     string ProducedRunId
     string CorrectionRunId
-    int ProducedCostTokens
-    int CorrectionCostTokens
+    int Corrections
+    string What
+    int TokensProduce
+    real CostProduceUsd
+    string ModelProduce
+    int TokensCorrect
+    real CostCorrectUsd
+    string ModelCorrect
     string Overflow
   }
   PbEvent {
@@ -799,18 +804,28 @@ ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "What" text NULL;   -- one sentence 
 
 -- the fourth record kind (BRD-174, BRD-175). Costs are COPIED from the record, never computed here.
 CREATE TABLE IF NOT EXISTS "MissReview" (
-  "Id"                bigserial PRIMARY KEY,
-  "UserId"            text        NOT NULL,
-  "Repo"              text        NOT NULL,
-  "ReviewPhase"       text        NOT NULL,   -- day1-review | build-review | verify-review | handoff-review
-  "Corrections"       integer     NULL,
-  "ProducedRunId"     text        NULL,       -- the run whose output was reviewed
-  "CorrectionRunId"   text        NULL,       -- the run that applied the corrections
-  "ProducedCostTokens"    bigint  NULL,       -- NULL = not available; never 0
-  "CorrectionCostTokens"  bigint  NULL,
-  "V" integer, "App" text, "ProjectType" text, "ProjectTypeInferred" boolean,
-  "Backfilled" boolean, "Harness" text, "Ts" timestamptz NOT NULL,
-  "SourceSha" text NOT NULL, "Overflow" jsonb
+  "UserId"              integer NOT NULL,
+  "Repo"                text    NOT NULL,
+  "SourceSha"           text    NOT NULL,
+  "V"                   integer NOT NULL DEFAULT 1,
+  "Ts"                  text    NOT NULL,
+  "App"                 text    NULL,
+  "ProjectType"         text    NULL,
+  "ProjectTypeInferred" boolean NULL,
+  "Backfilled"          boolean NULL,
+  "Harness"             text    NULL,
+  "ReviewPhase"         text    NOT NULL,   -- day1-review | build-review | verify-review | handoff-review
+  "ProducedRunId"       text    NULL,       -- the run whose output was reviewed
+  "CorrectionRunId"     text    NULL,       -- the run that applied the corrections; NULL when applied by hand
+  "Corrections"         integer NULL,
+  "What"                text    NULL,       -- one sentence in the owner's words
+  "TokensProduce"       integer NULL,       -- NULL = not available; never 0
+  "CostProduceUsd"      numeric NULL,       -- never summed across harnesses
+  "ModelProduce"        text    NULL,
+  "TokensCorrect"       integer NULL,
+  "CostCorrectUsd"      numeric NULL,
+  "ModelCorrect"        text    NULL,
+  "Overflow"            jsonb   NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunId"
   ON "MissReview" ("UserId","Repo","ReviewPhase",COALESCE("ProducedRunId",''));
@@ -818,7 +833,9 @@ CREATE INDEX IF NOT EXISTS "IxMissReviewUserRepo" ON "MissReview" ("UserId","Rep
 CREATE INDEX IF NOT EXISTS "IxMissReviewPhase"    ON "MissReview" ("UserId","ReviewPhase");
 ```
 
-Two things in that block are deliberate. The unique key **coalesces `ProducedRunId`**, for exactly the reason the `MissFix` correction of 2026-08-28 records: a nullable column in a PostgreSQL unique index never collides with itself, so without the `COALESCE` the dedupe rule would permit unlimited duplicates of the records it exists to collapse — the lesson applied before it bites rather than after. And the two cost columns are **nullable with no default**: a review whose cost the emitter could not copy is *not available*, and a `NOT NULL DEFAULT 0` would manufacture the free-documents figure BRD-175 exists to prevent.
+Two things in that block are deliberate. The unique key **coalesces `ProducedRunId`**, for exactly the reason the `MissFix` correction of 2026-08-28 records: a nullable column in a PostgreSQL unique index never collides with itself, so without the `COALESCE` the dedupe rule would permit unlimited duplicates of the records it exists to collapse — the lesson applied before it bites rather than after. And the cost columns — tokens and dollars for the run that produced the reviewed output and for the run that corrected it — are **nullable with no default**: a review whose cost the emitter could not copy is *not available*, and a `NOT NULL DEFAULT 0` would manufacture the free-documents figure BRD-175 exists to prevent.
+
+*Corrected 2026-09-11 (owner decision 2, option B), against `database/001-schema.sql` as built.* As first written, this block gave `MissReview` a `bigserial` surrogate key, a text `UserId`, a `timestamptz` `Ts` and two token-only cost columns (`ProducedCostTokens`, `CorrectionCostTokens`). No sibling table has a surrogate key, every one of them carries an integer `UserId` and a text `Ts`, and the code follows them. The block and the ER box above now show the table as built: no surrogate key, the common record fields in the siblings' order, the `What` sentence, and two cost groups — tokens, dollars and model for the producing run and for the correcting run — stored as the emitter copied them. The unique key and the two read-path indexes were already right and are unchanged.
 
 *Corrected 2026-08-28 during the F-MISS build, against the code as built.* Three things in the block above were wrong when first written and are recorded here rather than left to diverge:
 

@@ -21,8 +21,12 @@
 <header class="tflens-header flex min-h-16 flex-wrap items-center gap-3 border-b bg-background px-4 py-2" data-testid="app-header">
     <SidebarTrigger data-testid="sidebar-trigger" />
 
+    @* TR-027, closed on 2.1.0-ci.10: `Breadcrumb` forwards `ListClass` onto its own `<ol>` through
+       `cn`, and the sheet ships the `lg:` variants, so the desktop "one line, 4px between the words"
+       rule is stated where it is read instead of as a `::deep` override. Below 64rem the trail is
+       free to wrap, which is the phone behaviour REQ-UI-010 wants. *@
     <div class="tflens-header-crumb">
-        <Breadcrumb>
+        <Breadcrumb ListClass="lg:flex-nowrap lg:gap-x-1">
             <BreadcrumbList>
                 <BreadcrumbItem>
                     <span class="text-muted-foreground">@Section</span>

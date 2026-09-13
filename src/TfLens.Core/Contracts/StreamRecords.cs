@@ -441,6 +441,58 @@ public sealed record RunRecord
     /// </remarks>
     public IReadOnlyDictionary<string, long>? ModelTokensOut { get; init; }
 
+    /// <summary>
+    /// How the models in this window were paid for (SCHEMA.md §2.5b, added 2026-09-10) —
+    /// <c>subscription</c>, <c>metered</c>, <c>plan</c>, <c>local</c>, <c>mixed</c> or <c>unknown</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is what stops a reader mistaking a meter, a flat fee and an invoice for one another. Only
+    /// <c>metered</c> records carry money that was actually billed; a subscription's marginal cost is a
+    /// true zero, a plan's dollars are <b>allowance consumed</b> against a per-model limit, and a
+    /// <c>mixed</c> window was really billed for a part that cannot be separated from the part a
+    /// subscription had already paid for. A record written before 2026-09-10 carries <c>null</c>, which
+    /// is <i>not recorded</i> and never one of the six values.
+    /// </remarks>
+    public string? BillingMode { get; init; }
+
+    /// <summary>
+    /// The record kind — <c>null</c> or <c>run</c> for a run, <c>run-void</c> for a correction
+    /// (SCHEMA.md §2.7, added 2026-09-09).
+    /// </summary>
+    /// <remarks>
+    /// The runs stream is append-only, so a run recorded with a wrong figure can be neither edited nor
+    /// deleted. The correction is a second record naming the bad one by <c>cmd</c> + <c>started</c>.
+    /// Storing the kind is what lets a reader tell the two apart; without it a void is counted as a run
+    /// and the run it voids stays in every figure.
+    /// </remarks>
+    public string? Kind { get; init; }
+
+    /// <summary>
+    /// Which non-blank line of <c>runs.jsonl</c> this record came from, counting from one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Identity, not decoration.</b> A run used to be identified by <c>(ts, app, cmd)</c>, which is
+    /// not unique: two <c>log-miss</c> runs in the same second collapse into one, and so do two
+    /// <c>run-void</c> records written in the same second naming different runs — which silently
+    /// un-voids a run. The stream is append-only (SCHEMA.md §3), so line <i>n</i> is always the same
+    /// record: including the ordinal keeps re-parsing the same file a no-op (BRD-28) while letting two
+    /// byte-identical records both survive, as the reference counts them.
+    /// </para>
+    /// <para>
+    /// <c>null</c> on a row written before this column existed, which the identity index treats as its
+    /// own value so those rows keep the behaviour they were stored under.
+    /// </para>
+    /// </remarks>
+    public int? SourceLineNo { get; init; }
+
+    /// <summary>Why a <c>run-void</c> record says its run should not be counted; free text, required on a void.</summary>
+    /// <remarks>
+    /// The reason is the protection: it is on the record and a reader can check it, which is what stops
+    /// a void being used to remove a run whose figures are merely unflattering.
+    /// </remarks>
+    public string? VoidReason { get; init; }
+
     /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
     public string? Overflow { get; init; }
 
@@ -456,6 +508,20 @@ public sealed record RunRecord
     /// arrives from the store always carries <c>null</c> here.
     /// </remarks>
     public string? DurationDerivedFrom { get; init; }
+
+    /// <summary>
+    /// What the <b>read-time</b> duration rule did to this record's <see cref="DurationS"/> —
+    /// <c>recomputed</c>, <c>impossible</c> or <c>absent</c> — and <c>null</c> when a usable duration
+    /// was read as stored or from timestamps that agreed with it (REQ-FN-112, BRD-190 to BRD-192).
+    /// </summary>
+    /// <remarks>
+    /// Like <see cref="DurationDerivedFrom"/>, <b>never parsed from the wire and never stored</b>: it is
+    /// set only by <c>RunDuration.Derive</c> on the copy a read hands to the engine, so the four
+    /// page-level duration counts can also be stated per command phase — a stored figure the timestamps
+    /// overrode is otherwise invisible once the override has happened, because the corrected record no
+    /// longer carries the number it replaced.
+    /// </remarks>
+    public string? DurationQuality { get; init; }
 }
 
 /// <summary>
@@ -948,6 +1014,18 @@ public sealed record MissFixRecord
 
     /// <summary>Model that ran the fix.</summary>
     public string? Model { get; init; }
+
+    /// <summary>
+    /// How this repair's models were paid for (SCHEMA.md §2.5b) — only <c>metered</c> dollars are money.
+    /// </summary>
+    /// <remarks>
+    /// A repair run on a flat monthly fee reports a <c>cost_usd</c> of zero, which is true of its
+    /// marginal cost and false of the money. Counting it as measured spend would drag a dollars-per-miss
+    /// mean toward zero and make repairs look almost free, so it is excluded and counted apart in
+    /// <c>cost_usd_excluded_not_money_n</c>. <c>null</c> means the record predates the field and is
+    /// admitted on its old terms.
+    /// </remarks>
+    public string? BillingMode { get; init; }
 
     /// <summary>
     /// The Playbook's immutable source-line hash; <c>null</c> on every TechieFlow row (REQ-FN-103).

@@ -318,6 +318,17 @@ public sealed class TfLensOptions
 
     /// <summary>Path of the record of the last parity run.</summary>
     public string ParityLastPath => Path.Combine(DataRoot, "parity-last.json");
+
+    /// <summary>
+    /// Path of the price-provider book — where each rate came from, and how it is kept current.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a second file rather than a block inside <see cref="PricesPath"/>. That one is the
+    /// flat, effective card every figure is priced from and the parity gate reads figures built on it;
+    /// this one is the editable provenance behind it. Applying a change here rewrites that card, so
+    /// there is one answer to what a model costs and a visible record of where it came from.
+    /// </remarks>
+    public string PriceProvidersPath => Path.Combine(DataRoot, "price-providers.json");
 }
 
 /// <summary>

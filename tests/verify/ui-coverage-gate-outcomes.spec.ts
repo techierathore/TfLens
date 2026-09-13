@@ -138,6 +138,34 @@ test('REQ-UI-014 Coverage landing page states a verdict, four KPIs, and one card
     const t = await tableCheck(page, `repo-streams-${name}`);
     expect(t.verdict, `repo-streams-${name} -> ${t.detail}`).toBe('RENDERS');
 
+    // TR-025 — the cell density is the grid's own `Density="DataTableDensity.Compact"`, not a page
+    // rule reaching into th/td. Coverage.razor.css is GONE, so a 16px gutter here would mean the
+    // Compact class never arrived and the five-column table no longer fits its card: `Newest` would
+    // wrap at its own hyphens ("2026-" / "08-" / "28"), which is the BRD-144 defect this buys off.
+    const density = await page.evaluate(id => {
+      const table = document.querySelector(`[data-testid="${id}"]`);
+      const th = table?.querySelector('thead th');
+      const td = table?.querySelector('tbody td');
+      const read = (el: Element | null | undefined) =>
+        el ? { left: getComputedStyle(el).paddingLeft, right: getComputedStyle(el).paddingRight } : null;
+      return { th: read(th), td: read(td) };
+    }, `repo-streams-${name}`);
+    console.log(`BRANCH: TR-025 ${name} density = ${JSON.stringify(density)}`);
+    expect(density.td?.left, `${name}: body cells carry the Compact 10px gutter`).toBe('10px');
+    expect(density.td?.right, `${name}: body cells carry the Compact 10px gutter`).toBe('10px');
+
+    // And the date really is one unbroken line, which is what the width was bought for.
+    const wrapped = await page.evaluate(
+      id =>
+        Array.from(
+          document.querySelectorAll(`[data-testid="${id}"] tbody tr td:nth-child(4) span span`),
+        )
+          .map(e => ({ text: (e.textContent || '').trim(), lines: e.getClientRects().length }))
+          .filter(x => x.lines > 1),
+      `repo-streams-${name}`,
+    );
+    expect(wrapped, `${name}: a Newest date broke over more than one line`).toEqual([]);
+
     // First column = stream label. Collect them for the framework-stream check.
     const labels = await page.$$eval(
       `[data-testid="repo-streams-${name}"] tbody tr td:first-child`,
@@ -435,6 +463,20 @@ test('REQ-UI-020 Gate catch distribution renders the whole gate order with its c
 }) => {
   await gotoScreen(page, '/gate-outcomes');
   await (await testid(page, 'type-tabs')).waitFor({ state: 'attached', timeout: 20_000 });
+
+  // GUARD FIRST. TfLens has served `TfLens.<hash>.styles.css` as ZERO bytes under gzip while several
+  // builds shared one obj/, and on such a run every scoped rule is silently absent. The row count
+  // asserted below is a DOM fact and survives that, but the share bars are not: `.tflens-share-bar`
+  // is declared only in GateOutcomes.razor.css. Prove the sheet arrived rather than read a page that
+  // has no scoped CSS at all.
+  const scopedWidth = await page.evaluate(() => {
+    const bar = document.querySelector('.tflens-share-bar');
+    return bar ? getComputedStyle(bar).width : null;
+  });
+  if (scopedWidth !== null) {
+    expect(scopedWidth, 'scoped CSS is live (TF-043): .tflens-share-bar is 6.5rem wide').toBe('104px');
+  }
+
   const types = await suffixes(page, 'type-tab-');
   expect(types.length).toBeGreaterThan(0);
 

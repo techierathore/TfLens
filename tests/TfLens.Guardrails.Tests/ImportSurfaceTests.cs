@@ -33,7 +33,7 @@ public sealed class ImportSurfaceTests
     /// <summary>
     /// Every mapped route either requires authorization or is on the closed anonymous list.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — every mapped route either requires sign-in or is on the closed anonymous list, so no unlisted inbound route exists")]
     public void EveryMappedRouteIsAuthorizedOrExplicitlyAnonymous()
     {
         var vAnonymous = AnonymousRouteLiterals();
@@ -87,7 +87,7 @@ public sealed class ImportSurfaceTests
     /// A route that took a user id would be a route another account could be reached through; the
     /// isolation has to be the shape of the endpoint, not a check somebody remembered (ADR-013).
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the two import routes the /repos upload posts to require sign-in, allow no anonymous caller and take no user id")]
     public void TheImportRoutesAreAuthenticatedAndTakeNoUserId()
     {
         var vEndpoints = File.ReadAllText(ImportEndpointsPath);
@@ -108,7 +108,7 @@ public sealed class ImportSurfaceTests
     /// human signing in and choosing a file. Nothing pushes into TfLens, and no endpoint accepts an
     /// unauthenticated post.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — no route anywhere names an ingest, capture, webhook or telemetry-push surface, so the upload is the only inbound path")]
     public void NoRouteNamesAMachineToMachineIngestSurface()
     {
         var vFindings = new List<string>();

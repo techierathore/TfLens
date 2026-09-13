@@ -106,25 +106,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Business Requirements — Phase 2: Reports</h1>
-    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-P2-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-P2-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
         <li><a href="#summary">1. Summary</a></li>
-        <li><a href="#development-status">2. Development status</a></li>
-        <li><a href="#screens-and-flow">3. Screens and flow</a></li>
-        <li><a href="#feature-catalog">4. Feature catalog</a></li>
-        <li class="h3"><a href="#f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules</a></li>
-        <li class="h3"><a href="#f-cover-coverage-health-page">F-COVER: Coverage / health page</a></li>
-        <li class="h3"><a href="#f-3q-gate-outcomes-page">F-3Q: Gate outcomes page</a></li>
-        <li class="h3"><a href="#f-harn-harness-comparison-page">F-HARN: Harness comparison page</a></li>
-        <li class="h3"><a href="#f-route-routing-and-economics-page">F-ROUTE: Routing and economics page</a></li>
-        <li class="h3"><a href="#f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export</a></li>
-        <li class="h3"><a href="#f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh</a></li>
-        <li><a href="#requirements">5. Requirements</a></li>
+        <li><a href="#screens-and-flow">2. Screens and flow</a></li>
+        <li><a href="#requirements">3. Requirements</a></li>
         <li class="h3"><a href="#amendment-2026-08-29-two-gates-the-product-was-relying-on-and-had-never-written-down">Amendment 2026-08-29 — two gates the product was relying on and had never written down</a></li>
-        <li><a href="#where-the-rest-lives">6. Where the rest lives</a></li>
+        <li><a href="#development-status">4. Development status</a></li>
+        <li><a href="#where-the-rest-lives">5. Where the rest lives</a></li>
       </ol>
     </div>
 <table>
@@ -141,7 +133,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </table>
 <p><strong>Phase 2 of 3 — engine, the four report pages, export, parity.</strong> Requirement ids: <strong>BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143</strong>. Ids run on across the three phases and are never reused or renumbered.</p>
 <p>Other phases: <a href="./TfLens-BRD.md">Phase 1 — Foundation</a> · <a href="./TfLens-P3-BRD.md">Phase 3 — Depth</a> · The map is <a href="./TfLens-Phases.md">TfLens-Phases.md</a>.</p>
-<p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens, its features and its requirements.</p>
+<p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens and its requirements.</p>
 <h2 id="summary">1. Summary<a class="anchor-link" href="#summary">#</a></h2>
 <p>TfLens reads the telemetry the frameworks already emit and turns it into figures. Phase 1 got the
 records into the store; <strong>this phase is where they become numbers, and therefore where a wrong number
@@ -152,204 +144,18 @@ that is the licence to quote any of it.</p>
 exported and cannot be defended. Every provenance rule in SCHEMA.md §6 is enforced here, in the shape
 of the result types rather than as a check someone remembers to run, and the parity diff against
 <code>tf-metrics.sh</code> is the acceptance gate.</p>
-<h2 id="development-status">2. Development status<a class="anchor-link" href="#development-status">#</a></h2>
-<p>Written by the status gate after every build, verify and handoff; not by hand.</p>
-<p><strong>Snapshot as of 2026-09-08.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P2-Checklist.md</code>.</p>
+<h2 id="screens-and-flow">2. Screens and flow<a class="anchor-link" href="#screens-and-flow">#</a></h2>
 <table>
-<thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
+<thead><tr><th>Screen</th><th>Route</th><th>Role</th><th>What it answers</th><th>Fields</th><th>Feature</th><th>Requirements</th><th>Mockup</th></tr></thead>
 <tbody>
-<tr><td>UI / Pages</td><td>20</td><td>18</td><td>2</td><td>Partial</td></tr>
-<tr><td>Functional requirements</td><td>20</td><td>19</td><td>1</td><td>Partial</td></tr>
-<tr><td>Non-functional</td><td>4</td><td>3</td><td>1</td><td>Partial</td></tr>
+<tr><td>Coverage / health</td><td><code>/</code></td><td>Owner</td><td><strong>Is the telemetry itself trustworthy right now?</strong> Per repo: whether a clone has stopped pushing, whether hooks are missing, which streams carry records and how fresh they are. It is the <strong>landing page on purpose</strong> — <em>every other number on this site is suspect until this page is green</em> — and it is where amendment, orphan and provenance diagnostics surface instead of being silently applied. <strong>GREEN</strong> means every repo synced, nothing stale and no errors. The stale-clone warning names its fix — run <code>update-framework.sh</code> on that clone — because the hook lives in <code>.git/</code>, which never clones; the 7-day threshold is configurable. Beside the unknown-fields list it shows how many <code>duration_s</code> and <code>attempt</code> values the reader derived rather than read, because a derived figure is legitimate and must still be visible as derived. Sync now and Rebuild refresh the page in place.</td><td>Summary badge; per-repo cards or grid (kind, last sync and outcome, short SHA linked to GitHub); five-row stream staleness table; unknown fields <strong>and unrecognised values in an open vocabulary — shown, never filtered away</strong>; escapes-missing-why + reclassification-split + orphan facts; <strong><code>sort</code>-missing and <code>what</code>-missing counts against eligible misses</strong>; <strong>derived-<code>duration_s</code> and derived-<code>attempt</code> counts</strong>; Rebuild button; Framework switch</td><td>F-COVER, F-RAW</td><td><a href="#brd-21">BRD‑21</a> · <a href="#brd-39">BRD‑39</a> · <a href="#brd-40">BRD‑40</a> · <a href="#brd-41">BRD‑41</a> · <a href="#brd-42">BRD‑42</a> · <a href="#brd-43">BRD‑43</a> · <a href="#brd-44">BRD‑44</a> · <a href="#brd-127">BRD‑127</a> · <a href="#brd-181">BRD‑181</a></td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
+<tr><td>Gate outcomes</td><td><code>/gate-outcomes</code></td><td>Owner, Author</td><td><strong>The headline page — and the name is a direct reference, not a slogan.</strong> It renders <em>the three questions the telemetry schema exists to answer</em> (<code>.tfcore/telemetry/SCHEMA.md</code> §0), per <code>project_type</code>: <strong>(1) first-pass rate</strong> — what fraction of REQs reach <code>Verified</code> on attempt 1; <strong>(2) gate catch distribution</strong> — of all failures, which gate caught them; <strong>(3) escape rate</strong> — what fraction of defects reached UAT or production instead of being caught by a gate. Live and backfilled figures sit side by side and are <strong>never summed</strong>; there is no “all types” tab and no total row, by design. See <a href="./TfLens-BRD.md#the-gate-outcomes">the phase-1 note</a>. Renamed from “Three questions” (<code>/three-questions</code>) on 2026-09-01 by owner ruling; the feature keeps the id F-3Q. It is the evidence base for B3 (phase 1 BRD §2). Under each type it states the records, the REQs scored and the REQs excluded by backfill taint, with the excluded ids in a collapsible panel. Every figure on this page, and on every report page, comes from one metrics engine, a field-for-field port of <code>analyse()</code> in <code>tf-metrics.sh</code>: it reads each repo's streams, dedupes commits per repo, and returns one result with the same key layout as <code>--rollup --json</code>, kept in memory until the next sync or rebuild. That result holds a live and a backfilled block per project type and no total, so a pooled figure has nowhere to go; a REQ excluded by taint restarts its live <code>attempt</code> at 1.</td><td>One section (or tab) per project_type; live column + labelled backfilled column; taint list; late-gate coverage; Framework switch</td><td>F-3Q, F-ENGINE</td><td><a href="#brd-45">BRD‑45</a> · <a href="#brd-46">BRD‑46</a> · <a href="#brd-47">BRD‑47</a> · <a href="#brd-48">BRD‑48</a> · <a href="#brd-49">BRD‑49</a> · <a href="#brd-50">BRD‑50</a></td><td><a href="./mockups/gate-outcomes.html">gate-outcomes.html</a> · Playbook state: <a href="./mockups/gate-outcomes-playbook.html">gate-outcomes-playbook.html</a></td></tr>
+<tr><td>Harness comparison</td><td><code>/harness</code></td><td>Owner, Author</td><td><strong>Does the framework behave the same whichever tool runs it?</strong> One column per harness (<code>claude-code</code> · <code>opencode</code> · <code>codex</code>): run volumes by command, verdict mix, session counts, token totals. Tokens may be compared across harnesses; <strong>dollars may not</strong> — only OpenCode reports measured cost, and the page never shows a dollar total across harnesses. Per column the token totals are split into input, output, cache read and cache write, taken from both the runs' token fields and <code>sessions</code>. Codex, like Claude Code, reads “not measured (null by design)”. Below the columns, one bar chart of tokens by harness.</td><td>Columns claude-code · opencode · codex; “not detected” footnote; tokens chart; OpenCode-only cost card; Framework switch</td><td>F-HARN</td><td><a href="#brd-51">BRD‑51</a> · <a href="#brd-52">BRD‑52</a> · <a href="#brd-53">BRD‑53</a> · <a href="#brd-54">BRD‑54</a> · <a href="#brd-55">BRD‑55</a></td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
+<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td>Owner, Author</td><td><strong>Carries the Edit-prices dialog. Did runs land on the model they were routed to, and what would the mix have cost?</strong> Routing drift (declared <code>tier</code>/<code>tier_model</code> vs the model actually observed), tokens by model, and the counterfactual repricing — everything repriced as if every run had used the most expensive model observed — always labelled <strong>estimate — tokens × rate card, not measured spend</strong>. The poolable metrics follow SCHEMA.md §8 and the reference script's rounding: whole percentages, REQ throughput to 2 decimal places, tokens per Verified REQ to 1.</td><td>Drift table; tokens-by-model chart; repricing cards (estimate); poolable metrics; prices editor dialog; Framework switch</td><td>F-ROUTE</td><td><a href="#brd-56">BRD‑56</a> · <a href="#brd-57">BRD‑57</a> · <a href="#brd-58">BRD‑58</a> · <a href="#brd-59">BRD‑59</a> · <a href="#brd-60">BRD‑60</a> · <a href="#brd-61">BRD‑61</a> · <a href="#brd-62">BRD‑62</a></td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
+<tr><td>Snapshot export</td><td><code>/export</code></td><td>Author, Parity operator</td><td><strong>Turn the figures into something quotable.</strong> Writes a dated markdown + JSON snapshot and marks it <strong>QUOTABLE</strong> only while parity against <code>tf-metrics.sh</code> still holds and no row carries provenance nobody obtained — because the dangerous failure of this product is not a crash, it is a plausible wrong number that gets published and cannot be defended. <code>snapshot.md</code> is sectioned exactly like the pages. In <code>tflens.json</code> the <code>extras</code> object carries harness, routing and repricing, and the <code>parity</code> object the last recorded parity run. The parity comparison works key by key, not as a text diff, because key order and formatting may differ between the two files.</td><td>Export button; list of past snapshots; quotable banner; parity status; Framework switch (one snapshot per framework)</td><td>F-EXPORT, F-PARITY</td><td><a href="#brd-63">BRD‑63</a> · <a href="#brd-64">BRD‑64</a> · <a href="#brd-65">BRD‑65</a> · <a href="#brd-66">BRD‑66</a> · <a href="#brd-67">BRD‑67</a> · <a href="#brd-70">BRD‑70</a></td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
 </tbody>
 </table>
-<h2 id="screens-and-flow">3. Screens and flow<a class="anchor-link" href="#screens-and-flow">#</a></h2>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>What it answers</th><th>Feature</th><th>Requirements</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Coverage / health</td><td><code>/</code></td><td><strong>Is the telemetry itself trustworthy right now?</strong> Per repo: whether a clone has stopped pushing, whether hooks are missing, which streams carry records and how fresh they are. It is the <strong>landing page on purpose</strong> — <em>every other number on this site is suspect until this page is green</em> — and it is where amendment, orphan and provenance diagnostics surface instead of being silently applied.</td><td>F-COVER, F-RAW</td><td><a href="#brd-21">BRD‑21</a> · <a href="#brd-39">BRD‑39</a> · <a href="#brd-40">BRD‑40</a> · <a href="#brd-41">BRD‑41</a> · <a href="#brd-42">BRD‑42</a> · <a href="#brd-43">BRD‑43</a> · <a href="#brd-44">BRD‑44</a> · <a href="#brd-127">BRD‑127</a> · <a href="#brd-181">BRD‑181</a></td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
-<tr><td>Gate outcomes</td><td><code>/gate-outcomes</code></td><td><strong>The headline page — and the name is a direct reference, not a slogan.</strong> It renders <em>the three questions the telemetry schema exists to answer</em> (<code>.tfcore/telemetry/SCHEMA.md</code> §0), per <code>project_type</code>: <strong>(1) first-pass rate</strong> — what fraction of REQs reach <code>Verified</code> on attempt 1; <strong>(2) gate catch distribution</strong> — of all failures, which gate caught them; <strong>(3) escape rate</strong> — what fraction of defects reached UAT or production instead of being caught by a gate. Live and backfilled figures sit side by side and are <strong>never summed</strong>; there is no “all types” tab and no total row, by design. See the callout below.</td><td>F-3Q, F-ENGINE</td><td><a href="#brd-45">BRD‑45</a> · <a href="#brd-46">BRD‑46</a> · <a href="#brd-47">BRD‑47</a> · <a href="#brd-48">BRD‑48</a> · <a href="#brd-49">BRD‑49</a> · <a href="#brd-50">BRD‑50</a></td><td><a href="./mockups/gate-outcomes.html">gate-outcomes.html</a> · Playbook state: <a href="./mockups/gate-outcomes-playbook.html">gate-outcomes-playbook.html</a></td></tr>
-<tr><td>Harness comparison</td><td><code>/harness</code></td><td><strong>Does the framework behave the same whichever tool runs it?</strong> One column per harness (<code>claude-code</code> · <code>opencode</code> · <code>codex</code>): run volumes by command, verdict mix, session counts, token totals. Tokens may be compared across harnesses; <strong>dollars may not</strong> — only OpenCode reports measured cost, and the page never shows a dollar total across harnesses.</td><td>F-HARN</td><td><a href="#brd-51">BRD‑51</a> · <a href="#brd-52">BRD‑52</a> · <a href="#brd-53">BRD‑53</a> · <a href="#brd-54">BRD‑54</a> · <a href="#brd-55">BRD‑55</a></td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
-<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td><strong>Carries the Edit-prices dialog. Did runs land on the model they were routed to, and what would the mix have cost?</strong> Routing drift (declared <code>tier</code>/<code>tier_model</code> vs the model actually observed), tokens by model, and the counterfactual repricing — everything repriced as if every run had used the most expensive model observed — always labelled <strong>estimate — tokens × rate card, not measured spend</strong>.</td><td>F-ROUTE</td><td><a href="#brd-56">BRD‑56</a> · <a href="#brd-57">BRD‑57</a> · <a href="#brd-58">BRD‑58</a> · <a href="#brd-59">BRD‑59</a> · <a href="#brd-60">BRD‑60</a> · <a href="#brd-61">BRD‑61</a> · <a href="#brd-62">BRD‑62</a></td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
-<tr><td>Snapshot export</td><td><code>/export</code></td><td><strong>Turn the figures into something quotable.</strong> Writes a dated markdown + JSON snapshot and marks it <strong>QUOTABLE</strong> only while parity against <code>tf-metrics.sh</code> still holds and no row carries provenance nobody obtained — because the dangerous failure of this product is not a crash, it is a plausible wrong number that gets published and cannot be defended.</td><td>F-EXPORT, F-PARITY</td><td><a href="#brd-63">BRD‑63</a> · <a href="#brd-64">BRD‑64</a> · <a href="#brd-65">BRD‑65</a> · <a href="#brd-66">BRD‑66</a> · <a href="#brd-67">BRD‑67</a> · <a href="#brd-70">BRD‑70</a></td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
-</tbody>
-</table>
-<h2 id="feature-catalog">4. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
-<h3 id="f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules<a class="anchor-link" href="#f-engine-metrics-engine-with-provenance-rules">#</a></h3>
-<p><strong>Personas:</strong> Owner (indirectly — every page), Parity operator · <strong>Phase:</strong> 2</p>
-<p>The engine is a field-for-field port of <code>analyse()</code> in <code>.tfcore/telemetry/tf-metrics.sh</code>, the trusted reference. All figures are computed at request time from the stream tables; nothing derived is ever written back into a stream table. The SCHEMA.md §6 provenance rules are enforced by the shape of the result, not by a flag:</p>
-<ul>
-<li><strong>Live and backfilled never pool.</strong> The result has <code>Live[projectType]</code> and <code>Backfilled[projectType]</code>; there is no <code>Total</code>.
-</li>
-<li><strong>First-pass rate, gate catch distribution and escape rate never pool across <code>project_type</code>.</strong> Records with <code>project_type_inferred: true</code> are segmented as <strong>unclassified</strong>, never silently as <code>app</code>.
-</li>
-<li><strong>Taint exclusion.</strong> Any <code>req_id</code> with even one backfilled record is excluded from the live first-pass rate (its live <code>attempt</code> restarts at 1); the excluded IDs are returned as a list for display.
-</li>
-<li><strong>Minimum n.</strong> Any metric with fewer than 3 supporting records is <code>InsufficientData(n)</code>, a distinct case of the <code>Figure</code> type that a page can only render as text.
-</li>
-<li><strong>Dollars never pool across harness.</strong> <code>Pooled.CostUsd</code> is always <code>null</code> (the reference's contract); real dollars appear only in the harness page for <code>opencode</code>.
-</li>
-<li><strong>Late-added gates</strong> (<code>perf</code>, 2026-08-10) report <code>ran</code> (records whose <code>gates_run</code> contains the gate) and <code>caught</code> side by side; their share of the raw distribution is never presented as a catch rate.
-</li>
-<li>Poolable metrics (rework ratio, batch size median, REQ throughput median in REQs/hour, tokens total, tokens per Verified REQ, commit cadence, duplicates collapsed) follow SCHEMA.md §8 and the reference's rounding (<code>%.0f%%</code>, 2 dp throughput, 1 dp tokens per Verified).
-</li>
-</ul>
-<p>A unit test feeds the checked-in fixture streams to the engine and asserts equality with a <code>reference.json</code> produced by the script on the same fixtures — the parity test in miniature, run on every build.</p>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li><code>Analyse(repos, options)</code> reads streams per repo, dedupes commits per repo.
-</li>
-<li>Segments gates: live vs backfilled → by project type (unclassified for inferred).
-</li>
-<li>Computes taint set → per-segment figures → late-gate coverage → pooled block.
-</li>
-<li>Returns <code>AnalysisResult</code> (same key layout as <code>--rollup --json</code>) — memoised until the next sync/rebuild.
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-30, BRD-31, BRD-32, BRD-33, BRD-34, BRD-35, BRD-36, BRD-37, BRD-38, BRD-116, BRD-117, BRD-146, BRD-147, BRD-148, BRD-155, BRD-156, BRD-158, BRD-161, BRD-166, BRD-168, BRD-169</p>
-<h3 id="f-cover-coverage-health-page">F-COVER: Coverage / health page<a class="anchor-link" href="#f-cover-coverage-health-page">#</a></h3>
-<p><strong>Personas:</strong> Owner · <strong>Phase:</strong> 2</p>
-<p>The first report page (after Repos). For each of the signed-in user's repos it shows: kind, last sync time and outcome, last commit SHA (short, linked to GitHub), record counts per stream, live-vs-backfilled gate counts, and <strong>days since the newest record per stream</strong>. A <strong>fetched</strong> repo whose newest <code>sessions</code> or <code>commits</code> record is stale (older than a configurable threshold, default 7 days) is flagged in words — "this clone isn't pushing or lacks hooks; run <code>update-framework.sh</code> on it" — because the hook lives in <code>.git/</code>, which never clones, and this is the one telemetry gap the owner cannot see by reading the files. An <strong>imported</strong> source is read differently (amended 2026-08-28, BRD-137): staleness counts <strong>days since import</strong>, the message is <em>"this source can't refresh itself — re-import to update"</em>, and the hook diagnosis is not shown, because it would be advice about a clone TfLens cannot see. A snapshot is not unhealthy for being a snapshot. The page also lists, per repo, any fields observed that SCHEMA.md does not document (from the overflow report) and any records with <code>v &gt; 1</code>, and hosts the guarded <strong>Rebuild from raw</strong> button. A single summary badge at the top says <strong>GREEN</strong> (all repos synced, nothing stale, no errors) or <strong>CHECK</strong> with the count of warnings. Every other number on the site is suspect until this page is green.</p>
-<p><em>Amended 2026-09-08.</em> Coverage gains four more data-quality facts, all of them counts and none of them a health failure: how many misses lack <strong><code>sort</code></strong> and how many lack <strong><code>what</code></strong>, each against that repo's <em>eligible</em> misses (the fields began on 2026-09-07, so a repo whose records all predate them is not unhealthy — TfLens's own repository is exactly that case); and how many <strong><code>duration_s</code></strong> and <strong><code>attempt</code></strong> values the reader <strong>derived</strong> rather than read (BRD-179, BRD-180) — a derived figure is legitimate and must still be visible as derived. The unrecognised-value list (BRD-181) sits beside the existing unknown-fields list for the same reason: a value TfLens does not know is a finding to show, never a row to drop.</p>
-<p><em>Amended 2026-08-28 (F-MISS).</em> The per-repo stream table goes from four rows to <strong>five</strong> (<code>misses</code> joins them), and Coverage gains three data-quality facts the miss stream introduces — none of which is a quality figure and none of which belongs on the <code>/misses</code> KPI row: <strong><code>escapes_missing_why</code></strong> (escapes, <code>found_by ∈ {owner, production}</code>, arriving with no <code>why_missed</code> — the most valuable records in the stream arriving incomplete), the <strong><code>project_type</code> reclassification split</strong> (a repo whose stored records carry a <code>project_type</code> its <em>current</em> classification disagrees with, which §6 forbids pooling and which would otherwise render silently as two unrelated projects), and the <strong>orphan counts</strong> (a <code>miss-fix</code> or <code>miss-amend</code> naming no known <code>miss</code>). A repo emitting <code>miss</code> records with no <code>miss-fix</code> records at all is a <strong>warning, not an error</strong> — most likely the fix path is not wired up yet, which is worth saying and not worth failing on.</p>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Coverage / health</td><td><code>/</code></td><td>Summary badge; per-repo cards or grid; five-row stream staleness table; unknown fields <strong>and unrecognised values in an open vocabulary — shown, never filtered away</strong>; escapes-missing-why + reclassification-split + orphan facts; <strong><code>sort</code>-missing and <code>what</code>-missing counts against eligible misses</strong>; <strong>derived-<code>duration_s</code> and derived-<code>attempt</code> counts</strong>; Rebuild button; Framework switch</td><td><a href="./mockups/coverage.html">coverage.html</a> · Playbook state: <a href="./mockups/playbook.html">playbook.html</a></td></tr>
-</tbody>
-</table>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li>Read <code>sync_state</code> + per-stream <code>MAX(ts)</code> per repo + counts + overflow field names.
-</li>
-<li>Compute staleness per stream vs today; apply thresholds; compose warnings.
-</li>
-<li>Render; Sync now / Rebuild refresh in place.
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-39, BRD-40, BRD-41, BRD-42, BRD-43, BRD-44, BRD-127</p>
-<h3 id="f-3q-gate-outcomes-page">F-3Q: Gate outcomes page<a class="anchor-link" href="#f-3q-gate-outcomes-page">#</a></h3>
-<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
-<p><em>(Renamed from <strong>“Three questions”</strong> on 2026-09-01 by owner ruling; route <code>/three-questions</code> → <code>/gate-outcomes</code>. The feature keeps the ID <strong>F-3Q</strong> for traceability — see <a href="#what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions">§9</a>.)</em> This screen renders the three questions <code>.tfcore/telemetry/SCHEMA.md</code> §0 says the telemetry exists to answer. The three are: <strong>(1) first-pass rate</strong> — what fraction of REQs reach <code>Verified</code> on attempt 1; <strong>(2) gate catch distribution</strong> — of all failures, which gate caught them; <strong>(3) escape rate</strong> — what fraction of defects reached UAT or production instead of being caught by a gate. All three come from <code>gates.jsonl</code>, the primary stream, which is why they share one screen. The schema's fourth question (miss attribution and rework cost) is answered on <code>/misses</code> and deliberately not added here.</p>
-<p>The headline page and the B3 evidence base. For each <code>project_type</code> present in the data (<code>app</code>, <code>library</code>, <code>docs</code>, <code>framework</code>, and <code>unclassified</code> for inferred records) it shows the three questions SCHEMA.md §0 exists to answer — <strong>first-pass rate</strong>, <strong>gate catch distribution</strong> (with <code>escaped</code> as its own row, never folded into a gate, and <code>unattributed</code> where a failure carries no gate), and <strong>escape rate</strong> — computed from <strong>live records only</strong>, with the backfilled figures for the same type in an adjacent, clearly labelled column that is never summed with live. Under each type: records, REQs scored, REQs excluded by backfill taint, and the late-gate coverage lines (<code>perf gate: ran on n records, caught k → rate | insufficient data (n=…) | not yet run on this data (gate added 2026-08-10)</code>). The tainted REQ IDs are listed in full in a collapsible panel. Any figure below the minimum n renders as <code>insufficient data (n=…)</code>. There is no "all types" tab and no total row — by design.</p>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Gate outcomes</td><td><code>/gate-outcomes</code></td><td>One section (or tab) per project_type; live column + labelled backfilled column; taint list; late-gate coverage; Framework switch</td><td><a href="./mockups/gate-outcomes.html">gate-outcomes.html</a> · Playbook state: <a href="./mockups/gate-outcomes-playbook.html">gate-outcomes-playbook.html</a></td></tr>
-</tbody>
-</table>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li><code>Analyse()</code> → iterate <code>Live</code> and <code>Backfilled</code> keyed by type.
-</li>
-<li>Render first-pass, escape rate, distribution table (rows in the reference's <code>GATE_ORDER</code>), late-gate coverage.
-</li>
-<li>Render the taint list and the standing note: "figures are deliberately not combined across project_type or provenance (SCHEMA.md §6)".
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-45, BRD-46, BRD-47, BRD-48, BRD-49, BRD-50</p>
-<h3 id="f-harn-harness-comparison-page">F-HARN: Harness comparison page<a class="anchor-link" href="#f-harn-harness-comparison-page">#</a></h3>
-<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
-<p>The portability page — the B1 story rendered as data. Three columns, one per harness the framework detects (SCHEMA.md §1): <strong><code>claude-code</code> · <code>opencode</code> · <code>codex</code></strong> (Codex CLI — amended 2026-08-26; TechieFlow now detects it). Per column: run counts by command, gate records and verdict mix, session counts, token totals (input, output, cache read, cache write, from both <code>runs</code> §2.5 fields and <code>sessions</code>), tokens per verified REQ. <strong>Real <code>cost_usd</code> is shown for OpenCode only</strong>, in its own card labelled "the only measured dollars in the system"; Claude Code and Codex show "not measured (null by design)". Tokens may be compared across harness; dollars may not, and the page never shows a dollar total across harnesses. Records with <code>harness: null</code> get <strong>no column</strong> but are never hidden: a footnote row states "<em>n</em> records with harness not detected — excluded from the columns above" (owner decision 2026-08-26). The page honours the Framework switch (F-FRAMEWORK). This page has no reference in <code>tf-metrics.sh</code>, so it is spot-checked by hand once (F-PARITY).</p>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Harness comparison</td><td><code>/harness</code></td><td>Columns claude-code · opencode · codex; "not detected" footnote; tokens chart; OpenCode-only cost card; Framework switch</td><td><a href="./mockups/harness.html">harness.html</a> · Playbook state: <a href="./mockups/harness-playbook.html">harness-playbook.html</a></td></tr>
-</tbody>
-</table>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li>Group <code>runs</code>, <code>gates</code>, <code>sessions</code> by <code>harness</code>; count the <code>null</code> group separately.
-</li>
-<li>Compute volumes, verdict mix, token totals, tokens per Verified; dollars for <code>opencode</code> only.
-</li>
-<li>Render the three columns + one bar chart (tokens by harness) + the not-detected footnote.
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-51, BRD-52, BRD-53, BRD-54, BRD-55</p>
-<h3 id="f-route-routing-and-economics-page">F-ROUTE: Routing and economics page<a class="anchor-link" href="#f-route-routing-and-economics-page">#</a></h3>
-<p><strong>Personas:</strong> Owner, Author · <strong>Phase:</strong> 2</p>
-<p>Three panels. <strong>Routing drift</strong> uses the §2.5 per-run fields: count and list of <code>routed: false</code> runs, declared <code>tier</code>/<code>tier_model</code> versus observed <code>model</code> (and <code>models</code> when more than one), by command. <strong>Tokens by model</strong> sums run tokens per observed model. <strong>Counterfactual repricing</strong> is the B3 claim basis: total tokens (input, output, cache read, cache write) repriced as if every run had used the most expensive model observed in the data, versus the actual mix, using an editable <code>data/prices.json</code> rate card (per model: input/output/cache-read/cache-write USD per million tokens). The figure is labelled <strong>estimate — tokens × rate card, not measured spend</strong> in the UI and in the export; runs with <code>tokens_scope: none</code> (no tokens captured) are counted and excluded, and stated. The page also carries the poolable metrics per SCHEMA.md §8 — rework ratio, REQ throughput, batch size, commit cadence — straight from the engine. A small editor (dialog) lets the owner edit <code>prices.json</code> in place with validation; the file is the source, the dialog is a convenience.</p>
-<div class="diagram">
-  <div class="dt">
-    <button data-zout title="Zoom out">&minus;</button>
-    <span class="zlabel">100%</span>
-    <button data-zin title="Zoom in">+</button>
-    <button data-fit title="Fit to width">Fit</button>
-    <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">&#9166;</button>
-    <button data-pop title="Open in new tab">&#8599;</button>
-  </div>
-  <pre class="mermaid">flowchart LR
-  A["runs with tokens (scope != none)"] --&gt; B["Σ tokens by model"]
-  B --&gt; C["actual cost estimate = Σ tokens_m × price_m"]
-  P[("data/prices.json")] --&gt; C
-  P --&gt; D["most expensive observed model"]
-  B --&gt; E["counterfactual = Σ all tokens × price_max"]
-  D --&gt; E
-  C --&gt; F["show both, labelled ESTIMATE, with excluded-run count"]
-  E --&gt; F</pre>
-</div>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Routing &amp; economics</td><td><code>/routing</code></td><td>Drift table; tokens-by-model chart; repricing cards (estimate); poolable metrics; prices editor dialog; Framework switch</td><td><a href="./mockups/routing.html">routing.html</a> · Playbook state: <a href="./mockups/routing-playbook.html">routing-playbook.html</a></td></tr>
-</tbody>
-</table>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li>Drift: filter runs with <code>tier_model</code> and <code>model</code>; group by <code>cmd</code>; list <code>routed:false</code>.
-</li>
-<li>Tokens by model: sum §2.5 token fields by <code>model</code>.
-</li>
-<li>Repricing: load <code>prices.json</code>; compute actual-mix and all-at-max; label estimate; show excluded runs.
-</li>
-<li>Poolables: from <code>AnalysisResult.Pooled</code>.
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62</p>
-<h3 id="f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export<a class="anchor-link" href="#f-export-weekly-snapshot-export">#</a></h3>
-<p><strong>Personas:</strong> Author, Parity operator · <strong>Phase:</strong> 2</p>
-<p>A button on <code>/export</code> and a command verb (<code>dotnet TfLens.dll export [--date yyyy-MM-dd]</code>) write two files to <code>data/reports/&lt;date&gt;/</code>: <code>snapshot.md</code> (human-readable, sectioned exactly like the pages, provenance never mixed in one figure, every estimate labelled) and <code>tflens.json</code> (machine-readable; the same key layout as <code>tf-metrics.sh --rollup --json</code> — <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code> — plus an <code>extras</code> object for harness, routing and repricing, and a <code>parity</code> object carrying the last recorded parity run). The page lists previous snapshots with download links and shows a <strong>quotable / not quotable</strong> banner: quotable only if the last parity run on record postdates the last parser change (the build stamps a parser version; the parity record stores the version it validated).</p>
-<table>
-<thead><tr><th>Screen</th><th>Route</th><th>Description</th><th>Mockup</th></tr></thead>
-<tbody>
-<tr><td>Snapshot export</td><td><code>/export</code></td><td>Export button; list of past snapshots; quotable banner; parity status; Framework switch (one snapshot per framework)</td><td><a href="./mockups/export.html">export.html</a> · Playbook state: <a href="./mockups/export-playbook.html">export-playbook.html</a></td></tr>
-</tbody>
-</table>
-<p><strong>Workflow:</strong></p>
-<ol>
-<li>Press Export (or run the verb) → <code>Analyse()</code> + extras → write markdown + JSON → refresh list.
-</li>
-<li>Banner reads <code>data/parity-last.json</code> (written by the parity procedure) and compares parser version.
-</li>
-</ol>
-<p><strong>Requirements:</strong> BRD-63, BRD-64, BRD-65, BRD-66, BRD-67, BRD-128, BRD-160</p>
-<h3 id="f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh<a class="anchor-link" href="#f-parity-parity-check-against-tf-metrics-sh">#</a></h3>
-<p><strong>Personas:</strong> Parity operator · <strong>Phase:</strong> 2</p>
-<p>Two independent implementations now compute the same metrics from the same files: <code>tf-metrics.sh</code> (trusted; the §6 rules live in its code) and TfLens (new, unproven). Correct implementations must agree exactly; any disagreement is by definition a bug in TfLens, and the script is never changed to match the app. TfLens ships the tooling that makes the check cheap: the <code>tflens.json</code> export in the reference's key layout, a <code>tools/parity-compare.py</code> script that compares key-by-key (not a text diff — key order and formatting may differ) and exits non-zero on any mismatch, the <code>sync_state</code> SHAs so the same dataset can be checked out for the script, and a <code>data/parity-last.json</code> + DECISIONS.md entry that records each passing run (date, dataset SHAs, script hash, compare output). The full procedure and the zero-tolerance rule are in §13; the metrics the script does not compute (harness, routing, repricing) have no oracle and are spot-checked by hand against raw JSONL once, recorded the same way.</p>
-<div class="diagram">
-  <div class="dt">
-    <button data-zout title="Zoom out">&minus;</button>
-    <span class="zlabel">100%</span>
-    <button data-zin title="Zoom in">+</button>
-    <button data-fit title="Fit to width">Fit</button>
-    <button data-one title="Actual size">1:1</button>
-    <button data-fs title="Fullscreen">&#9166;</button>
-    <button data-pop title="Open in new tab">&#8599;</button>
-  </div>
-  <pre class="mermaid">flowchart LR
-  A["sync_state SHAs"] --&gt; B["clone repos at those SHAs"]
-  B --&gt; C["tf-metrics.sh --rollup ... --json &gt; reference.json"]
-  D["TfLens export verb"] --&gt; E["tflens.json"]
-  C --&gt; F["tools/parity-compare.py reference.json tflens.json"]
-  E --&gt; F
-  F --&gt;|"empty diff, exit 0"| G["record in DECISIONS.md + data/parity-last.json"]
-  F --&gt;|"any diff"| H["bug in TfLens: fix parser/engine, re-run"]</pre>
-</div>
-<p><strong>Workflow:</strong> see §13 (mandatory acceptance test).</p>
-<p><strong>Requirements:</strong> BRD-68, BRD-69, BRD-70, BRD-71, BRD-72, BRD-129, BRD-143, BRD-152</p>
-<h2 id="requirements">5. Requirements<a class="anchor-link" href="#requirements">#</a></h2>
+<h2 id="requirements">3. Requirements<a class="anchor-link" href="#requirements">#</a></h2>
 <ul>
 <li><a id="brd-21"></a><strong>BRD-21</strong> — Owner can trigger the same rebuild from the Coverage page behind a confirmation dialog. <em>(F-RAW)</em>
 </li>
@@ -456,7 +262,18 @@ of the result types rather than as a check someone remembers to run, and the par
 <li><a id="brd-89"></a><strong>BRD-89</strong> — Integrity: the provenance rules (BRD-31..36) have no configuration switch, no query parameter and no UI toggle that relaxes them.
 </li>
 </ul>
-<h2 id="where-the-rest-lives">6. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
+<h2 id="development-status">4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+<p>Written by the status gate after every build, verify and handoff; not by hand.</p>
+<p><strong>Snapshot as of 2026-09-11.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P2-Checklist.md</code>.</p>
+<table>
+<thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>UI / Pages</td><td>20</td><td>17</td><td>3</td><td>Partial</td></tr>
+<tr><td>Functional requirements</td><td>20</td><td>19</td><td>1</td><td>Partial</td></tr>
+<tr><td>Non-functional</td><td>4</td><td>3</td><td>1</td><td>Partial</td></tr>
+</tbody>
+</table>
+<h2 id="where-the-rest-lives">5. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
 <table>
 <thead><tr><th>What</th><th>Where</th></tr></thead>
 <tbody>

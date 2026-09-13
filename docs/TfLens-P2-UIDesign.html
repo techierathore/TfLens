@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — UI Design — Phase 2: Reports</h1>
-    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-P2-UIDesign.md</code></div>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-P2-UIDesign.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -117,7 +117,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#screen-harness-comparison-harness">Screen: Harness comparison (/harness)</a></li>
         <li class="h3"><a href="#screen-routing-economics-routing">Screen: Routing &amp;amp; economics (/routing)</a></li>
         <li class="h3"><a href="#screen-snapshot-export-export">Screen: Snapshot export (/export)</a></li>
-        <li><a href="#library-gaps">Library gaps</a></li>
+        <li><a href="#where-the-rest-lives">Where the rest lives</a></li>
       </ol>
     </div>
 <table>
@@ -130,8 +130,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Date</td><td>2026-09-08</td></tr>
 </tbody>
 </table>
-<p>The design system, the click-through flow and the library-gap log are shared and live in <a href="./TfLens-UIDesign.md">TfLens-UIDesign.md</a> (phase 1). This file holds the 5 screens of phase 2.</p>
-<p>Requirements: <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a> · Work list: <a href="./TfLens-P2-Checklist.md">TfLens-P2-Checklist.md</a> · Map: <a href="./TfLens-Phases.md">TfLens-Phases.md</a></p>
+<p>This file holds the 5 screens of phase 2; what every phase shares is listed under <em>Where the rest lives</em> at the end.</p>
 <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
 <h3 id="screen-coverage-health">Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
 <p><strong>Mockup:</strong> <a href="./mockups/coverage.html">docs/mockups/coverage.html</a> · <strong>Role(s):</strong> User, Owner · <strong>BRD:</strong> BRD-39..BRD-44, BRD-21, BRD-6, BRD-127, BRD-181 · <strong>REQ:</strong> (assigned by split-brd) <em>(amended 2026-09-08 — the Data quality section)</em></p>
@@ -224,8 +223,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Parity record</td><td><code>Card</code> "Last parity run" → date, dataset SHAs, script hash, parser version, compare output (<code>pre</code>)</td><td><code>data/parity-last.json</code></td><td>none → <code>Alert Variant=Warning</code></td></tr>
 </tbody>
 </table>
-<h2 id="library-gaps">Library gaps<a class="anchor-link" href="#library-gaps">#</a></h2>
-<p>Logged once, for the whole project, in <a href="./TfLens-UIDesign.md">TfLens-UIDesign.md</a> and <code>docs/TfLens-TrBlazeUI-Feedback.md</code>.</p>
+<h2 id="where-the-rest-lives">Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
+<table>
+<thead><tr><th>What</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>UI library, theme and the design system</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
+<tr><td>The click-through flow across every phase</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
+<tr><td>Library gaps — controls TrBlazeUI lacks, logged once for every phase</td><td><a href="./TfLens-TrBlazeUI-Feedback.md">TfLens-TrBlazeUI-Feedback.md</a></td></tr>
+<tr><td>This phase's requirements</td><td><a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a></td></tr>
+<tr><td>This phase's work list</td><td><a href="./TfLens-P2-Checklist.md">TfLens-P2-Checklist.md</a></td></tr>
+<tr><td>Every phase and its screens</td><td><a href="./TfLens-Phases.md">TfLens-Phases.md</a></td></tr>
+</tbody>
+</table>
   </main>
 </div>
 

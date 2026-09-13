@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Status</h1>
-    <div class="sub">Last rendered: 2026-09-09</div>
+    <div class="sub">Last rendered: 2026-09-13</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#where-i-am">Where I am</a></li>
@@ -121,18 +121,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Status</h1>
-    <div class="subtitle">Rendered 2026-09-09 &middot; source <code>PROJECT-STATUS.md</code></div>
+    <div class="subtitle">Rendered 2026-09-13 &middot; source <code>PROJECT-STATUS.md</code></div>
     <div class="cta-next" style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
       <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *build-phase TfLens</div>
+      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:verifier *verify ui TfLens</div>
     </div>
 <table>
 <tbody>
 <tr><th>project</th><td>TfLens</td></tr>
-<tr><th>last_updated</th><td>2026-09-09</td></tr>
-<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Build — 2 not built, 69 of 73 verified</td></tr>
-<tr><th>last_verified_build</th><td>not-run</td></tr>
-<tr><th>last_verified_date</th><td>never</td></tr>
+<tr><th>last_updated</th><td>2026-09-13</td></tr>
+<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Verify — 13 to verify, 104 of 117 verified</td></tr>
+<tr><th>last_verified_build</th><td>PASS</td></tr>
+<tr><th>last_verified_date</th><td>2026-09-13</td></tr>
 </tbody>
 </table>
     <div class="toc-inline">
@@ -149,16 +149,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       </ol>
     </div>
 <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-<p>Phase 3 is built. Every row is implemented and 69 of 73 are Verified against the running application.
-The four that are not wait on data only the owner can supply, not on code. Four framework defects were
-found, verified and filed this pass. The suite stands at 915 unit tests and 118 of 124 browser tests,
-with the render gate clean at 491 controls over 22 screen-states.</p>
+<p>Phase 3 build is complete on TrBlazeUI 2.1.0-ci.10. The upgrade closed all 32 library gaps and every
+workaround was deleted; build PASS with 0 warnings and 975 unit tests green. Thirteen UI rows pass
+build, acceptance, render, assets and visual but fail the mockup comparison, which compares by
+tag-and-index and cannot match a component library's wrapper elements (TF-045). They stay
+Needs re-verify rather than falsely Verified.</p>
 <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
 <p>Claude Code:</p>
-<pre><code>/TechieFlow:agents:flow-master *build-phase TfLens</code></pre>
+<pre><code>/TechieFlow:agents:verifier *verify ui TfLens</code></pre>
 <p>OpenCode:</p>
-<pre><code>/flow-master *build-phase TfLens</code></pre>
-<p>Why: 2 rows are not built yet: REQ-UI-034, REQ-UI-039; working docs/TfLens-P3-Checklist.md.</p>
+<pre><code>/flow-verifier *verify ui TfLens</code></pre>
+<p>Re-verify REQ-UI-035..038, REQ-UI-045..049, REQ-UI-052..054 and REQ-UI-072 once TF-045 is fixed.</p>
 <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
 <table>
 <thead><tr><th>Status</th><th>Count</th></tr></thead>
@@ -166,32 +167,39 @@ with the render gate clean at 491 controls over 22 screen-states.</p>
 <tr><td>Not Started</td><td>0</td></tr>
 <tr><td>In Progress</td><td>0</td></tr>
 <tr><td>Implemented</td><td>0</td></tr>
-<tr><td>Needs re-verify</td><td>2</td></tr>
+<tr><td>Needs re-verify</td><td>13</td></tr>
 <tr><td>Blocked</td><td>0</td></tr>
-<tr><td>FAIL</td><td>2</td></tr>
 </tbody>
 </table>
 <ul>
-<li>[ ] REQ-UI-034 — Playbook state of the five report pages (BRD-75, BRD-108, BRD-110, Phase 3) (FAIL)
+<li>[ ] REQ-UI-035 — Misses page shell, route and period filter (Needs re-verify)
 </li>
-<li>[ ] REQ-UI-039 — Coverage — fifth stream row, escapes-missing-why, reclassification split, orphan counts, misses-without-fixes as a warning (BRD-127, Phase 3) (FAIL)
+<li>[ ] REQ-UI-036 — Misses KPI row (Needs re-verify)
 </li>
-<li>[ ] REQ-FN-067 — Playbook-native report data — phase totals, parentID split (BRD-75, Phase 3) (Needs re-verify)
+<li>[ ] REQ-UI-037 — Misses origin and failed-practice bands (Needs re-verify)
 </li>
-<li>[ ] REQ-FN-070 — Full Playbook report set incl. snapshot export (BRD-110, Phase 3) (Needs re-verify)
+<li>[ ] REQ-UI-038 — Misses who-was-running and per-miss table (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-045 — Effort page shell (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-046 — Effort KPI row (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-047 — Effort phase table (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-048 — Effort per-phase detail (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-049 — Effort routing band (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-072 — Price providers screen (Needs re-verify)
 </li>
 </ul>
 <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
 <ul>
-<li>OWNER — a Playbook-emitting repository would close REQ-FN-067, REQ-FN-070 and REQ-UI-034. All three are built and covered by passing tests; no connected repository emits <code>events.ndjson</code>.
+<li>TF-045 — the mockup gate addresses elements by tag-and-index, so the library's own wrapper makes correctly rendered values read as missing. It is what holds the 13 rows below Verified. The values were checked by hand and are present and correct.
 </li>
-<li>OWNER — REQ-UI-039's other six clauses pass. Two cannot be shown: no repository has been reclassified, and every miss in the owner's stream already has a fix. Graded FAIL rather than "not measured" only because of TF-022.
+<li>56 Phase-3 rows carry no automated test naming them, so a verify cannot re-measure them; they hold the status an earlier pass gave them.
 </li>
-<li>OWNER — VPS deploy not yet run: DNS A record, Caddy site file, Seq API key and four repo secrets are unset — <code>docs/TfLens-Deployment-Checklist.md</code> §3 is the tick list (REQ-NFR-025).
-</li>
-<li>OWNER — TechieBlog's telemetry carries 14 records with <code>ended</code> before <code>started</code>; not TfLens's to fix (BRD §1). Holds REQ-FN-063's §13 diff at 4 findings.
-</li>
-<li>UPSTREAM — TF-022, TF-021, TF-020, TF-019 filed this pass, plus TF-018, TF-017, TF-016, TF-015, TF-011, TF-005/007/008/009/010/013/014 — see <code>docs/TfLens-TechieFlow-Feedback.md</code>.
+<li>The full 211-test browser suite cannot finish on this machine — four runs killed for memory while a second session shared the 7.6 GB. Scoped slices complete normally.
 </li>
 </ul>
 <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
@@ -199,40 +207,34 @@ with the render gate clean at 491 controls over 22 screen-states.</p>
 <table>
 <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
 <tbody>
-<tr><td>2026-09-09</td><td>build-phase</td><td>69/73 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-06</td><td><code>deploy-checklist</code> — VPS Deployment Checklist rewritten</td><td>New <code>docs/TfLens-Deployment-Checklist.md</code> (VPS only, 0 FAIL)</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-01</td><td><code>*verify</code> — the <code>/gate-outcomes</code> rename</td><td>0 findings from the rename; <code>REQ-UI-018</code> held on a real colour drift</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-08-30</td><td><code>*build-phase</code> (FIX) — harness repair + mockup anchor sweep</td><td>60 anchors added to 3 mockups: <code>harness</code> 22 → 135 comparisons</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-08-29</td><td><code>*build-phase</code> + <code>*verify all</code></td><td>New <code>mockup-parity</code> gate: 44 findings → 8 UI rows demoted, then repaired to 0</td><td>docs/TfLens-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-09-11</td><td>build-phase</td><td>104/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-09-12</td><td>feedback-recheck</td><td>104/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-09-12</td><td>verify-phase</td><td>104/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-09-13</td><td>build-phase</td><td>104/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-09-13</td><td>verify-phase</td><td>104/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 </tbody>
 </table>
 <h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
 <ul>
-<li>AppManager: 14 open of 14 — docs/TfLens-AppManager-Feedback.md
+<li>AppManager: 0 open · 2 closed — docs/TfLens-AppManager-Feedback.md
 </li>
-<li>TechieFlow: 61 open of 61 — docs/TfLens-TechieFlow-Feedback.md
+<li>TechieFlow: 4 open · 11 fixed upstream · 30 closed — docs/TfLens-TechieFlow-Feedback.md
 </li>
-<li>TrBlazeUI: 2 open of 2 — docs/TfLens-TrBlazeUI-Feedback.md
+<li>TrBlazeUI: 3 open · 33 closed — docs/TfLens-TrBlazeUI-Feedback.md
 </li>
 </ul>
 <h2 id="standards-compliance">Standards compliance<a class="anchor-link" href="#standards-compliance">#</a></h2>
 <ul>
-<li>Last check 2026-09-09: 0 findings, see the checklist Remarks. Core 736/736, Guardrails 130/130, Integration 49/49 (Release); the phase-3 checklist passes the document checker with 0 FAIL.
+<li>Last check 2026-09-13: 0 findings, see the checklist Remarks.
 </li>
 </ul>
 <h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
 <ul>
-<li>GitHub SSO (BRD-94 → REQ-FN-012) — waits on an AppManager external-login endpoint
+<li>Mockup parity: regenerate the mockups from the built DOM if TF-045 is not fixed upstream.
 </li>
-<li>Sparklines on Coverage/Gate-outcomes tiles — deliberately not built, no stored series behind them (BRD §1)
+<li>Alert hues sit a few degrees off the mockup hexes since the library's palette took over; reversible.
 </li>
-<li><code>REQ-UI-027</code>'s <code>models</code> column renders raw JSON — no gate covers it
-</li>
-<li>Chart series colours are ungraded — BRD-144 names them, no anchor exists
-</li>
-<li>Filling <code>sort</code> in on the older misses — the owner's editorial call; the framework segment now reads 77 of 77
-</li>
-<li>Phases 1 and 2 are complete; <code>appPhase: 3</code> in core-config is what scopes every command from here
+<li><code>StatGroup</code> cannot express a five-column row (12-column spans, 5 does not divide 12).
 </li>
 </ul>
   </main>

@@ -16,7 +16,7 @@
     @foreach (var vRepo in Repos)
     {
         <Card data-testid="@($"pb-repo-card-{ShortName(vRepo.Repo)}")">
-            @* CardHeader is a CSS grid in 2.0.0 (TR-010), so the header row is one flex child of it. *@
+            @* `CardHeader` is a grid; the title row is one flex child of it. *@
             <CardHeader>
                 <div class="flex w-full flex-wrap items-center justify-between gap-2">
                     <span class="flex min-w-0 flex-wrap items-center gap-2">
@@ -40,13 +40,10 @@
 
                 @* Wide table, narrow phone: the table scrolls inside its own box so the page never does. *@
                 <div class="mt-2 w-full overflow-x-auto">
-                    @* TR-009 — ShowPagination="false" only hides the pager; the grid still truncates to
-                       InitialPageSize, so it is set well above the one row this stream can have. *@
                     <DataTable TData="StreamRow"
                                Data="@RowsFor(vRepo)"
                                ShowToolbar="false"
                                ShowPagination="false"
-                               InitialPageSize="16"
                                AriaLabel="@($"{vRepo.Repo} Playbook streams")"
                                data-testid="@($"pb-repo-streams-{ShortName(vRepo.Repo)}")">
                         <Columns>

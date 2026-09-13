@@ -13,20 +13,27 @@
 @inject ShellPreferences objPreferences
 
 <SidebarProvider DefaultOpen="true" HeightClass="h-screen" CookieKey="@SidebarPreference.CookieName">
+    @*
+        Fix cycle 1, 2026-09-11 — the sidebar is drawn to docs/mockups/misses.html (`.sb-head`, `.sb-body`,
+        `.grp-label`, `.sb-foot`). The `tflens-sb-*` hooks carry the few measurements the library's own
+        classes set differently (a 64px head ruled off below, 11px brand subtitle that fits un-ellipsised,
+        a compact group caption, a footer ruled off above); the rules live in app.css because the phone
+        menu renders these same parts inside the PortalHost, which no scoped stylesheet here can reach.
+    *@
     <Sidebar Collapsible="true" data-testid="app-sidebar">
-        <SidebarHeader>
+        <SidebarHeader Class="tflens-sb-head border-b border-sidebar-border">
             <SidebarHeaderContent>
                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <LucideIcon Name="aperture" Size="18" />
                 </div>
                 <SidebarHeaderInfo>
-                    <span class="truncate font-semibold">TfLens</span>
-                    <span class="truncate text-xs text-muted-foreground">lens on TechieFlow &amp; Playbook</span>
+                    <span class="tflens-sb-title truncate font-semibold">TfLens</span>
+                    <span class="tflens-sb-subtitle truncate text-muted-foreground">lens on TechieFlow &amp; Playbook</span>
                 </SidebarHeaderInfo>
             </SidebarHeaderContent>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent Class="tflens-sb-body">
             <SidebarGroup>
                 <SidebarGroupLabel>@ShellNavigation.WorkspaceSection</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -42,7 +49,11 @@
                                     <LucideIcon Name="@vItem.Icon" Size="16" />
                                     <span>@vItem.Label</span>
                                 </SidebarMenuButton>
-                                <SidebarMenuBadge data-testid="nav-repo-count">@objShellState.RepoCount</SidebarMenuBadge>
+                                @* The repo count belongs to Repos alone; the mockup draws no badge on Price providers (REQ-UI-072). *@
+                                @if (vItem.Href == "/repos")
+                                {
+                                    <SidebarMenuBadge data-testid="nav-repo-count">@objShellState.RepoCount</SidebarMenuBadge>
+                                }
                             </SidebarMenuItem>
                         }
                     </SidebarMenu>
@@ -71,7 +82,7 @@
             </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter Class="tflens-sb-foot border-t border-sidebar-border">
             <div class="flex items-center justify-between gap-2 px-2 py-1">
                 <ThemeToggle TestId="theme-toggle-sidebar" Id="sidebar-theme-toggle" />
                 <span class="truncate text-xs text-muted-foreground">v0.1 · read-only lens</span>

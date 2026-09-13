@@ -1,6 +1,7 @@
-/* The KPI tile's accent chip. TrBlazeUI 2.0.0 ships no Stat component and its CSS carries only the
-   utilities its own components use, so the chip's few rules live here rather than as Tailwind classes
-   that would not exist at runtime. Colours come from the library's own chart tokens. */
+/* The KPI tile's accent chip. Six of the seven rules below are `color-mix()` over a `--chart-*`
+   token, which no utility can express at any Tailwind version, so the chip's geometry is kept here
+   beside them rather than split between this file and the markup. (2.1.0-ci.10 does ship `size-8`
+   and `rounded-md`, so that part is now a choice, not a gap.) */
 
 .tflens-stat-chip {
     display: grid;

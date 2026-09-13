@@ -6,8 +6,12 @@
     nine reproduction attempts could not make that happen in headless Chromium — an overlay whose
     failure mode is "the backdrop is mounted and the panel is not" is a construct that cannot be
     proven correct from here. A page has no backdrop to strand, no portal to miss, no scroll lock to
-    leak, no Escape handling of its own to go missing (TR-014), and it is addressable — so a test, a
-    bug report and a browser Back button all mean the same thing. See REQ-UI-044.
+    leak, and it is addressable — so a test, a bug report and a browser Back button all mean the
+    same thing. See REQ-UI-044.
+
+    TrBlazeUI 2.1.0-ci.10 closed the Escape gap this page used to cite as a further reason (TR-014),
+    and `DialogContent` now scrolls its own body (TR-019 / TR-011b). Neither changes the argument
+    above, which is about a failure this harness cannot reproduce, so the route stands.
 
     The mode fork is still deliberate and visible (BRD-131): **Fetch via API** validates before it
     saves and only enables Connect once all three checks are green; **Import metric files** previews
@@ -39,8 +43,7 @@
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem>
-                    @* TR-023 — BreadcrumbLink captures no unmatched attributes, so the test id sits on a span inside it. *@
-                    <BreadcrumbLink Href="/repos"><span data-testid="add-source-back">Repos</span></BreadcrumbLink>
+                    <BreadcrumbLink Href="/repos" data-testid="add-source-back">Repos</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -48,9 +51,8 @@
                 </BreadcrumbItem>
             </BreadcrumbList>
         </Breadcrumb>
-        @* TR-013 — Typography* capture no unmatched attributes either, so the ids sit on spans. *@
-        <TypographyH2><span data-testid="add-source-title">@PageHeading</span></TypographyH2>
-        <TypographyMuted><span data-testid="add-source-description">@PageDescription</span></TypographyMuted>
+        <TypographyH2 data-testid="add-source-title">@PageHeading</TypographyH2>
+        <TypographyMuted data-testid="add-source-description">@PageDescription</TypographyMuted>
     </div>
 
     <Card>
@@ -59,21 +61,17 @@
 
                 @if (!objIsReimport)
                 {
-                    @* TR-010: TabsTrigger captures no unmatched attributes, so each trigger's test id
-                       lives on a span inside it; `Tabs` itself takes the mode's id. *@
+                    @* The mockup's tab strip is full width with two equal halves
+                       (`docs/mockups/repos.html`: `.tabs{width:100%}`, each tab `flex:1`). *@
                     <Tabs Value="@objSourceMode" ValueChanged="OnSourceModeChangedAsync" Class="w-full" data-testid="source-mode">
-                        <TabsList>
-                            <TabsTrigger Value="@SourceKinds.Api">
-                                <span class="flex items-center gap-1.5" data-testid="source-mode-api">
-                                    <LucideIcon Name="cloud-download" Size="14" />
-                                    <span>Fetch via API</span>
-                                </span>
+                        <TabsList Class="grid w-full grid-cols-2">
+                            <TabsTrigger Value="@SourceKinds.Api" Class="gap-1.5" data-testid="source-mode-api">
+                                <LucideIcon Name="cloud-download" Size="14" />
+                                Fetch via API
                             </TabsTrigger>
-                            <TabsTrigger Value="@SourceKinds.Import">
-                                <span class="flex items-center gap-1.5" data-testid="source-mode-import">
-                                    <LucideIcon Name="upload" Size="14" />
-                                    <span>Import metric files</span>
-                                </span>
+                            <TabsTrigger Value="@SourceKinds.Import" Class="gap-1.5" data-testid="source-mode-import">
+                                <LucideIcon Name="upload" Size="14" />
+                                Import metric files
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -322,37 +320,45 @@
                                 </CardHeader>
                                 <CardContent Class="pt-0">
                                     <div class="tflens-preview-table w-full overflow-x-auto">
-                                        @* TR-009: ShowPagination="false" only hides the pager — the grid still
-                                           truncates to InitialPageSize, so it is set above the six streams a
-                                           bundle can carry. *@
+                                        @* Every stream the bundle carries, no pager: `ShowPagination="false"`
+                                           renders the whole sequence, and a bundle carries one row per
+                                           StreamKind — six at most, so there is nothing to cap. `Compact`
+                                           density is what keeps four columns inside the card at 1280;
+                                           `Align.End` is the mockup's `<th class="r">` on the two figures. *@
                                         <DataTable TData="ImportStreamRow"
                                                    Data="@objImportPreview.Streams"
                                                    ShowToolbar="false"
                                                    ShowPagination="false"
-                                                   InitialPageSize="16"
+                                                   Density="DataTableDensity.Compact"
                                                    AriaLabel="Bundle preview"
                                                    data-testid="import-preview-streams">
                                             <Columns>
                                                 <DataTableColumn TData="ImportStreamRow" TValue="string"
-                                                                 Property="@(aRow => aRow.Stream)" Header="Stream">
+                                                                 Property="@(aRow => aRow.Stream)" Header="Stream"
+                                                                 CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                     <CellTemplate Context="vStream">
                                                         <span class="font-mono text-xs">@vStream.Stream</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ImportStreamRow" TValue="string"
-                                                                 Property="@(aRow => aRow.RecordsText)" Header="Records">
+                                                                 Property="@(aRow => aRow.RecordsText)" Header="Records"
+                                                                 Align="DataTableColumnAlign.End"
+                                                                 CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                     <CellTemplate Context="vStream">
                                                         <span class="tabular-nums">@vStream.RecordsText</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ImportStreamRow" TValue="string"
-                                                                 Property="@(aRow => aRow.DateRangeText)" Header="Date range">
+                                                                 Property="@(aRow => aRow.DateRangeText)" Header="Date range"
+                                                                 CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                     <CellTemplate Context="vStream">
-                                                        <span class="whitespace-nowrap text-xs text-muted-foreground">@vStream.DateRangeText</span>
+                                                        <span class="text-xs text-muted-foreground">@vStream.DateRangeText</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ImportStreamRow" TValue="string"
-                                                                 Property="@(aRow => aRow.InvalidLinesText)" Header="Invalid">
+                                                                 Property="@(aRow => aRow.InvalidLinesText)" Header="Invalid"
+                                                                 Align="DataTableColumnAlign.End"
+                                                                 CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                     <CellTemplate Context="vStream">
                                                         <span class="tabular-nums">@vStream.InvalidLinesText</span>
                                                     </CellTemplate>

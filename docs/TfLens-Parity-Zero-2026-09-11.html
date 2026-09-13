@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — the numbers now match, and what to do next (2026-09-11)</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — the numbers now match, and what to do next (2026-09-11)</h1>
+    <div class="sub">Last rendered: 2026-09-11</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#the-short-version">The short version</a></li>
+        <li><a href="#what-to-do-next">What to do next</a></li>
+        <li class="h3"><a href="#the-skipped-test-problem-tf-022-is-fixed">The skipped-test problem (TF-022) is fixed</a></li>
+        <li><a href="#does-anything-in-the-app-break-because-the-framework-is-unfixed">Does anything in the app break because the framework is unfixed?</a></li>
+        <li><a href="#what-was-actually-built-in-plain-terms">What was actually built, in plain terms</a></li>
+        <li class="h3"><a href="#money-figures">1. Money figures</a></li>
+        <li class="h3"><a href="#cancelled-runs">2. Cancelled runs</a></li>
+        <li class="h3"><a href="#a-screen-for-price-lists">3. A screen for price lists</a></li>
+        <li><a href="#four-bugs-found-along-the-way">Four bugs found along the way</a></li>
+        <li class="h3"><a href="#two-cancellation-notes-could-cancel-each-other-out">Two cancellation notes could cancel each other out</a></li>
+        <li class="h3"><a href="#the-report-gave-two-answers-to-how-long-did-this-run-take">The report gave two answers to &quot;how long did this run take&quot;</a></li>
+        <li class="h3"><a href="#a-price-rounded-the-wrong-way-by-one-hundredth-of-a-penny">A price rounded the wrong way by one hundredth of a penny</a></li>
+        <li class="h3"><a href="#openrouter-says-1-when-it-will-not-tell-you-a-price">OpenRouter says &quot;-1&quot; when it will not tell you a price</a></li>
+        <li><a href="#tests-i-changed-and-why">Tests I changed, and why</a></li>
+        <li><a href="#where-the-loose-ends-stand">Where the loose ends stand</a></li>
+        <li><a href="#three-things-i-got-wrong-in-the-first-version-of-this-document">Three things I got wrong in the first version of this document</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — the numbers now match, and what to do next (2026-09-11)</h1>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-Parity-Zero-2026-09-11.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#the-short-version">The short version</a></li>
+        <li><a href="#what-to-do-next">What to do next</a></li>
+        <li class="h3"><a href="#the-skipped-test-problem-tf-022-is-fixed">The skipped-test problem (TF-022) is fixed</a></li>
+        <li><a href="#does-anything-in-the-app-break-because-the-framework-is-unfixed">Does anything in the app break because the framework is unfixed?</a></li>
+        <li><a href="#what-was-actually-built-in-plain-terms">What was actually built, in plain terms</a></li>
+        <li class="h3"><a href="#money-figures">1. Money figures</a></li>
+        <li class="h3"><a href="#cancelled-runs">2. Cancelled runs</a></li>
+        <li class="h3"><a href="#a-screen-for-price-lists">3. A screen for price lists</a></li>
+        <li><a href="#four-bugs-found-along-the-way">Four bugs found along the way</a></li>
+        <li class="h3"><a href="#two-cancellation-notes-could-cancel-each-other-out">Two cancellation notes could cancel each other out</a></li>
+        <li class="h3"><a href="#the-report-gave-two-answers-to-how-long-did-this-run-take">The report gave two answers to &quot;how long did this run take&quot;</a></li>
+        <li class="h3"><a href="#a-price-rounded-the-wrong-way-by-one-hundredth-of-a-penny">A price rounded the wrong way by one hundredth of a penny</a></li>
+        <li class="h3"><a href="#openrouter-says-1-when-it-will-not-tell-you-a-price">OpenRouter says &quot;-1&quot; when it will not tell you a price</a></li>
+        <li><a href="#tests-i-changed-and-why">Tests I changed, and why</a></li>
+        <li><a href="#where-the-loose-ends-stand">Where the loose ends stand</a></li>
+        <li><a href="#three-things-i-got-wrong-in-the-first-version-of-this-document">Three things I got wrong in the first version of this document</a></li>
+      </ol>
+    </div>
+<p><em>Corrected later on 2026-09-11. The verify this document asked for has run, and the framework
+problems it described as open are fixed. The corrected parts say so. The account of the work is
+unchanged.</em></p>
+<h2 id="the-short-version">The short version<a class="anchor-link" href="#the-short-version">#</a></h2>
+<p>TfLens and the framework's own reporting script now produce <strong>exactly the same numbers</strong>, for all five
+of your projects. Every number, not most of them.</p>
+<table>
+<thead><tr><th>Project</th><th>Before this session</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td>TechieBlog</td><td>114 disagreements</td><td><strong>0</strong></td></tr>
+<tr><td>TfLens</td><td>211 disagreements</td><td><strong>0</strong></td></tr>
+<tr><td>TechieRag</td><td>99 disagreements</td><td><strong>0</strong></td></tr>
+<tr><td>TechieFlow</td><td>122 disagreements</td><td><strong>0</strong></td></tr>
+<tr><td>MyDiary</td><td>114 disagreements</td><td><strong>0</strong></td></tr>
+</tbody>
+</table>
+<p>Tests: 766 of 766, plus 130 of 130 in the rules suite, plus 107 of the browser tests. The build has no
+warnings. All of it ran against your real database.</p>
+<hr>
+<h2 id="what-to-do-next">What to do next<a class="anchor-link" href="#what-to-do-next">#</a></h2>
+<p><strong>Done.</strong> This verify ran on 2026-09-11 at 09:24, and the phase 3 checklist carries its grades. The
+prompt stays here as the record of what was asked.</p>
+<pre><code>/TechieFlow:agents:verifier *verify TfLens all</code></pre>
+<p>That grades the fifteen requirements built this session against the running application and moves them
+from "built" to "verified". Until it runs, they are only my word that they work — and my word is not
+what this project accepts.</p>
+<p><strong>You do not need to fix the framework first.</strong> See the next section for why.</p>
+<p>If you would rather use OpenCode, the same command there is:</p>
+<pre><code>/verifier *verify TfLens all</code></pre>
+<h3 id="the-skipped-test-problem-tf-022-is-fixed">The skipped-test problem (TF-022) is fixed<a class="anchor-link" href="#the-skipped-test-problem-tf-022-is-fixed">#</a></h3>
+<p>This section warned that a framework problem, TF-022, would count a deliberately skipped test as a
+failed one, and offered a prompt to get it fixed. That is no longer needed. The framework fixed it on
+2026-09-09. It was re-checked and closed here on 2026-09-11: the verify of 09:24 graded both
+requirements that had carried the wrong FAIL, <code>REQ-UI-034</code> and <code>REQ-UI-039</code>, as Verified.</p>
+<hr>
+<h2 id="does-anything-in-the-app-break-because-the-framework-is-unfixed">Does anything in the app break because the framework is unfixed?<a class="anchor-link" href="#does-anything-in-the-app-break-because-the-framework-is-unfixed">#</a></h2>
+<p><strong>No. Nothing.</strong> Not one screen, not one number, not one feature.</p>
+<p>Here is what each framework problem touched, and where it stands now. All four are fixed in the
+framework.</p>
+<table>
+<thead><tr><th>Problem</th><th>What it affected</th><th>Where it stands</th></tr></thead>
+<tbody>
+<tr><td><strong>TF-022</strong> — a skipped test counted as a failed one</td><td>The <em>grades</em> in your checklist. A requirement that cannot be shown on this machine was recorded as broken rather than as untested. It never broke the app.</td><td><strong>Fixed</strong> 2026-09-09. Re-checked and closed here 2026-09-11: <code>REQ-UI-034</code> and <code>REQ-UI-039</code> are now Verified.</td></tr>
+<tr><td><strong>TF-023</strong> — a wrong instruction in a framework document</td><td>Nothing in TfLens. It was a trap for the next agent that followed that document literally.</td><td><strong>Fixed</strong> and closed here 2026-09-11. The document now names the right place, which is where TfLens's own check already had it.</td></tr>
+<tr><td><strong>TF-024</strong> — the document checker uses the wrong template</td><td>How much noise the document checker makes: 87 complaints that could not be fixed, burying the real ones. It never broke the app.</td><td><strong>Fixed</strong> in the framework 2026-09-11. Not yet re-checked here; a later step re-checks it with <code>bash .tfcore/utils/tf-doc-check.sh --app TfLens --strict</code>.</td></tr>
+<tr><td><strong>TF-019</strong> — the build list gets stuck</td><td>Which requirements got scheduled for building. It never broke the app.</td><td><strong>Fixed</strong> 2026-09-09. Closed here 2026-09-11: the build list offers every not-yet-started row.</td></tr>
+</tbody>
+</table>
+<p><strong>Nothing was waiting on the framework,</strong> and nothing is now.</p>
+<hr>
+<h2 id="what-was-actually-built-in-plain-terms">What was actually built, in plain terms<a class="anchor-link" href="#what-was-actually-built-in-plain-terms">#</a></h2>
+<h3 id="money-figures">1. Money figures<a class="anchor-link" href="#money-figures">#</a></h3>
+<p><strong>The problem.</strong> Your framework changed on 10 September. It decided it will only record <em>what it
+measured</em> — how many tokens a run used, on which model — and will never store a price. Working out
+what that costs in money became the report's job.</p>
+<p>The reason is good: if a price changes, you re-run the report and every run you ever recorded gets the
+new price. No stored number was ever wrong, because no price was ever stored.</p>
+<p>TfLens was not doing that job at all. Seventeen money numbers per command were simply missing — that
+was 191 of the 211 disagreements on TfLens's own project.</p>
+<p><strong>What it does now.</strong> It reports money three separate ways and never adds them together:</p>
+<blockquote>
+<p><strong>Example.</strong> A <code>build-phase</code> run used 500,000 output tokens on Claude Opus 5.</p>
+<ul>
+<li><strong>List price: $12.50.</strong> What those tokens would cost at Anthropic's published rate. This is the only number that lets you compare a run on your Claude subscription with a run on a pay-per-token API, because it asks both the same question.
+</li>
+<li><strong>Money billed: $0.00.</strong> You are on a flat monthly subscription. It billed you nothing extra for this run, and that zero is true.
+</li>
+<li><strong>Plan allowance used: $0.00.</strong> Nothing, because a subscription is not a plan with a per-model meter.
+</li>
+</ul>
+<p>Adding those together would give $12.50 and mean nothing at all. That is why they stay apart.</p>
+</blockquote>
+<p>Two rules that sound small and are not:</p>
+<ul>
+<li><strong>A model with no published price is left out and counted, never priced at zero.</strong> If TfLens priced an unknown model at nothing, a whole phase that ran only that model would read as <em>free</em>. Instead the page says "3 runs could not be priced".
+</li>
+<li><strong>When a run used two models, its price is not split between them.</strong> Splitting a bill by token share is arithmetic, not measurement. The run's price counts toward the phase total, but not toward either model's line.
+</li>
+</ul>
+<h3 id="cancelled-runs">2. Cancelled runs<a class="anchor-link" href="#cancelled-runs">#</a></h3>
+<p><strong>The problem.</strong> The telemetry files are append-only — nothing is ever edited or deleted. So when a run
+gets recorded with a wrong figure, the framework cannot go back and fix it. It writes a <em>second</em> record
+that says "ignore that earlier run, and here is why".</p>
+<p>TfLens did not understand those records. It did two wrong things at once: it counted the cancellation
+note itself as if it were a run, and it kept the bad run too.</p>
+<blockquote>
+<p><strong>Example.</strong> TechieFlow had three cancellation notes. TfLens reported <strong>81 runs</strong>; the framework
+reported <strong>75</strong>. The six-run gap was three notes counted as work, plus three known-bad runs that
+should have left every total.</p>
+</blockquote>
+<p><strong>What it does now.</strong> The cancelled run leaves every figure. The note is not counted as a run. And the
+page publishes what was removed — how many, and the reason given for each — because a total that
+quietly got smaller is just a different wrong number. Nothing is deleted; both records stay on file.</p>
+<h3 id="a-screen-for-price-lists">3. A screen for price lists<a class="anchor-link" href="#a-screen-for-price-lists">#</a></h3>
+<p>New page at <strong><code>/prices</code></strong>, in the sidebar under Repos. It sits with Repos rather than with the reports
+because a price list is something <em>you maintain</em>, not something your projects produced.</p>
+<p>It lists Anthropic, OpenAI, OpenCode Go and OpenRouter. For each one: every model's price, a link to
+the page where you can check it yourself, and <strong>when it was last checked</strong>. You can add a provider, add
+or change a price, and remove a provider.</p>
+<p>It keeps two things visibly apart, because they are not the same kind of claim:</p>
+<ul>
+<li><strong>Read from the provider's own feed</strong> — OpenRouter publishes its prices as data, so TfLens fetches them. The Refresh button pulled <strong>432 live prices</strong> when I tested it.
+</li>
+<li><strong>Typed from the provider's published page</strong> — Anthropic, OpenAI and OpenCode Go do not publish prices as data, so someone reads their pricing page and types the numbers in.
+</li>
+</ul>
+<p>If two providers list the same model, the first one wins and the page <strong>tells you about the clash</strong>. It
+does not average them: the average of two published prices is a price nobody publishes.</p>
+<hr>
+<h2 id="four-bugs-found-along-the-way">Four bugs found along the way<a class="anchor-link" href="#four-bugs-found-along-the-way">#</a></h2>
+<p>These were not on anyone's list. The number-matching check found three; the live network test found the
+fourth.</p>
+<h3 id="two-cancellation-notes-could-cancel-each-other-out">Two cancellation notes could cancel each other out<a class="anchor-link" href="#two-cancellation-notes-could-cancel-each-other-out">#</a></h3>
+<p>A run used to be identified by <em>when it happened, for which app, and which command</em>. That sounds unique
+and is not.</p>
+<blockquote>
+<p><strong>Example.</strong> TechieFlow wrote two cancellation notes in the same second, naming two different runs.
+Because both notes shared a timestamp, an app name and a command, TfLens treated them as one record
+and threw the second away. The run that second note was cancelling quietly came back into every
+total — and nothing anywhere would have shown it.</p>
+</blockquote>
+<p>A run is now identified by <strong>its line number in its file</strong>. Because the files are append-only, line 7 is
+always the same record. Reading the same file twice still changes nothing, and two genuinely different
+records now stay two records.</p>
+<h3 id="the-report-gave-two-answers-to-how-long-did-this-run-take">The report gave two answers to "how long did this run take"<a class="anchor-link" href="#the-report-gave-two-answers-to-how-long-did-this-run-take">#</a></h3>
+<p>The new duration rule was being applied in one part of the report but not in another, so the
+throughput figure was dividing by a duration that a different part of the same report had already
+rejected. The rule now runs once, and everything reads that one result.</p>
+<h3 id="a-price-rounded-the-wrong-way-by-one-hundredth-of-a-penny">A price rounded the wrong way by one hundredth of a penny<a class="anchor-link" href="#a-price-rounded-the-wrong-way-by-one-hundredth-of-a-penny">#</a></h3>
+<blockquote>
+<p><strong>Example.</strong> One <code>triage-issues</code> run priced at exactly <strong>$15.8516545</strong> — a dead tie at the sixth
+decimal place. The framework rounded it up to $15.851655. TfLens rounded it down to $15.851654.</p>
+</blockquote>
+<p>The cause: .NET's standard rounding shifts the number before it looks at it, which made a value that is
+<em>fractionally above</em> the tie look exactly on it. One hundred-thousandth of a cent, and it was the
+difference between a passing check and a failing one on three of your five projects.</p>
+<h3 id="openrouter-says-1-when-it-will-not-tell-you-a-price">OpenRouter says "-1" when it will not tell you a price<a class="anchor-link" href="#openrouter-says-1-when-it-will-not-tell-you-a-price">#</a></h3>
+<p>Found by the test that hits OpenRouter's real endpoint, on its first run.</p>
+<p>OpenRouter publishes <code>-1</code> as the price of models whose cost is variable or undisclosed. That is the
+feed saying <em>I cannot answer</em> — not saying the model is free.</p>
+<p>Storing it puts a negative price in your price list. Treating it as zero is worse: every run on that
+model would then report as costing nothing, and nothing on the page would look wrong. TfLens now skips
+those, and the runs that used them are reported as unpriced.</p>
+<hr>
+<h2 id="tests-i-changed-and-why">Tests I changed, and why<a class="anchor-link" href="#tests-i-changed-and-why">#</a></h2>
+<p>Four tests were asserting things that are no longer true. None of them was switched off.</p>
+<table>
+<thead><tr><th>Test</th><th>What it assumed</th><th>Why that changed</th></tr></thead>
+<tbody>
+<tr><td><code>DedupeTests</code>, <code>PostgresStoreTests</code></td><td>Two identical run lines collapse into one</td><td>They no longer do — that is the cancellation-note fix. Both tests now say so.</td></tr>
+<tr><td><code>fn-miss-sort-stream</code></td><td>Exactly 6 misses carry a "whose gap was it" answer</td><td>It could only be exactly 6 while no <em>real</em> miss existed after 7 September. This session logged one. The test now checks the <strong>rule</strong> — that old records are left out of the number it divides by — instead of a fixed count that drifts every time you log a miss.</td></tr>
+<tr><td><code>parity-gate-smoke</code></td><td>The export banner says the figures are quotable</td><td>It said NOT QUOTABLE, correctly: the framework script had changed and no matching check had been recorded. The check now passes, so I recorded the pass. The banner was honest in both states.</td></tr>
+</tbody>
+</table>
+<hr>
+<h2 id="where-the-loose-ends-stand">Where the loose ends stand<a class="anchor-link" href="#where-the-loose-ends-stand">#</a></h2>
+<ul>
+<li><strong>The verify has run</strong> (2026-09-11, 09:24). Its grades are in <code>docs/TfLens-P3-Checklist.md</code>.
+</li>
+<li><strong>Two browser tests fail</strong> — <code>REQ-UI-026</code> and <code>REQ-UI-029</code>. Both need a fuller dataset than this machine holds. I confirmed they fail identically with the price list exactly as it was before this work, so neither is caused by it.
+</li>
+<li><strong>The four framework problems this document named are fixed.</strong> TF-019, TF-022 and TF-023 were re-checked and closed here on 2026-09-11. TF-024 is fixed in the framework and waits for its re-check (the line to run is in the table above).
+</li>
+</ul>
+<h2 id="three-things-i-got-wrong-in-the-first-version-of-this-document">Three things I got wrong in the first version of this document<a class="anchor-link" href="#three-things-i-got-wrong-in-the-first-version-of-this-document">#</a></h2>
+<p>Logged as <code>MISS-TfLens-20260911-01</code>, <code>-02</code> and <code>-03</code>.</p>
+<ol>
+<li><strong>It was written in jargon</strong>, after you had already asked twice for plain English with examples.
+</li>
+<li><strong>It said two framework defects were filed and stopped there</strong> — without saying which features depend on them (none), what breaks (nothing), or whether you should fix them before or alongside the verify.
+</li>
+<li><strong>It said verify was pending but gave you no prompt to run</strong>, which is the one thing a hand-off exists to provide.
+</li>
+</ol>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

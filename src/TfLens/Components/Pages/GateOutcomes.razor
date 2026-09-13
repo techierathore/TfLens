@@ -19,11 +19,13 @@
 
 <div class="tflens-stack">
 
-    @* TR-013 — the Typography components do not resolve in 2.0.0, so the heading is plain markup carrying
-       the library's own utility classes. *@
+    @* The page heading, on the Typography components docs/TfLens-UIDesign.md §Controls inventory names
+       (TypographyH2 / TypographyMuted) — the same pair /routing and /export already use. The <div> is the
+       heading group, not a test-id carrier: it is what holds the title and its sub-line 4px apart inside
+       the page's 24px .tflens-stack rhythm. *@
     <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Gate outcomes</h1>
-        <p class="mt-1 text-sm text-muted-foreground">@Subtitle</p>
+        <TypographyH2>Gate outcomes</TypographyH2>
+        <TypographyMuted>@Subtitle</TypographyMuted>
     </div>
 
     @if (!IsPlaybook)
@@ -89,14 +91,9 @@
             <TabsList>
                 @foreach (var vType in objTypes)
                 {
-                    @* TR-010 (TabsTrigger attributes) — TabsTrigger captures no unmatched attributes, so
-                       the test id lives on the span it renders around; a click on the span still activates
-                       the trigger. *@
-                    <TabsTrigger Value="@vType">
-                        <span class="flex items-center gap-2" data-testid="@($"type-tab-{vType}")">
-                            <span>@LabelFor(vType)</span>
-                            <Badge Variant="BadgeVariant.Secondary">@LiveOf(vType).Records</Badge>
-                        </span>
+                    <TabsTrigger Value="@vType" Class="gap-2" data-testid="@($"type-tab-{vType}")">
+                        <span>@LabelFor(vType)</span>
+                        <Badge Variant="BadgeVariant.Secondary">@LiveOf(vType).Records</Badge>
                     </TabsTrigger>
                 }
             </TabsList>
@@ -107,16 +104,16 @@
                 var vBackfilled = BackfilledOf(vType);
 
                 <TabsContent Value="@vType">
-                    <div class="tflens-stack tflens-tab-body">
+                    <div class="tflens-stack mt-4">
 
                         @* REQ-UI-018 / REQ-UI-019 — three live KPIs, each with its labelled backfilled line. *@
                         <StatGroup Columns="3" data-testid="@($"kpis-{vType}")">
-                            @* StatTile's description slot is a <p>, and a Badge renders a <div>, which the
-                               browser's parser hoists out of a paragraph — so the labelled backfilled line
-                               lives in the value slot's <div> instead. It is still a separate, labelled
-                               secondary line and is never added to the live figure. *@
+                            @* The labelled backfilled line lives in the value slot rather than in the
+                               tile's description, because `Description` takes a plain string and this line
+                               is a Badge beside a FigureText. It is a separate, labelled secondary line and
+                               is never added to the live figure (SCHEMA.md §6). *@
                             <StatTile Title="First-pass rate"
-                                      IconName="circle-check"
+                                      IconName="check-circle"
                                       Accent="StatAccent.Chart2"
                                       data-testid="@($"kpi-first-pass-{vType}")">
                                 <ValueContent>
@@ -205,7 +202,6 @@
                                                Data="@GateRowsOf(vType)"
                                                ShowToolbar="false"
                                                ShowPagination="false"
-                                               InitialPageSize="32"
                                                AriaLabel="@($"Gate catch distribution for {vType}")"
                                                data-testid="@($"gate-dist-{vType}")">
                                         <Columns>

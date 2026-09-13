@@ -6,6 +6,28 @@
     }
 }
 
+/* Fix cycle 1, 2026-09-11 — the page container's inset follows the mockups' `.content` step for step
+   (docs/mockups/misses.html: 32px, then 20px ≤900, 16px 12px ≤700, 12px 8px ≤480). At 390 the app sat
+   24px in from each edge against the mockups' 8px, so every page body had 32px less width to lay out in
+   than the design it is compared against. */
+@media (max-width: 56.25rem) {
+    .tflens-page {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 43.75rem) {
+    .tflens-page {
+        padding: 1rem 0.75rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .tflens-page {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;

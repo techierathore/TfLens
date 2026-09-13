@@ -1,43 +1,18 @@
-/* The Harness page's layout.
+/* The Harness page's layout — only what nothing else supplies.
 
-   TrBlazeUI 2.0.0 ships no responsive variants and no arbitrary-value utilities (TR-002), so the two
-   breakpoints this screen needs — three harness columns side by side above `md`, one per row below it,
-   and the chart/dollars pair splitting 2fr / 1fr above `lg` — live here as real media queries. */
+   Three things left this file on the 2.1.0-ci.10 uptake:
 
-/* TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines none
-   of them, so anything painted with them is transparent — the Info alert's tint, the harness accent chips
-   and every bar in the tokens chart (ApexCharts is handed `var(--chart-N)` by the wrapper itself, so an
-   undefined token paints the bars black). Custom properties inherit, so declaring them on the page root
-   reaches every TrBlazeUI control rendered inside. Values are the approved mockup's palette
-   (docs/mockups/harness.html), which reads on both the light and the dark surface. */
-.tflens-stack {
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    min-width: 0;
-}
+     * the `--chart-*` and `--alert-*` re-declarations. The shipped trblazeui.css defines all of them
+       in its own `:where(:root)` / `:where(.dark)`, so the local copies overrode the theme for no
+       reason. The chips and the bars read the shipped tokens now, which is also what makes a bar and
+       its column's chip the same colour in light mode as in dark.
+     * the three-harness grid. `grid gap-4 md:grid-cols-3` is written in Harness.razor now that the
+       sheet ships the `md:` variant — a hand-written `@media (min-width: 48rem)` for a breakpoint the
+       library already has is a rule that can drift from it.
+     * the `.tflens-stack` copy. `wwwroot/app.css` declares that class once, globally (REQ-NFR-015).
 
-/* REQ-UI-023 — one column per detected harness; one per row under `md`. */
-.tflens-harness-cols {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-    gap: 1rem;
-    min-width: 0;
-}
+   The one breakpoint that stays is the chart/dollars split below: `2fr / 1fr` is an arbitrary grid
+   template, and arbitrary values are not in a pre-built utility sheet at any breakpoint. */
 
 .tflens-harness-lower {
     display: grid;
@@ -45,12 +20,6 @@
     align-items: start;
     gap: 1rem;
     min-width: 0;
-}
-
-@media (min-width: 48rem) {
-    .tflens-harness-cols {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
 }
 
 @media (min-width: 64rem) {
@@ -69,8 +38,9 @@
    as a bare monochrome glyph on the card. Scoped CSS is per-file, so the chip is declared again in this
    file's own scope.
 
-   Colour comes from the same `--chart-N` tokens the bars are painted with (declared on `.tflens-stack`
-   above), never from a literal, so a column's chip and its bar cannot drift apart. */
+   Colour comes from the same `--chart-N` tokens the bars are painted with — the shipped sheet's own,
+   which the chart wrapper hands ApexCharts as `var(--chart-N)` — never from a literal, so a column's
+   chip and its bar cannot drift apart. */
 .tflens-stat-chip {
     display: grid;
     place-items: center;
@@ -95,17 +65,8 @@
     color: var(--chart-3);
 }
 
-/* REQ-UI-026 — the not-detected footnote sits under the columns as one muted line. */
-.tflens-footnote {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--muted-foreground);
-}
-
-/* The key/value tables are headerless in the mockup: the left cell is the label, so a header row would
-   repeat it. TrBlazeUI has no header-less table primitive and `DataTable` has no ShowHeader switch, so
-   the header is declared for the component's own metadata and hidden here. */
+/* The key/value tables are headerless in the mockup: the left cell IS the label, so a header row would
+   only repeat it. `DataTable ShowHeader="false"` renders no `thead` at all, so nothing is hidden here. */
 .tflens-kv {
     min-width: 0;
     /* REQ-UI-024 — the mockup puts this table in a `card-c flush` (zero padding), so the rows run edge
@@ -115,10 +76,6 @@
        `insufficient data (n=0)` fits. The cell padding below restores the mockup's own 16px. */
     margin-inline: -1.5rem;
 }
-
-    .tflens-kv ::deep thead {
-        display: none;
-    }
 
     .tflens-kv ::deep table {
         width: 100%;
@@ -179,9 +136,9 @@
         word-break: normal;
     }
 
+    /* Width only. The right alignment is the column's own `Align="DataTableColumnAlign.End"`. */
     .tflens-kv ::deep td:last-child {
         width: 60%;
-        text-align: right;
         overflow-wrap: break-word;
         word-break: normal;
     }
@@ -193,8 +150,8 @@
    `.sm{font-size:13px}` against the table's own `.tbl{font-size:14px}` is the design's own answer to
    that cell being long, and it is the reason the mockup draws the list on two lines rather than three.
 
-   TR-002 still stands — trblazeui.css is a pre-built bundle with no arbitrary-value utilities — so this
-   is 13px written out rather than a `text-[13px]` that would not exist at runtime. */
+   13px is an arbitrary value, and a pre-built utility sheet carries no arbitrary-value utilities, so
+   this stays written out rather than becoming a `text-[13px]` that would not exist at runtime. */
 .tflens-kv-small {
     font-size: 0.8125rem;
     line-height: 1.25rem;
@@ -240,35 +197,6 @@
     max-width: 100%;
     overflow: hidden;
     margin-bottom: 0.5rem;
-}
-
-    /* REQ-UI-023 — the card inside the card. TrBlazeUI's `ChartContainer` renders its own
-       `rounded-lg border bg-card shadow-sm p-6` surface, so the bars sat in a second bordered panel
-       inside the one that already holds them; the design draws the bars straight onto the card. The
-       container is kept — it is the component the mockup's own annotation names, and it is what sizes
-       the chart — with its decoration removed. TR-028. */
-    .tflens-chart ::deep > div {
-        border: 0;
-        background: transparent;
-        box-shadow: none;
-        padding: 0;
-    }
-
-    /* REQ-UI-023 — the plot frame the design does not draw. `Grid { Show = false }` removes the
-       gridlines but ApexCharts still paints `.apexcharts-grid-borders`, so the bars sat inside a rounded
-       rectangle the mockup has no trace of. Hidden here rather than fought in options, because the
-       options object has no switch for it. */
-    .tflens-chart ::deep .apexcharts-grid-borders,
-    .tflens-chart ::deep .apexcharts-grid line,
-    .tflens-chart ::deep .apexcharts-grid-borders line {
-        display: none;
-    }
-
-/* REQ-UI-023 — the unit chip on the chart header. The mockup's `.badge` is `white-space:nowrap`;
-   TrBlazeUI's is not, so as a flex item it shrank and broke "tokens, not dollars" over two lines. */
-.tflens-unit-badge {
-    white-space: nowrap;
-    flex: none;
 }
 
 /* REQ-UI-025 — the one dollar figure on the page. */

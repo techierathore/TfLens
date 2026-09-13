@@ -75,12 +75,9 @@
                     @foreach (var vFilter in Filters)
                     {
                         <span class="pb-filter">
-                            @* TR-020 — SelectValue renders the raw bound value until SelectContent has
-                               rendered once, so the closed trigger needs DisplayTextSelector. *@
                             <Select TValue="string"
                                     Value="@vFilter.Value"
-                                    ValueChanged="@(aValue => OnFilterChangedAsync(vFilter.Key, aValue))"
-                                    DisplayTextSelector="@(aValue => vFilter.LabelOf(aValue))">
+                                    ValueChanged="@(aValue => OnFilterChangedAsync(vFilter.Key, aValue))">
                                 <SelectTrigger data-testid="@($"pb-effort-filter-{vFilter.Key}")">
                                     <SelectValue Placeholder="@vFilter.Options[0].Label" />
                                 </SelectTrigger>
@@ -208,7 +205,8 @@
                           Description="@MeasuredCostCaption"
                           data-testid="pb-cost-measured">
                     <TitleAdornment>
-                        <Badge Variant="BadgeVariant.Secondary">measured</Badge>
+                        @* TR-016 — the mockup draws this pill `badge success`. *@
+                        <Badge Variant="BadgeVariant.Success">measured</Badge>
                     </TitleAdornment>
                     <ValueContent>
                         <span class="@(vReport.MeasuredCostUsd.Usd is null ? "pb-refused" : null)"
@@ -283,13 +281,16 @@
                 </span>
             </div>
 
-            @* TR-028 — BarChart exposes no axis, grid or data-label control and no route to
-               ApexChartOptions, and ChartContainer paints a card of its own inside the card a chart
-               already sits in. The approved design draws segmented bars with the value printed above
-               each one and no axis at all, so these are the mockup's own CSS bars rather than a chart
-               component fought into shape; every segment is also printed as text in the tables below,
-               so nothing here is readable only as a picture. *@
-            <div class="pb-grid-2" data-testid="pb-effort-charts">
+            @* These are the mockup's own bars, not a chart component fought into shape.
+               docs/mockups/effort-playbook.html draws `div.bars > div.b > i` — a stacked block with the
+               value printed above it, a label under it and no axis, no grid and no legend of its own —
+               so the markup below reproduces that element for element. TR-028's fix (BarChart taking
+               `Options` / `OptionsConfigurator`, ChartContainer taking `Bare="true"`) does not apply
+               here: there is no ApexChart on this surface to unpick, and reaching an axis-less,
+               grid-less, three-segment stack through ApexCharts would be more configuration than the
+               four `<i>` elements the design actually asks for. Every segment is also printed as text
+               in the tables below, so nothing here is readable only as a picture. *@
+            <div class="pb-grid-2 grid grid-cols-1 gap-4 lg:grid-cols-2" data-testid="pb-effort-charts">
 
                 <Card Class="h-full" data-testid="pb-chart-tokens">
                     <CardHeader>
@@ -350,7 +351,8 @@
                                 <CardTitle Class="text-base">Duration distribution</CardTitle>
                                 <CardDescription>Complete windows only</CardDescription>
                             </span>
-                            <Badge Variant="BadgeVariant.Outline" data-testid="pb-chart-duration-excluded">
+                            @* TR-016 — the mockup draws this pill `badge warning`. *@
+                            <Badge Variant="BadgeVariant.Warning" data-testid="pb-chart-duration-excluded">
                                 @vReport.Quality.Incomplete incomplete excluded
                             </Badge>
                         </div>
@@ -474,13 +476,10 @@
                     </CardHeader>
                     <CardContent Class="pt-0">
                         <div class="pb-table-scroll">
-                            @* TR-009 — ShowPagination="false" hides the pager but still truncates to
-                               InitialPageSize, so the page size has to cover every row. *@
                             <DataTable TData="PhaseCommandGroup"
                                        Data="@vReport.CommandPhases"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="200"
                                        AriaLabel="Tokens by command phase"
                                        data-testid="pb-effort-command-phases">
                                 <Columns>
@@ -568,7 +567,6 @@
                                        Data="@ActiveRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="200"
                                        AriaLabel="Active time against wall clock"
                                        data-testid="pb-effort-active-table">
                                 <Columns>
@@ -655,7 +653,6 @@
                                        Data="@ModelRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="200"
                                        AriaLabel="Model mix"
                                        data-testid="pb-effort-model-mix">
                                 <Columns>
@@ -850,7 +847,9 @@
                         {
                             <Collapsible @bind-Open="objIsDetailOpen" data-testid="pb-execution-detail">
                                 <div class="pb-detail">
-                                    <CollapsibleTrigger>
+                                    @* TR-030 — the trigger is a real button and shrinks to fit; the
+                                       spacer needs the full row width to push the pill flush right. *@
+                                    <CollapsibleTrigger Class="w-full text-left">
                                         <span class="pb-detail-trigger">
                                             <LucideIcon Name="chevron-down" Size="16" />
                                             <span class="font-mono">@(vSelected.CommandPhase ?? PlaybookPhaseVocabulary.Unavailable)</span>
@@ -1051,7 +1050,6 @@
                                Data="@StateRows"
                                ShowToolbar="false"
                                ShowPagination="false"
-                               InitialPageSize="20"
                                AriaLabel="Empty and unsupported states"
                                data-testid="pb-effort-states-table">
                         <Columns>
@@ -2118,13 +2116,6 @@
     /// <param name="Options">Every option, the "all" one first.</param>
     private sealed record FilterSpec(string Key, string Value, IReadOnlyList<FilterOption> Options)
     {
-        /// <summary>The label of one option key, for the closed trigger (TR-020).</summary>
-        /// <param name="aValue">The option key.</param>
-        /// <returns>The label, or the key when no option carries it.</returns>
-        public string LabelOf(string? aValue) =>
-            Options.FirstOrDefault(aOption => string.Equals(aOption.Key, aValue, StringComparison.Ordinal))?.Label
-            ?? aValue
-            ?? string.Empty;
     }
 
     /// <summary>One option of one filter.</summary>
@@ -2177,6 +2168,13 @@
                 : string.Join(" · ", View.QuarantineReasons.Select(aReason => aReason.Code));
 
         /// <summary>Which badge variant the data-quality cell uses.</summary>
+        /// <remarks>
+        /// TR-016 — the four tones the mockup draws, restored now that <c>BadgeVariant</c> carries
+        /// <c>Success</c>, <c>Info</c> and <c>Warning</c>: <c>quarantined</c> is destructive because a
+        /// quarantined row IS a failure, <c>complete</c> is success, a partial or incomplete window is
+        /// a warning because it needs attention without being a failure, and an <c>unavailable</c>
+        /// coverage is outline — an absence of observation is neither good nor bad news.
+        /// </remarks>
         public BadgeVariant QualityVariant
         {
             get
@@ -2186,13 +2184,17 @@
                     return BadgeVariant.Destructive;
                 }
 
-                return View.IsComplete == true
-                       && string.Equals(
-                           View.ActiveCoverage,
-                           PlaybookPhaseVocabulary.CoverageComplete,
-                           StringComparison.Ordinal)
-                    ? BadgeVariant.Secondary
-                    : BadgeVariant.Outline;
+                if (View.IsComplete != true)
+                {
+                    return BadgeVariant.Warning;
+                }
+
+                return View.ActiveCoverage switch
+                {
+                    PlaybookPhaseVocabulary.CoverageComplete => BadgeVariant.Success,
+                    PlaybookPhaseVocabulary.CoveragePartial => BadgeVariant.Warning,
+                    _ => BadgeVariant.Outline
+                };
             }
         }
     }

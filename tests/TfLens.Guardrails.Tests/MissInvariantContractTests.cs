@@ -113,10 +113,17 @@ public sealed class MissInvariantContractTests
 
         // The full, deliberately short list. Adding a writer here is a decision someone has to make on
         // purpose, which is the point: a sixth file appearing in this list is the review moment.
+        //
+        // `PriceProviders.cs` was that moment, on 2026-09-11 (REQ-FN-139). It writes ONE file —
+        // data/price-providers.json, the operator-editable record of where each published rate came
+        // from — and it writes no stream bytes at all. It sits beside `RateCard.cs` for the same reason
+        // that one does: both own an INPUT to the report rather than any part of the measured record,
+        // and neither can reach a stream, a raw archive or a telemetry table.
         Assert.Equal(
             [
                 "src/TfLens.Core/Export/SnapshotExporter.cs",
                 "src/TfLens.Core/Import/TelemetryImportService.cs",
+                "src/TfLens.Core/Metrics/PriceProviders.cs",
                 "src/TfLens.Core/Metrics/RateCard.cs",
                 "src/TfLens.Core/Playbook/PlaybookAdapter.cs",
                 "src/TfLens/Services/Sync/RepoSyncRunner.cs"
@@ -127,7 +134,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 1 — the cost result type has no property a blended figure could live in.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the miss cost result type holds only the sole figure, the apportioned figure and a none count, so a blended cost cannot be expressed")]
     public void MissCostCarriesTheSplitAndNothingElse()
     {
         var vNames = typeof(MissCost)
@@ -146,7 +153,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 2 — the exclusion is engine output, so a page cannot render the figures without it.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the attribution result type carries the excluded count and its reason, so the per-origin figures cannot be shown without the exclusion")]
     public void TheAttributionExclusionIsCarriedOnTheResultType()
     {
         foreach (var vName in new[] { "AttributedN", "AttributionExcluded", "ExclusionReason", "ExcludedByConfidence" })
@@ -161,7 +168,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 3 — the failed-practice denominator is a property in its own right, not a derived guess.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the failed-practice denominator is its own property and the eligibility type carries no rate, so the share cannot be read against the miss count")]
     public void TheFailedPracticeDenominatorIsOnTheResultType()
     {
         Assert.NotNull(typeof(MissSegmentFigures).GetProperty("WhyMissedN"));
@@ -179,7 +186,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 4 — open and declined are two properties, so nothing can fold one into the other.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — open misses and won't-fix misses are two separate properties, so one cannot be folded into the other")]
     public void OpenAndDeclinedAreTwoSeparateFigures()
     {
         foreach (var vType in new[] { typeof(MissAnalysis), typeof(MissSegmentFigures) })
@@ -192,7 +199,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 5 — measured dollars and the estimate label are different properties on the harness row.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — measured harness dollars and the rate-card estimate label are separate properties, so an estimate cannot be expressed as spend")]
     public void MeasuredDollarsAndTheEstimateLabelNeverShareAProperty()
     {
         Assert.Equal(
@@ -207,7 +214,7 @@ public sealed class MissInvariantContractTests
     /// <summary>
     /// Clause 6 — the miss escape share and the gates escape rate live on different result types.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the miss escape share and the gates escape rate live on different result types, and the escape rate takes no miss record")]
     public void TheMissEscapeShareIsNotTheGatesEscapeRate()
     {
         Assert.NotNull(typeof(SegmentFigures).GetProperty("EscapeRate"));

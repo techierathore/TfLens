@@ -72,6 +72,27 @@ public sealed record AnalysisResult
     /// </remarks>
     public PhaseEffortAnalysis Phases { get; init; } = PhaseEffortAnalysis.Empty;
 
+    /// <summary>
+    /// Runs a <c>run-void</c> record took out of every figure (SCHEMA.md §2.7, REQ-FN-135).
+    /// </summary>
+    /// <remarks>
+    /// The stream is append-only, so a run recorded with a wrong figure is corrected by a second record
+    /// naming it rather than by an edit. Both records stay; this is the count of what stopped being
+    /// counted, published because a total offered without its exclusions is just a different wrong
+    /// number.
+    /// </remarks>
+    public int RunsVoidedN { get; init; }
+
+    /// <summary>One line per voided run — which run, and the reason the void gave for it.</summary>
+    /// <remarks>
+    /// The reason is the protection: it is on the record and a reader can check it, which is what stops
+    /// a void being used to remove a run whose figures are merely unflattering.
+    /// </remarks>
+    public IReadOnlyList<string> RunsVoided { get; init; } = [];
+
+    /// <summary>Voids naming a run this stream does not hold; counted and shown, never dropped.</summary>
+    public int RunVoidsOrphanedN { get; init; }
+
     /// <summary>Parser version stamped into every export, so a figure can be traced to the code that made it.</summary>
     public required string ParserVersion { get; init; }
 
@@ -280,6 +301,30 @@ public sealed record PooledMetrics
 
     /// <summary>Tokens per <c>Verified</c> verdict, to one decimal place.</summary>
     public required Figure TokensPerVerifiedReq { get; init; }
+
+    /// <summary>
+    /// What every run's measured tokens would cost at the published rate — a price, never a bill
+    /// (SCHEMA.md §2.5b, REQ-FN-136).
+    /// </summary>
+    /// <remarks>
+    /// Pooled across harnesses deliberately, and legitimately: unlike <c>cost_usd</c>, a list price is
+    /// the same question asked of every run — what would these tokens cost, bought at the published
+    /// rate — so it is the one money figure that may be totalled over a mixed estate.
+    /// </remarks>
+    public decimal ListUsdTotal { get; init; }
+
+    /// <summary>Runs that produced a list price; the total's own denominator.</summary>
+    public int ListUsdRecords { get; init; }
+
+    /// <summary>
+    /// List price per Verified verdict, or <c>null</c> below the minimum-n floor.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> rather than a number when either side of the ratio is too thin to divide — the
+    /// reference refuses it on the same terms, and printing a figure it refuses is a parity mismatch in
+    /// exactly the same way as refusing one it prints.
+    /// </remarks>
+    public decimal? ListUsdPerVerifiedReq { get; init; }
 
     /// <summary>
     /// Always <c>null</c>. Measured dollars exist only per-harness for OpenCode and are never totalled.
@@ -605,6 +650,18 @@ public sealed record MissAttributionFigures
     /// <summary>Misses per run of the originating phase, one row per phase observed.</summary>
     public required IReadOnlyList<MissPhaseRate> MissRatePerOriginPhase { get; init; }
 
+    /// <summary>
+    /// Misses per 100 runs of the originating model, one row per model in <see cref="ByOriginModel"/>
+    /// (REQ-UI-038, BRD-121, BRD-124).
+    /// </summary>
+    /// <remarks>
+    /// Computed from the same <c>linked</c> records as <see cref="ByOriginModel"/>, so a guessed
+    /// attribution cannot reach it. Observational only: miss counts per model are confounded by which
+    /// model gets the hard work. Not a parity key — the reference ships the per-model counts and no
+    /// per-model rate — so it defaults to empty rather than being required of every producer.
+    /// </remarks>
+    public IReadOnlyList<MissModelRate> MissRatePerOriginModel { get; init; } = [];
+
     /// <summary>What an attribution split over nothing returns.</summary>
     public static MissAttributionFigures Empty { get; } = new()
     {
@@ -633,6 +690,21 @@ public sealed record MissAttributionExclusion(string Confidence, int Records);
 /// <param name="Runs">Live runs of that command in the same segment — the denominator.</param>
 /// <param name="Rate">Misses over runs, or an honest refusal when too few runs support it.</param>
 public sealed record MissPhaseRate(string Phase, int Misses, int Runs, Figure Rate);
+
+/// <summary>
+/// Misses attributed to one origin model, over the live runs that model did — the "which model to
+/// route to" row (REQ-UI-038).
+/// </summary>
+/// <remarks>
+/// <see cref="PerHundredRuns"/> refuses to be a number when the row stands on fewer than
+/// <see cref="MetricsConstants.MinN"/> misses or fewer than <see cref="MetricsConstants.MinN"/> runs, and
+/// is not applicable when the model did no live run at all — a rate over nothing is not a zero.
+/// </remarks>
+/// <param name="Model">The <c>origin_model</c> the emitter derived.</param>
+/// <param name="Misses"><c>linked</c> misses naming it.</param>
+/// <param name="Runs">Live runs in the same segment whose observed <c>model</c> is this one — the denominator.</param>
+/// <param name="PerHundredRuns">Misses per 100 runs to one decimal place, or an honest refusal.</param>
+public sealed record MissModelRate(string Model, int Misses, int Runs, Figure PerHundredRuns);
 
 /// <summary>
 /// Rework token cost, carrying the attribution split so a blended number is unrepresentable
@@ -793,3 +865,78 @@ public sealed record MissHarnessCost(
     decimal? MeasuredUsdTotal,
     int MeasuredUsdRecords,
     string? EstimateLabel);
+
+/// <summary>
+/// What the owner's reviews cost, and what a repair was worth at list price
+/// (SCHEMA.md §5.5.9 and §2.5b; REQ-FN-138).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A review record is the only record in any stream that prices a specification defect.</b> A report
+/// that shows build and verify costs but not review costs tells its reader that documents are free —
+/// and the owner's own review time is the scarcest input the whole framework consumes.
+/// </para>
+/// <para>
+/// Every mean divides by the records that <b>carry</b> the figure, never by all of them, and the count
+/// travels with the mean so a consumer can reproduce it rather than choosing between agreeing and being
+/// right. Nothing here is computed or apportioned: the emitter copied these token counts from the two
+/// runs each record names, and TfLens stores and reports them exactly as they arrived.
+/// </para>
+/// </remarks>
+public sealed record MissReviewBlock
+{
+    /// <summary>The block for a framework whose stream holds no review record.</summary>
+    public static MissReviewBlock Empty { get; } = new()
+    {
+        ByPhase = [],
+        TokensToProduce = Figure.InsufficientData(0),
+        TokensToCorrect = Figure.InsufficientData(0),
+        ListUsdPerMiss = null
+    };
+
+    /// <summary>Review records read — stated because they are <b>not</b> misses and never counted as any.</summary>
+    public int ReviewsN { get; init; }
+
+    /// <summary>Corrections the owner gave across every review.</summary>
+    public int Corrections { get; init; }
+
+    /// <summary>Reviews per phase — <c>day1-review</c>, <c>build-review</c> and the rest.</summary>
+    public required IReadOnlyList<KeyValuePair<string, int>> ByPhase { get; init; }
+
+    /// <summary>Mean output tokens spent producing the reviewed output.</summary>
+    public required Figure TokensToProduce { get; init; }
+
+    /// <summary>Records carrying that figure — the mean's own divisor.</summary>
+    public int TokensToProduceN { get; init; }
+
+    /// <summary>Mean output tokens spent applying the owner's corrections.</summary>
+    public required Figure TokensToCorrect { get; init; }
+
+    /// <summary>Records carrying that figure.</summary>
+    public int TokensToCorrectN { get; init; }
+
+    /// <summary>
+    /// Repairs whose dollars were measured and are <b>not money</b> — a subscription's zero, a local
+    /// model's absent bill.
+    /// </summary>
+    /// <remarks>
+    /// Printed beside the measured-dollars figure and never inside it. A flat monthly fee bills nothing
+    /// extra, so its zero is true of the marginal cost and false of the money; averaging it in would
+    /// drag dollars-per-miss toward zero and make repairs look almost free.
+    /// </remarks>
+    public int CostExcludedNotMoneyN { get; init; }
+
+    /// <summary>
+    /// What the average repair's tokens would have cost at the published rate, or <c>null</c> below the
+    /// minimum-n floor.
+    /// </summary>
+    /// <remarks>
+    /// The figure that works on <b>every</b> harness. A Claude Code repair can have no measured dollars
+    /// at all, because a subscription bills nothing per token — so this is the only money-shaped answer
+    /// it can give, and it is a price rather than a bill.
+    /// </remarks>
+    public decimal? ListUsdPerMiss { get; init; }
+
+    /// <summary>Repairs that could be priced; the denominator of <see cref="ListUsdPerMiss"/>.</summary>
+    public int ListUsdRecords { get; init; }
+}

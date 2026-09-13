@@ -31,6 +31,7 @@
    component cannot be resolved — it emits RZ10012 and renders the tag as an unknown element with no
    styling. Same fix as Routing.razor. *@
 @using TrBlazeUI.Components.Empty
+@using TrBlazeUI.Components.InputGroup
 @using TrBlazeUI.Components.Typography
 @using TfLens.Components.Shared.Playbook
 @using TfLens.Components.Pages.ExportParts
@@ -51,13 +52,9 @@
         <div class="flex flex-wrap items-center gap-2">
             <Badge Variant="BadgeVariant.Outline" data-testid="misses-period-label">@PeriodLabel</Badge>
             <div class="tflens-period">
-                @* TR-020: SelectValue renders the raw bound value until SelectContent has rendered once,
-                   so the closed trigger read "all" rather than "All history (default)". DisplayTextSelector
-                   is the library's own hook and resolves it without waiting for the popover. *@
                 <Select TValue="string"
                         Value="@objPeriod"
                         ValueChanged="OnPeriodChangedAsync"
-                        DisplayTextSelector="@PeriodTextOf"
                         Class="w-full">
                     <SelectTrigger data-testid="misses-period">
                         <SelectValue Placeholder="All history (default)" />
@@ -151,13 +148,9 @@
             <TabsList>
                 @foreach (var vType in objResult.ProjectTypes)
                 {
-                    @* TR-010: TabsTrigger captures no unmatched attributes, so the test id sits on its
-                       own label span; a click on that still activates the trigger. *@
-                    <TabsTrigger Value="@vType">
-                        <span class="flex items-center gap-1.5" data-testid="@($"miss-type-{vType}")">
-                            <span>@vType</span>
-                            <Badge Variant="BadgeVariant.Secondary">@SegmentOf(vType).Misses</Badge>
-                        </span>
+                    <TabsTrigger Value="@vType" Class="gap-1.5" data-testid="@($"miss-type-{vType}")">
+                        <span>@vType</span>
+                        <Badge Variant="BadgeVariant.Secondary">@SegmentOf(vType).Misses</Badge>
                     </TabsTrigger>
                 }
             </TabsList>
@@ -168,7 +161,14 @@
 
         @* ── BAND 1 — KPI row ─────────────────────────────────────────────────────────── *@
         <div class="tflens-stack" data-testid="miss-kpis">
-            <div class="tflens-kpi-row tflens-kpi-4">
+            @* TR-002 — measured on the running app 2026-09-12: `StatGroup` is responsive on its own
+               now. Each tile carries `trblazeui-col-12 trblazeui-col-md-6 trblazeui-col-lg-3`, and
+               those md/lg helpers really do sit inside their media queries in 2.1.0-ci.10 — one tile
+               per row on a phone, two from 48rem, four from 64rem, which is what the mockup draws.
+               The scoped `::deep .trblazeui-grid` override that used to force this is deleted.
+               Do NOT pass `Class` here: StatGroup REPLACES its root class rather than merging, so a
+               `grid-cols-*` utility knocks `trblazeui-grid` out and the 12-column spans collapse. *@
+            <div class="tflens-kpi-row">
                 <StatGroup Columns="4">
                     <StatTile Title="Open misses"
                               Value="@vSeg.OpenMisses.ToString("N0", CultureInfo.InvariantCulture)"
@@ -206,7 +206,7 @@
                 </StatGroup>
             </div>
 
-            <div class="tflens-kpi-row tflens-kpi-4">
+            <div class="tflens-kpi-row">
                 <StatGroup Columns="4">
                     <StatTile Title="Design-miss share"
                               Description="@DesignShareDetail(vSeg)"
@@ -236,7 +236,7 @@
                               Accent="StatAccent.Chart1"
                               data-testid="kpi-rework-tokens">
                         <ValueContent>
-                            <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Sole"
+                            <FigureText Value="@Grouped(vSeg.Cost.TokensPerMissFixed.Sole)"
                                         Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Sole)"
                                         TestId="kpi-rework-tokens-value" />
                         </ValueContent>
@@ -248,16 +248,20 @@
                        cannot tell the two apart at a glance "has been given a plausible wrong number";
                        the build had dropped both the ring and the badge, which is precisely that reader.
                        The tile also carried a green tick where the mockup uses the database glyph — the
-                       tick reads as a verdict on the figure rather than as its provenance. *@
+                       tick reads as a verdict on the figure rather than as its provenance.
+                       2026-09-11 (fix cycle 1) — and the mockup draws NO chip on this tile at all: its
+                       header row is the title and the `opencode · measured` pill, nothing else. The app
+                       carried a blue database chip beside the pill, so this was the one KPI tile whose
+                       right-hand corner held a glyph the design does not have. IconName is therefore
+                       left unset, which is StatTile's own way of drawing no chip.
+                       2026-09-12 (TR-016) — the mockup's pill is `badge success`, and `BadgeVariant`
+                       carries `Success` now, so the tone is the library's rather than a local class. *@
                     <StatTile Title="Measured USD on rework"
                               Description="@MeasuredUsdDetail(vSeg)"
-                              IconName="database"
-                              Accent="StatAccent.Chart1"
                               Class="tflens-measured"
                               data-testid="kpi-rework-usd">
                         <TitleAdornment>
-                            <Badge Variant="BadgeVariant.Outline"
-                                   Class="tflens-measured-badge"
+                            <Badge Variant="BadgeVariant.Success"
                                    data-testid="kpi-rework-usd-measured-badge">opencode · measured</Badge>
                         </TitleAdornment>
                         <ValueContent>
@@ -272,7 +276,8 @@
            its own row, a dashed border and the estimate label on its face. Nobody was billed this. *@
         <Card Class="tflens-estimate" data-testid="kpi-rework-usd-estimate">
             <CardContent Class="p-6">
-                <div class="flex flex-wrap items-start gap-4">
+                @* The mockup's `.row` centres the amber chip against the text block beside it. *@
+                <div class="flex flex-wrap items-center gap-4">
                     <span class="tflens-stat-chip tflens-accent-4 shrink-0">
                         <LucideIcon Name="triangle-alert" Size="16" />
                     </span>
@@ -282,7 +287,13 @@
                             <span class="tflens-money-inline tabular-nums" data-testid="kpi-rework-usd-estimate-value">
                                 @EstimateUsdDisplay
                             </span>
-                            <Badge Variant="BadgeVariant.Outline" data-testid="kpi-rework-usd-estimate-label">
+                            @* TR-029 — `RateCard.EstimateLabel` is a whole sentence ("estimate —
+                               tokens × rate card, not measured spend") and BRD-123 puts it on the
+                               card's face rather than in a tooltip. 2.1.0-ci.10 no longer wraps a
+                               long Badge label: measured at 390 on 2026-09-12 the pill was 375px in
+                               a 342px pane and pushed the page sideways by 66px. `Wrap` grows the
+                               pill instead, which is the library's own answer. *@
+                            <Badge Variant="BadgeVariant.Outline" Wrap="true" data-testid="kpi-rework-usd-estimate-label">
                                 @RateCard.EstimateLabel
                             </Badge>
                         </div>
@@ -308,13 +319,13 @@
 
         @* ── BAND 2 — where misses come from ──────────────────────────────────────────── *@
         <TypographyH2 Class="text-lg">Where misses come from</TypographyH2>
-        <div class="tflens-grid tflens-grid-origin">
+        <div class="tflens-grid grid-cols-1 tflens-grid-origin">
 
             <Card data-testid="miss-origin">
                 <CardHeader>
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <CardTitle>Origin phase × miss class</CardTitle>
+                        <div class="min-w-0 flex-1">
+                            <CardTitle Class="text-base">Origin phase × miss class</CardTitle>
                             <CardDescription>Did we specify badly, or build badly?</CardDescription>
                         </div>
                         <Badge Variant="BadgeVariant.Outline">linked only</Badge>
@@ -388,11 +399,16 @@
                         </div>
                     }
                 </CardContent>
-                <CardFooter>
+                @* `border-t pt-4` — the mockup's `.card-f` is ruled off from the table above it
+                   (`border-top:1px solid var(--border)`, 16px above the text); TrBlazeUI's CardFooter
+                   draws no rule. Same on every footer on this page. *@
+                <CardFooter Class="border-t pt-4">
                     @* BRD-121 — the exclusion is on the page, always, even at zero. An exclusion the reader
-                       cannot see is indistinguishable from a bug. *@
+                       cannot see is indistinguishable from a bug.
+                       `shrink-0` on the icon: a flex item shrinks by default, and beside a long sentence
+                       the 14px info glyph was squeezed to a 1px sliver — a dot where the mockup draws ⓘ. *@
                     <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-taint-count">
-                        <LucideIcon Name="info" Size="14" />
+                        <LucideIcon Name="info" Size="14" Class="mt-0.5 shrink-0" />
                         <span>
                             <b>@vTaint.AttributionExcluded of @vSeg.Misses misses excluded</b> from every per-origin
                             figure@(ExcludedBreakdown(vTaint)) — @vTaint.Reason.
@@ -404,14 +420,16 @@
             <Card data-testid="miss-whymissed">
                 <CardHeader>
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <CardTitle>Which practice failed</CardTitle>
+                        <div class="min-w-0 flex-1">
+                            <CardTitle Class="text-base">Which practice failed</CardTitle>
                             <CardDescription>
                                 Is our <b>specification</b> weak, or our <b>verification</b>?
                             </CardDescription>
                         </div>
-                        @* BRD-119 — the denominator is on the card's face, never a tooltip. *@
-                        <Badge Variant="BadgeVariant.Outline" data-testid="miss-whymissed-denominator">
+                        @* BRD-119 — the denominator is on the card's face, never a tooltip. The mockup
+                           draws it amber (`badge warning`): it says the distribution is over fewer misses
+                           than the page counts. *@
+                        <Badge Variant="BadgeVariant.Warning" data-testid="miss-whymissed-denominator">
                             @AssessedLine(vSeg)
                         </Badge>
                     </div>
@@ -422,7 +440,6 @@
                                    Data="@PracticeRows"
                                    ShowToolbar="false"
                                    ShowPagination="false"
-                                   InitialPageSize="32"
                                    AriaLabel="Failed-practice distribution over misses that carry why_missed"
                                    data-testid="miss-whymissed-table">
                             <Columns>
@@ -436,7 +453,7 @@
                                                  Property="@(aRow => aRow.Share)" Header="Share">
                                     <CellTemplate Context="vRow">
                                         <div class="flex items-center gap-2">
-                                            <Progress Value="@vRow.SharePercent" Class="w-16" />
+                                            <Progress Value="@vRow.SharePercent" Class="w-20" />
                                             <span class="text-xs tabular-nums">@vRow.Count · @vRow.Share</span>
                                         </div>
                                     </CellTemplate>
@@ -449,7 +466,7 @@
                         <p class="mt-4 text-xs italic text-muted-foreground" data-testid="miss-whymissed-note">@vNote</p>
                     }
                 </CardContent>
-                <CardFooter>
+                <CardFooter Class="border-t pt-4">
                     <p class="text-xs text-muted-foreground" data-testid="miss-whymissed-eligibility">
                         @WhyMissedFooter(vSeg)
                     </p>
@@ -461,16 +478,16 @@
         <Card data-testid="miss-sort">
             <CardHeader>
                 <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <CardTitle>Whose gap was it</CardTitle>
+                    <div class="min-w-0 flex-1">
+                        <CardTitle Class="text-base">Whose gap was it</CardTitle>
                         <CardDescription>
                             The card beside this one says <b>what broke</b>. This one says
                             <b>what to do about it</b> — and each answer has a different fixed remedy.
                         </CardDescription>
                     </div>
                     @* BRD-172 — `n of N sorted` on the card's face, never a tooltip, and never a
-                       percentage of all misses. *@
-                    <Badge Variant="BadgeVariant.Outline" data-testid="miss-sort-denominator">
+                       percentage of all misses. Amber, as the mockup draws it (`badge warning`). *@
+                    <Badge Variant="BadgeVariant.Warning" data-testid="miss-sort-denominator">
                         @SortedLine(vSeg)
                     </Badge>
                 </div>
@@ -481,7 +498,6 @@
                                Data="@SortRows"
                                ShowToolbar="false"
                                ShowPagination="false"
-                               InitialPageSize="16"
                                AriaLabel="Whose gap it was, over misses that carry the sort field"
                                data-testid="miss-sort-table">
                         <Columns>
@@ -495,7 +511,7 @@
                                              Property="@(aRow => aRow.Share)" Header="@SortShareHeader(vSeg)">
                                 <CellTemplate Context="vRow">
                                     <div class="flex items-center gap-2">
-                                        <Progress Value="@vRow.SharePercent" Class="w-16" />
+                                        <Progress Value="@vRow.SharePercent" Class="w-20" />
                                         <span class="text-xs tabular-nums">@vRow.Count · @vRow.Share</span>
                                     </div>
                                 </CellTemplate>
@@ -510,7 +526,7 @@
                     </DataTable>
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter Class="border-t pt-4">
                 <div class="flex flex-col gap-1.5">
                     @* BRD-172 — the records written before the field existed are stated APART, in those
                        words. A record from before the question was asked is not a record that declined
@@ -546,12 +562,12 @@
             </AlertDescription>
         </Alert>
 
-        <div class="tflens-grid tflens-grid-2">
+        <div class="tflens-grid grid-cols-1 lg:grid-cols-2">
             <Card data-testid="miss-origin-model">
                 <CardHeader>
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <CardTitle>By origin model</CardTitle>
+                        <div class="min-w-0 flex-1">
+                            <CardTitle Class="text-base">By origin model</CardTitle>
                             <CardDescription>Which model to route to — a different question from the one beside it</CardDescription>
                         </div>
                         <Badge Variant="BadgeVariant.Outline">@vTaint.AttributedN linked</Badge>
@@ -568,33 +584,46 @@
                     }
                     else
                     {
+                        @* REQ-UI-038 — docs/mockups/misses.html and P3-UIDesign give this card misses · runs ·
+                           per-100-runs, where the agent card beside it carries share · dominant class: the
+                           model question is "which model to route to", which needs the runs it did. The rate
+                           is the engine's (MissAttributionFigures.MissRatePerOriginModel) and refuses below
+                           the minimum n, so a thin row reads `insufficient data (n=…)` and never a rate. *@
                         <div class="tflens-scroll-x">
-                            <DataTable TData="OriginCountRow"
+                            <DataTable TData="ModelRateRow"
                                        Data="@ModelRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="32"
                                        AriaLabel="Misses by origin model, linked records only"
                                        data-testid="miss-origin-model-table">
                                 <Columns>
-                                    <DataTableColumn TData="OriginCountRow" TValue="string"
+                                    <DataTableColumn TData="ModelRateRow" TValue="string"
                                                      Property="@(aRow => aRow.Key)" Header="Model">
                                         <CellTemplate Context="vRow">
-                                            <span class="font-mono text-xs">@vRow.Key</span>
+                                            <span class="font-mono text-xs whitespace-nowrap">@vRow.Key</span>
                                         </CellTemplate>
                                     </DataTableColumn>
-                                    <DataTableColumn TData="OriginCountRow" TValue="int"
+                                    <DataTableColumn TData="ModelRateRow" TValue="int"
                                                      Property="@(aRow => aRow.Count)" Header="Misses"
                                                      CellClass="text-right">
                                         <CellTemplate Context="vRow">
                                             <span class="tabular-nums">@vRow.Count</span>
                                         </CellTemplate>
                                     </DataTableColumn>
-                                    <DataTableColumn TData="OriginCountRow" TValue="string"
-                                                     Property="@(aRow => aRow.Share)" Header="Share"
+                                    <DataTableColumn TData="ModelRateRow" TValue="int"
+                                                     Property="@(aRow => aRow.Runs)" Header="Runs"
                                                      CellClass="text-right">
                                         <CellTemplate Context="vRow">
-                                            <span class="tabular-nums text-xs">@vRow.Share</span>
+                                            <span class="tabular-nums" data-testid="miss-origin-model-runs">@vRow.Runs.ToString("N0", CultureInfo.InvariantCulture)</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="ModelRateRow" TValue="string"
+                                                     Property="@(aRow => aRow.Rate.Display())" Header="Per 100 runs"
+                                                     CellClass="text-right">
+                                        <CellTemplate Context="vRow">
+                                            <FigureText Value="@vRow.Rate"
+                                                        Class="tabular-nums text-xs"
+                                                        TestId="miss-origin-model-rate" />
                                         </CellTemplate>
                                     </DataTableColumn>
                                 </Columns>
@@ -607,8 +636,8 @@
             <Card data-testid="miss-origin-agent">
                 <CardHeader>
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <CardTitle>By origin agent</CardTitle>
+                        <div class="min-w-0 flex-1">
+                            <CardTitle Class="text-base">By origin agent</CardTitle>
                             <CardDescription>Which persona's instructions to tighten</CardDescription>
                         </div>
                         <Badge Variant="BadgeVariant.Outline">@vTaint.AttributedN linked</Badge>
@@ -628,7 +657,6 @@
                                        Data="@AgentRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="32"
                                        AriaLabel="Misses by origin agent, linked records only"
                                        data-testid="miss-origin-agent-table">
                                 <Columns>
@@ -668,13 +696,13 @@
 
         @* ── BAND 4 — cost of rework ──────────────────────────────────────────────────── *@
         <TypographyH2 Class="text-lg">Cost of rework</TypographyH2>
-        <div class="tflens-grid tflens-grid-3" data-testid="miss-cost">
+        <div class="tflens-grid grid-cols-1 lg:grid-cols-3" data-testid="miss-cost">
 
             <Card Class="h-full" data-testid="miss-cost-measured">
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <CardTitle>Measured</CardTitle>
+                            <CardTitle Class="text-base">Measured</CardTitle>
                             <CardDescription><span class="font-mono">cost_attribution: sole</span></CardDescription>
                         </div>
                         <span class="tflens-stat-chip tflens-accent-2 shrink-0">
@@ -684,7 +712,7 @@
                 </CardHeader>
                 <CardContent Class="pt-0">
                     <div class="tflens-money tabular-nums">
-                        <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Sole"
+                        <FigureText Value="@Grouped(vSeg.Cost.TokensPerMissFixed.Sole)"
                                     Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Sole)"
                                     TestId="miss-cost-sole" />
                     </div>
@@ -705,7 +733,7 @@
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <CardTitle>Apportioned</CardTitle>
+                            <CardTitle Class="text-base">Apportioned</CardTitle>
                             <CardDescription><span class="font-mono">cost_attribution: shared:n</span></CardDescription>
                         </div>
                         <span class="tflens-stat-chip tflens-accent-4 shrink-0">
@@ -715,7 +743,7 @@
                 </CardHeader>
                 <CardContent Class="pt-0">
                     <div class="tflens-money tabular-nums">
-                        <FigureText Value="@vSeg.Cost.TokensPerMissFixed.Apportioned"
+                        <FigureText Value="@Grouped(vSeg.Cost.TokensPerMissFixed.Apportioned)"
                                     Class="@SmallWhenNoNumber(vSeg.Cost.TokensPerMissFixed.Apportioned)"
                                     TestId="miss-cost-apportioned-value" />
                     </div>
@@ -728,7 +756,9 @@
                     <Separator Class="mt-4 mb-4" />
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-xs text-muted-foreground">Divided equally, and we say so</span>
-                        <Badge Variant="BadgeVariant.Outline">apportioned</Badge>
+                        @* Amber, as the mockup draws it (`badge warning`): apportioned is arithmetic, not
+                           measurement, and the pill is where that reads at a glance. *@
+                        <Badge Variant="BadgeVariant.Warning">apportioned</Badge>
                     </div>
                 </CardContent>
             </Card>
@@ -737,7 +767,7 @@
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <CardTitle>Unattributable</CardTitle>
+                            <CardTitle Class="text-base">Unattributable</CardTitle>
                             <CardDescription><span class="font-mono">cost_attribution: none</span></CardDescription>
                         </div>
                         <span class="tflens-stat-chip tflens-accent-danger shrink-0">
@@ -765,7 +795,7 @@
         </div>
 
         <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-cost-no-blend">
-            <LucideIcon Name="info" Size="14" />
+            <LucideIcon Name="info" Size="14" Class="mt-0.5 shrink-0" />
             <span>
                 There is no blended figure on this page, in the export or in parity —
                 <span class="font-mono">MissCost</span> exposes <span class="font-mono">Sole</span>,
@@ -793,8 +823,8 @@
         <Card data-testid="miss-review-cost">
             <CardHeader>
                 <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <CardTitle>Owner review, per phase</CardTitle>
+                    <div class="min-w-0 flex-1">
+                        <CardTitle Class="text-base">Owner review, per phase</CardTitle>
                         <CardDescription>
                             Corrections given, what the reviewed output cost to produce, and what applying the
                             corrections cost
@@ -861,10 +891,10 @@
                     </div>
                 }
             </CardContent>
-            <CardFooter>
+            <CardFooter Class="border-t pt-4">
                 <div class="flex flex-col gap-1.5">
                     <p class="flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-review-notavailable">
-                        <LucideIcon Name="info" Size="14" />
+                        <LucideIcon Name="info" Size="14" Class="mt-0.5 shrink-0" />
                         <span>
                             <b><span class="font-mono">@NotAvailable</span>, never <span class="font-mono">0</span>.</b>
                             A review whose record names its two runs but whose token windows the emitter could
@@ -885,25 +915,51 @@
         <Card data-testid="miss-detail">
             <CardHeader>
                 <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <CardTitle>Every miss</CardTitle>
+                    <div class="min-w-0 flex-1">
+                        <CardTitle Class="text-base">Every miss</CardTitle>
                         <CardDescription>
                             @DetailRows.Count @(DetailRows.Count == 1 ? "record" : "records") · each row carries the
-                            one sentence that was written about it · the toolbar filter searches REQ, class and
+                            one sentence that was written about it · the filter searches REQ, class and
                             whose gap · amendments folded at read time, so a
                             <span class="font-mono">why_missed</span> or a <span class="font-mono">sort</span>
                             supplied later shows here
                         </CardDescription>
                     </div>
+                    @* TR-033 — docs/mockups/misses.html draws this filter IN the card header, beside the
+                       title, not stacked above the grid. `DataTable` takes `@bind-SearchText`, so the box
+                       is hosted here and the grid still filters over its own `Filterable` columns.
+                       The mockup draws a magnifier inside the box (`<svg class="i lead"><use href="#i-search"/>`
+                       before the input); `InputGroup` is how this library composes that, and it puts the
+                       border on the group rather than the input. Added 2026-09-12 after the parity gate
+                       reported the icon missing — it was, and the report was right.
+
+                       ⚠ `InputGroupInput` has no `DebounceMilliseconds`, which the plain `Input` does
+                       (TR-039), so taking the icon costs the 150ms debounce this box used to have and the
+                       grid now re-filters on each keystroke. Accepted deliberately: the filter runs in
+                       memory over the rows already bound to the grid — 91 on the live data — so there is
+                       no request and no query behind a keystroke. Restore the debounce here if that set
+                       ever grows large enough to feel it. `/prices` already made the same trade. *@
+                    <div class="tflens-detail-filter shrink-0">
+                        <InputGroup>
+                            <InputGroupAddon Align="InputGroupAlign.InlineStart">
+                                <LucideIcon Name="search" Size="16" />
+                            </InputGroupAddon>
+                            <InputGroupInput Type="InputType.Search"
+                               Value="@objDetailSearch"
+                               ValueChanged="@((string? aText) => objDetailSearch = aText ?? string.Empty)"
+                               Placeholder="Filter by REQ, class or whose gap"
+                               AriaLabel="Filter the per-miss table by REQ, class or whose gap"
+                               data-testid="miss-detail-search" />
+                        </InputGroup>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent Class="pt-0">
                 <div class="tflens-scroll-x">
-                    @* TR-009: InitialPageSize is set explicitly — the grid truncates to it even when
-                       pagination is off, so it is never left at the default 5. *@
                     <DataTable TData="MissRow"
                                Data="@DetailRows"
-                               ShowToolbar="true"
+                               ShowToolbar="false"
+                               @bind-SearchText="objDetailSearch"
                                ShowPagination="true"
                                InitialPageSize="25"
                                AriaLabel="Every miss in this segment"
@@ -930,13 +986,13 @@
                             <DataTableColumn TData="MissRow" TValue="string"
                                              Property="@(aRow => aRow.ReqId)" Header="REQ" Filterable="true">
                                 <CellTemplate Context="vRow">
-                                    <span class="font-mono text-xs">@vRow.ReqId</span>
+                                    <span class="font-mono text-xs whitespace-nowrap">@vRow.ReqId</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="MissRow" TValue="string"
                                              Property="@(aRow => aRow.MissClass)" Header="Class" Filterable="true">
                                 <CellTemplate Context="vRow">
-                                    <Badge Variant="BadgeVariant.Outline"><span class="font-mono text-xs">@vRow.MissClass</span></Badge>
+                                    <Badge Variant="BadgeVariant.Outline"><span class="font-mono text-xs whitespace-nowrap">@vRow.MissClass</span></Badge>
                                 </CellTemplate>
                             </DataTableColumn>
                             @* REQ-UI-052 / BRD-171 — the filter on `sort` the band above names. The column
@@ -958,8 +1014,8 @@
                                              Property="@(aRow => aRow.Origin)" Header="Origin">
                                 <CellTemplate Context="vRow">
                                     <span class="flex flex-wrap items-center gap-1">
-                                        <span class="font-mono text-xs">@vRow.Origin</span>
-                                        <Badge Variant="BadgeVariant.Secondary">@vRow.Confidence</Badge>
+                                        <span class="font-mono text-xs whitespace-nowrap">@vRow.Origin</span>
+                                        <Badge Variant="@vRow.ConfidenceVariant">@vRow.Confidence</Badge>
                                     </span>
                                 </CellTemplate>
                             </DataTableColumn>
@@ -996,7 +1052,7 @@
                    surface, said on the page so a reader can check it. Requirement text from a checklist
                    is never stored, rendered or exported, and this clause does not relax that. *@
                 <p class="mt-4 flex items-start gap-2 text-xs text-muted-foreground" data-testid="miss-what-note">
-                    <LucideIcon Name="info" Size="14" />
+                    <LucideIcon Name="info" Size="14" Class="mt-0.5 shrink-0" />
                     <span>
                         The sentence on each row is the record's own <span class="font-mono">what</span> field,
                         in the owner's words. It is the <b>only prose that travels</b> from a stream onto this
@@ -1016,25 +1072,20 @@
                                     </span>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent>
-                                    @* TR-018: a closed CollapsibleContent still lays its children out and overlaps
-                                       what follows, so the subtree is guarded here rather than merely hidden. *@
-                                    @if (objIsRawOpen)
-                                    {
-                                        <div class="mt-4 flex flex-col gap-2">
-                                            <CodeBlock Title="@($"miss · {RawMissId}")" Code="@RawJson" data-testid="miss-raw" />
-                                            <p class="text-xs text-muted-foreground" data-testid="miss-raw-note">
-                                                Field <i>names</i> only for <span class="font-mono">overflow</span> — SCHEMA.md §9
-                                                keeps undocumented payloads off every screen. A
-                                                <span class="font-mono">why_missed</span>, a
-                                                <span class="font-mono">sort</span> or a
-                                                <span class="font-mono">what</span> shown here may have arrived on a later
-                                                <span class="font-mono">miss-amend</span> and been folded in at read time; the
-                                                stored <span class="font-mono">miss</span> row still carries
-                                                <span class="font-mono">null</span>, because an amend completes a record and
-                                                never edits it.
-                                            </p>
-                                        </div>
-                                    }
+                                    <div class="mt-4 flex flex-col gap-2">
+                                        <CodeBlock Title="@($"miss · {RawMissId}")" Code="@RawJson" data-testid="miss-raw" />
+                                        <p class="text-xs text-muted-foreground" data-testid="miss-raw-note">
+                                            Field <i>names</i> only for <span class="font-mono">overflow</span> — SCHEMA.md §9
+                                            keeps undocumented payloads off every screen. A
+                                            <span class="font-mono">why_missed</span>, a
+                                            <span class="font-mono">sort</span> or a
+                                            <span class="font-mono">what</span> shown here may have arrived on a later
+                                            <span class="font-mono">miss-amend</span> and been folded in at read time; the
+                                            stored <span class="font-mono">miss</span> row still carries
+                                            <span class="font-mono">null</span>, because an amend completes a record and
+                                            never edits it.
+                                        </p>
+                                    </div>
                                 </CollapsibleContent>
                             </CardContent>
                         </Card>
@@ -1140,6 +1191,16 @@
     private string? objRawMissId;
     private bool objIsRawOpen;
 
+    /// <summary>
+    /// The per-miss table's filter text (REQ-UI-052, TR-033).
+    /// </summary>
+    /// <remarks>
+    /// Bound to the grid through <c>@bind-SearchText</c> so the box can live in the card header, where
+    /// <c>docs/mockups/misses.html</c> draws it, while the grid still filters over its own
+    /// <c>Filterable</c> columns — REQ, class and whose gap.
+    /// </remarks>
+    private string? objDetailSearch;
+
     /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -1159,12 +1220,6 @@
 
     /// <summary>The badge beside the period select, so the window is stated even when the select is closed.</summary>
     private string PeriodLabel => Period.Badge;
-
-    /// <summary>The label the closed select trigger shows for a period key (TR-020).</summary>
-    /// <param name="aKey">The period key currently bound.</param>
-    /// <returns>The option's label, or the key itself when it names no option.</returns>
-    private static string PeriodTextOf(string aKey) =>
-        PeriodOptions.FirstOrDefault(aOption => aOption.Key == aKey)?.Label ?? aKey;
 
     /// <summary>How the "misses this period" tile names its window.</summary>
     private string PeriodTileSuffix => Period.Days is null ? "in all history" : $"in the {Period.Badge}";
@@ -1389,10 +1444,13 @@
                 aReview.CostCorrectUsd))
             .ToList();
 
-    /// <summary>Misses by origin model — <c>linked</c> records only, straight off the engine.</summary>
-    private IReadOnlyList<OriginCountRow> ModelRows =>
-        SegmentOf(objSelectedType).Attribution.ByOriginModel
-            .Select(aRow => new OriginCountRow(aRow.Key, aRow.Count, aRow.Share, Missing))
+    /// <summary>
+    /// Misses by origin model, with the runs that model did and the rate over them — <c>linked</c>
+    /// records only, straight off the engine (REQ-UI-038).
+    /// </summary>
+    private IReadOnlyList<ModelRateRow> ModelRows =>
+        SegmentOf(objSelectedType).Attribution.MissRatePerOriginModel
+            .Select(aRow => new ModelRateRow(aRow.Model, aRow.Misses, aRow.Runs, aRow.PerHundredRuns))
             .ToList();
 
     /// <summary>Misses by origin agent, with the dominant class read off the same linked records.</summary>
@@ -1645,7 +1703,8 @@
             objAllFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
             objAllAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
             objAllReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework);
-            objAllRuns = await objStore.ReadRunsAsync(objUserId.Value, objFramework);
+            // REQ-FN-140 — voided runs and the void records leave every figure (SCHEMA.md §2.7).
+            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework)).Kept;
 
             objRateCardPath = objOptions.Value.PricesPath;
             objRateCard = await RateCard.LoadAsync(objRateCardPath);
@@ -2194,6 +2253,23 @@
     private static string SmallWhenNoNumber(Figure aFigure) =>
         aFigure.HasValue ? string.Empty : "text-base font-normal";
 
+    /// <summary>
+    /// A token figure as the mockup prints one — whole tokens with thousands separators (REQ-UI-036).
+    /// </summary>
+    /// <remarks>
+    /// The engine renders a per-miss token mean the way the reference prints it (<c>171803.8</c>), which
+    /// is the right string for parity and an unreadable one on a tile. Only a
+    /// <see cref="FigureKind.Value"/> is re-rendered, and from its own number and its own supporting
+    /// count, so <c>insufficient data (n=…)</c> and not-applicable still pass through untouched and can
+    /// never be turned into a number here (ADR-007).
+    /// </remarks>
+    /// <param name="aFigure">The engine's token figure.</param>
+    /// <returns>The same figure, rendered with separators when it carries a number.</returns>
+    private static Figure Grouped(Figure aFigure) =>
+        aFigure.TryGetValue(out var vValue)
+            ? Figure.Value(vValue, aFigure.SupportingRecords, vValue.ToString("N0", CultureInfo.InvariantCulture))
+            : aFigure;
+
     /// <summary>Re-loads when the header Framework switch changes the axis (ADR-016).</summary>
     private void OnPreferencesChanged() =>
         InvokeAsync(async () =>
@@ -2294,6 +2370,13 @@
     /// <param name="Dominant">The commonest miss class for it, or an em dash.</param>
     private sealed record OriginCountRow(string Key, int Count, string Share, string Dominant);
 
+    /// <summary>One row of the by-origin-model card.</summary>
+    /// <param name="Key">The origin model.</param>
+    /// <param name="Count">Linked misses naming it.</param>
+    /// <param name="Runs">Live runs that model did in the segment.</param>
+    /// <param name="Rate">Misses per 100 of those runs, or the engine's refusal.</param>
+    private sealed record ModelRateRow(string Key, int Count, int Runs, Figure Rate);
+
     /// <summary>One row of the per-miss detail table.</summary>
     /// <param name="MissId">The miss id.</param>
     /// <param name="ReqId">The REQ it was found against.</param>
@@ -2325,19 +2408,48 @@
         string WhoseGap,
         bool HasSort)
     {
-        /// <summary>The badge style for the severity — always beside its own word, never colour alone.</summary>
+        /// <summary>
+        /// The badge style for the severity — always beside its own word, never colour alone.
+        /// </summary>
+        /// <remarks>
+        /// TR-016 — the three-way distinction docs/mockups/misses.html draws: red for a blocker, amber
+        /// for a major, neutral for anything below. It was flattened to two tones while
+        /// <c>BadgeVariant</c> had no <c>Warning</c>.
+        /// </remarks>
         public BadgeVariant SeverityVariant => Severity switch
         {
             "blocker" => BadgeVariant.Destructive,
-            "major" => BadgeVariant.Default,
+            "major" => BadgeVariant.Warning,
             _ => BadgeVariant.Secondary
         };
 
-        /// <summary>The badge style for the status — always beside its own word, never colour alone.</summary>
+        /// <summary>
+        /// The badge style for the status — always beside its own word, never colour alone.
+        /// </summary>
+        /// <remarks>
+        /// TR-016 — green for a closed miss, amber for one still open (which is where
+        /// <c>deferred</c> lands, BRD-120), neutral for a declined one. <c>wont-fix</c> is a decision
+        /// rather than a fault, so it is never reddened.
+        /// </remarks>
         public BadgeVariant StatusVariant => Status switch
         {
-            "Verified" => BadgeVariant.Default,
+            "Verified" => BadgeVariant.Success,
             MissFigures.WontFixVerdict => BadgeVariant.Secondary,
+            _ => BadgeVariant.Warning
+        };
+
+        /// <summary>
+        /// The badge style for <c>origin_confidence</c> — the reader's cue for which rows the
+        /// attribution bands could use at all (BRD-121).
+        /// </summary>
+        /// <remarks>
+        /// TR-016 — the mockup badges <c>linked</c> green, <c>inferred</c> amber and <c>unknown</c>
+        /// plain; every one of them was the same neutral pill while the variants were missing.
+        /// </remarks>
+        public BadgeVariant ConfidenceVariant => Confidence switch
+        {
+            MissAttributionTaint.Linked => BadgeVariant.Success,
+            "inferred" => BadgeVariant.Warning,
             _ => BadgeVariant.Outline
         };
     }

@@ -24,23 +24,16 @@
            container never scrolls sideways. *@
         <div class="tflens-tabs-scroll">
             <TabsList>
-                @* TR-010 — TabsTrigger captures no unmatched attributes, so the test id sits on the label
-                   span it renders around; a click on the span still activates the trigger. *@
-                <TabsTrigger Value="phases">
-                    <span data-testid="pb-routing-tab-phases">Phase totals</span>
-                </TabsTrigger>
-                <TabsTrigger Value="mainsub">
-                    <span data-testid="pb-routing-tab-mainsub">Main vs subagent</span>
-                </TabsTrigger>
-                <TabsTrigger Value="models">
-                    <span data-testid="pb-routing-tab-models">Tokens by model</span>
-                </TabsTrigger>
+                @* One element per id: the test id is on the trigger itself, nowhere else. *@
+                <TabsTrigger Value="phases" data-testid="pb-routing-tab-phases">Phase totals</TabsTrigger>
+                <TabsTrigger Value="mainsub" data-testid="pb-routing-tab-mainsub">Main vs subagent</TabsTrigger>
+                <TabsTrigger Value="models" data-testid="pb-routing-tab-models">Tokens by model</TabsTrigger>
             </TabsList>
         </div>
 
         @* ── Phase totals ──────────────────────────────────────────────────────────────── *@
         <TabsContent Value="phases">
-            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-phases">
+            <div class="tflens-stack mt-4" data-testid="pb-routing-panel-phases">
                 <Card>
                     <CardHeader>
                         <div class="flex w-full flex-wrap items-start justify-between gap-2">
@@ -68,7 +61,7 @@
 
         @* ── Main vs sub-agent ─────────────────────────────────────────────────────────── *@
         <TabsContent Value="mainsub">
-            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-mainsub">
+            <div class="tflens-stack mt-4" data-testid="pb-routing-panel-mainsub">
                 @* REQ-UI-034 — the main-vs-subagent token split, resolved through the parentID chain. *@
                 <PlaybookAgentSplitPanel Split="@Analysis.AgentSplit" />
 
@@ -85,7 +78,7 @@
 
         @* ── Tokens by observed model ──────────────────────────────────────────────────── *@
         <TabsContent Value="models">
-            <div class="tflens-stack tflens-tab-body" data-testid="pb-routing-panel-models">
+            <div class="tflens-stack mt-4" data-testid="pb-routing-panel-models">
                 <Card>
                     <CardHeader>
                         <div class="flex w-full flex-wrap items-start justify-between gap-2">

@@ -10,11 +10,10 @@
     TfLens that can make it green by any other means (BRD-71). While no parity run has been recorded the
     honest answer is NOT QUOTABLE, and that is what is rendered.
 
-    Every DataTable below sets InitialPageSize explicitly: TrBlazeUI's `ShowPagination="false"` only
-    hides the pager, it does not stop the paging, so a table left on the default would silently render
-    its first five rows and drop the rest with no error at all (TR-009). Here that would be a
-    correctness failure rather than a cosmetic one — a truncated dataset-SHA table describes a dataset
-    the snapshot did not actually cover, and the parity card's facts run to seven rows.
+    Every DataTable below runs on `ShowPagination="false"`, which in 2.1.0-ci.10 renders the WHOLE
+    sequence and ignores `InitialPageSize` (TR-009). That matters here more than anywhere: a truncated
+    dataset-SHA table would describe a dataset the snapshot did not actually cover, and the parity
+    card's facts run to seven rows.
 *@
 @namespace TfLens.Components.Pages.ExportParts
 @using Microsoft.Extensions.Options
@@ -38,7 +37,10 @@
     <AlertDescription>@BannerReason</AlertDescription>
 </Alert>
 
-<div class="tflens-export-grid">
+@* TR-002 closed — the shipped sheet carries the sm:/md:/lg: variants, so the two-up split is markup
+   rather than a hand-written media query: one column until 64rem, then Export beside Dataset SHAs at
+   1 : 2. *@
+<div class="grid items-start gap-6 grid-cols-1 lg:grid-cols-3">
 
     @* REQ-UI-032 — the Export card. *@
     <Card data-testid="export-card">
@@ -100,11 +102,21 @@
             <Separator />
 
             <div class="overflow-x-auto tflens-facts" data-testid="export-facts">
+                @* TR-012 closed — `ShowHeader="false"` drops the <thead> outright, so the key/value
+                   shape the mockup draws needs no `::deep thead { display: none }`.
+
+                   TR-025 closed — `Density="Compact"` trims the cell padding from 16px a side to 10px.
+                   That is not cosmetic here: at 1280 the Export card is a third of the grid, and 32px of
+                   Comfortable padding per column left the value cell 101px against a 110px `NOT QUOTABLE`
+                   pill, so the one control on this page that must be read before anything is quoted was
+                   clipped by the card's own edge. Compact gives that 24px back. The wide data tables on
+                   this surface stay Comfortable — 16px is what docs/mockups/export.html's `.tbl` draws. *@
                 <DataTable TData="FactRow"
                            Data="@Facts"
                            ShowToolbar="false"
                            ShowPagination="false"
-                           InitialPageSize="512"
+                           ShowHeader="false"
+                           Density="DataTableDensity.Compact"
                            AriaLabel="Export facts">
                     <Columns>
                         <DataTableColumn TData="FactRow" TValue="string"
@@ -137,7 +149,7 @@
     </Card>
 
     @* REQ-UI-032 — the dataset SHAs, straight off sync_state, so the reference dataset can be pinned. *@
-    <Card>
+    <Card Class="lg:col-span-2">
         <CardHeader>
             <CardTitle>Dataset SHAs</CardTitle>
             <CardDescription>
@@ -169,7 +181,6 @@
                                Data="@objShaRows"
                                ShowToolbar="false"
                                ShowPagination="false"
-                               InitialPageSize="512"
                                AriaLabel="Dataset SHAs"
                                data-testid="dataset-shas-table">
                         <Columns>
@@ -242,7 +253,6 @@
                            Data="@objSnapshots"
                            ShowToolbar="false"
                            ShowPagination="false"
-                           InitialPageSize="512"
                            AriaLabel="Past snapshots"
                            data-testid="snapshots-table">
                     <Columns>
@@ -317,13 +327,15 @@
         }
         else
         {
-            <div class="tflens-parity-grid">
+            <div class="grid items-start gap-6 grid-cols-1 lg:grid-cols-2">
                 <div class="overflow-x-auto tflens-facts" data-testid="parity-facts">
+                    @* Same key/value shape, same TR-025 density. *@
                     <DataTable TData="FactRow"
                                Data="@ParityFacts"
                                ShowToolbar="false"
                                ShowPagination="false"
-                               InitialPageSize="512"
+                               ShowHeader="false"
+                               Density="DataTableDensity.Compact"
                                AriaLabel="Last parity run">
                         <Columns>
                             <DataTableColumn TData="FactRow" TValue="string"

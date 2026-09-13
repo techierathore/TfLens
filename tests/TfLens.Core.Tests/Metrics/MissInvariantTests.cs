@@ -28,7 +28,7 @@ public sealed class MissInvariantTests
     /// hold a blend, so a page, an export or a parity comparison has nothing blended to bind. This is the
     /// acceptance itself — a type-shape requirement, not a convention.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the miss cost type has exactly three members and no true/false flag, so a blended figure has nowhere to live")]
     public void MissCostExposesNoPropertyThatCouldHoldABlendedFigure()
     {
         var vProperties = typeof(MissCost)
@@ -46,7 +46,7 @@ public sealed class MissInvariantTests
     }
 
     /// <summary>Clause 1 — no miss result type anywhere carries a total, blend or combined figure.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — no miss result type carries a total, blended, combined, overall or merged figure")]
     public void NoMissResultTypeCarriesATotalOrBlendedFigure()
     {
         var vForbidden = new[] { "Total", "Blend", "Combined", "Overall", "Merged" };
@@ -219,7 +219,7 @@ public sealed class MissInvariantTests
     /// public member on either takes a <c>bool</c>, so there is no parameter a caller could set to merge
     /// two columns or admit an inferred attribution.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-013 — the miss engine's entry point and miss calculators take no true/false switch that could relax an invariant")]
     public void NoMissFigureTakesASwitchThatWouldRelaxAnyClause()
     {
         var vEntry = typeof(MetricsEngine).GetMethod(nameof(MetricsEngine.AnalyseAsync))!;

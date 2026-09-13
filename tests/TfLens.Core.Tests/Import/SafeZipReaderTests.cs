@@ -29,7 +29,7 @@ public sealed class SafeZipReaderTests
     }
 
     /// <summary>An entry that escapes its directory is refused, and nothing is returned.</summary>
-    [Theory]
+    [Theory(DisplayName = "REQ-NFR-014 — a zip entry that escapes its folder is refused and nothing is returned")]
     [InlineData("../../runs.jsonl")]
     [InlineData("/etc/runs.jsonl")]
     public void AnEscapingEntryIsRefused(string aEntryName)
@@ -42,7 +42,7 @@ public sealed class SafeZipReaderTests
     }
 
     /// <summary>A symlink entry is refused on its Unix mode, before its bytes are touched.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — a symbolic-link zip entry is refused on its Unix mode")]
     public void ASymlinkEntryIsRefused()
     {
         // S_IFLNK | 0777, as a Unix zip writes a symbolic link.
@@ -56,7 +56,7 @@ public sealed class SafeZipReaderTests
     }
 
     /// <summary>More entries than the cap is refused before any of them is read.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — a zip with more entries than the cap is refused")]
     public void TooManyEntriesIsRefused()
     {
         var vEntries = Enumerable.Range(0, UploadBounds.MaxZipEntries + 1)
@@ -77,7 +77,7 @@ public sealed class SafeZipReaderTests
     /// <see cref="UploadBounds.MaxEntryUncompressedBytes"/> into a few hundred kilobytes. The reader
     /// never allocates the expansion, because the read is bounded and stops at the cap.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — a zip bomb that fits under the upload cap is refused on its expanded size")]
     public void AnArchiveBombIsRefusedOnItsExpansion()
     {
         var vLine = new string('a', 1024) + "\n";

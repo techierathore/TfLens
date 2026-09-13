@@ -87,6 +87,32 @@ test('REQ-UI-035 /misses renders with the Framework switch and a period filter d
   expect(errors.filter(e => !/favicon|websocket/i.test(e)), `console errors: ${errors.join(' | ')}`).toEqual([]);
 });
 
+test('REQ-UI-035 /misses is reached from its own sidebar item and renders four bands', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page);
+  await gotoScreen(page, '/');
+
+  // Reachable from its own sidebar item — clicked, not typed into the address bar.
+  await page.locator('[data-testid="nav-misses"]').first().click();
+  await expect(page).toHaveURL(/\/misses(\?|$)/, { timeout: 20_000 });
+  await expect(page.locator('[data-testid="misses-page"]').first()).toBeVisible();
+
+  // Four bands, in the order the page reads: KPI row · where misses come from · who was running · cost of rework.
+  const bands = ['miss-kpis', 'miss-origin', 'miss-observational', 'miss-cost'];
+  // A client-side navigation: wait for the skeleton to give way to the first band, as gotoScreen would.
+  await testid(page, 'miss-kpis', 30_000);
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(1500);
+  for (const id of bands) {
+    const check = await renderCheck(page, id);
+    expect(check.verdict, `band ${id}: ${check.detail}`).toBe('RENDERS');
+  }
+  const order = await domOrder(page, bands);
+  for (let i = 1; i < order.length; i++) {
+    expect(order[i], `band ${bands[i]} is not after ${bands[i - 1]}: ${JSON.stringify(order)}`).toBeGreaterThan(order[i - 1]);
+  }
+});
+
 test('REQ-UI-035 narrowing the period keeps the page renderable rather than blanking it', async ({ page }) => {
   await signIn(page);
   await gotoScreen(page, '/misses');
@@ -186,6 +212,9 @@ test('REQ-UI-038 the observational band, the three cost columns and the detail t
   const note = await testid(page, 'miss-observational');
   await expect(note).toBeVisible();
   expect((await note.innerText()).toLowerCase()).toContain('confounded');
+  // Linked records only — the band says so, and the held-out count is on screen.
+  expect((await note.innerText()).replace(/\s+/g, ' ').toLowerCase()).toMatch(/origin_confidence: "linked"\s*records only/);
+  await expect(page.locator('[data-testid="miss-taint-count"]').first()).toBeVisible();
 
   // ADR-019 — three distinct columns, and a standing statement that no blended number exists.
   for (const id of ['miss-cost-measured', 'miss-cost-apportioned', 'miss-cost-unattributable']) {
@@ -204,6 +233,36 @@ test('REQ-UI-038 the observational band, the three cost columns and the detail t
   await expect(raw).toBeVisible();
   // SCHEMA.md §9 — overflow is shown by field name only, never by value.
   expect(await raw.innerText()).toContain('overflow_field_names');
+});
+
+// REQ-UI-038 re-verify 2026-09-11 — docs/mockups/misses.html gives the model card misses · runs ·
+// per-100-runs (the agent card keeps share · dominant class), and prints token figures with separators.
+test('REQ-UI-038 the by-origin-model card carries runs and a per-100-runs rate, never a bare share', async ({ page }) => {
+  await signIn(page);
+  await gotoScreen(page, '/misses');
+
+  const table = page.locator('[data-testid="miss-origin-model-table"]');
+  if ((await table.count()) === 0) {
+    // No linked miss names a model: the card states that absence instead, which is also correct.
+    await expect(page.locator('[data-testid="miss-origin-model-none"]').first()).toBeVisible();
+    return;
+  }
+  const headers = (await table.locator('thead th').allInnerTexts()).map(h => h.replace(/\s+/g, ' ').trim());
+  expect(headers, `model card headers: ${JSON.stringify(headers)}`).toEqual(['Model', 'Misses', 'Runs', 'Per 100 runs']);
+
+  // Each rate is a one-decimal number, the engine's refusal, or an em dash — never a percentage share.
+  for (const rate of await page.locator('[data-testid="miss-origin-model-rate"]').allInnerTexts()) {
+    expect(rate.trim(), `per-100-runs cell "${rate}"`).toMatch(/^(\d[\d,]*\.\d|insufficient data \(n=\d+( runs)?\)|—)$/);
+  }
+  for (const runs of await page.locator('[data-testid="miss-origin-model-runs"]').allInnerTexts()) {
+    expect(runs.trim(), `runs cell "${runs}"`).toMatch(/^\d[\d,]*$/);
+  }
+
+  // Token headlines read as the mockup prints them: whole tokens, grouped — or an honest refusal.
+  for (const id of ['kpi-rework-tokens-value', 'miss-cost-sole', 'miss-cost-apportioned-value']) {
+    const value = (await page.locator(`[data-testid="${id}"]`).first().innerText()).trim();
+    expect(value, `${id} = "${value}"`).toMatch(/^(\d{1,3}(,\d{3})*|insufficient data \(n=\d+.*\)|—)$/);
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -136,7 +136,27 @@ MISSES_KEYS = (
 #                              not have looked" (written before 2026-08-31) never will (BRD-147,
 #                              ADR-026). Diffing their sum alone would hide either one moving.
 #
-PHASES_TOP_KEYS = ("runs_live", "tokens_out_total", "duration_s_total", "scope_coverage", "phases")
+#   duration_measured_n        what the duration total is built on, and what it left out. THE
+#   duration_impossible_n      TIMESTAMPS WIN (BRD-179 as amended 2026-09-10): a stored duration_s that
+#   duration_absent_n          disagrees with the record's own started/ended by more than a second is
+#   duration_recomputed_n      overridden, and a record whose ended precedes its started carries NO
+#                              duration and is excluded. TechieBlog's wall clock falls from 79.0 h to
+#                              72.9 h under that rule and nothing would say why, so the four counts are
+#                              diffed on their own keys (BRD-189..BRD-192). measured + impossible +
+#                              absent == runs_live exactly; recomputed is a SUBSET of measured. Reporting
+#                              a no-elapsed-time run as impossible is a defect, not a rounding
+#                              difference, so the two are never summed into one key here.
+#
+# These four are TOP-level keys on the `phases` block, once per repository -- NOT per-phase members of
+# PHASES_NESTED_KEYS["duration_s"], which the oracle emits as exactly total/median/max/n/derived_n.
+# Adding them there would demand them on every phase row of both documents, find them on neither, and
+# raise an UNCOVERED finding per phase forever. What changes inside a phase's duration_s block under the
+# amended rule is its VALUES, not its keys, and the existing five already diff those.
+PHASES_TOP_KEYS = (
+    "runs_live", "tokens_out_total", "duration_s_total", "scope_coverage",
+    "duration_measured_n", "duration_impossible_n", "duration_absent_n", "duration_recomputed_n",
+    "phases",
+)
 PHASES_PHASE_KEYS = (
     "runs", "duration_s", "share_of_duration", "tokens", "tokens_measured_n", "tokens_unmeasured_n",
     "tokens_out_median", "tokens_out_per_run", "share_of_tokens_out", "models", "fanout", "routing",

@@ -132,7 +132,7 @@ public sealed class ActorGroupingTests
     /// keystroke is <c>.GroupBy(aRun =&gt; aRun.Actor)</c>, and it fails the build before it reaches a
     /// reviewer.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-022 — no page, API, export or parity source groups, ranks or keys a figure by actor, and no route or query parameter names the actor")]
     public void NoSourceGroupsRanksOrKeysAnythingByActor()
     {
         var vFindings = new List<string>();
@@ -152,7 +152,7 @@ public sealed class ActorGroupingTests
     /// The prohibition has to reach the database or it is only half a rule: a view or an index built to
     /// serve a per-actor grouping is the grouping, whatever the C# above it does.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-022 — no database script groups, orders or partitions on the actor column")]
     public void NoSqlGroupsOrOrdersByActor()
     {
         var vFindings = new List<string>();
@@ -192,7 +192,7 @@ public sealed class ActorGroupingTests
     /// for. Stream record types are untouched — <c>PbEventRecord</c> and its siblings are exactly where
     /// the provenance belongs.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-022 — no aggregate result type has an actor property, so no surface can show a figure split by actor")]
     public void NoAggregateResultTypeCarriesAnActorColumn()
     {
         var vOffenders = typeof(ITelemetryStore).Assembly
@@ -219,7 +219,7 @@ public sealed class ActorGroupingTests
     /// the product needs — a stored column, a local read, an exported key, a rendered cell — and each is
     /// asserted to pass, so narrowing this guardrail into uselessness would fail here first.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-022 — the actor check catches an actor grouping, ranking, route or query parameter and still allows showing one record's actor")]
     public void ProvenanceIsPermittedAndOnlyComparisonIsRefused()
     {
         string[] vAllowed =

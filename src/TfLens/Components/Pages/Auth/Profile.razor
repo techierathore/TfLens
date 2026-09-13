@@ -20,7 +20,12 @@
     (BRD-107). The role is a constant rather than a field: every TfLens account is a Manager (BRD-95).
 *@
 
-<div class="profile-page">
+@* TR-002 — the page's `p-6 → md:p-8` step and the grid's `1 → 2` columns are utilities now. They used
+   to be a hand-written `@@media (min-width: 768px)` block in Profile.razor.css because trblazeui.css
+   2.0.0 shipped no responsive variants at all; `md:` (48rem) is in the pre-built sheet from
+   2.1.0-ci.10, so the breakpoint is stated where the element is. The scoped rules keep only what has
+   no utility — the 75rem measure, and the grid's `align-items: start`. *@
+<div class="profile-page p-6 md:p-8">
     <div>
         <TypographyH1 Class="text-2xl">Profile</TypographyH1>
         <TypographyMuted>Your AppManager account — TfLens reads it, never stores it</TypographyMuted>
@@ -32,7 +37,7 @@
         <AlertDescription>TfLens stores no passwords — your account lives in AppManager.</AlertDescription>
     </Alert>
 
-    <div class="profile-grid">
+    <div class="profile-grid grid-cols-1 md:grid-cols-2">
         <Card data-testid="profile-card">
             <CardHeader>
                 @if (objIsLoading)
@@ -57,7 +62,14 @@
                                 <CardDescription data-testid="profile-email">@Email</CardDescription>
                             </div>
                         </div>
-                        <Badge Variant="BadgeVariant.Secondary" Class="profile-badge-role shrink-0" data-testid="profile-role-badge">
+                        @* TR-016 — `BadgeVariant.Success` ships from 2.1.0-ci.10. This pill used to be
+                           `Secondary` plus a `profile-badge-role` class carrying the green, and that
+                           class never applied: it lands on `Badge`'s own root, which carries no scope
+                           attribute of this page, so the rule could not match and the pill rendered
+                           grey where `docs/mockups/profile.html` draws it green (measured 2026-09-12:
+                           colour `oklch(0.985 0 0)` on `oklch(0.269 0 0)`, border transparent). The
+                           variant reaches the component, so the colour is right for the first time. *@
+                        <Badge Variant="BadgeVariant.Success" Class="shrink-0" data-testid="profile-role-badge">
                             <span class="profile-badge-tick">
                                 <LucideIcon Name="check" Size="12" />
                                 <span>@ManagerRole</span>
@@ -91,15 +103,21 @@
                 else
                 {
                     <div class="profile-kv overflow-x-auto" data-testid="profile-values">
-                        @* InitialPageSize is required, not cosmetic: ShowPagination="false" only hides
-                           the pager — the table still renders InitialPageSize rows (default 5) and
-                           drops the rest with no error. This table currently has exactly 5 rows, so a
-                           sixth profile field would have vanished silently. *@
+                        @* TR-012 — `ShowHeader="false"` is the real parameter now. `docs/mockups/profile.html`
+                           draws this card headerless (the left cell IS the label, so a "Field | Value"
+                           row only repeats it); it used to be hidden with `::deep thead {display:none}`
+                           in Profile.razor.css, which is deleted with this change. Column metadata is
+                           unaffected — it still comes from the DataTableColumn children.
+
+                           TR-009 — `InitialPageSize="32"` is gone with its comment. It was set only
+                           because `ShowPagination="false"` used to hide the pager while still dropping
+                           every row past the default page size; the switch renders every row now, and
+                           this table wants no page size of its own. *@
                         <DataTable TData="ProfileRow"
                                    Data="@objRows"
                                    ShowToolbar="false"
                                    ShowPagination="false"
-                                   InitialPageSize="32">
+                                   ShowHeader="false">
                             <Columns>
                                 <DataTableColumn TData="ProfileRow" TValue="string"
                                                  Property="@(aRow => aRow.Field)" Header="Field" />
@@ -116,8 +134,8 @@
                                         @if (vRow.Field == "Role")
                                         {
                                             <span class="profile-badge-row">
-                                                <Badge Variant="BadgeVariant.Secondary"
-                                                       Class="profile-badge-role"
+                                                @* TR-016, same as the card header's pill above. *@
+                                                <Badge Variant="BadgeVariant.Success"
                                                        data-testid="profile-role-value-badge">@vRow.Value</Badge>
                                                 <span class="text-muted-foreground">every TfLens account is a Manager</span>
                                             </span>

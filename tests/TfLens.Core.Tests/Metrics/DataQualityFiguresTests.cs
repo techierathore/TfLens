@@ -121,10 +121,17 @@ public sealed class DataQualityFiguresTests
 
         var vDuration = vResult.Derived.Single(aRow => aRow.Field == "duration_s");
 
-        // Two: the one missing only `duration_s`, and the one whose `ts` stands in for an absent `ended`
-        // exactly as SCHEMA.md defines it. The record with a duration is untouched; the record with no
-        // start cannot be answered without a guess, and a guess is what this page exists to refuse.
-        vDuration.Derivable.Should().Be(2);
+        // One: the record whose `ts` stands in for an absent `ended`, exactly as SCHEMA.md defines it.
+        //
+        // The record that omits `duration_s` but carries both clocks is NOT counted, and that is the
+        // amended rule (BRD-179, 2026-09-10) rather than a regression: the timestamps now win outright,
+        // so a record carrying both of them is simply READ. Deriving is what is left for a run whose
+        // window cannot be closed any other way. Counting every timestamped record here would tell the
+        // reader that almost the whole stream was worked out rather than measured.
+        //
+        // The record carrying a duration whose clocks agree with it is untouched, and the record with no
+        // start cannot be answered without a guess — which is what this page exists to refuse.
+        vDuration.Derivable.Should().Be(1);
     }
 
     /// <summary>A gate that carries an attempt is never altered; only the ones that omit it are counted.</summary>

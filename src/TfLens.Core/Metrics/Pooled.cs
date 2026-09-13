@@ -21,6 +21,9 @@ public static class Pooled
     private const string UnknownCmd = "?";
     private const int SecondsPerHour = 3600;
 
+    /// <summary>Decimal places the reference rounds the pooled list price to.</summary>
+    private const int ListUsdDigits = 4;
+
     /// <summary>
     /// Computes every poolable figure.
     /// </summary>
@@ -42,7 +45,8 @@ public static class Pooled
         IReadOnlyList<CommitRecord> aCommits,
         int aDuplicatesCollapsed,
         IReadOnlyList<GateRecord> aGates,
-        int aSessionDuplicatesCollapsed = 0)
+        int aSessionDuplicatesCollapsed = 0,
+        RateCard? aPrices = null)
     {
         ArgumentNullException.ThrowIfNull(aRuns);
         ArgumentNullException.ThrowIfNull(aSessions);
@@ -52,8 +56,14 @@ public static class Pooled
         var vBuildRuns = aRuns.Where(aRun => aRun.Cmd == BuildPhaseCmd).ToList();
         var vFixRuns = aRuns.Where(aRun => aRun.Mode == FixMode).ToList();
         var vThroughput = aRuns
-            .Where(aRun => aRun.DurationS is not (null or 0) && aRun.ReqsCount is not (null or 0))
-            .Select(aRun => (double)aRun.ReqsCount!.Value / aRun.DurationS!.Value)
+            // THE TIMESTAMPS WIN here too (BRD-179). Throughput divides by a duration, so reading the
+            // stored field directly would divide by a figure the record's own clocks contradict — the
+            // thirteen TechieBlog records storing a plausible round number are exactly that, and a
+            // REQs-per-second built on one is wrong in a way no reader could see. `UsableSeconds` is the
+            // one function every consumer goes through, and it returns null for an impossible record and
+            // for one that recorded no elapsed time, so both drop out of the figure rather than skewing it.
+            .Where(aRun => RunDuration.UsableSeconds(aRun) is not null && aRun.ReqsCount is not (null or 0))
+            .Select(aRun => (double)aRun.ReqsCount!.Value / RunDuration.UsableSeconds(aRun)!.Value)
             .ToList();
         var vBatch = vBuildRuns
             .Where(aRun => aRun.ReqsCount is not null)
@@ -61,6 +71,13 @@ public static class Pooled
             .ToList();
 
         var vVerifiedTransitions = aGates.Count(aGate => aGate.Verdict == VerifiedVerdict);
+
+        // Priced at read time from the tokens already on each record; nothing priced is ever stored, so
+        // changing a rate re-prices every run ever recorded and no record was ever wrong.
+        var vListPrices = aPrices is null
+            ? []
+            : aRuns.Select(aRun => ListPrice.For(aRun, aPrices)).Where(aP => aP is not null)
+                .Select(aP => aP!.Value).ToList();
         var vTokens = aSessions.Sum(aSession => (long)(aSession.InputTokens ?? 0) + (aSession.OutputTokens ?? 0));
         var vActiveDays = ActiveDays(aCommits);
 
@@ -74,6 +91,17 @@ public static class Pooled
             Sessions = aSessions.Count,
             TokensTotal = vTokens,
             TokensPerVerifiedReq = TokensPerVerified(vTokens, vVerifiedTransitions),
+
+            // The list price over EVERY run, not only the build ones: it is a price on measured tokens,
+            // so any run that carries tokens carries one. Rounded to four places, which is what the
+            // reference publishes — a money figure quoted to six would imply a precision the rate card
+            // does not have.
+            ListUsdTotal = (decimal)ListPrice.Round(vListPrices.Sum(), ListUsdDigits),
+            ListUsdRecords = vListPrices.Count,
+            ListUsdPerVerifiedReq =
+                vVerifiedTransitions >= MetricsConstants.MinN && vListPrices.Count >= MetricsConstants.MinN
+                    ? (decimal)ListPrice.Round(vListPrices.Sum() / vVerifiedTransitions, ListUsdDigits)
+                    : null,
             Commits = aCommits.Count,
             CommitDuplicatesCollapsed = aDuplicatesCollapsed,
             SessionDuplicatesCollapsed = aSessionDuplicatesCollapsed,
@@ -107,7 +135,9 @@ public static class Pooled
     /// <returns>The percentage, or <see cref="FigureKind.InsufficientData"/> below <see cref="MetricsConstants.MinN"/> build-phase runs.</returns>
     private static Figure Ratio(int aFixRuns, int aBuildRuns) =>
         aBuildRuns < MetricsConstants.MinN
-            ? Figure.InsufficientData(aBuildRuns)
+            // The reference names the records in its own refusal — "n=0 build-phase runs" — and BRD §13
+            // diffs a refusal as a string, so the noun is part of the figure rather than decoration.
+            ? Figure.InsufficientData(aBuildRuns, "build-phase runs")
             : Figure.Value(100.0 * aFixRuns / aBuildRuns, aBuildRuns, MetricsConstants.Pct(aFixRuns, aBuildRuns));
 
     /// <summary>

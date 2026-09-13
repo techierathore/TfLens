@@ -10,13 +10,18 @@
 
     BRD-144 (2026-08-30) — the switch is a segmented TRACK, not two loose words. `docs/mockups/coverage.html`
     line 109 draws `.fw` as the track itself: `background: var(--muted)`, `border-radius: 8px`, `padding: 3px`,
-    28px triggers, 34px overall — and it hangs `data-testid="framework-switch"` on that track. The app hung the
-    testid on the `Tabs` root, which paints nothing, while TrBlazeUI's own `bg-muted rounded-md p-1` track sat one
-    level down on `TabsList`, so the anchored node read as plain text on all six report pages at both widths.
+    28px triggers, 34px overall — and it hangs `data-testid="framework-switch"` on that track.
 
-    The testid stays on `Tabs` — `TabsList` exposes no `AdditionalAttributes`, so it cannot carry one (TR-024) —
-    and the ground moves UP onto it instead. There is exactly ONE track: `TabsList` is flattened to a bare flex
-    row in `ShellHeader.razor.css` so the muted ground is not painted twice.
+    TR-024 is CLOSED in TrBlazeUI 2.1.0-ci.10 and the workaround this file carried is gone. `TabsList` now
+    captures unmatched values and merges its `Class` over its own defaults ("to restyle the trigger track — its
+    height, padding or background — put the classes on TabsList.Class"), so the testid goes on the element that
+    IS the track and the library keeps painting its own `bg-muted` ground. The old shape — testid on the `Tabs`
+    root, `bg-muted` moved UP onto it, and `TabsList` flattened to a bare row in ShellHeader.razor.css so the
+    ground was not painted twice — existed only because `TabsList` could take no attribute.
+
+    The `Tabs` root keeps `tflens-framework-switch` as the header's layout hook (inline, non-shrinking) and
+    nothing else; the track's own geometry is in ShellHeader.razor.css, keyed on the testid, because 34/28/3/2px
+    are arbitrary values and the pre-built sheet carries no arbitrary-value utilities (TR-002 still stands there).
 *@
 @implements IDisposable
 @inject ShellPreferences objPreferences
@@ -25,9 +30,8 @@
 
 <Tabs Value="@objPreferences.Framework"
       ValueChanged="OnFrameworkChangedAsync"
-      Class="tflens-framework-switch inline-flex shrink-0 items-center bg-muted"
-      data-testid="framework-switch">
-    <TabsList>
+      Class="tflens-framework-switch inline-flex shrink-0 items-center">
+    <TabsList data-testid="framework-switch">
         <TabsTrigger Value="@FrameworkNames.TechieFlow">
             <span class="flex items-center gap-1.5">
                 <span>TechieFlow</span>

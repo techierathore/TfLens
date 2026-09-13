@@ -58,7 +58,7 @@ public static class ExportFixture
         var vOptions = Options.Create(new TfLensOptions { DataRoot = aDataRoot });
 
         return new SnapshotExporter(
-            new MetricsEngine(vStore, NullLogger<MetricsEngine>.Instance),
+            new MetricsEngine(vStore, NullLogger<MetricsEngine>.Instance, vOptions),
             new ExtraMetrics(vStore, vOptions),
             new PlaybookReportBuilder(vStore),
             vStore,

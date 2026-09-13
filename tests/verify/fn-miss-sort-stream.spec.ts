@@ -60,7 +60,15 @@ const MISSES: string[] = [
   }),
 ];
 
-/** Eligible misses in the probe: the six written after the floor plus the one an amend completed. */
+/**
+ * Eligible misses in the probe: the six written after the floor plus the one an amend completed.
+ *
+ * A FLOOR, not an equality. The page reads every connected repository, so a miss logged against the
+ * real estate after 2026-09-07 is eligible too and raises both counts — which is correct behaviour and
+ * used to fail this test. What the clause is actually about is the DENOMINATOR RULE: that the ~200
+ * records written before the field are excluded from it, and stated apart. Pinning an exact total
+ * tested the fixture rather than the rule, and broke the first time the owner logged a real miss.
+ */
 const PROBE_ELIGIBLE = 7;
 
 /** Probe misses carrying a sort: the four legal ones, the unrecognised one, and the amended one. */
@@ -137,9 +145,14 @@ test('the whose-gap band reads against the eligible misses and states the rest a
 
   const vSorted = Number(vMatch![1]);
   const vEligible = Number(vMatch![2]);
-  expect(vSorted).toBe(PROBE_SORTED);
-  expect(vEligible).toBe(PROBE_ELIGIBLE);
+  expect(vSorted).toBeGreaterThanOrEqual(PROBE_SORTED);
+  expect(vEligible).toBeGreaterThanOrEqual(PROBE_ELIGIBLE);
   expect(vSorted).toBeLessThan(vEligible);
+
+  // The rule the denominator has to obey: it is the misses ELIGIBLE to carry the field, never all of
+  // them. The estate holds ~200 records from before 2026-09-07, so a denominator over every miss would
+  // be two orders of magnitude larger than this one.
+  expect(vEligible).toBeLessThan(100);
 
   // REQ-FN-107 — the records from before the field are stated in those words, apart, and are never
   // pooled into the unsorted count above.
@@ -213,7 +226,9 @@ test('review records are read, stated apart, and enter no miss count', async ({ 
   expect(vSortTable).not.toContain('verify-review');
 
   const vDenominator = ((await (await testid(page, 'miss-sort-denominator')).innerText()) || '').trim();
-  expect(vDenominator).toContain(`of ${PROBE_ELIGIBLE} sorted`);
+  // Same floor rather than an equality, and for the same reason (see PROBE_ELIGIBLE).
+  const vEligibleHere = Number((vDenominator.match(/of\s+(\d+)\s+sorted/) ?? [])[1] ?? 0);
+  expect(vEligibleHere).toBeGreaterThanOrEqual(PROBE_ELIGIBLE);
 });
 
 test('the page carrying the new figures is clean at 1280 and 390', async ({ page }) => {

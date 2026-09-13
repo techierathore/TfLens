@@ -1,0 +1,113 @@
+/* Price providers (REQ-UI-072) — what is left of docs/mockups/prices.html once TrBlazeUI 2.1.0-ci.10's
+   own components and utilities have said everything they can say. Only two kinds of rule survive here:
+   an override that reaches INSIDE a library component (a card's padding, the border the grid draws for
+   itself) and a measurement the pre-built utility sheet has no class for. Layout, responsiveness,
+   alignment, cell density and the badge tones are all markup now. NO WORKAROUND IS LEFT IN THIS FILE.
+
+   Removed on the 2.1.0-ci.10 uptake (2026-09-12):
+     TR-001  the local --alert-info-bg / --alert-warning-bg — the shipped sheet defines both, light and
+             dark, so the standing note and the clash warning take their tint from the library.
+     TR-002  the layout rules and most of the phone media query — sm:/md:/lg: variants ship, so the
+             page's rows and grids are `md:` utilities in the markup.
+     TR-025  the `::deep th, td` padding rule — `DataTable.Density="Compact"` sets the base and each
+             column's own CellClass/HeaderClass, merged after it, carries the mockup's exact numbers.
+     TR-029  the `white-space: nowrap` forced onto every claim pill — a Badge label no longer wraps by
+             default, and `Wrap`/`Truncate` are there if one ever should.
+     TR-031  the `th.text-right > div { justify-content: flex-end }` reach-in — each figure column
+             carries `Align="DataTableColumnAlign.End"`, which moves th, header label box and cells.
+     TR-032  `select { appearance: auto }` — the chevron class survives the class merge, so
+             NativeSelect paints its own arrow. */
+
+.tflens-prices {
+    min-width: 0;
+}
+
+.tflens-prices ::deep .tflens-prices-source {
+    overflow-wrap: anywhere;
+}
+
+    .tflens-prices ::deep .tflens-prices-source:hover {
+        text-decoration: underline;
+    }
+
+/* The rate table runs edge to edge in its card, as the mockup's flush card body does. */
+.tflens-prices ::deep .tflens-prices-flush {
+    padding: 0;
+    min-width: 0;
+}
+
+    /* DataTable draws its own rounded border inside the card; flush, the card is the border. The box
+       keeps its own horizontal scroll, which is where a narrow screen's overflow belongs. */
+    .tflens-prices ::deep .tflens-prices-flush .overflow-auto {
+        border-width: 0;
+        border-top-width: 1px;
+        border-radius: 0;
+    }
+
+.tflens-prices ::deep .tflens-prices-nomatch {
+    padding: 1rem 1.5rem;
+}
+
+/* 17.5rem is the mockup's 280px filter box; the pre-built sheet carries no max-width step for it. */
+.tflens-prices ::deep .tflens-prices-filter {
+    max-width: 17.5rem;
+}
+
+/* A card's footer: a rule above it, the unit and count on the left, the pager or the action on the
+   right. Set here rather than as utilities because it overrides CardFooter's own padding. */
+.tflens-prices ::deep .tflens-prices-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.tflens-prices ::deep .tflens-prices-foot-start {
+    justify-content: flex-start;
+}
+
+.tflens-prices ::deep .tflens-prices-foot-end {
+    justify-content: flex-end;
+}
+
+.tflens-prices ::deep .tflens-prices-hint {
+    flex: 1 1 16rem;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+/* The result of the last action is always in the page, and hidden until there is one. */
+.tflens-prices-message {
+    outline: none;
+}
+
+.tflens-prices ::deep .tflens-prices-message-idle {
+    display: none;
+}
+
+/* All that is left of the phone rules: the card paddings the mockup tightens on a phone. Each one
+   reaches inside a Card, past where a `md:` utility on the caller's own element can go. The cut is
+   the library's own `md` (48rem), not the mockup's hand-picked 700px, so the page has ONE
+   breakpoint: the rows above stack on `md:` and the padding tightens with them. */
+@media (max-width: 47.99rem) {
+    .tflens-prices ::deep .tflens-prices-foot {
+        padding: 0.75rem 1rem;
+    }
+
+    .tflens-prices ::deep .tflens-prices-cardhead {
+        padding: 1rem;
+    }
+
+    .tflens-prices ::deep .tflens-prices-cardbody {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .tflens-prices ::deep .tflens-prices-filter {
+        max-width: none;
+    }
+}

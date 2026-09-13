@@ -6,9 +6,12 @@
     `bg-black/80` backdrop with no panel on top of it). Nine reproduction attempts in headless
     Chromium could not produce that state, which is the whole argument for this change: a construct
     whose failure mode cannot be reproduced from the harness cannot be signed off from the harness
-    either. A page has no backdrop to strand and no portal to miss, and TrBlazeUI 2.0.0's
-    `AlertDialog` ships no Escape handling at all (TR-014) — a route needs none, because Back is the
-    browser's own. See REQ-UI-044.
+    either. A page has no backdrop to strand and no portal to miss. See REQ-UI-044.
+
+    TrBlazeUI 2.1.0-ci.10 fixed the Escape gap this page also used to cite (TR-014): `AlertDialog`
+    now closes on Escape by default. That removes ONE of the reasons for the route and none of the
+    others — the stranded-backdrop report is still unreproducible from the harness, so the route
+    stands. Do not move this flow back into a dialog on the strength of the library fix alone.
 
     The confirmation is unchanged in substance: it names the source, states exactly what is deleted
     and what is not, and nothing is removed until the destructive button is pressed.
@@ -30,8 +33,7 @@
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem>
-                    @* TR-023 — BreadcrumbLink captures no unmatched attributes, so the test id sits on a span inside it. *@
-                    <BreadcrumbLink Href="/repos"><span data-testid="remove-back">Repos</span></BreadcrumbLink>
+                    <BreadcrumbLink Href="/repos" data-testid="remove-back">Repos</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -74,14 +76,10 @@
     {
         <Card>
             <CardHeader>
-                <CardTitle>
-                    <span data-testid="remove-title">Remove @objTarget.Repo.Repo?</span>
-                </CardTitle>
-                <CardDescription>
-                    <span data-testid="remove-description">
-                        Stops syncing and deletes the parsed rows and raw archive for
-                        @objTarget.Repo.Repo. Your GitHub repo, or your uploaded file, is untouched.
-                    </span>
+                <CardTitle data-testid="remove-title">Remove @objTarget.Repo.Repo?</CardTitle>
+                <CardDescription data-testid="remove-description">
+                    Stops syncing and deletes the parsed rows and raw archive for
+                    @objTarget.Repo.Repo. Your GitHub repo, or your uploaded file, is untouched.
                 </CardDescription>
             </CardHeader>
             <CardContent Class="pt-0">

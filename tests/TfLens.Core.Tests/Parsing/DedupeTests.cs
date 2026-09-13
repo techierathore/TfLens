@@ -88,8 +88,32 @@ public sealed class DedupeTests
     {
         var vResult = ParseFixture(Fixtures.TrSetupRepo, StreamKind.Runs);
 
-        vResult.DuplicatesCollapsed.Should().Be(1);
-        vResult.Runs.Should().HaveCount(6);
+        // Two byte-identical `build-phase` lines, and BOTH survive. That is the amended rule
+        // (SCHEMA.md §2.7 work, 2026-09-11), not a regression: a run is identified by its LINE in an
+        // append-only file, so re-parsing the same file still maps every line onto the row it already
+        // wrote — BRD-28's guarantee, intact — while two separate records stay two records.
+        //
+        // The old key, (ts, app, cmd), silently merged them. It also merged two `run-void` records
+        // written in the same second that named DIFFERENT runs, which put a record the producer had
+        // explicitly corrected back into every figure; TechieFlow read 81 live runs against the
+        // reference's 75 for that reason. The reference does not dedupe runs at all.
+        vResult.DuplicatesCollapsed.Should().Be(0, "two identical lines are two records, as the reference counts them");
+        vResult.Runs.Should().HaveCount(7);
+        vResult.Runs.Select(aRun => aRun.SourceLineNo).Should()
+            .OnlyHaveUniqueItems("the line ordinal is what makes two identical records distinguishable");
+    }
+
+    /// <summary>Re-parsing the same file is still a no-op: every line maps back to the row it wrote (BRD-28).</summary>
+    [Fact]
+    public void ReparsingTheSameRunsFileProducesTheSameIdentities()
+    {
+        var vFirst = ParseFixture(Fixtures.TrSetupRepo, StreamKind.Runs);
+        var vSecond = ParseFixture(Fixtures.TrSetupRepo, StreamKind.Runs);
+
+        vSecond.Runs.Select(aRun => (aRun.Ts, aRun.App, aRun.Cmd, aRun.Kind, aRun.Started, aRun.SourceLineNo))
+            .Should().Equal(
+                vFirst.Runs.Select(aRun => (aRun.Ts, aRun.App, aRun.Cmd, aRun.Kind, aRun.Started, aRun.SourceLineNo)),
+                "the identity is stable across reads, which is what makes the upsert idempotent");
     }
 
     /// <summary>Gate records sharing ts + app + req_id + run_id collapse to the first (REQ-FN-035).</summary>

@@ -20,6 +20,7 @@ import {
   renderCheck,
   tableCheck,
   collectErrors,
+  assertScopedCssLoaded,
   USER1,
   DESKTOP,
   expect,
@@ -62,8 +63,10 @@ async function exists(page: Page, id: string): Promise<boolean> {
 
 /**
  * Activates one of the /routing tabs.
- * TR-010: the `routing-tab-*` test id sits on the trigger's LABEL SPAN, not on the button, so the
- * click is aimed at the nearest [role="tab"] ancestor when there is one.
+ * The `routing-tab-*` test id is on the TabsTrigger itself — exactly one element in the document
+ * carries each id (TR-010 is closed: the Tabs family captures unmatched attributes). The
+ * ancestor-or-self lookup below therefore resolves to the trigger itself; it is kept so the helper
+ * still works against a build where the id sits on an inner label.
  */
 async function activateRoutingTab(
   page: Page,
@@ -207,6 +210,47 @@ test('REQ-UI-023 harness screen shows three fixed columns with the compare-token
     els => els.map(e => (e.textContent || '').trim()).filter(t => t.length > 0),
   );
   expect(yAxisLabels, 'the tokens chart must draw no y-axis labels').toEqual([]);
+
+  // No gridlines either. `Grid { Show = false }` leaves ApexCharts' own grid group in the DOM with
+  // every line stroked `transparent`, so the check is what is PAINTED, not what exists.
+  const paintedGridlines = await page.$$eval(
+    '[data-testid="tokens-chart"] .apexcharts-gridline, [data-testid="tokens-chart"] .apexcharts-grid line',
+    els => els.filter(l => {
+      const s = l.getAttribute('stroke') || getComputedStyle(l).stroke;
+      return s && s !== 'transparent' && s !== 'none' && s !== 'rgba(0, 0, 0, 0)';
+    }).length,
+  );
+  expect(paintedGridlines, 'the tokens chart must paint no gridlines').toBe(0);
+
+  // GUARD BEFORE THE NEXT BLOCK. What follows reads computed styles to decide that a page-local CSS
+  // workaround is gone and the library's own parameter is doing the work. On a page that loaded NO
+  // scoped CSS (TF-043 — an empty styles bundle under gzip while several builds share one obj/) the
+  // deleted rule is absent for the wrong reason and every read below would pass. `.tflens-chart` is
+  // declared only in Harness.razor.css and sits on this very element, so it is the right witness.
+  // The ApexCharts numbers above — gridlines, y-axis labels, bar and label counts — need no guard.
+  await assertScopedCssLoaded(page, [
+    { testid: 'tokens-chart', property: 'overflow', expected: 'hidden' },
+    { testid: 'tokens-chart', property: 'margin-bottom', expected: '8px' },
+  ]);
+
+  // The chart sits flush on the Card that holds it. This is `ChartContainer Bare="true"` doing the
+  // work: before it, the container painted `rounded-lg border bg-card shadow-sm p-6` and the page
+  // unpicked it with a `::deep` rule. The guard just above is what makes this read meaningful —
+  // with no scoped CSS loaded these values would be right for the wrong reason.
+  const chrome = await page.$eval('[data-testid="tokens-chart"] [data-slot="chart-container"]', el => {
+    const c = getComputedStyle(el);
+    return { border: c.borderTopWidth, shadow: c.boxShadow, padding: c.padding, background: c.backgroundColor };
+  });
+  console.log(`chart container chrome: ${JSON.stringify(chrome)}`);
+  expect(chrome.border, 'ChartContainer Bare: no border').toBe('0px');
+  expect(chrome.shadow, 'ChartContainer Bare: no shadow').toBe('none');
+  expect(chrome.padding, 'ChartContainer Bare: no p-6').toBe('0px');
+  expect(chrome.background, 'ChartContainer Bare: no card ground').toBe('rgba(0, 0, 0, 0)');
+
+  // Every harness column's key/value table is headerless through `ShowHeader="false"`, not through a
+  // `::deep thead { display: none }` — so there is no thead in the DOM at all.
+  const theads = await page.$$eval('[data-testid^="harness-table-"] thead', els => els.length);
+  expect(theads, 'the key/value tables render no thead (DataTable ShowHeader="false")').toBe(0);
 
   console.log(`tokens-chart present: ${await exists(page, 'tokens-chart')}`);
 });
@@ -376,18 +420,18 @@ test('REQ-UI-026 undetected-harness records are a footnote, never a fourth colum
   const m = foot.match(/([\d,]+) records with harness not detected/);
   const count = (m ? m[1] : '').replace(/,/g, '');
 
-  // Soft: the same count turning up as a column's Runs value would suggest the undetected records were
-  // merged into a named harness.
+  // A hint, not a verdict: the same count turning up as a column's Runs value MAY mean the undetected
+  // records were merged into a named harness, and may be a coincidence — on 2026-09-11 OpenCode held 2
+  // real runs while the footnote counted 1 run + 1 gate/session record. The footnote counts records of
+  // all three kinds and a column counts runs, so equality proves nothing. The binding check is in
+  // verify-export-figures (REQ-FN-140): Σ harness-column runs never exceeds runs_live.
   for (const h of HARNESSES) {
     const runs = ((await textOf(page, `harness-${h}-runs`)) || '').replace(/,/g, '').trim();
     if (runs === EM_DASH || runs.length === 0) continue;
-    expect
-      .soft(
-        runs,
-        `harness-${h}-runs (${runs}) equals the undetected-record count (${count}) — check the ` +
-          `harness:null records were not merged into a named column`,
-      )
-      .not.toBe(count);
+    if (runs === count) {
+      console.log(`NOTE: harness-${h}-runs (${runs}) equals the undetected-record count (${count}) — ` +
+        `recorded for review, not failed; see the REQ-FN-140 harness-sum check`);
+    }
   }
 
   // And still exactly three columns.
@@ -405,6 +449,27 @@ test('REQ-UI-027 routing drift tab renders its KPIs and an unrouted-first drift 
   test.setTimeout(150_000);
   await gotoScreen(page, '/routing');
   expect(await exists(page, 'routing-error'), 'routing must not render its error alert').toBe(false);
+
+  // GUARD FIRST — the same one /harness above carries. TfLens has served
+  // `TfLens.<hash>.styles.css` as ZERO bytes under gzip while several builds shared one obj/, and on
+  // such a run EVERY scoped rule is absent for the wrong reason: a geometry read then reports a
+  // regression that does not exist, or blesses a `::deep` rule that was deleted in error. These two
+  // rules are declared only in Routing.razor.css, so a live sheet is provable before anything is
+  // measured. It is a hard failure, never a skip.
+  const scoped = await page.evaluate(() => {
+    const money = document.querySelector('.tflens-money');
+    const scroll = document.querySelector('.tflens-tabs-scroll');
+    return {
+      moneyFontSize: money ? getComputedStyle(money).fontSize : null,
+      scrollOverflowX: scroll ? getComputedStyle(scroll).overflowX : null,
+    };
+  });
+  expect(scoped.scrollOverflowX, 'scoped CSS is live (TF-043): .tflens-tabs-scroll scrolls in its own box').toBe(
+    'auto',
+  );
+  if (scoped.moneyFontSize !== null) {
+    expect(scoped.moneyFontSize, 'scoped CSS is live (TF-043): .tflens-money is 2rem').toBe('32px');
+  }
 
   for (const tab of ['drift', 'models', 'repricing', 'poolable']) {
     expect(await exists(page, `routing-tab-${tab}`), `routing-tab-${tab} must exist`).toBe(true);
@@ -505,28 +570,63 @@ test('REQ-UI-028 tokens by observed model prints every charted value as text', a
     expect(headers, `model-tokens must have a "${col}" column`).toContain(col);
   }
 
-  // Every value drawn as a bar must also be readable as text in the table beside it.
-  const bars = await page.evaluate(() => {
+  // The totals are drawn by a real BarChart now (the ApexCharts runtime loads; TR-011a is closed),
+  // so the bars are SVG rather than a CSS bar row. Two things are asserted, and they are the two the
+  // requirement actually rests on:
+  //   1. the chart PAINTS — a canvas with at least one bar, and not the wrapper's empty state, which
+  //      is the visible stand-in for a chart that was given no usable series;
+  //   2. nothing is charted that is not also readable as text — every model the chart names on its
+  //      x axis appears in the table beside it (docs/TfLens-UIDesign.md §Library gaps).
+  // The bar's own label is the mockup's abbreviation (`24.5M`); the exact grouped figure lives in
+  // the table, so the label is deliberately NOT compared character for character against it.
+  await page
+    .locator('[data-testid="model-tokens-bars"] .apexcharts-canvas')
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 })
+    .catch(() => {});
+  const chart = await page.evaluate(() => {
     const root = document.querySelector('[data-testid="model-tokens-bars"]');
-    if (!root) return [] as { label: string; figure: string }[];
-    const out: { label: string; figure: string }[] = [];
-    for (const bar of Array.from(root.children)) {
-      const spans = Array.from(bar.querySelectorAll('span')).map(s => (s.textContent || '').trim());
-      const figure = spans.find(s => /[\d]/.test(s)) || '';
-      const label = spans[spans.length - 1] || '';
-      const title = bar.getAttribute('title') || '';
-      out.push({ label: title || label, figure });
-    }
-    return out;
+    if (!root) return null;
+    return {
+      canvas: !!root.querySelector('.apexcharts-canvas'),
+      emptyState: !!root.querySelector('[data-slot="chart-empty"]'),
+      bars: root.querySelectorAll('.apexcharts-series path, .apexcharts-series rect').length,
+      // ApexCharts truncates a long category and keeps the full one in a <title> child, so the
+      // element's own textContent reads "claude-...claude-opus-5". Prefer the title.
+      categories: Array.from(root.querySelectorAll('.apexcharts-xaxis-texts-g text'))
+        .map(t => (t.querySelector('title')?.textContent || t.textContent || '').trim())
+        .filter(Boolean),
+      labels: Array.from(root.querySelectorAll('.apexcharts-datalabels text'))
+        .map(t => (t.textContent || '').trim())
+        .filter(Boolean),
+    };
   });
-  console.log(`model-tokens-bars: ${bars.length} bars — ${JSON.stringify(bars.slice(0, 8))}`);
-  expect(bars.length, 'model-tokens-bars must draw at least one bar when the table has rows').toBeGreaterThan(0);
+  console.log(`model-tokens-bars: ${JSON.stringify(chart)}`);
+  expect(chart, 'model-tokens-bars must be in the DOM').not.toBeNull();
+  expect(chart!.emptyState, 'the chart must not fall back to its empty state when the table has rows').toBe(
+    false,
+  );
+  expect(chart!.canvas, 'model-tokens-bars must render an ApexCharts canvas').toBe(true);
+  expect(chart!.bars, 'the chart must draw at least one bar when the table has rows').toBeGreaterThan(0);
+
+  // The design puts the value ABOVE its bar, which is also the only thing that makes a sub-pixel bar
+  // readable: on this data the largest model is three orders of magnitude above the smallest. The
+  // wrapper writes `dataLabels.enabled = false` over the chart-level flag unless the SERIES carries
+  // `ShowDataLabels` (measured 2026-09-12), so a chart with bars and no labels is a real regression
+  // and not a rendering delay.
+  expect(
+    chart!.labels.length,
+    'every bar must carry its value as a data label — the wrapper drops them unless the nested ' +
+      'ApexPointSeries sets ShowDataLabels',
+  ).toBeGreaterThan(0);
 
   const tableText = ((await textOf(page, 'model-tokens')) || '').replace(/\s+/g, ' ');
-  for (const bar of bars) {
-    expect(bar.figure.length, `a bar carries no readable figure: ${JSON.stringify(bar)}`).toBeGreaterThan(0);
-    expect(tableText, `charted value "${bar.figure}" must also appear as text in model-tokens`).toContain(
-      bar.figure,
+  for (const category of chart!.categories) {
+    // ApexCharts truncates a long category label with an ellipsis; compare on the stem it kept.
+    const stem = category.replace(/…|\.\.\.$/g, '').trim();
+    if (stem.length < 3) continue;
+    expect(tableText, `charted model "${category}" must also appear as text in model-tokens`).toContain(
+      stem,
     );
   }
 });
@@ -704,6 +804,26 @@ test('REQ-UI-031 poolable metrics tiles state insufficient data rather than a bl
 test('REQ-UI-032 export screen offers the export, the dataset SHAs and past snapshots', async ({ page }) => {
   test.setTimeout(150_000);
   await gotoScreen(page, '/export');
+
+  // GUARD FIRST — see the /harness and /routing tests. The parity pill's two tones are declared ONLY
+  // in ExportSurface.razor.css, and they reach the Badge through `.tflens-pill ::deep`. A page served
+  // with a zero-byte scoped stylesheet would paint the pill in the Badge's own neutral outline and
+  // every colour read below would be measuring nothing. Prove the sheet arrived first.
+  const scoped = await page.evaluate(() => {
+    const pill = document.querySelector('[data-testid="export-parity-status"]');
+    const head = document.querySelector('.tflens-export-head');
+    return {
+      pillBackground: pill ? getComputedStyle(pill).backgroundColor : null,
+      headDisplay: head ? getComputedStyle(head).display : null,
+    };
+  });
+  expect(scoped.headDisplay, 'scoped CSS is live (TF-043): .tflens-export-head is a flex row').toBe('flex');
+  if (scoped.pillBackground !== null) {
+    expect(
+      scoped.pillBackground,
+      'scoped CSS is live (TF-043): the parity pill carries a tone, not a transparent Badge outline',
+    ).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/);
+  }
 
   // export-now is asserted present + enabled ONLY. It is deliberately never pressed: pressing it
   // writes snapshot.md and tflens.json into data/reports/<user>/<date>/<framework>/.

@@ -265,12 +265,23 @@ public sealed class SnapshotExporter : ISnapshotExporter
             .ConfigureAwait(false);
         var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
-        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken)
-            .ConfigureAwait(false);
+        // REQ-FN-140 — the same run set the engine counts: a `run-void` and the run it names leave every
+        // figure, so the miss blocks below must not see them either (SCHEMA.md §2.7).
+        var vRuns = RunVoid.Apply(
+                await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false))
+            .Kept;
 
         var vOrigins = RepoOriginsFor(vAnalysis, vRepos, vMisses, vGates, vRuns);
         var vMissParity = MissParityFor(vMisses, vFixes, vAmends, vRuns);
         var vMeasuredRework = MeasuredReworkFor(vMisses, vFixes, vAmends, vRuns);
+
+        // Reviews and the list price of a repair (SCHEMA.md §5.5.9, §2.5b). Read here rather than in the
+        // engine because both are flat estate-wide figures: a review prices a specification defect, not
+        // a project type, and a list price answers the same question of every harness.
+        var vReviews = await objStore.ReadMissReviewsAsync(aUserId, aFramework, null, aCancellationToken)
+            .ConfigureAwait(false);
+        var vPrices = await RateCard.LoadAsync(objOptions.PricesPath, aCancellationToken).ConfigureAwait(false);
+        var vReviewBlock = ReviewBlockFor(vReviews, MissFigures.SoleFixes(vFixes), vPrices);
 
         var vParity = ParityRecord.Read(objOptions.ParityLastPath);
 
@@ -315,12 +326,13 @@ public sealed class SnapshotExporter : ISnapshotExporter
             vOrigins,
             vMissParity,
             vMeasuredRework,
+            vReviewBlock,
             vShas,
             vParity,
             vStamp.Status,
             vStamp.Reason,
             objOptions.PricesPath,
-            await RateCard.LoadAsync(objOptions.PricesPath, aCancellationToken).ConfigureAwait(false),
+            vPrices,
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
     }
 
@@ -470,6 +482,72 @@ public sealed class SnapshotExporter : ISnapshotExporter
     /// <param name="aAmends">Every stored amendment record for the framework.</param>
     /// <param name="aRuns">Every run record for the framework.</param>
     /// <returns>The measuring harness's row, or <c>null</c> when no <c>sole</c> fix exists.</returns>
+    /// <summary>
+    /// The review and list-price block (SCHEMA.md §5.5.9, §2.5b; REQ-FN-138).
+    /// </summary>
+    /// <remarks>
+    /// Every mean divides by the records that carry the figure and publishes that count beside it, which
+    /// is the same rule the token columns follow one stream over. Review records are counted here and
+    /// reach no miss figure anywhere — a review is not a mistake.
+    /// </remarks>
+    /// <param name="aReviews">Every stored review record for the framework.</param>
+    /// <param name="aSole">Fix records the cost attribution bounds to one miss.</param>
+    /// <param name="aPrices">The rate card.</param>
+    /// <returns>The block.</returns>
+    private static MissReviewBlock ReviewBlockFor(
+        IReadOnlyList<MissReviewRecord> aReviews,
+        IReadOnlyList<MissFixRecord> aSole,
+        RateCard aPrices)
+    {
+        var vProduce = aReviews.Where(aR => aR.TokensProduce is not null)
+            .Select(aR => (double)aR.TokensProduce!.Value).ToList();
+        var vCorrect = aReviews.Where(aR => aR.TokensCorrect is not null)
+            .Select(aR => (double)aR.TokensCorrect!.Value).ToList();
+
+        // A repair whose dollars were measured but are NOT money: a flat monthly fee bills nothing extra,
+        // so its zero is true of the marginal cost and false of the money. Counted apart, never averaged
+        // in — doing so would drag dollars-per-miss toward zero and make repairs look almost free.
+        var vExcluded = aSole.Count(aFix =>
+            aFix.CostUsd is not null
+            && aFix.BillingMode is not null
+            && !string.Equals(aFix.BillingMode, BillingModes.Metered, StringComparison.Ordinal));
+
+        var vListed = aSole.Select(aFix => ListPrice.For(aFix, aPrices))
+            .Where(aP => aP is not null).Select(aP => aP!.Value).ToList();
+
+        return new MissReviewBlock
+        {
+            ReviewsN = aReviews.Count,
+            Corrections = aReviews.Sum(aR => aR.Corrections ?? 0),
+            ByPhase = aReviews
+                .GroupBy(aR => string.IsNullOrWhiteSpace(aR.ReviewPhase) ? "?" : aR.ReviewPhase, StringComparer.Ordinal)
+                .Select(aG => new KeyValuePair<string, int>(aG.Key, aG.Count()))
+                .OrderByDescending(aE => aE.Value)
+                .ThenBy(aE => aE.Key, StringComparer.Ordinal)
+                .ToList(),
+            TokensToProduce = MeanTokens(vProduce),
+            TokensToProduceN = vProduce.Count,
+            TokensToCorrect = MeanTokens(vCorrect),
+            TokensToCorrectN = vCorrect.Count,
+            CostExcludedNotMoneyN = vExcluded,
+            ListUsdPerMiss = vListed.Count >= MetricsConstants.MinN
+                ? (decimal)ListPrice.Round(vListed.Sum() / vListed.Count, 4)
+                : null,
+            ListUsdRecords = vListed.Count
+        };
+    }
+
+    /// <summary>The mean of a token column, refused below the minimum-n floor.</summary>
+    /// <param name="aValues">The records that carried the figure.</param>
+    /// <returns>The mean, or an honest refusal.</returns>
+    private static Figure MeanTokens(IReadOnlyList<double> aValues) =>
+        aValues.Count < MetricsConstants.MinN
+            ? Figure.InsufficientData(aValues.Count)
+            : Figure.Value(
+                Math.Round(aValues.Sum() / aValues.Count, 1, MidpointRounding.ToEven),
+                aValues.Count,
+                null);
+
     private static MissHarnessCost? MeasuredReworkFor(
         IReadOnlyList<MissRecord> aMisses,
         IReadOnlyList<MissFixRecord> aFixes,

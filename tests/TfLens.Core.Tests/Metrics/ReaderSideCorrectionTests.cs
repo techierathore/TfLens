@@ -207,12 +207,20 @@ public sealed class ReaderSideCorrectionTests
         var vRow = Assert.Single(vAnalysis.Phases.Phases);
 
         Assert.Equal(2, vRow.Duration.TimedN);
-        Assert.Equal(1, vRow.Duration.DerivedN);
-        Assert.Equal(1, vAnalysis.Phases.DurationsDerivedN);
 
-        // 7200 derived + 3600 read. Under the bug the derived run was worth zero time while its tokens
-        // still counted — the phase's time would have read 3600.
+        // 7200 from the record's own clocks + 3600 from a record whose clocks are absent. Under the bug
+        // the first run was worth zero time while its tokens still counted — the phase's time would have
+        // read 3600.
         Assert.Equal(10800, vRow.Duration.TotalSeconds);
+
+        // DerivedN is 0, and that is the amended rule (BRD-179, 2026-09-10) rather than a regression.
+        // Reading a record's own `started` and `ended` is now the NORMAL path for every run, so it is not
+        // a derivation to be counted; what is left for `DerivedN` is the run whose window this read had
+        // to close some other way — `ts` standing in for an absent `ended`, or a run that recorded no
+        // elapsed time. Counting every timestamped run as derived would report the whole stream as
+        // worked-out and make the figure meaningless.
+        Assert.Equal(0, vRow.Duration.DerivedN);
+        Assert.Equal(0, vAnalysis.Phases.DurationsDerivedN);
     }
 
     /// <summary><c>ts</c> stands in for an absent <c>ended</c>, which is SCHEMA.md's own definition.</summary>

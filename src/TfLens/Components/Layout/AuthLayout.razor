@@ -3,8 +3,19 @@
 @*
     The split layout every anonymous screen shares (REQ-UI-001..004): a brand panel on the left and
     the centred form card on the right, so sign in, register, forgot and reset read as one flow.
-    The layout also supplies the --sidebar / --alert-* design tokens TrBlazeUI 2.0.0 references but
-    never defines (TR-001) — custom properties inherit, so every TrBlazeUI control below picks them up.
+
+    TR-001 is closed: this layout no longer declares `--sidebar` / `--alert-*`. TrBlazeUI 2.1.0-ci.10
+    defines every one of them, so `bg-sidebar` on the brand panel now paints the REAL `--sidebar`
+    (`#0f0f0f` dark) that `docs/mockups/login.html` line 106 draws, instead of the `--muted` this
+    layout used to force it to, and the tick beside each benefit takes the one `--alert-success`
+    declared in app.css instead of a second copy declared here.
+
+    TR-003's `CenteredPanel` is deliberately NOT used for the right-hand half. It is a full-height
+    PAGE wrapper whose panel is `max-w-sm` (24rem), `max-w-md` (28rem) or `max-w-2xl` — and this is
+    not a page, it is one of two flex children of a `100vh` row, whose panel the mockup fixes at
+    400px (`.authc{max-width:400px}`) and which stacks two cards with a 1rem gap. Adopting it would
+    nest a second full-height wrapper and change the card's width to something the mockup does not
+    draw, so `.auth-right` / `.auth-panel` stay.
 
     The `.auth-*` rules live in wwwroot/app.css, NOT in a co-located AuthLayout.razor.css.
     That is deliberate (REQ-NFR-015): they used to sit in the scoped-CSS bundle, which made this

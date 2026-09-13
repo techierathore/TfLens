@@ -180,11 +180,20 @@ public static class DataQualityFigures
                 aGates.Count(aGate => aGate.Attempt is null))
         ];
 
-    /// <summary>True when a run omits its duration and carries both ends of the window it needs.</summary>
+    /// <summary>True when this read had to close a run's window from the record's own timestamps.</summary>
+    /// <remarks>
+    /// The same predicate the engine's derive pass uses (<c>RunDuration.Derive</c>), so this card and
+    /// the effort page cannot disagree about the same record. Since the timestamps now win outright
+    /// (BRD-179 as amended 2026-09-10), a record whose <c>started</c> and <c>ended</c> both parse is
+    /// simply <i>read</i> rather than derived — deriving is what is left for a run that carries no
+    /// usable duration at all, which in practice means one with no <c>ended</c> (where <c>ts</c> stands
+    /// in) or one that recorded no elapsed time. Counting every timestamped record as "derived" would
+    /// over-report the card by most of the stream.
+    /// </remarks>
     /// <param name="aRun">The run record.</param>
-    /// <returns>Whether <c>duration_s</c> can be worked out for it without a guess.</returns>
+    /// <returns>Whether this read worked the duration out rather than reading it.</returns>
     private static bool IsDurationDerivable(RunRecord aRun) =>
-        aRun.DurationS is null
+        RunDuration.UsableSeconds(aRun) is null
         && !string.IsNullOrWhiteSpace(aRun.Started)
         && (!string.IsNullOrWhiteSpace(aRun.Ended) || !string.IsNullOrWhiteSpace(aRun.Ts));
 

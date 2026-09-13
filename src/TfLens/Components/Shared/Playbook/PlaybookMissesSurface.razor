@@ -59,7 +59,7 @@
         <Card data-testid="misses-playbook-plan">
             <CardHeader>
                 <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                    <span class="flex min-w-0 flex-col gap-1">
+                    <span class="flex min-w-0 flex-1 flex-col gap-1">
                         <CardTitle Class="text-base">What this axis renders once a bundle is imported</CardTitle>
                         <CardDescription>
                             The same bands as the TechieFlow axis, plus the two cross-edition axes the
@@ -99,7 +99,7 @@
         <Card data-testid="pb-stream-health">
             <CardHeader>
                 <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                    <span class="flex min-w-0 flex-col gap-1">
+                    <span class="flex min-w-0 flex-1 flex-col gap-1">
                         <CardTitle Class="text-base">Playbook stream health</CardTitle>
                         <CardDescription>From Coverage — nothing here is a quality figure</CardDescription>
                     </span>
@@ -125,7 +125,7 @@
                                     <td class="pb-num">@vStream.RecordsText</td>
                                     <td class="pb-num text-xs">@vStream.NewestText</td>
                                     <td>
-                                        <Badge Variant="BadgeVariant.Outline" Class="@vStream.BadgeClass">@vStream.State</Badge>
+                                        <Badge Variant="@vStream.StateVariant" Wrap="@vStream.WrapState">@vStream.State</Badge>
                                     </td>
                                 </tr>
                             }
@@ -238,8 +238,9 @@
                               Class="pb-measured"
                               data-testid="kpi-rework-tokens">
                         <TitleAdornment>
-                            <Badge Variant="BadgeVariant.Outline"
-                                   Class="pb-measured-badge"
+                            @* TR-016 — the mockup's pill is `badge success`; the tone is the
+                               library's own variant now, not a local class. *@
+                            <Badge Variant="BadgeVariant.Success"
                                    data-testid="kpi-rework-tokens-badge">sole · complete</Badge>
                         </TitleAdornment>
                         <ValueContent>
@@ -272,12 +273,12 @@
 
         @* ── BAND 2 — where misses come from ──────────────────────────────────────────── *@
         <TypographyH2 Class="text-lg">Where misses come from</TypographyH2>
-        <div class="pb-grid pb-grid-origin">
+        <div class="pb-grid grid-cols-1 pb-grid-origin">
 
             <Card data-testid="miss-origin">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Origin command phase × miss class</CardTitle>
                             <CardDescription>Did we specify badly, or build badly?</CardDescription>
                         </span>
@@ -358,15 +359,16 @@
             <Card data-testid="miss-whymissed">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Which practice failed</CardTitle>
                             <CardDescription>
                                 Is our <b>specification</b> weak, or our <b>verification</b>?
                             </CardDescription>
                         </span>
                         @* BRD-166 — the denominator is on the card's face, never a tooltip. *@
-                        <Badge Variant="BadgeVariant.Outline"
-                               Class="tflens-badge-warning"
+                        @* TR-016 — docs/mockups/misses-playbook.html draws this amber (`badge warning`):
+                           the distribution is over fewer misses than the axis counts. *@
+                        <Badge Variant="BadgeVariant.Warning"
                                data-testid="miss-whymissed-denominator">
                             @Report.WhyMissedAssessed
                         </Badge>
@@ -410,12 +412,12 @@
         </div>
 
         @* ── BAND 2b — the two cross-edition axes, side by side and never merged ───────── *@
-        <div class="pb-grid pb-grid-2">
+        <div class="pb-grid grid-cols-1 lg:grid-cols-2">
 
             <Card data-testid="miss-found-axes">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Where it was caught — two axes, never one</CardTitle>
                             <CardDescription>
                                 A <b>process</b> gate and an <b>assertion</b> gate are different measurements
@@ -494,7 +496,7 @@
             <Card data-testid="miss-id-axes">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Item identity across editions</CardTitle>
                             <CardDescription>One axis under two names — two columns on one table</CardDescription>
                         </span>
@@ -555,11 +557,11 @@
             </AlertDescription>
         </Alert>
 
-        <div class="pb-grid pb-grid-2">
+        <div class="pb-grid grid-cols-1 lg:grid-cols-2">
             <Card data-testid="miss-origin-model">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">By origin model</CardTitle>
                             <CardDescription>Miss rate per linked origin model</CardDescription>
                         </span>
@@ -616,7 +618,7 @@
             <Card data-testid="miss-origin-tier">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">By origin tier</CardTitle>
                             <CardDescription>Same guard, same exclusions</CardDescription>
                         </span>
@@ -675,12 +677,12 @@
 
         @* ── BAND 4 — cost of rework, three cohorts that never merge ──────────────────── *@
         <TypographyH2 Class="text-lg">Cost of rework</TypographyH2>
-        <div class="pb-grid pb-grid-3" data-testid="miss-cost">
+        <div class="pb-grid grid-cols-1 lg:grid-cols-3" data-testid="miss-cost">
 
             <Card Class="h-full" data-testid="miss-cost-measured">
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Measured</CardTitle>
                             <CardDescription>
                                 <span class="font-mono">sole</span> + complete window +
@@ -719,7 +721,7 @@
             <Card Class="h-full" data-testid="miss-cost-apportioned">
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Apportioned</CardTitle>
                             <CardDescription><span class="font-mono">cost_attribution: shared:n</span></CardDescription>
                         </span>
@@ -745,8 +747,9 @@
                     </div>
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-xs text-muted-foreground">Divided equally, and we say so</span>
-                        <Badge Variant="BadgeVariant.Outline"
-                               Class="tflens-badge-warning"
+                        @* TR-016 — amber, as the mockup draws it: apportioned is arithmetic, not
+                           measurement, and the pill is where that reads at a glance. *@
+                        <Badge Variant="BadgeVariant.Warning"
                                data-testid="miss-cost-apportioned-label">apportioned</Badge>
                     </div>
                     <p class="mt-2 text-xs text-muted-foreground" data-testid="miss-cost-apportioned-usd-note">
@@ -760,7 +763,7 @@
             <Card Class="h-full" data-testid="miss-cost-unattributable">
                 <CardHeader>
                     <div class="flex items-start justify-between gap-3">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Unattributable</CardTitle>
                             <CardDescription><span class="font-mono">cost_attribution: none</span></CardDescription>
                         </span>
@@ -799,12 +802,12 @@
         </p>
 
         @* ── Diagnostics — what the ingest could not apply, and what it holds ─────────── *@
-        <div class="pb-grid pb-grid-2">
+        <div class="pb-grid grid-cols-1 lg:grid-cols-2">
 
             <Card data-testid="miss-amend-diagnostics">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Amendment &amp; orphan diagnostics</CardTitle>
                             <CardDescription>
                                 Surfaced here and on Coverage — never applied or discarded silently
@@ -842,7 +845,7 @@
             <Card data-testid="pb-stream-health">
                 <CardHeader>
                     <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                        <span class="flex min-w-0 flex-col gap-1">
+                        <span class="flex min-w-0 flex-1 flex-col gap-1">
                             <CardTitle Class="text-base">Playbook stream health</CardTitle>
                             <CardDescription>From Coverage — nothing here is a quality figure</CardDescription>
                         </span>
@@ -870,7 +873,7 @@
                                         <td class="pb-num">@vStream.RecordsText</td>
                                         <td class="pb-num text-xs">@vStream.NewestText</td>
                                         <td>
-                                            <Badge Variant="BadgeVariant.Outline" Class="@vStream.BadgeClass">@vStream.State</Badge>
+                                            <Badge Variant="@vStream.StateVariant" Wrap="@vStream.WrapState">@vStream.State</Badge>
                                         </td>
                                     </tr>
                                 }
@@ -895,7 +898,7 @@
         <Card data-testid="miss-detail">
             <CardHeader>
                 <div class="flex w-full flex-wrap items-start justify-between gap-2">
-                    <span class="flex min-w-0 flex-col gap-1">
+                    <span class="flex min-w-0 flex-1 flex-col gap-1">
                         <CardTitle Class="text-base">Every miss</CardTitle>
                         <CardDescription>
                             @DetailRows.Count @(DetailRows.Count == 1 ? "record" : "records") · amendments
@@ -903,15 +906,25 @@
                             later shows here
                         </CardDescription>
                     </span>
+                    @* TR-033 — docs/mockups/misses-playbook.html draws the filter IN the card header.
+                       `DataTable` takes `@bind-SearchText`, so the box lives here and the grid still
+                       filters over its own columns. *@
+                    <span class="pb-detail-filter shrink-0">
+                        <Input Type="InputType.Search"
+                               @bind-Value="objDetailSearch"
+                               DebounceMilliseconds="150"
+                               Placeholder="Filter by item or class"
+                               AriaLabel="Filter the per-miss table by item or class"
+                               data-testid="pb-miss-detail-search" />
+                    </span>
                 </div>
             </CardHeader>
             <CardContent Class="pt-0">
                 <div class="pb-scroll-x">
-                    @* TR-009: InitialPageSize is set explicitly — the grid truncates to it even when
-                       pagination is off, so it is never left at the default 5. *@
                     <DataTable TData="DetailRow"
                                Data="@DetailRows"
-                               ShowToolbar="true"
+                               ShowToolbar="false"
+                               @bind-SearchText="objDetailSearch"
                                ShowPagination="true"
                                InitialPageSize="25"
                                AriaLabel="Every Playbook miss in this window"
@@ -924,7 +937,7 @@
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="DetailRow" TValue="string"
-                                             Property="@(aRow => aRow.ItemId)" Header="item_id">
+                                             Property="@(aRow => aRow.ItemId)" Header="item_id" Filterable="true">
                                 <CellTemplate Context="vRow">
                                     <span class="font-mono text-xs">@vRow.ItemId</span>
                                 </CellTemplate>
@@ -936,7 +949,7 @@
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="DetailRow" TValue="string"
-                                             Property="@(aRow => aRow.MissClass)" Header="Class">
+                                             Property="@(aRow => aRow.MissClass)" Header="Class" Filterable="true">
                                 <CellTemplate Context="vRow">
                                     <Badge Variant="BadgeVariant.Outline"><span class="font-mono text-xs">@vRow.MissClass</span></Badge>
                                 </CellTemplate>
@@ -952,7 +965,7 @@
                                 <CellTemplate Context="vRow">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="font-mono text-xs">@vRow.Origin</span>
-                                        <Badge Variant="BadgeVariant.Secondary">@vRow.Confidence</Badge>
+                                        <Badge Variant="@vRow.ConfidenceVariant">@vRow.Confidence</Badge>
                                     </span>
                                 </CellTemplate>
                             </DataTableColumn>
@@ -1039,6 +1052,16 @@
 
     private PlaybookMissReport objReport = EmptyReport;
     private Dictionary<string, List<MissFixRecord>> objFixesByMiss = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The per-miss table's filter text (TR-033).
+    /// </summary>
+    /// <remarks>
+    /// Bound to the grid through <c>@bind-SearchText</c> so the box can live in the card header, where
+    /// <c>docs/mockups/misses-playbook.html</c> draws it. The two columns its placeholder names —
+    /// <c>item_id</c> and the miss class — are the grid's <c>Filterable</c> ones.
+    /// </remarks>
+    private string? objDetailSearch;
 
     /// <summary>The stored <c>miss</c> rows for the selected window, unfolded and in stream order.</summary>
     [Parameter]
@@ -1813,16 +1836,27 @@
         /// What the state badge says.
         /// </summary>
         /// <remarks>
-        /// One or two words on purpose. The mockup writes the whole sentence inside the badge, which
-        /// wraps into an unreadable pill at 390px; the sentence is carried by the card's footer
-        /// instead, where it reads as prose at both widths.
+        /// TR-029, taken up 2026-09-12 — this used to be one or two words because a long label broke
+        /// into an unreadable pill at 390px. <c>Badge</c> takes <c>Wrap</c> now (the pill grows, the
+        /// label is left-aligned and the radius drops to a corner), so the transient row carries the
+        /// mockup's whole sentence again, exactly as <c>docs/mockups/misses-playbook.html</c> writes it.
         /// </remarks>
         public string State => Records is null
-            ? "transient"
+            ? "transient · best-effort, absence is not an error"
             : Records > 0 ? "imported" : "none held";
 
-        /// <summary>The badge tone, which never reads as a score.</summary>
-        public string BadgeClass => Records is > 0 ? "tflens-badge-success" : string.Empty;
+        /// <summary>True for the one label long enough to need a growing pill rather than one line.</summary>
+        public bool WrapState => Records is null;
+
+        /// <summary>
+        /// The badge tone, which never reads as a score.
+        /// </summary>
+        /// <remarks>
+        /// TR-016 — the mockup badges an imported stream green. A stream holding nothing stays neutral
+        /// on purpose: the card's own footer says a zero here is <i>absence, not a bad score</i>, so it
+        /// is never reddened or ambered.
+        /// </remarks>
+        public BadgeVariant StateVariant => Records is > 0 ? BadgeVariant.Success : BadgeVariant.Outline;
     }
 
     /// <summary>One row of the per-miss detail table.</summary>
@@ -1852,19 +1886,39 @@
         string Tokens,
         string Attribution)
     {
-        /// <summary>The badge style for the severity — always beside its own word, never colour alone.</summary>
+        /// <summary>
+        /// The badge style for the severity — always beside its own word, never colour alone.
+        /// </summary>
+        /// <remarks>TR-016 — red / amber / neutral, as docs/mockups/misses-playbook.html draws them.</remarks>
         public BadgeVariant SeverityVariant => Severity switch
         {
             "blocker" => BadgeVariant.Destructive,
-            "major" => BadgeVariant.Default,
+            "major" => BadgeVariant.Warning,
             _ => BadgeVariant.Secondary
         };
 
-        /// <summary>The badge style for the lifecycle word — always beside the word itself.</summary>
+        /// <summary>
+        /// The badge style for the lifecycle word — always beside the word itself.
+        /// </summary>
+        /// <remarks>
+        /// TR-016 — green for a closed miss, neutral for a declined one, amber for anything still
+        /// live (<c>opened</c>, <c>reopened</c>), which is the three-way split the mockup draws.
+        /// </remarks>
         public BadgeVariant StateVariant => State switch
         {
-            ClosedState => BadgeVariant.Default,
+            ClosedState => BadgeVariant.Success,
             DeclinedState => BadgeVariant.Secondary,
+            _ => BadgeVariant.Warning
+        };
+
+        /// <summary>
+        /// The badge style for <c>origin_confidence</c>.
+        /// </summary>
+        /// <remarks>TR-016 — <c>linked</c> green, <c>inferred</c> amber, anything else plain.</remarks>
+        public BadgeVariant ConfidenceVariant => Confidence switch
+        {
+            MissAttributionTaint.Linked => BadgeVariant.Success,
+            "inferred" => BadgeVariant.Warning,
             _ => BadgeVariant.Outline
         };
     }

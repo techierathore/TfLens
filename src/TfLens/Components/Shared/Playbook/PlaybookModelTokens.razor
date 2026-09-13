@@ -5,11 +5,14 @@
     record names the `providerID/modelID` it ran on. These are Playbook events only — no TechieFlow run
     record is in scope — so this table can never pool the two axes (SCHEMA.md §11).
 
-    TR-011 — TrBlazeUI's BarChart renders an empty div in this app (the ApexCharts runtime the package
-    wraps is never loaded), so the totals are drawn as a CSS bar row instead, and every charted value is
-    printed as text both on its own bar and in the table beside it.
+    `docs/mockups/harness-playbook.html` draws this card as a bar row with the value above each bar, so
+    that is what `ChartContainer` + `BarChart` render here. The chart is supplementary: every value it
+    draws is also a cell of the table above it, which docs/TfLens-UIDesign.md §Library gaps requires of
+    every chart in this app independently of what the charting API can do.
 *@
 @using System.Globalization
+@using ApexCharts
+@using TrBlazeUI.Components.Chart
 
 @if (Models.Count == 0)
 {
@@ -26,13 +29,10 @@ else
 {
     <div class="tflens-stack">
         <div class="overflow-x-auto">
-            @* TR-009 — ShowPagination="false" only hides the pager; the grid still truncates to
-               InitialPageSize, so it is set well above any model count a workspace can observe. *@
             <DataTable TData="ModelTokens"
                        Data="@Models"
                        ShowToolbar="false"
                        ShowPagination="false"
-                       InitialPageSize="128"
                        AriaLabel="Playbook tokens by observed model"
                        data-testid="pb-model-tokens">
                 <Columns>
@@ -76,23 +76,115 @@ else
             </DataTable>
         </div>
 
-        <div class="pb-bars" data-testid="pb-model-tokens-bars">
-            @foreach (var vModel in Models)
-            {
-                <div class="pb-bar">
-                    <span class="text-xs font-semibold tabular-nums">@Tokens(vModel.Total)</span>
-                    <span class="pb-bar-fill @AccentOf(vModel)" style="@BarStyle(vModel)"></span>
-                    <span class="pb-bar-label text-xs text-muted-foreground">@vModel.Model</span>
-                </div>
-            }
+        @* `Bare="true"`: this sits inside the caller's `Card`, and the container's own card chrome
+           would draw a second bordered panel inside it. *@
+        <div class="pb-chart" data-testid="pb-model-tokens-bars">
+            <ChartContainer Bare="true">
+                @* Nested series rather than the `Items`/`XValue`/`YValue` shorthand, for the same
+                   reason Harness.razor gives: `ShowDataLabels` is a per-series flag underneath, and
+                   the shorthand's own series does not carry it, so the value above each bar — which
+                   the mockup draws — never paints. Still the wrapper's documented form 2. *@
+                <BarChart TItem="ModelTokens"
+                          Items="@Models"
+                          Height="220px"
+                          ShowLegend="false"
+                          ShowDataLabels="true"
+                          Options="@objChartOptions"
+                          OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)">
+                    <ApexPointSeries TItem="ModelTokens"
+                                     Items="@Models"
+                                     Name="Total tokens"
+                                     SeriesType="SeriesType.Bar"
+                                     ShowDataLabels="true"
+                                     XValue="@(aRow => ShortModel(aRow.Model))"
+                                     YValue="@(aRow => (decimal?)aRow.Total)" />
+                </BarChart>
+            </ChartContainer>
         </div>
     </div>
 }
 
 @code {
+    /// <summary>
+    /// The JavaScript the bars' value labels are rendered with — the browser-side twin of
+    /// <see cref="Tokens"/>.
+    /// </summary>
+    /// <remarks>
+    /// ApexCharts renders its data labels in the browser, so this has to be expressed as JavaScript
+    /// rather than as C#. It abbreviates only above a million, where a grouped figure would be too wide
+    /// for one bar; below that it prints the same grouped number the table does, because a bar reading
+    /// <c>3k</c> over a table row reading <c>2,850</c> looks like two different measurements. The
+    /// Playbook axis totals per observed model, which is a smaller figure than the per-harness totals
+    /// on the TechieFlow axis, so most bars here fall under that threshold.
+    /// </remarks>
+    private const string TokenLabelFormatter = """
+        function (aValue) {
+            if (aValue === null || aValue === undefined) { return ''; }
+            var vMagnitude = Math.abs(aValue);
+            if (vMagnitude >= 1e9) { return (aValue / 1e9).toFixed(1) + 'B'; }
+            if (vMagnitude >= 1e6) { return (aValue / 1e6).toFixed(1) + 'M'; }
+            return aValue.toLocaleString('en-US');
+        }
+        """;
+
     /// <summary>The per-model token totals the Playbook builder observed, largest first.</summary>
     [Parameter]
     public IReadOnlyList<ModelTokens> Models { get; set; } = [];
+
+    /// <summary>
+    /// What this chart sets that <c>BarChart</c>'s own defaults do not.
+    /// </summary>
+    /// <remarks>
+    /// <c>docs/mockups/harness-playbook.html</c> draws no y axis and no gridlines and prints the value
+    /// above each bar. Everything left null — the toolbar, the transparent background, the x-axis label
+    /// styling, the <c>--chart-1 … --chart-5</c> colour list — the wrapper still fills in.
+    /// <c>Distributed</c> gives each model its own colour out of that list, which is how the mockup
+    /// paints the row; the rest of the <c>Bar</c> block restates the wrapper's own defaults, because
+    /// setting <c>PlotOptions</c> at all means the wrapper no longer supplies them.
+    /// </remarks>
+    private readonly ApexChartOptions<ModelTokens> objChartOptions = new()
+    {
+        Grid = new Grid
+        {
+            Show = false,
+            Xaxis = new GridXAxis { Lines = new Lines { Show = false } },
+            Yaxis = new GridYAxis { Lines = new Lines { Show = false } }
+        },
+        Yaxis = [new YAxis { Show = false }],
+        DataLabels = new DataLabels
+        {
+            Enabled = true,
+            OffsetY = -20,
+            Style = new DataLabelsStyle
+            {
+                FontSize = "12px",
+                FontWeight = "600",
+                Colors = ["var(--foreground)"]
+            }
+        },
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar
+            {
+                Horizontal = false,
+                BorderRadius = 4,
+                ColumnWidth = "70%",
+                Distributed = true,
+                DataLabels = new PlotOptionsBarDataLabels { Position = BarDataLabelPosition.Top }
+            }
+        }
+    };
+
+    /// <summary>
+    /// The category a bar is labelled with — the model id without its provider prefix.
+    /// </summary>
+    /// <remarks>
+    /// A wire model reads <c>providerID/modelID</c>, which is too long to sit under a bar. The whole
+    /// value is never lost: the table above prints it in full, in its own <c>model</c> column.
+    /// </remarks>
+    /// <param name="aModel">The model as the events carried it.</param>
+    /// <returns>The segment after the last slash, or the whole value when it carries none.</returns>
+    private static string ShortModel(string aModel) => aModel.Split('/')[^1];
 
     /// <summary>
     /// Renders a token count in full, so a bar always has an exact text twin.
@@ -100,27 +192,4 @@ else
     /// <param name="aTokens">The token count.</param>
     /// <returns>The grouped number.</returns>
     private static string Tokens(long aTokens) => aTokens.ToString("N0", CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// The accent class one bar takes, cycling the five chart accents.
-    /// </summary>
-    /// <param name="aModel">The model's totals.</param>
-    /// <returns>The bar's accent class.</returns>
-    private string AccentOf(ModelTokens aModel)
-    {
-        var vIndex = Models.ToList().FindIndex(aOther => aOther.Model == aModel.Model);
-        return $"pb-bar-{(vIndex < 0 ? 0 : vIndex % 5) + 1}";
-    }
-
-    /// <summary>
-    /// The height of one bar, as a share of the largest total.
-    /// </summary>
-    /// <param name="aModel">The model's totals.</param>
-    /// <returns>A CSS declaration setting the bar's height.</returns>
-    private string BarStyle(ModelTokens aModel)
-    {
-        var vMax = Models.Count == 0 ? 0L : Models.Max(aOther => aOther.Total);
-        var vShare = vMax <= 0L ? 0d : 100.0 * aModel.Total / vMax;
-        return $"height:{Math.Max(vShare, 2d).ToString("F1", CultureInfo.InvariantCulture)}%";
-    }
 }

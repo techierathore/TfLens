@@ -291,9 +291,9 @@ CREATE TABLE IF NOT EXISTS "Miss" (
 );
 
 -- BRD-114: a miss is opened once, so its id is its identity within a repository. The parser keeps the
--- earliest ts; this index makes the store agree, and a re-parse of the same archived file is a no-op.
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"
-    ON "Miss" ("UserId", "Repo", "MissId");
+-- earliest ts; "UcMissUserRepoMissId" makes the store agree, and a re-parse of the same archived file is
+-- a no-op. It is declared further down, after "SourceLineHash" exists, because it is PARTIAL: it governs
+-- the TechieFlow edition only (REQ-FN-103, ADR-024), and a fresh database has no such column yet here.
 
 CREATE INDEX IF NOT EXISTS "IxMissUserRepo" ON "Miss" ("UserId", "Repo");
 CREATE INDEX IF NOT EXISTS "IxMissOriginModel" ON "Miss" ("UserId", "OriginModel");
@@ -334,8 +334,8 @@ CREATE TABLE IF NOT EXISTS "MissFix" (
 
 -- BRD-114: one repair run produces one fix record per miss it repaired. COALESCE mirrors the parser's
 -- key exactly, so the deliberate no-fix_run_id record (§5.5.3) keys on the empty string in both places.
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId"
-    ON "MissFix" ("UserId", "Repo", "MissId", COALESCE("FixRunId", ''));
+-- "UcMissFixUserRepoMissIdFixRunId" is declared further down, PARTIAL like the "Miss" key and for the
+-- same reason: it governs the TechieFlow edition only (REQ-FN-103).
 
 CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo" ON "MissFix" ("UserId", "Repo");
 CREATE INDEX IF NOT EXISTS "IxMissFixMissId" ON "MissFix" ("UserId", "MissId");
@@ -364,8 +364,8 @@ CREATE TABLE IF NOT EXISTS "MissAmend" (
 
 -- BRD-114: ts is part of the key rather than a tie-break — two amendments of one field at different
 -- instants are two distinct facts, and only a byte-identical re-parse collapses.
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs"
-    ON "MissAmend" ("UserId", "Repo", "MissId", "Field", "Ts");
+-- "UcMissAmendUserRepoMissIdFieldTs" is declared further down, PARTIAL like the "Miss" key and for the
+-- same reason: it governs the TechieFlow edition only (REQ-FN-103).
 
 CREATE INDEX IF NOT EXISTS "IxMissAmendUserRepo" ON "MissAmend" ("UserId", "Repo");
 CREATE INDEX IF NOT EXISTS "IxMissAmendMissId" ON "MissAmend" ("UserId", "MissId");
@@ -518,6 +518,55 @@ ALTER TABLE "MissAmend" ADD COLUMN IF NOT EXISTS "SourceLineHash" text NULL;
 -- "UcMissUserRepoMissId" to govern the TechieFlow edition: two editions, two natural keys, one table.
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoSourceLine"
     ON "Miss" ("UserId", "Repo", "SourceLineHash")
+    WHERE "SourceLineHash" IS NOT NULL;
+
+-- REQ-FN-103 (BRD-164, ADR-024), 2026-09-11 — the OTHER half of "two editions, two natural keys": the
+-- TechieFlow keys must be partial too, WHERE "SourceLineHash" IS NULL. Declared over every row they made
+-- a Playbook line that repeats a miss_id with different content collide with the line already stored and
+-- vanish under ON CONFLICT DO NOTHING — a later export presenting six distinct lines stored one of its two
+-- new ones. The Playbook re-emits its whole file on every run, so a corrected line and its predecessor are
+-- two source lines and two facts; only the source-line hash may decide that two Playbook rows are one.
+-- "MissFix" and "MissAmend" take the same pair, so every Playbook row in the three tables has exactly one
+-- way to be unique (its hash) and every TechieFlow row exactly one (its natural key).
+--
+-- An established database still holds the three keys in their old, whole-table form, and CREATE ... IF
+-- NOT EXISTS would leave them so. They are dropped once, here, only when pg_indexes shows no predicate:
+-- the check takes no lock, so a database already migrated pays nothing at startup or at `rebuild` (the
+-- same reason the SourceSha constraint block below looks before it alters).
+DO $$
+DECLARE
+    vName text;
+BEGIN
+    FOREACH vName IN ARRAY ARRAY['UcMissUserRepoMissId', 'UcMissFixUserRepoMissIdFixRunId', 'UcMissAmendUserRepoMissIdFieldTs']
+    LOOP
+        IF EXISTS (
+            SELECT 1 FROM pg_indexes
+            WHERE schemaname = current_schema() AND indexname = vName AND indexdef NOT LIKE '%WHERE%')
+        THEN
+            EXECUTE format('DROP INDEX %I', vName);
+        END IF;
+    END LOOP;
+END
+$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"
+    ON "Miss" ("UserId", "Repo", "MissId")
+    WHERE "SourceLineHash" IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId"
+    ON "MissFix" ("UserId", "Repo", "MissId", COALESCE("FixRunId", ''))
+    WHERE "SourceLineHash" IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoSourceLine"
+    ON "MissFix" ("UserId", "Repo", "SourceLineHash")
+    WHERE "SourceLineHash" IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs"
+    ON "MissAmend" ("UserId", "Repo", "MissId", "Field", "Ts")
+    WHERE "SourceLineHash" IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoSourceLine"
+    ON "MissAmend" ("UserId", "Repo", "SourceLineHash")
     WHERE "SourceLineHash" IS NOT NULL;
 
 -- Schema-2 phase data occupies THREE tables, not one wide row (ADR-025, REQ-FN-095, BRD-154). The
@@ -711,3 +760,51 @@ BEGIN
     END LOOP;
 END
 $$;
+
+-- "Run" gains the two SCHEMA fields added on 2026-09-09 and 2026-09-10, plus the record kind.
+--
+-- "BillingMode" (§2.5b) is what stops a reader mistaking a meter, a flat fee and an invoice for one
+-- another: only `metered` records carry money that was billed, a plan's dollars are ALLOWANCE consumed
+-- against a per-model limit, and a subscription's marginal cost is a true zero. A record written before
+-- 2026-09-10 carries NULL, which reads as `not recorded` and never as one of the six values.
+--
+-- "Kind" and "VoidReason" (§2.7) carry `run-void`, the correction record. The stream is append-only, so
+-- a run recorded with a wrong figure is taken out of the figures by a SECOND record naming it by
+-- `cmd` + `started` and saying why. Without a stored kind a void is counted as a run AND the run it
+-- voids stays in every figure — TechieFlow read 81 live runs against the reference's 75 for exactly
+-- that reason (MISS-TfLens-20260910-01). Nothing is ever deleted: both records stay, in order.
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "BillingMode" text NULL;
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "Kind"        text NULL;
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "VoidReason"  text NULL;
+
+-- "SourceLineNo" and the run identity it repairs.
+--
+-- A run was identified by ("Ts", "App", "Cmd"), which is not unique. TechieFlow's own stream holds
+-- three pairs of byte-identical `log-miss` runs in the same second, and two `run-void` records written
+-- in the same second naming DIFFERENT runs — the latter collapsed into one, which silently un-voided a
+-- run and put a record the producer had corrected back into every figure. The reference counts all of
+-- them, because it reads lines and does not dedupe at all.
+--
+-- The streams are append-only (SCHEMA.md §3), so line n is always the same record. Adding the ordinal
+-- keeps BRD-28's guarantee exactly — re-parsing the same file maps every line back onto the row it
+-- already wrote, so it stays a no-op — while letting two genuinely separate records both survive.
+-- Legacy rows carry NULL and COALESCE to -1, so they keep the identity they were stored under.
+ALTER TABLE "Run" ADD COLUMN IF NOT EXISTS "SourceLineNo" integer NULL;
+
+DROP INDEX IF EXISTS "UcRunIdentity";
+
+CREATE UNIQUE INDEX IF NOT EXISTS "UcRunIdentity"
+    ON "Run" ("UserId", "Repo", "Ts", COALESCE("App", ''), COALESCE("Cmd", ''),
+              COALESCE("Kind", ''), COALESCE("Started", ''), COALESCE("SourceLineNo", -1));
+
+-- "MissFix" gains §2.5b's billing mode (2026-09-10). A repair paid for by a flat monthly fee reports a
+-- cost_usd of zero, which is true of its marginal cost and false of the money; counting it as measured
+-- spend drags dollars-per-miss toward zero and makes repairs look almost free. NULL means the record
+-- predates the field and is admitted on its old terms, counted separately.
+ALTER TABLE "MissFix" ADD COLUMN IF NOT EXISTS "BillingMode" text NULL;
+
+-- "MissFix" gains §2.5b's billing mode (2026-09-10). A repair paid for by a flat monthly fee reports a
+-- cost_usd of zero, which is true of its marginal cost and false of the money; counting it as measured
+-- spend drags dollars-per-miss toward zero and makes repairs look almost free. NULL means the record
+-- predates the field and is admitted on its old terms, counted separately.
+ALTER TABLE "MissFix" ADD COLUMN IF NOT EXISTS "BillingMode" text NULL;

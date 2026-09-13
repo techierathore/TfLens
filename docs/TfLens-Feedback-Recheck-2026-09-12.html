@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — decisions I need from you</title>
+<title>TfLens — re-checking the five framework fixes of 2026-09-12</title>
 <script>
 /* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
    pick by time of day — light 07:00–19:00 local, softened dark at night. */
@@ -105,106 +105,81 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
 <div class="layout no-toc">
   <main>
-    <h1>TfLens — decisions I need from you</h1>
-    <div class="subtitle">Rendered 2026-09-09 &middot; source <code>TfLens-Decision-Request.md</code></div>
+    <h1>TfLens — re-checking the five framework fixes of 2026-09-12</h1>
+    <div class="subtitle">Rendered 2026-09-12 &middot; source <code>TfLens-Feedback-Recheck-2026-09-12.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#what-happened">What happened</a></li>
-        <li><a href="#what-i-need-you-to-decide">What I need you to decide</a></li>
-        <li class="h3"><a href="#fixing-the-five-problems-in-the-build-tooling">1. Fixing the five problems in the build tooling</a></li>
-        <li class="h3"><a href="#repairing-the-project-s-documents">2. Repairing the project&#x27;s documents</a></li>
-        <li><a href="#what-i-do-when-you-answer">What I do when you answer</a></li>
-        <li><a href="#copy-this-back-to-me">Copy this back to me</a></li>
+        <li><a href="#what-each-one-showed">What each one showed</a></li>
+        <li class="h3"><a href="#tf-037-a-note-line-no-longer-hides-the-test-result">TF-037 — a note line no longer hides the test result</a></li>
+        <li class="h3"><a href="#tf-038-a-border-that-is-not-drawn-no-longer-counts-as-one">TF-038 — a border that is not drawn no longer counts as one</a></li>
+        <li class="h3"><a href="#tf-039-a-table-that-scrolls-inside-its-own-card-is-no-longer-read-as-cut-off">TF-039 — a table that scrolls inside its own card is no longer read as cut off</a></li>
+        <li class="h3"><a href="#tf-040-a-command-that-chains-another-can-now-record-its-own-first-segment">TF-040 — a command that chains another can now record its own first segment</a></li>
+        <li class="h3"><a href="#tf-041-the-checker-no-longer-reports-a-document-that-is-on-disk-as-missing">TF-041 — the checker no longer reports a document that is on disk as missing</a></li>
+        <li><a href="#the-one-thing-found-that-is-ours-not-the-framework-s">The one thing found that is ours, not the framework&#x27;s</a></li>
       </ol>
     </div>
-<table>
-<thead><tr><th></th><th></th></tr></thead>
-<tbody>
-<tr><td>App</td><td>TfLens</td></tr>
-<tr><td>Written</td><td>2026-09-09</td></tr>
-<tr><td>Waiting on</td><td>2 decisions. Nothing has been changed yet.</td></tr>
-</tbody>
-</table>
-<h2 id="what-happened">What happened<a class="anchor-link" href="#what-happened">#</a></h2>
-<p>While building the last phase of TfLens I ran into two piles of work that are not
-mine to do from here, and both need you to start them in another window.</p>
-<p>The first is the build tooling itself. Five separate problems turned up during the
-pass, and each one was checked against the tool's own code before it was written
-down. Two of them change what gets reported about your project: one hides work that
-has never been started, so a pass can announce a phase finished while requirements
-sit untouched, and the other counts a test that was deliberately skipped as a test
-that failed, so "there is no data to show this yet" is recorded as a defect. The
-other three are smaller but the same shape. All five live in files the framework
-owns, so nothing in this repository can repair them.</p>
-<p>The second is the project's own written documents. The checker refuses 236 things
-across nineteen files — sections that no longer match the template, screens with no
-field tables, mockups whose buttons do nothing, and one database sketch in the
-architecture document that contradicts every table around it. Most dates from the
-day the documents were split into three phases. The command that owns those
-documents is the only one allowed to rewrite them.</p>
-<p>Neither pile blocks the application. It builds, runs, and 69 of its 73 requirements
-are verified.</p>
-<h2 id="what-i-need-you-to-decide">What I need you to decide<a class="anchor-link" href="#what-i-need-you-to-decide">#</a></h2>
-<h3 id="fixing-the-five-problems-in-the-build-tooling">1. Fixing the five problems in the build tooling<a class="anchor-link" href="#fixing-the-five-problems-in-the-build-tooling">#</a></h3>
-<p>The framework has a new self-check that can repair its own files. The question is
-how much of it to hand over now. Everything needed is already written down in the
-feedback file, one entry each, with the exact lines of code and a suggested fix.</p>
-<p>Two of the five change what your reports say. The one that hides not-started work
-cost this pass twelve requirements — they were built only because I read the
-checklist directly instead of trusting the printed list. The one that treats a
-skipped test as a failure is why two rows in the checklist say FAIL today when
-nothing is wrong with them.</p>
-<table>
-<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
-<tbody>
-<tr><td><strong>A — fix all five now</strong></td><td>The tooling stops hiding unstarted work, stops calling absent data a defect, and stops reporting a correctly-built screen as broken.</td><td>One session in the framework window.</td></tr>
-<tr><td><strong>B — fix only the two that change reports</strong></td><td>The two that matter are gone; the three cosmetic ones stay and keep producing noise every run.</td><td>Less work now, a second pass later.</td></tr>
-<tr><td><strong>C — leave all five</strong></td><td>Every future pass repeats them. The hidden-work one is the dangerous one: it will quietly skip new requirements again.</td><td>Nothing now, and a real risk of shipping a phase that was never finished.</td></tr>
-</tbody>
-</table>
-<p><strong>My recommendation: A</strong> — they are already diagnosed and written up, so the
-expensive part is done; fixing three more costs very little on top.</p>
-<h3 id="repairing-the-project-s-documents">2. Repairing the project's documents<a class="anchor-link" href="#repairing-the-project-s-documents">#</a></h3>
-<p>The 236 findings are not evenly serious. One is a genuine contradiction: the
-architecture document sketches a new database table with a different key and
-different column types from every other table beside it, and the code follows the
-surrounding house style rather than the sketch. That one should be settled before
-anyone reads the document and believes it. The rest are shape and template drift.</p>
-<table>
-<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
-<tbody>
-<tr><td><strong>A — repair everything in one pass</strong></td><td>All nineteen documents match their templates again.</td><td>The longest option, and most of it is cosmetic.</td></tr>
-<tr><td><strong>B — settle the contradiction first, then the rest later</strong></td><td>The architecture stops disagreeing with the code immediately; the cosmetic backlog waits.</td><td>Two sessions instead of one.</td></tr>
-<tr><td><strong>C — leave it</strong></td><td>The documents keep drifting and the checker's output stays too noisy to read.</td><td>Nothing now, more later.</td></tr>
-</tbody>
-</table>
-<p><strong>My recommendation: B</strong> — the contradiction is the only part that can mislead
-someone; the rest can wait for a quiet moment.</p>
-<h2 id="what-i-do-when-you-answer">What I do when you answer<a class="anchor-link" href="#what-i-do-when-you-answer">#</a></h2>
-<p>If you choose to fix the tooling, I do nothing here — that work happens in the
-framework window, and the feedback file is its input. When it is done, tell me and I
-will re-run the verifier so the two rows that wrongly say FAIL are graded again.</p>
-<p>If you choose to repair the documents, I run the document command against this
-project, starting with the architecture contradiction, then re-run the checker and
-report what is left. The application is not touched and no requirement changes.</p>
-<p>If you choose to do neither, I leave everything exactly as it is. The four
-requirements that are not verified stay owner-gated for the reason already recorded,
-and nothing else in the project is waiting on this.</p>
-<h2 id="copy-this-back-to-me">Copy this back to me<a class="anchor-link" href="#copy-this-back-to-me">#</a></h2>
-<pre><code>Fix the TechieFlow tooling problems TfLens found. Run tf-selfcheck and work
-from docs/TfLens-TechieFlow-Feedback.md in the TfLens repo: entries TF-018,
-TF-019, TF-020, TF-021 and TF-022. Each names the file, the line and a
-suggested fix, and says what is NOT affected. Do TF-019 and TF-022 first —
-they change what every project's reports say. Verify each fix against the
-behaviour the entry describes, not just the code.</code></pre>
-<pre><code>TfLens: decision 2 — go with option B. Run *amend-docs and settle the
-architecture's MissReview table sketch first: it gives the table a bigserial
-primary key and types UserId as text and Ts as timestamptz, while all four
-sibling tables use no surrogate key, an integer UserId and a text Ts. The
-code follows the siblings. Fix the document, then leave the rest of the
-template drift for a later pass.</code></pre>
+<p><strong>The short version.</strong> All five entries the framework fixed on 2026-09-12 — TF-037, TF-038, TF-039,
+TF-040 and TF-041 — were re-checked here against their own "Verify from here" step. All five behave as
+the framework said they would, and all five are now closed. Nothing is blocked, and nothing in TfLens
+had to change for them.</p>
+<p>Eleven older entries are still waiting to be re-checked here: TF-018, TF-020, TF-021, TF-025 to
+TF-028, TF-030, and TF-033 to TF-035. They are fixed upstream; they simply have not had their check
+run here yet.</p>
+<hr>
+<h2 id="what-each-one-showed">What each one showed<a class="anchor-link" href="#what-each-one-showed">#</a></h2>
+<h3 id="tf-037-a-note-line-no-longer-hides-the-test-result">TF-037 — a note line no longer hides the test result<a class="anchor-link" href="#tf-037-a-note-line-no-longer-hides-the-test-result">#</a></h3>
+<p>Two halves, both proved.</p>
+<p>The note only appears when a build changes side on the same machine, so the condition was forced: the
+build-side marker under <code>src/TfLens/obj</code> was set to <code>windows</code> while the scoped stylesheets were still
+on disk, then a WSL build was run. The note came out <strong>first</strong> and the verdict <strong>second</strong> — so the old
+"keep the first line" rule would still have taken the note. The new rule takes the line that starts
+<code>PASS</code>, <code>FAIL</code> or <code>NOT-RUN</code>, and it did: running the test gate over the same condition printed
+<code>unit tests: PASS  test on wsl via ~/.dotnet/dotnet (rung 2)</code>, and the results file records the unit
+tests as having run, with 19 rows passing and none failing. Before the fix that whole set read as
+never run.</p>
+<p>The second half: <code>tf-build.sh probe</code> printed two clean lines — the platform and the rung order — and no
+error line at all.</p>
+<h3 id="tf-038-a-border-that-is-not-drawn-no-longer-counts-as-one">TF-038 — a border that is not drawn no longer counts as one<a class="anchor-link" href="#tf-038-a-border-that-is-not-drawn-no-longer-counts-as-one">#</a></h3>
+<p>The mockup comparison was run over <code>/effort</code>, <code>/misses</code> and <code>/prices</code> at both widths.</p>
+<p>On <code>/prices</code> the findings fell from <strong>15 to 6</strong>. Everything TF-038 promised would go, went: all four
+"Remove" buttons, the "Add provider" button and the "Save rate" button no longer report a badge or a
+border difference, and the coloured icon on the standing note no longer reports a colour difference.
+Across all three screens there is now <strong>no</strong> "semantic colour differs" finding at all.</p>
+<p>One badge-and-border pair survived, on the model filter box on <code>/prices</code>. That one is <strong>real</strong>, not the
+old false positive: reading the drawn styles directly, the mockup's filter box has a 1px solid border in
+near-black and the app's has none. So the tool is still reading a border that is actually drawn, which
+is exactly what the fix was meant to preserve. That difference is an app-side gap, written up below.</p>
+<h3 id="tf-039-a-table-that-scrolls-inside-its-own-card-is-no-longer-read-as-cut-off">TF-039 — a table that scrolls inside its own card is no longer read as cut off<a class="anchor-link" href="#tf-039-a-table-that-scrolls-inside-its-own-card-is-no-longer-read-as-cut-off">#</a></h3>
+<p>Same run, at 390px. There is now <strong>no</strong> "content is cut off horizontally" finding on <code>/effort</code> at that
+width. Before the fix, three of them were reported there — on <code>effort-phases</code>, on <code>effort-routing</code>, and
+on one unnamed block of the page.</p>
+<p>One such finding does remain, on the sidebar at 1280px. It is not new and it is not this fix: it is
+present in both of the pre-fix runs kept from 2026-09-11, so it predates the change and is a separate
+matter.</p>
+<h3 id="tf-040-a-command-that-chains-another-can-now-record-its-own-first-segment">TF-040 — a command that chains another can now record its own first segment<a class="anchor-link" href="#tf-040-a-command-that-chains-another-can-now-record-its-own-first-segment">#</a></h3>
+<p>This was reproduced on a throwaway copy of the telemetry stream, so the real records were never
+touched.</p>
+<p>The chained verify's record was written first, covering 18:13 to 21:13. The outer build's own first
+segment, 16:53 to 18:13, was then offered <strong>after</strong> it — the exact case that used to be refused. It was
+accepted, and the stream went to two records.</p>
+<p>The guard still works: a run that genuinely overlaps, 17:30 to 19:00, was refused, nothing was written,
+and the refusal named the record it collided with by command and by window.</p>
+<h3 id="tf-041-the-checker-no-longer-reports-a-document-that-is-on-disk-as-missing">TF-041 — the checker no longer reports a document that is on disk as missing<a class="anchor-link" href="#tf-041-the-checker-no-longer-reports-a-document-that-is-on-disk-as-missing">#</a></h3>
+<p>The document check was run over the three checklists <strong>without</strong> naming the Phases document, which is
+the case that used to produce a false failure. The words "Phases document" do not appear anywhere in
+the output. The run finished with no failures, 179 warnings across the three documents, and the 50
+findings that pre-date this session correctly carried as old rather than blocking. The cross-phase
+rules still ran.</p>
+<hr>
+<h2 id="the-one-thing-found-that-is-ours-not-the-framework-s">The one thing found that is ours, not the framework's<a class="anchor-link" href="#the-one-thing-found-that-is-ours-not-the-framework-s">#</a></h2>
+<p><strong>The model filter box on the Prices screen has no border, and its mockup does.</strong> The approved mockup
+draws a 1px solid border in near-black around the filter input; the running app draws none. This is a
+small visual difference on one control, it is not new today, and nothing is broken by it — the filter
+works. It was not fixed in this run because this run was a re-check, not a fix: code changes come from
+a build or a fix command, not from here.</p>
+<p>It is worth folding into the next fix pass over the Prices screen.</p>
   </main>
 </div>
 

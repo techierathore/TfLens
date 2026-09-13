@@ -59,6 +59,7 @@ internal sealed record SnapshotInputs(
     IReadOnlyList<SnapshotRepoOrigin> RepoOrigins,
     MissSegmentFigures MissParity,
     MissHarnessCost? MeasuredRework,
+    MissReviewBlock Reviews,
     IReadOnlyList<KeyValuePair<string, string>> DatasetShas,
     ParityRecord? Parity,
     string ParityStatus,

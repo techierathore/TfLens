@@ -10,8 +10,9 @@
         system belongs to OpenCode, and there is no cross-harness dollar total anywhere in this markup;
       * any figure below the minimum n renders as `insufficient data (n=…)` through FigureText.
 
-    The bar chart is supplementary: TrBlazeUI's chart API carries no axis or label control, so every
-    value it draws is also printed as text in the table beside it.
+    The bar chart is supplementary: every value it draws is also printed as text on the page, which
+    docs/TfLens-UIDesign.md §Library gaps requires of every chart in this app independently of what
+    the charting API can do.
 *@
 @page "/harness"
 @using System.Globalization
@@ -70,7 +71,6 @@
     else if (objLoadError is not null)
     {
         <Alert Variant="AlertVariant.Danger" data-testid="harness-error">
-            @* TR-008: 2.0.0 ships only the post-rename Lucide names — `alert-triangle` renders nothing. *@
             <LucideIcon Name="triangle-alert" Size="18" />
             <AlertTitle>Couldn't build the comparison</AlertTitle>
             <AlertDescription>@objLoadError</AlertDescription>
@@ -79,7 +79,7 @@
     else
     {
         @* REQ-UI-023 — three columns, always, in the detected order. *@
-        <div class="tflens-harness-cols" data-testid="harness-columns">
+        <div class="grid min-w-0 items-stretch gap-4 md:grid-cols-3" data-testid="harness-columns">
             @foreach (var vColumn in objComparison.Columns)
             {
                 <Card Class="h-full" data-testid="@($"harness-col-{vColumn.Harness}")">
@@ -96,13 +96,14 @@
                     </CardHeader>
                     <CardContent Class="pt-0">
                         <div class="tflens-kv overflow-x-auto">
-                            @* TR-009: ShowPagination="false" hides the pager but still truncates the data to
-                               InitialPageSize (5), so the page size has to cover every row or rows vanish. *@
+                            @* The mockup's key/value table: the left cell IS the label, so a header row
+                               would only repeat it — `ShowHeader="false"` renders no `thead` at all while
+                               the columns keep registering their metadata. *@
                             <DataTable TData="ColumnRow"
                                        Data="@RowsFor(vColumn)"
                                        ShowToolbar="false"
                                        ShowPagination="false"
-                                       InitialPageSize="50"
+                                       ShowHeader="false"
                                        AriaLabel="@($"{vColumn.Harness} metrics")"
                                        data-testid="@($"harness-table-{vColumn.Harness}")">
                                 <Columns>
@@ -112,9 +113,13 @@
                                             <span class="text-muted-foreground">@vRow.Label</span>
                                         </CellTemplate>
                                     </DataTableColumn>
+                                    @* REQ-UI-024 — the figure column. `Align` is the parameter a figure
+                                       column takes: it reaches the header cell, the header label's own
+                                       flex box and every body cell together, where a `text-right` in
+                                       `CellClass` reached only the cells. *@
                                     <DataTableColumn TData="ColumnRow" TValue="string"
                                                      Property="@(aRow => aRow.Text)" Header="Value"
-                                                     CellClass="text-right">
+                                                     Align="DataTableColumnAlign.End">
                                         <CellTemplate Context="vRow">
                                             @if (vRow.Value is { } vFigure)
                                             {
@@ -189,7 +194,7 @@
         @* REQ-UI-026 — undetected records are a footnote, never a column; hidden only at n = 0. *@
         @if (objComparison.NotDetectedRecords > 0)
         {
-            <div class="tflens-footnote" data-testid="harness-null-footnote">
+            <div class="flex items-center gap-2 text-muted-foreground" data-testid="harness-null-footnote">
                 <LucideIcon Name="info" Size="16" />
                 <span class="text-sm text-muted-foreground">
                     @objComparison.NotDetectedRecords.ToString("N0", CultureInfo.InvariantCulture)
@@ -214,39 +219,47 @@
                            unit, and these bars carry a unit each (`3.2B`, `814k`), so a global "millions"
                            would be a false statement about two of the three. It says what is true of all
                            three instead, which is also BRD-53's standing rule for this page. *@
-                        <Badge Variant="BadgeVariant.Outline" Class="tflens-unit-badge">tokens, not dollars</Badge>
+                        @* `shrink-0` only: a `Badge` label is held on one line by the component itself
+                           now, so the local `white-space: nowrap` that stopped "tokens, not dollars"
+                           breaking over two lines as a flex item is gone. *@
+                        <Badge Variant="BadgeVariant.Outline" Class="shrink-0">tokens, not dollars</Badge>
                     </div>
                 </CardHeader>
                 <CardContent Class="pt-0">
                     @if (objTokenRows.Any(aRow => aRow.Tokens > 0))
                     {
-                        @* TR-005: the chart types carry no XValue/YValue and draw nothing from `Items` alone,
-                           so the series is declared with the component the wrapper wraps.
+                        @* REQ-UI-023 — `docs/mockups/harness.html` annotates this card
+                           `ChartContainer → BarChart`, and that is what it is. `Options` reaches
+                           `ApexChartOptions` without giving the wrapper up, and `Bare="true"` drops the
+                           container's own card chrome, which would otherwise draw a second bordered
+                           panel inside the `Card` that already holds the bars.
 
-                           TR-027 (raised 2026-09-01, REQ-UI-023): `BarChart` exposes ShowLegend / ShowTooltip /
-                           ShowDataLabels and nothing else — no axis switch, no grid switch, and no way to reach
-                           `ApexChartOptions`. It therefore CANNOT be made to match this screen's approved design,
-                           which draws no y axis, no gridlines, and one value label above each bar. Left as it
-                           shipped, the axis printed raw counts (`3000000000`) with no unit scaling and no labels,
-                           and claude-code at 2.86B flattened the other two bars to nothing — the owner could not
-                           read two of the three figures the card exists to compare. `ApexChart` is the component
-                           `BarChart` wraps, so it is used directly here to reach `Options`; `ChartContainer` still
-                           provides the sizing wrapper the design names. *@
+                           The series is declared as a nested `ApexPointSeries` — the wrapper's
+                           documented second form — rather than through the `Items`/`XValue`/`YValue`
+                           shorthand, for one reason: `ShowDataLabels` is a PER-SERIES flag underneath,
+                           and the shorthand's own series does not carry it, so `ApexChart.SetDataLabels`
+                           writes `dataLabels.enabled = false` over both the chart-level
+                           `ShowDataLabels="true"` and `Options.DataLabels.Enabled` before the chart
+                           paints, and no bar gets a label. Measured on this page, 2026-09-12. The series
+                           still declares real `XValue`/`YValue`: no property order is inferred from
+                           anything, and `Options` still steers the chart. *@
                         <div class="tflens-chart" data-testid="tokens-chart">
-                            <ChartContainer>
-                                <ApexChart TItem="HarnessTokenTotal"
-                                           Options="@objChartOptions"
-                                           Height="260"
-                                           Width="@("100%")">
-                                    <ApexPointSeries TItem="HarnessTokenTotal"
-                                                     Items="@objChartRows"
+                            <ChartContainer Bare="true">
+                                <BarChart TItem="HarnessTokens"
+                                          Items="@objTokenRows"
+                                          Height="260px"
+                                          ShowLegend="false"
+                                          ShowDataLabels="true"
+                                          Options="@objChartOptions"
+                                          OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)">
+                                    <ApexPointSeries TItem="HarnessTokens"
+                                                     Items="@objTokenRows"
                                                      Name="Total tokens"
                                                      SeriesType="SeriesType.Bar"
                                                      ShowDataLabels="true"
                                                      XValue="@(aRow => aRow.Harness)"
-                                                     YValue="@(aRow => (decimal)aRow.Tokens)"
-                                                     PointColor="@(aRow => ChartColourFor(aRow.Harness))" />
-                                </ApexChart>
+                                                     YValue="@(aRow => (decimal?)aRow.Tokens)" />
+                                </BarChart>
                             </ChartContainer>
                         </div>
 
@@ -384,51 +397,67 @@
 
     private HarnessComparison objComparison = new([], 0, null, 0);
     private IReadOnlyList<HarnessTokens> objTokenRows = [];
-    private IReadOnlyList<HarnessTokenTotal> objChartRows = [];
 
     /// <summary>
-    /// The chart's options — no y axis, no gridlines, one abbreviated value label above each bar.
+    /// What this chart sets that <c>BarChart</c>'s own defaults do not — no y axis, no gridlines, one
+    /// abbreviated value label above each bar, and a colour per bar.
     /// </summary>
     /// <remarks>
-    /// REQ-UI-023, 2026-09-01. The shipped chart drew ApexCharts' defaults: a linear y axis printing raw
-    /// token counts (<c>3000000000</c>), horizontal gridlines, and no labels. On this data — claude-code
-    /// 2.86B against opencode's 814k — that made two of the three bars a sub-pixel line with no figure
-    /// anywhere near them, on the one card whose whole job is to compare the three. The approved design
-    /// answers exactly this: it drops the axis and puts the number on the bar, so a bar that is too short
-    /// to see still states its own value.
+    /// <para>
+    /// REQ-UI-023. ApexCharts' untouched defaults drew a linear y axis printing raw token counts
+    /// (<c>3000000000</c>) and horizontal gridlines, and put no label on a bar at all. On this data —
+    /// claude-code 2.86B against opencode's 814k — that made two of the three bars a sub-pixel line with
+    /// no figure anywhere near them, on the one card whose whole job is to compare the three. The
+    /// approved design (<c>docs/mockups/harness.html</c>) answers exactly this: no axis, no grid, and the
+    /// number above its own bar, so a bar too short to see still states its value.
+    /// </para>
+    /// <para>
+    /// Only the members that differ are set. Everything left null — the toolbar, the transparent
+    /// background, the legend, the tooltip, the x-axis label styling, the series colour list — the
+    /// wrapper still fills in, so this object is the delta against the design and not a second copy of
+    /// the component's configuration. <c>Distributed</c> is what turns the wrapper's own
+    /// <c>--chart-1 … --chart-5</c> list into a colour per bar rather than one colour per series, which
+    /// is how the mockup paints the three bars and how each bar matches its column's accent chip; the
+    /// rest of the <c>Bar</c> block restates <c>BarChart</c>'s own defaults, because setting
+    /// <c>PlotOptions</c> at all means the wrapper no longer supplies them.
+    /// </para>
+    /// <para>
+    /// The instance is filled in place by the wrapper, so it is an instance field of this page rather
+    /// than anything shared.
+    /// </para>
     /// </remarks>
-    private readonly ApexChartOptions<HarnessTokenTotal> objChartOptions = new()
+    private readonly ApexChartOptions<HarnessTokens> objChartOptions = new()
     {
-        Chart = new Chart
+        Grid = new Grid
         {
-            Toolbar = new Toolbar { Show = false },
-            Background = "transparent",
-            FontFamily = "inherit"
+            Show = false,
+            Xaxis = new GridXAxis { Lines = new Lines { Show = false } },
+            Yaxis = new GridYAxis { Lines = new Lines { Show = false } }
         },
-        Theme = new Theme { Mode = Mode.Dark },
-        Legend = new Legend { Show = false },
-        Tooltip = new ApexCharts.Tooltip { Enabled = true },
-        // The mockup draws neither, and both were actively harmful here: the gridlines carried the raw
-        // counts that made the card unreadable.
-        Grid = new Grid { Show = false, BorderColor = "transparent", Padding = new Padding { Left = 0, Right = 0 } },
         Yaxis = [new YAxis { Show = false }],
-        Xaxis = new XAxis
-        {
-            AxisBorder = new AxisBorder { Show = false },
-            AxisTicks = new AxisTicks { Show = false }
-        },
         DataLabels = new DataLabels
         {
             Enabled = true,
             // Above the bar, as the design draws it — ApexCharts centres a bar's label inside it by
             // default, where a 3px bar has nowhere to put one.
             OffsetY = -20,
-            Formatter = TokenLabelFormatter,
-            Style = new DataLabelsStyle { FontSize = "12px", FontWeight = "600", Colors = ["#a1a1aa"] }
+            Style = new DataLabelsStyle
+            {
+                FontSize = "12px",
+                FontWeight = "600",
+                Colors = ["var(--foreground)"]
+            }
         },
         PlotOptions = new PlotOptions
         {
-            Bar = new PlotOptionsBar { DataLabels = new PlotOptionsBarDataLabels { Position = BarDataLabelPosition.Top } }
+            Bar = new PlotOptionsBar
+            {
+                Horizontal = false,
+                BorderRadius = 4,
+                ColumnWidth = "70%",
+                Distributed = true,
+                DataLabels = new PlotOptionsBarDataLabels { Position = BarDataLabelPosition.Top }
+            }
         }
     };
     private string? objLoadError;
@@ -508,16 +537,12 @@
             objComparison = await objExtraMetrics
                 .CompareHarnessesAsync(objUserId.Value, objPreferences.Framework);
             objTokenRows = objComparison.Columns.Select(ToTokenRow).ToList();
-            objChartRows = objTokenRows
-                .Select(aRow => new HarnessTokenTotal(aRow.Harness, aRow.Tokens))
-                .ToList();
             objLoadError = null;
         }
         catch (Exception vEx)
         {
             objComparison = new HarnessComparison([], 0, null, 0);
             objTokenRows = [];
-            objChartRows = [];
             objLoadError = vEx.Message;
         }
         finally
@@ -853,18 +878,6 @@
         _ => "tflens-accent-3"
     };
 
-    /// <summary>
-    /// The bar colour for a harness, matching its column's accent chip.
-    /// </summary>
-    /// <param name="aHarness">The harness key from the engine.</param>
-    /// <returns>The chart token the bar is painted with.</returns>
-    private static string ChartColourFor(string aHarness) => aHarness switch
-    {
-        "claude-code" => ChartColor.Chart1,
-        OpenCode => ChartColor.Chart2,
-        _ => ChartColor.Chart3
-    };
-
     /// <summary>Re-queries when the workspace changes under the page — a sync, for instance.</summary>
     private void OnShellChanged() => InvokeAsync(async () =>
     {
@@ -908,20 +921,16 @@
         string? Exact = null,
         bool IsSmall = false);
 
-    /// <summary>One bar of the tokens-by-harness chart, and one row of the text table beside it.</summary>
-    /// <param name="Harness">The harness name.</param>
-    /// <param name="Tokens">Input + output + cache read + cache write.</param>
-    /// <param name="Display">The same total as text, or <c>—</c> when the harness emitted nothing.</param>
-    private sealed record HarnessTokens(string Harness, long Tokens, string Display);
-
     /// <summary>
-    /// The two-property projection the bar chart is given.
+    /// One bar of the tokens-by-harness chart, and one entry of the text list beside it.
     /// </summary>
     /// <remarks>
-    /// TR-005 — TrBlazeUI 2.0.0's chart types expose no <c>XValue</c>/<c>YValue</c> and infer the category
-    /// and the series from the item type's properties, so this type carries those two and nothing else.
+    /// The chart reads this type directly through <c>XValue</c>/<c>YValue</c>. There is no second
+    /// two-property projection: <c>ChartBase</c> names the category and the series with those two
+    /// accessors, so no property of this record has to be arranged for a chart to find it.
     /// </remarks>
     /// <param name="Harness">The category — the harness name on the x axis.</param>
     /// <param name="Tokens">The series — input + output + cache read + cache write.</param>
-    private sealed record HarnessTokenTotal(string Harness, double Tokens);
+    /// <param name="Display">The same total as text, or <c>—</c> when the harness emitted nothing.</param>
+    private sealed record HarnessTokens(string Harness, long Tokens, string Display);
 }

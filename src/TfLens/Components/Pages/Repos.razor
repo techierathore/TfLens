@@ -11,8 +11,11 @@
     that adding and removing could leave the whole page dimmed and dead, and nine reproduction
     attempts in headless Chromium could not make that happen — an overlay whose failure mode cannot
     be reproduced from the harness cannot be signed off from it either. Routes have no backdrop to
-    strand, no portal to miss, no scroll lock to leak, and no need for the Escape handling TrBlazeUI
-    2.0.0 does not ship (TR-014). Do not move these flows back into a dialog.
+    strand, no portal to miss and no scroll lock to leak. Do not move these flows back into a dialog.
+
+    TrBlazeUI 2.1.0-ci.10 does close `AlertDialog` on Escape (TR-014), which was a secondary reason
+    listed here and is no longer one. The primary reason — an unreproducible stranded backdrop —
+    is unchanged, so the routes stay.
 *@
 @page "/repos"
 @using TfLens.Core.GitHub
@@ -132,11 +135,19 @@
                 </div>
             </CardHeader>
             <CardContent Class="pt-0">
+                @* `Compact` is what fits nine columns inside this card at 1440 (TR-025): it sets the
+                   body cells to `px-2.5 py-2` and the header to `h-9 px-2.5`. It replaces a `::deep
+                   th, td { padding-left/right }` rule that reached into the grid's own markup. The
+                   vertical half is a consequence rather than a request — the mockup's sheet is
+                   `td{padding:12px 16px}` and `Compact` gives 8px — but `Density` moves both axes
+                   together, and the horizontal squeeze is the one this grid cannot do without.
+                   `InitialPageSize` here is a real page size: the mockup's footer pages the grid. *@
                 <DataTable TData="RepoListItem"
                            Data="@FilteredRows"
                            ShowToolbar="false"
                            ShowPagination="true"
                            InitialPageSize="10"
+                           Density="DataTableDensity.Compact"
                            AriaLabel="Connected repos"
                            data-testid="repos-table">
                     <Columns>
@@ -173,7 +184,8 @@
                         <DataTableColumn TData="RepoListItem" TValue="string"
                                          Property="@(aRow => aRow.Repo.Kind)" Header="Kind" Sortable>
                             <CellTemplate Context="vRow">
-                                <Badge Variant="BadgeVariant.Secondary" Class="tflens-badge-info">@vRow.Repo.Kind</Badge>
+                                @* The mockup draws the framework pill as `badge info` (repos.html). *@
+                                <Badge Variant="BadgeVariant.Info">@vRow.Repo.Kind</Badge>
                             </CellTemplate>
                         </DataTableColumn>
 
@@ -182,8 +194,10 @@
                                          Property="@(aRow => SourceKinds.DisplayName(aRow.Repo.SourceKind))"
                                          Header="Source" Sortable>
                             <CellTemplate Context="vRow">
-                                <Badge Variant="BadgeVariant.Secondary"
-                                       Class="@(ImportedSourceRules.IsImported(vRow.Repo.SourceKind) ? string.Empty : "tflens-badge-info")"
+                                @* Synced reads as `badge info`, Imported as `badge secondary` (repos.html). *@
+                                <Badge Variant="@(ImportedSourceRules.IsImported(vRow.Repo.SourceKind)
+                                                      ? BadgeVariant.Secondary
+                                                      : BadgeVariant.Info)"
                                        data-testid="@($"repo-source-{vRow.Repo.Name}")">
                                     @SourceKinds.DisplayName(vRow.Repo.SourceKind)
                                 </Badge>
@@ -225,23 +239,33 @@
                                 }
                                 else
                                 {
-                                    <Badge Variant="BadgeVariant.Secondary"
-                                           Class="@StatusToneOf(vRow)"
+                                    <Badge Variant="@StatusVariantOf(vRow)"
                                            data-testid="@($"repo-status-{vRow.Repo.Name}")">@StatusTextOf(vRow)</Badge>
                                 }
                             </CellTemplate>
                         </DataTableColumn>
 
+                        @* One line, header included: the cell holds a relative time ("12 days ago"),
+                           which is a phrase and reads as two facts when it breaks — and the header was
+                           stacking onto three lines. The mockup's own sheet nowraps every `th`. Where
+                           that leaves the grid wider than its card, the scroll box in the scoped CSS
+                           takes it, so it can never push the page sideways. *@
                         <DataTableColumn TData="RepoListItem" TValue="string"
                                          Property="@(aRow => aRow.LastSyncTs ?? string.Empty)"
-                                         Header="Last sync / import" Sortable>
+                                         Header="Last sync / import" Sortable
+                                         CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                             <CellTemplate Context="vRow">
                                 <span class="text-muted-foreground">@LastActivityText(vRow)</span>
                             </CellTemplate>
                         </DataTableColumn>
 
+                        @* The mockup right-aligns the figure column (`<th class="r">`). `Align` reaches
+                           the th, the sortable header's own label box and every cell together — a
+                           `text-right` on HeaderClass would leave the label at the left of the column. *@
                         <DataTableColumn TData="RepoListItem" TValue="int"
-                                         Property="@(aRow => aRow.RecordCount)" Header="Records" Sortable>
+                                         Property="@(aRow => aRow.RecordCount)" Header="Records" Sortable
+                                         Align="DataTableColumnAlign.End"
+                                         CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                             <CellTemplate Context="vRow">
                                 <span class="tabular-nums">@vRow.RecordCount.ToString("N0")</span>
                             </CellTemplate>
@@ -567,23 +591,30 @@
             : RelativeTime.Describe(RelativeTime.Parse(aRow.LastSyncTs), DateTimeOffset.UtcNow);
 
     /// <summary>
-    /// The status badge's tone — the mockup's success / warning / plain, which TrBlazeUI has no
-    /// variant for (TR-016).
+    /// The status badge's variant — the three-way distinction REQ-UI-014 exists for.
     /// </summary>
+    /// <remarks>
+    /// Healthy, needs attention and broken are three states, not two, and the mockup draws them as
+    /// three colours (`badge success` / `badge warning` / `badge destructive`). TrBlazeUI 2.0.0 had
+    /// only four variants, so the tone was carried by app.css classes (TR-016);
+    /// <c>BadgeVariant</c> ships <c>Success</c>, <c>Info</c> and <c>Warning</c> from 2.1.0-ci.10, so
+    /// the variant carries it. A failed sync is <c>Destructive</c> and is decided at the call site,
+    /// because only there is the error text available for the tooltip.
+    /// </remarks>
     /// <param name="aRow">The grid row.</param>
-    /// <returns>The tone class, or an empty string for a status that carries no tone.</returns>
-    private static string StatusToneOf(RepoListItem aRow)
+    /// <returns>The badge variant for the row's status word.</returns>
+    private static BadgeVariant StatusVariantOf(RepoListItem aRow)
     {
         var vStatus = StatusTextOf(aRow);
 
         if (vStatus.Contains("stale", StringComparison.OrdinalIgnoreCase))
         {
-            return "tflens-badge-warning";
+            return BadgeVariant.Warning;
         }
 
         return vStatus is RepoSyncStatuses.Pending
-            ? string.Empty
-            : "tflens-badge-success";
+            ? BadgeVariant.Secondary
+            : BadgeVariant.Success;
     }
 
     /// <summary>

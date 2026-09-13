@@ -137,7 +137,7 @@ public sealed class ExtraMetrics : IExtraMetrics
         string aFramework,
         CancellationToken aCancellationToken = default)
     {
-        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
         var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
@@ -178,7 +178,7 @@ public sealed class ExtraMetrics : IExtraMetrics
         string aFramework,
         CancellationToken aCancellationToken = default)
     {
-        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
         var vCard = await RateCard.LoadAsync(objOptions.PricesPath, aCancellationToken).ConfigureAwait(false);
 
         var vRouting = vRuns.Where(HasRoutingFields).ToList();
@@ -203,6 +203,31 @@ public sealed class ExtraMetrics : IExtraMetrics
             vRepricing.ExcludedRuns,
             vTokensByModel.Select(aM => aM.Model).Where(aM => vCard.Find(aM) is null)
                 .OrderBy(aM => aM, StringComparer.Ordinal).ToList());
+    }
+
+    /// <summary>
+    /// Reads the run stream with every <c>run-void</c> correction applied (SCHEMA.md §2.7, REQ-FN-140).
+    /// </summary>
+    /// <remarks>
+    /// The engine takes voided runs and the void records themselves out before it counts anything, and
+    /// the export publishes that live set as <c>runs_live</c>. Reading the raw stream here instead put
+    /// both back into the harness columns and the routing figures, so one snapshot stated two run counts
+    /// — the harness columns summed to more than <c>runs_live</c>, a correction was counted as work, and
+    /// the wrong run it corrected was still inside the per-harness tokens. Every run figure this class
+    /// produces reads the same set <see cref="RunVoid.Apply"/> leaves, so there is one answer.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The runs that are still runs: no void record, and no run a void names.</returns>
+    private async Task<IReadOnlyList<RunRecord>> ReadRunsWithVoidsAppliedAsync(
+        int aUserId,
+        string aFramework,
+        CancellationToken aCancellationToken)
+    {
+        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+
+        return RunVoid.Apply(vRuns).Kept;
     }
 
     /// <summary>

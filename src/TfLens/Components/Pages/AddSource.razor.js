@@ -6,10 +6,13 @@
 // is the thing that bounds it. The circuit only ever sees counts and messages.
 //
 // This file was Repos.razor.js until 2026-08-28 (REQ-UI-044). What it lost in the move is the
-// document-level Escape watcher: that existed only because TrBlazeUI 2.0.0's AlertDialog ships no
-// Escape handling at all (TR-014) and the Connect Dialog stopped honouring its own once a
-// validation result re-rendered its content. Add source and Remove are routes now, so the browser's
-// own Back is the dismissal and there is no overlay left to dismiss.
+// document-level capture-phase Escape watcher and the [JSInvokable] that closed the overlay from
+// it. That existed only because TrBlazeUI 2.0.0's AlertDialog shipped no Escape handling and the
+// Connect Dialog stopped honouring its own once a validation result re-rendered its content
+// (TR-014). BOTH are fixed in 2.1.0-ci.10 — AlertDialog closes on Escape by default and the
+// primitive's listener survives a content re-render — and this page is a route either way, so
+// nothing here has to be reinstated. Everything below is the file-upload interop and nothing else:
+// the module reference, the DotNetObjectReference and the page's IAsyncDisposable all belong to it.
 
 // ---------------------------------------------------------------------------------------------
 // Import metric files (REQ-UI-040)

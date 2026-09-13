@@ -8,9 +8,7 @@
 | Phase | 3 of 3 |
 | Date | 2026-09-08 |
 
-The design system, the click-through flow and the library-gap log are shared and live in [TfLens-UIDesign.md](./TfLens-UIDesign.md) (phase 1). This file holds the 3 screens of phase 3.
-
-Requirements: [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) · Work list: [TfLens-P3-Checklist.md](./TfLens-P3-Checklist.md) · Map: [TfLens-Phases.md](./TfLens-Phases.md)
+This file holds the 4 screens of phase 3; what every phase shares is listed under *Where the rest lives* at the end.
 
 ## Screens
 
@@ -122,6 +120,43 @@ Requirements: [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) · Work list: [TfLens-P3-Ch
 **Notes / interactions:** switching framework re-queries every figure on the page; the export writes one snapshot per framework.
 
 
-## Library gaps
+### Screen: Price providers (`/prices`)
 
-Logged once, for the whole project, in [TfLens-UIDesign.md](./TfLens-UIDesign.md) and `docs/TfLens-TrBlazeUI-Feedback.md`.
+**Mockup:** [docs/mockups/prices.html](./mockups/prices.html) · **Role(s):** User · **BRD:** BRD-200, BRD-201 · **REQ:** REQ-UI-072, REQ-FN-142 · *added 2026-09-11, drawn after the page was built*
+
+**Layout (one line):** shell (Workspace › Price providers, no Framework switch); header with the rate count; a standing note; one `Card` per provider with its rates; then Add a provider and Add or change a rate side by side.
+
+| Region | TrBlazeUI control | Shows or binds | States |
+|--------|-------------------|----------------|--------|
+| Header | `TypographyH2`, `Badge Variant=Outline` `prices-model-count` | rates and providers | — |
+| Standing note | `Alert` `prices-standing-note` | nobody was billed these amounts: a list price, never spend | always |
+| Clash warning | `Alert Variant=Warning` `prices-clashes` | models two providers price; the first wins, never averaged | only on a clash |
+| Provider card | `Card` `prices-provider-{id}`: title, published-page link, endpoint or typed `Badge`, `prices-checked-{id}`, Refresh `prices-refresh-{id}` (endpoint only), Remove `prices-remove-{id}` | one provider | "never checked" instead of a date |
+| Rates | `DataTable` `prices-table-{id}`: Model (mono), Input, Output, Cache read, Cache write; paged, with a filter when long | USD per 1M tokens | none: "No rates yet" |
+| Add a provider | `Card` `prices-add-provider`, 3× `Input`, `Button` `prices-add` | — | — |
+| Add or change a rate | `Card` `prices-add-rate`, `Select` `prices-rate-provider`, 5× `Input`, `Button` `prices-save-rate` | — | — |
+| Result | `Alert` `prices-message` | the last action's outcome | after an action |
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| Provider name | text | yes | not empty, not already listed |
+| Published pricing page | url | no | — |
+| Endpoint | url | no | given → refreshed from it |
+| Rate provider | select | yes | an existing provider |
+| Model id | text | yes | matched exactly against run records |
+| Four rates per 1M | number | yes | a number, not negative |
+
+**Dialogs opened here:** none.
+
+**States:** empty: a provider with no rates says so, and an unpriced model is counted, never priced at zero · loading: `Skeleton` cards; buttons disabled during a refresh or save · error: a failed refresh leaves the stored rates unchanged and says so.
+
+## Where the rest lives
+
+| What | Where |
+|---|---|
+| UI library, theme and the design system | [phase 1 UI design](./TfLens-UIDesign.md) |
+| The click-through flow across every phase | [phase 1 UI design](./TfLens-UIDesign.md) |
+| Library gaps — controls TrBlazeUI lacks, logged once for every phase | [TfLens-TrBlazeUI-Feedback.md](./TfLens-TrBlazeUI-Feedback.md) |
+| This phase's requirements | [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) |
+| This phase's work list | [TfLens-P3-Checklist.md](./TfLens-P3-Checklist.md) |
+| Every phase and its screens | [TfLens-Phases.md](./TfLens-Phases.md) |

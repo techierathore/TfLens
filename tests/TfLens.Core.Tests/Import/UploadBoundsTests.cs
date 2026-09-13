@@ -8,7 +8,7 @@ namespace TfLens.Core.Tests.Import;
 public sealed class UploadBoundsTests
 {
     /// <summary>The allow-list is exactly the three shapes the frameworks already write.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the upload allow-list is exactly .zip, .jsonl and .ndjson")]
     public void OnlyThreeExtensionsAreAccepted()
     {
         Assert.Equal([".zip", ".jsonl", ".ndjson"], UploadBounds.AllowedExtensions);
@@ -19,7 +19,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>Everything else is refused on its extension alone, before anything is read.</summary>
-    [Theory]
+    [Theory(DisplayName = "REQ-NFR-014 — any other file extension is refused by the upload gate")]
     [InlineData("tflens.json")]
     [InlineData("snapshot.md")]
     [InlineData("payload.tar.gz")]
@@ -38,7 +38,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>The cap is 25 MB and it is judged from the declared length, not from any byte.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the upload cap is 25 MB and the gate refuses one byte over it from the declared length")]
     public void TwentyFiveMegabytesIsTheCapAndItIsJudgedBeforeTheBody()
     {
         Assert.Equal(25L * 1024 * 1024, UploadBounds.MaxUploadBytes);
@@ -52,7 +52,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>An upload that declares no bytes at all is refused as empty rather than parsed.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — an upload that declares no bytes is refused as empty")]
     public void AnEmptyUploadIsRefused()
     {
         var vRefusal = UploadBounds.Gate("runs.jsonl", 0);
@@ -62,7 +62,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>A bounded read stops at the cap, so a lying declared length buys nothing.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the bounded read stops at the cap, so a false declared length cannot get a larger body in")]
     public async Task ABoundedReadRefusesAStreamLongerThanTheCap()
     {
         var vOversized = new MemoryStream(new byte[UploadBounds.MaxUploadBytes + 1024]);
@@ -71,7 +71,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>Absolute paths, drive letters and <c>..</c> segments are refused, never repaired.</summary>
-    [Theory]
+    [Theory(DisplayName = "REQ-NFR-014 — absolute paths, drive letters and .. segments are refused as entry names")]
     [InlineData("/etc/passwd")]
     [InlineData("../../etc/passwd")]
     [InlineData("docs/../../metrics/runs.jsonl")]
@@ -89,7 +89,7 @@ public sealed class UploadBoundsTests
         Assert.True(UploadBounds.IsSafeEntryName(aEntryName));
 
     /// <summary>A zip entry whose Unix mode says symbolic link is recognised as one.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — a zip entry marked as a symbolic link is recognised from its Unix mode")]
     public void ASymbolicLinkIsRecognisedFromTheExternalAttributes()
     {
         // 0xA1FF0000 == S_IFLNK | 0777 in the high sixteen bits, as a Unix zip writes it.
@@ -101,7 +101,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>Every write is proven to land inside the root it was given.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — an archive write is accepted only when its path stays inside the given root")]
     public void ConfinementAcceptsOnlyPathsInsideTheRoot()
     {
         var vRoot = Path.Combine(Path.GetTempPath(), "tflens-confine", "raw", "2");
@@ -114,7 +114,7 @@ public sealed class UploadBoundsTests
     }
 
     /// <summary>The archive-bomb ceilings exist and are finite.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the zip entry-count and uncompressed-size ceilings are fixed, finite values")]
     public void ArchiveBombCeilingsAreSet()
     {
         Assert.Equal(512, UploadBounds.MaxZipEntries);

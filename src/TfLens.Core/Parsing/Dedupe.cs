@@ -26,6 +26,7 @@ public sealed record DedupeResult<T>(IReadOnlyList<T> Records, int Collapsed);
 ///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, FixRunId)</c> — <c>UcMissFixUserRepoMissIdFixRunId</c>. <b>Latest <c>ts</c> wins</b> (BRD-114).</description></item>
 ///   <item><term><c>misses</c> / <c>miss-amend</c></term><description><c>(UserId, Repo, MissId, Field, Ts)</c> — <c>UcMissAmendUserRepoMissIdFieldTs</c>. <b>Earliest wins</b>; because <c>Ts</c> is itself in the key, a collision is byte-for-byte the same fact (BRD-114, §5.5.7).</description></item>
 ///   <item><term><c>misses</c> / <c>review</c></term><description><c>(UserId, Repo, ReviewPhase, COALESCE(ProducedRunId, ''))</c> — <c>UcMissReviewUserRepoPhaseRunId</c>. <b>Earliest <c>ts</c> wins</b> (BRD-114, added 2026-09-08).</description></item>
+///   <item><term><c>playbookmisses</c> (all three kinds)</term><description><c>(UserId, Repo, SourceLineHash)</c> — <c>UcMissUserRepoSourceLine</c>, <c>UcMissFixUserRepoSourceLine</c>, <c>UcMissAmendUserRepoSourceLine</c>. The three <c>MissId</c> keys above are partial (<c>WHERE "SourceLineHash" IS NULL</c>), so a Playbook line that repeats a <c>miss_id</c> is its own record (REQ-FN-103, ADR-024).</description></item>
 /// </list>
 /// <para>
 /// None of the four miss rules needs the <c>merge=union</c> handling <c>commits</c> needs: misses are
@@ -60,7 +61,20 @@ public static class Dedupe
     /// <param name="aRecords">The run records as parsed, in file order.</param>
     /// <returns>The survivors and the collapsed count.</returns>
     public static DedupeResult<RunRecord> Runs(IReadOnlyList<RunRecord> aRecords) =>
-        KeepFirst(aRecords, aR => Key(aR.UserId, aR.Repo, aR.Ts, aR.App ?? string.Empty, aR.Cmd ?? string.Empty));
+        KeepFirst(aRecords, aR => Key(
+            aR.UserId,
+            aR.Repo,
+            aR.Ts,
+            aR.App ?? string.Empty,
+            aR.Cmd ?? string.Empty,
+            // `Kind`, `Started` and the line ordinal are part of the identity because the first three
+            // are not unique: two `log-miss` runs land in the same second, and so do two `run-void`
+            // records naming DIFFERENT runs — collapsing the latter silently puts a corrected record
+            // back into every figure. The stream is append-only, so line n is always the same record and
+            // re-parsing the same file stays the no-op BRD-28 requires.
+            aR.Kind ?? string.Empty,
+            aR.Started ?? string.Empty,
+            aR.SourceLineNo?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty));
 
     /// <summary>
     /// Collapses gate records sharing <c>ts + app + req_id + run_id</c> within one user and repository.

@@ -1,29 +1,14 @@
 /* The Phase effort page's layout.
 
-   TrBlazeUI 2.0.0 ships no responsive variants and no arbitrary-value utilities (TR-002), so every
-   breakpoint this screen needs lives here as a real media query: five KPI tiles across at 1280 and one
-   per row at 390, the two denominator cards side by side, and the routing/cost pair splitting
-   1.3fr / 1fr — which are the approved design's own proportions (docs/mockups/effort.html). */
+   The shipped trblazeui.css carries the responsive variants (sm/md/lg/xl/2xl at 40/48/64/80/96rem)
+   and defines --chart-1..5 and the --alert-* tokens in :where(:root) / :where(.dark), so the grids
+   that only need a breakpoint are utility classes on the markup and no colour token is re-declared
+   here (the app's own palette lives once, in wwwroot/app.css). What is left in this file is what the
+   pre-built sheet still cannot express: arbitrary values (the routing/cost pair's 1.3fr / 1fr, the
+   mockup's 12.5px mono, the pinned column widths) and the ::deep rules that reach a child
+   component's own root. */
 
-/* TR-001: trblazeui.css emits utilities for --chart-1..5 and the --alert-* tokens but defines none of
-   them, so anything painted with them is transparent — the Info and Warning alert tints, the stat
-   chips, and every share bar on this page. Custom properties inherit, so declaring them on the page
-   root reaches every TrBlazeUI control rendered inside. Values are the approved mockup's palette,
-   which reads on both the light and the dark surface. */
 .tflens-effort {
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
     min-width: 0;
 }
 
@@ -34,8 +19,10 @@
     max-width: 100%;
 }
 
-/* The mockup's `h3` band headings (18px/600) — TR-013, the Typography components do not resolve in
-   2.0.0, so the headings are plain markup carrying the design's own metrics. */
+/* The mockup's `h3` band headings (18px/600). These stay plain `<h3>` markup so the parity gate can
+   match the mockup element for element; TypographyH3's own step is 24px and its root would carry
+   Typography's scope attribute, not this file's, so the metric would have to travel through ::deep
+   anyway. The 18px/600 is an arbitrary value the pre-built sheet does not emit. */
 .tflens-band-heading {
     font-size: 1.125rem;
     font-weight: 600;
@@ -47,16 +34,20 @@
 
    StatGroup is deliberately not used: its shim spans tiles on TrBlazeUI's 12-column grid and twelve
    does not divide by five, so a five-tile row lands 4 + 1. The design puts five equal tiles across at
-   1280, two across in the middle, and one per row at 390. */
+   1280, two across in the middle, and one per row at 390 — which is `grid-cols-1 md:grid-cols-2
+   lg:grid-cols-5` on the markup. Only the two properties no utility carries are left here. */
 .tflens-effort-kpis {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
-    gap: 1rem;
     min-width: 0;
 }
 
-.tflens-effort-denominators,
+.tflens-effort-denominators {
+    align-items: start;
+    min-width: 0;
+}
+
+/* The routing/cost pair is an arbitrary ratio — the mockup's own 1.3fr / 1fr — so it is not a
+   utility and stays a media query. */
 .tflens-effort-lower {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -65,22 +56,7 @@
     min-width: 0;
 }
 
-@media (min-width: 48rem) {
-    .tflens-effort-kpis {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .tflens-effort-denominators {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 @media (min-width: 64rem) {
-    .tflens-effort-kpis {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-
-    /* The mockup's own 1.3fr / 1fr split for Routing beside Measured spend. */
     .tflens-effort-lower {
         grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     }
@@ -99,6 +75,39 @@
 .tflens-kpi-cmd {
     font-size: 1.375rem;
     line-height: 1.2;
+    white-space: nowrap;
+}
+
+/* REQ-UI-046 — the mockup keeps a KPI value on one line (`.grid.g5 .kpi .v { white-space: nowrap }`),
+   but a command is longer than a figure: at 1280 `framework-reset` needed 190px, was given 129px and
+   broke at its hyphen as `framework-` / `reset`. The box is a size container, so `cqi` is the tile's
+   own width, and each fit class sizes a name of up to N characters to it (a monospace glyph measures
+   0.575em here; 0.6 leaves a margin). A name that fits keeps the design's 22px, because the clamp's
+   ceiling is 22px; one past the last bucket may wrap at its hyphens rather than run out of the tile. */
+.tflens-kpi-cmd-box {
+    display: block;
+    container-type: inline-size;
+}
+
+.tflens-kpi-cmd-fit-12 {
+    font-size: clamp(0.8125rem, calc(100cqi / 7.2), 1.375rem);
+}
+
+.tflens-kpi-cmd-fit-14 {
+    font-size: clamp(0.8125rem, calc(100cqi / 8.4), 1.375rem);
+}
+
+.tflens-kpi-cmd-fit-16 {
+    font-size: clamp(0.8125rem, calc(100cqi / 9.6), 1.375rem);
+}
+
+.tflens-kpi-cmd-fit-20 {
+    font-size: clamp(0.8125rem, calc(100cqi / 12), 1.375rem);
+}
+
+.tflens-kpi-cmd-long {
+    font-size: 0.875rem;
+    white-space: normal;
 }
 
 /* Card headers on this page put a badge or a chip opposite the title; the shim reproduces the
@@ -125,10 +134,9 @@
    the class is on the element, the rule simply never applies. ::deep re-scopes the ANCESTOR — the
    page root, which this file does own — and leaves the descendant unscoped. */
 
-/* TrBlazeUI's Badge is not `white-space: nowrap` where the mockup's is, so a two-word badge broke
-   over two lines as a flex item. */
+/* Badge holds its label on one line by itself now (TR-029), so all this still says is that a badge
+   is never the flex item that gives up width to its neighbours. */
 .tflens-effort ::deep .tflens-nowrap-badge {
-    white-space: nowrap;
     flex: none;
 }
 
@@ -144,24 +152,55 @@
 }
 
 /* CardFooter justifies its children to the end; this page's footers carry a paragraph of standing
-   copy, which the design sets flush left. */
+   copy, which the design sets flush left. The design's `.card-f` also draws a 1px top rule and pads
+   16px / 24px (`docs/mockups/effort.html:57`) — that rule is the one line between a table and its
+   note, which is why the tables above these footers drop their last row's own border
+   (`.tflens-table-flush`) and their CardContent's bottom padding (`.tflens-flush-bottom`). */
 .tflens-effort ::deep .tflens-card-note {
     display: block;
     text-align: left;
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.5rem;
 }
 
-/* The disclosure trigger is a button inside Collapsible, so it needs the full card width to put its
-   observation badge on the right the way the design draws it. */
-.tflens-effort ::deep .tflens-detail button {
-    width: 100%;
+/* The design's `.mono` is 12.5px wherever it sits (`docs/mockups/effort.html:15`); inside a 13px note
+   an inherited 13px mono ran each note a line longer than the design at 390. */
+.tflens-card-note .font-mono {
+    font-size: 0.78125rem;
+}
+
+.tflens-effort ::deep .tflens-flush-bottom {
+    padding-bottom: 0;
+}
+
+/* The mockup's `.tbl tr:last-child td { border-bottom: 0 }`: the footer's rule closes the table. */
+.tflens-table-flush ::deep tbody tr:last-child {
+    border-bottom-width: 0;
+}
+
+/* A card header's title block and its pill wrap onto two rows below 700px, as the design's
+   `.card-h { flex-wrap: wrap; gap: 8px }` does — otherwise the pill squeezes the title to a column
+   two words wide at 390. */
+@media (max-width: 43.75rem) {
+    /* The class now rides on CardHeader's own root (TR-015), which carries CardHeader's scope
+       attribute rather than this file's, so it is reached through ::deep. */
+    .tflens-effort ::deep .tflens-card-head {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* The design's `.card-f { padding-left: 16px; padding-right: 16px }` below 700px. */
+    .tflens-effort ::deep .tflens-card-note {
+        padding-inline: 1rem;
+    }
 }
 
 .tflens-nowrap {
     white-space: nowrap;
 }
 
-/* The mockup's `.sm` (13px) and `.xs` (12px) against the page's own 14px. TR-002 — trblazeui.css is a
-   pre-built bundle with no arbitrary-value utilities, so these are written out. */
+/* The mockup's `.sm` (13px) and `.xs` (12px) against the page's own 14px. These are arbitrary values,
+   which the pre-built sheet still does not emit, so they are written out. */
 .tflens-small {
     font-size: 0.8125rem;
     line-height: 1.25rem;
@@ -174,11 +213,13 @@
 
 /* The mockup draws its tables in a `card-c flush` — zero padding, so the rows run edge to edge and
    their separators reach the card's borders. CardContent carries `p-6`, which insets the table by
-   24px a side; the negative margin restores the design, and the cell padding restores its 16px. A
+   24px a side; the negative margin restores the design, and the cell padding restores the inset. A
    wide table scrolls inside this box rather than widening the page (BRD-144). */
 .tflens-table {
     min-width: 0;
-    max-width: 100%;
+    /* The negative margins widen the box by 3rem; a 100% cap cancelled the right-hand one, leaving
+       a 24px gap on the right and taking 48px from a table that needs them at 1280. */
+    max-width: calc(100% + 3rem);
     overflow-x: auto;
     margin-inline: -1.5rem;
 }
@@ -191,24 +232,44 @@
        bordered panel inside the card that already holds it. `docs/mockups/effort.html` puts its tables
        in a `card-c flush` and draws no such box — the card's own border is the only one. The wrapper is
        kept, because it is what scrolls a wide table inside its own container (BRD-144); only its
-       decoration is removed. Same treatment Harness.razor.css gives ChartContainer (TR-028). */
+       decoration is removed. */
     .tflens-table ::deep .rounded-md.border {
         border: 0;
         border-radius: 0;
     }
 
+    /* TR-025 — the padding override is GONE. Nine columns of live figures (`157h 53m`, `64 of 107`,
+       `not observed`) are wider than the mockup's sample, and at DataTable's comfortable `p-4` the
+       phase table measured 996px in the 958px card at 1280, hiding Fan-out behind the scroll. That
+       was a `::deep th, td { padding }` hack; `Density="DataTableDensity.Compact"` on the table is
+       the parameter for it now (`h-9 px-2.5` header, `px-2.5 py-2` body). Only the alignment the
+       density does not set is left here. */
     .tflens-table ::deep th,
     .tflens-table ::deep td {
-        padding: 0.625rem 1rem;
         vertical-align: middle;
     }
 
-/* The fan-out card's table is headerless in the mockup: its left cell IS the label, so a header row
-   would repeat it. DataTable has no ShowHeader switch, so the header is declared for the component's
-   own metadata and hidden here. */
-.tflens-kv-table ::deep thead {
-    display: none;
-}
+    /* REQ-UI-047 — the mockup's `.tbl th { white-space: nowrap }` and `.tbl td .mono { nowrap }`
+       (`docs/mockups/effort.html:71` and `:182`). Without them the phase table at 1280 printed
+       `framework-` / `reset`, `deploy-` / `checklist` and every two-word header on two lines. A
+       command or a `tokens_scope` bucket is an identifier: it keeps its width. The header carries the
+       mockup's 12px/500 and the identifier the mockup's 12.5px `.mono` (`:15`): at DataTable's 14px
+       the nine one-line headers made the phase table 1046px at 1280, and the `tokens_scope` buckets
+       pushed the Token window card's meaning column out of view. */
+    .tflens-table ::deep th {
+        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .tflens-table ::deep td .font-mono {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        font-size: 0.78125rem;
+    }
+
+/* TR-012 — the fan-out card's table is headerless in the mockup (its left cell IS the label), and
+   `ShowHeader="false"` on the DataTable now suppresses the thead outright, so no rule is needed here.
 
     /* Three columns in a half-width card: the description takes what is left, and the bar and the
        count are fixed so the count cannot be clipped. A coverage figure the reader cannot read is
@@ -226,17 +287,55 @@
         width: 4.5rem;
     }
 
-/* The design floats the info glyph beside the first line rather than reserving a column for it. The
-   `p` and the `svg` are written in this file, so they carry this file's scope and need no ::deep. */
-.tflens-card-note p {
-    display: block;
-    text-align: left;
+/* At 390 the three columns summed wider than the card, and the count — the figure this card exists
+   to publish — sat behind the horizontal scroll. The design keeps all three in view at 390 by letting
+   the bar shrink to a stub (`docs/mockups/effort.html`, fan-out card at 390), so this does the same:
+   a narrower bar and 8px cell insets, and the identifier and the count keep their full width. */
+@media (max-width: 43.75rem) {
+    .tflens-kv-table ::deep td {
+        padding-inline: 0.5rem;
+    }
+
+    .tflens-kv-table ::deep td:nth-child(2) {
+        width: 3rem;
+    }
+
+    .tflens-kv-table ::deep td:nth-child(3) {
+        width: 5rem;
+    }
+
+    .tflens-kv-table .tflens-bar {
+        width: 2rem;
+        min-width: 1.5rem;
+    }
 }
 
-.tflens-card-note svg {
-    display: inline-block;
-    vertical-align: -0.2em;
-    margin-right: 0.375rem;
+/* The design's `p.muted.sm.row`: the info glyph in its own column beside the text, 8px apart and
+   3px down to sit on the first line (`docs/mockups/effort.html:180`); below 900px the paragraph is a
+   block and the glyph floats beside the first line (`:187`). The glyph is LucideIcon's own `svg`,
+   which carries no scope attribute of this file's, so it is reached through ::deep — the plain
+   `.tflens-card-note svg` rule that stood here matched nothing, and Tailwind's `svg { display: block }`
+   put the glyph on a line of its own above the note. */
+.tflens-note-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.tflens-effort ::deep .tflens-note-row > svg {
+    flex: none;
+    margin-top: 0.1875rem;
+}
+
+@media (max-width: 56.25rem) {
+    .tflens-note-row {
+        display: block;
+    }
+
+    .tflens-effort ::deep .tflens-note-row > svg {
+        float: left;
+        margin: 0.1875rem 0.5rem 0 0;
+    }
 }
 
 /* Share bars. `IndicatorClass` lands on an element inside Progress, which carries Progress's scope
@@ -321,6 +420,18 @@
 
 .tflens-spacer {
     flex: 1;
+}
+
+/* REQ-UI-048 — the mockup's `.coll .trg { padding: 14px 16px }` and `.coll .body { padding: 0 16px
+   16px }`. The disclosure sits straight in a Card with no CardContent, so without these the trigger
+   and the four dashed bands ran onto the card's own border. Scoped to the per-phase stack: the routing
+   card's "By command phase" disclosure reuses the trigger class inside CardContent's own padding. */
+.tflens-detail-stack .tflens-detail-trigger {
+    padding: 0.875rem 1rem;
+}
+
+.tflens-detail-stack .tflens-detail-body {
+    padding: 0 1rem 1rem;
 }
 
 .tflens-detail-body {
@@ -491,16 +602,9 @@
     line-height: 1.3;
 }
 
-/* The time band's four figures — four across at 1280, two at 390. */
+/* The time band's four figures — four across at 1280, two at 390 (`grid-cols-2 md:grid-cols-4` on
+   the markup). The row gap is the only part no utility expresses as one class. */
 .tflens-quad {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem 1rem;
     min-width: 0;
-}
-
-@media (min-width: 48rem) {
-    .tflens-quad {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
 }

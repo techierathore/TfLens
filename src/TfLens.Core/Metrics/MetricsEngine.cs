@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
 
@@ -19,20 +20,29 @@ public sealed class MetricsEngine : IMetricsEngine
 {
     private readonly ITelemetryStore objStore;
     private readonly ILogger<MetricsEngine> objLogger;
+    private readonly IOptions<TfLensOptions>? objOptions;
 
     /// <summary>
     /// Creates the engine over a telemetry store.
     /// </summary>
     /// <param name="aStore">The store every record is read through; reads are scoped by user and framework.</param>
     /// <param name="aLogger">Logger for counts only — never a record body (REQ-NFR-004).</param>
-    /// <exception cref="ArgumentNullException">Either argument is <c>null</c>.</exception>
-    public MetricsEngine(ITelemetryStore aStore, ILogger<MetricsEngine> aLogger)
+    /// <param name="aOptions">
+    /// Where the rate card lives. Optional: without it nothing is priced, and the phase money block
+    /// reports every priced run in <c>list_usd_unpriced_n</c> rather than pricing anything at zero.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="aStore"/> or <paramref name="aLogger"/> is <c>null</c>.</exception>
+    public MetricsEngine(
+        ITelemetryStore aStore,
+        ILogger<MetricsEngine> aLogger,
+        IOptions<TfLensOptions>? aOptions = null)
     {
         ArgumentNullException.ThrowIfNull(aStore);
         ArgumentNullException.ThrowIfNull(aLogger);
 
         objStore = aStore;
         objLogger = aLogger;
+        objOptions = aOptions;
     }
 
     /// <inheritdoc />
@@ -62,6 +72,20 @@ public sealed class MetricsEngine : IMetricsEngine
         var vAttempts = GateAttempt.Derive(vGates);
         vGates = vAttempts.Records;
 
+        // A `run-void` is a correction, not a run (SCHEMA.md §2.7). Applying it here, before per-repo
+        // facts and before any figure, is what stops the void being counted as work AND the run it
+        // corrects staying inside every total. Nothing is deleted: both records are still in the store
+        // and in the raw archive, and the count of what left is published beside the figures.
+        var vVoids = RunVoid.Apply(vRuns);
+        vRuns = vVoids.Kept;
+
+        // The duration rule runs ONCE, here, and every block downstream reads the result (REQ-FN-112,
+        // BRD-179). Deriving inside each block instead would let the pooled throughput divide by a stored
+        // figure the phase block had already overridden — two answers to "how long did this run take",
+        // from one stream, in one report. Backfilled records pass through untouched.
+        var vRead = RunDuration.Derive(vRuns);
+        vRuns = vRead.Records;
+
         var (vCommits, vDuplicates) = DedupeCommits.PerRepo(vRawCommits);
         var vSessionDuplicates = SessionDuplicatesFor(vRepos, aFramework, vSyncStates);
 
@@ -77,8 +101,16 @@ public sealed class MetricsEngine : IMetricsEngine
         var vLiveFigures = SegmentsFor(vLive, vTainted, Provenance.Live);
         var vBackfilledFigures = SegmentsFor(vBackfilled, vTainted, Provenance.Backfilled);
 
+        // The rate card is an INPUT, never a measurement: it prices measured tokens at a published rate
+        // and every figure it feeds is labelled a price rather than a bill (SCHEMA.md §2.5b). Loaded here
+        // rather than in the exporter so the screens show the same money the export does.
+        var vPrices = objOptions is null
+            ? null
+            : await RateCard.LoadAsync(objOptions.Value.PricesPath, aCancellationToken).ConfigureAwait(false);
+
         // ---- stage 5: the pooled block, which both separations exempt
-        var vPooled = Pooled.Compute(vRuns, vSessions, vCommits, vDuplicates, vGates, vSessionDuplicates);
+        var vPooled = Pooled.Compute(
+            vRuns, vSessions, vCommits, vDuplicates, vGates, vSessionDuplicates, vPrices);
 
         // ---- stage 6: the miss block — live-only, segmented per project type, amendments folded at read
         // time. It is computed beside the gate figures and never inside them: the miss escape share is a
@@ -88,7 +120,7 @@ public sealed class MetricsEngine : IMetricsEngine
         // ---- stage 7: the phase-effort block — live runs grouped by cmd, every figure returned wrapped
         // in the count it rests on (REQ-FN-089..REQ-FN-093). It reads the same run records the pooled
         // block does and writes nothing back; the two never share a figure.
-        var vPhaseFigures = PhaseMetrics.Compute(vRuns);
+        var vPhaseFigures = PhaseMetrics.Compute(vRead, vPrices);
 
         objLogger.LogInformation(
             "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttemptsDerived} attempts derived, {DurationsDerived} durations derived, {AttributionExcluded} misses outside the per-origin figures",
@@ -116,6 +148,9 @@ public sealed class MetricsEngine : IMetricsEngine
             Pooled = vPooled,
             Misses = vMissFigures,
             Phases = vPhaseFigures,
+            RunsVoidedN = vVoids.VoidedN,
+            RunsVoided = vVoids.Reasons,
+            RunVoidsOrphanedN = vVoids.OrphanedN,
             ParserVersion = ParserVersion.Current
         };
     }

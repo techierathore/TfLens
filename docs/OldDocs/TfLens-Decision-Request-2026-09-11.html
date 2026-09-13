@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — decisions I need from you</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — decisions I need from you</h1>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-Decision-Request.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#what-happened">What happened</a></li>
+        <li><a href="#what-i-need-you-to-decide">What I need you to decide</a></li>
+        <li class="h3"><a href="#fixing-the-five-problems-in-the-build-tooling">1. Fixing the five problems in the build tooling</a></li>
+        <li class="h3"><a href="#repairing-the-project-s-documents">2. Repairing the project&#x27;s documents</a></li>
+        <li class="h3"><a href="#phase-3-s-work-list-has-gone-past-its-size-limit">3. Phase 3&#x27;s work list has gone past its size limit</a></li>
+        <li class="h3"><a href="#on-a-phone-the-menu-slides-out-the-mockups-draw-a-narrow-icon-strip">4. On a phone, the menu slides out; the mockups draw a narrow icon strip</a></li>
+        <li class="h3"><a href="#two-business-document-lines-disagree-about-how-list-price-keys-are-named">5. Two business-document lines disagree about how list-price keys are named</a></li>
+        <li><a href="#what-i-do-when-you-answer">What I do when you answer</a></li>
+        <li><a href="#copy-this-back-to-me">Copy this back to me</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Written</td><td>2026-09-09, added to 2026-09-10 and 2026-09-11, corrected 2026-09-11</td></tr>
+<tr><td>Waiting on</td><td>Nothing. Decisions 1 and 3 no longer need you. Your amendment that follows this correction answers 2, 4 and 5.</td></tr>
+</tbody>
+</table>
+<h2 id="what-happened">What happened<a class="anchor-link" href="#what-happened">#</a></h2>
+<p>While building the last phase of TfLens I ran into two piles of work that were not
+mine to do from here.</p>
+<p>The first was the build tooling: five problems in files the framework owns, two of
+which changed what your reports said. The framework team fixed all five on
+2026-09-09, so that pile is gone and decision 1 no longer needs you.</p>
+<p>The second is the project's own written documents. When this was written, the checker
+refused 236 things across nineteen files, mostly sections that no longer match their
+template since the documents were split into three phases. One of them is a real
+contradiction: a database sketch in the architecture document disagrees with every
+table around it and with the code (decision 2).</p>
+<p>Three more questions came up later: whether phase 3 had grown too large (decision 3,
+which turned out not to need you), how the menu should look on a phone (decision 4),
+and how the list-price figures are named (decision 5).</p>
+<p>Neither pile blocks the application. It builds and runs, and 69 of phase 3's 86 live
+requirements are verified.</p>
+<h2 id="what-i-need-you-to-decide">What I need you to decide<a class="anchor-link" href="#what-i-need-you-to-decide">#</a></h2>
+<h3 id="fixing-the-five-problems-in-the-build-tooling">1. Fixing the five problems in the build tooling<a class="anchor-link" href="#fixing-the-five-problems-in-the-build-tooling">#</a></h3>
+<p><strong>Correction, 2026-09-11: this decision no longer needs you.</strong> The framework team fixed
+all five on 2026-09-09. Two have been checked again here and closed: the printed build
+list now offers every requirement not yet started, and the two rows that wrongly said
+FAIL are now Verified. The other three are fixed in the framework and wait for their own
+check here; nothing depends on them. The question below is kept as the record of what
+was asked.</p>
+<p>The question was how much of the framework repair to hand over. Two of the five changed
+what your reports said: one hid work that had never been started, and one recorded a
+deliberately skipped test as a failure.</p>
+<table>
+<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
+<tbody>
+<tr><td><strong>A — fix all five now</strong></td><td>The tooling stops hiding unstarted work, stops calling absent data a defect, and stops reporting a correctly-built screen as broken.</td><td>One session in the framework window.</td></tr>
+<tr><td><strong>B — fix only the two that change reports</strong></td><td>The two that matter are gone; the three cosmetic ones stay and keep producing noise every run.</td><td>Less work now, a second pass later.</td></tr>
+<tr><td><strong>C — leave all five</strong></td><td>Every future pass repeats them. The hidden-work one is the dangerous one: it will quietly skip new requirements again.</td><td>Nothing now, and a real risk of shipping a phase that was never finished.</td></tr>
+</tbody>
+</table>
+<p><strong>My recommendation: A</strong> — they are already diagnosed and written up, so the
+expensive part is done; fixing three more costs very little on top.</p>
+<h3 id="repairing-the-project-s-documents">2. Repairing the project's documents<a class="anchor-link" href="#repairing-the-project-s-documents">#</a></h3>
+<p><strong>Answered by your amendment that follows this correction.</strong> Nothing more is needed here.</p>
+<p>The 236 findings are not evenly serious. One is a genuine contradiction: the
+architecture document sketches a new database table with a different key and
+different column types from every other table beside it, and the code follows the
+surrounding house style rather than the sketch. That one should be settled before
+anyone reads the document and believes it. The rest are shape and template drift.</p>
+<table>
+<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
+<tbody>
+<tr><td><strong>A — repair everything in one pass</strong></td><td>All nineteen documents match their templates again.</td><td>The longest option, and most of it is cosmetic.</td></tr>
+<tr><td><strong>B — settle the contradiction first, then the rest later</strong></td><td>The architecture stops disagreeing with the code immediately; the cosmetic backlog waits.</td><td>Two sessions instead of one.</td></tr>
+<tr><td><strong>C — leave it</strong></td><td>The documents keep drifting and the checker's output stays too noisy to read.</td><td>Nothing now, more later.</td></tr>
+</tbody>
+</table>
+<p><strong>My recommendation: B</strong> — the contradiction is the only part that can mislead
+someone; the rest can wait for a quiet moment.</p>
+<h3 id="phase-3-s-work-list-has-gone-past-its-size-limit">3. Phase 3's work list has gone past its size limit<a class="anchor-link" href="#phase-3-s-work-list-has-gone-past-its-size-limit">#</a></h3>
+<p>Today's amendment added four requirements — the four counts that must be published
+beside a duration total. The step that adds rows also fills in anything missing, and
+it found thirty rows that an earlier amendment had written into the business document
+and never tracked. Phase 3's list went from 73 rows to 107; the guidance is 100. It
+was already over in substance — the rows simply had not been written down.</p>
+<table>
+<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
+<tbody>
+<tr><td><strong>A — leave it, split later</strong></td><td>Phase 3 stays at 107 and the duration work finishes uninterrupted.</td><td>Nothing now; the decision returns when the phase is closer to done.</td></tr>
+<tr><td><strong>B — split now</strong></td><td>A phase 4 takes the thirty newly tracked rows, bringing phase 3 back under 100.</td><td>Document surgery mid-correction, and phase 4 would have no theme — the thirty rows came from different amendments.</td></tr>
+</tbody>
+</table>
+<p><strong>My recommendation: A</strong> — the limit exists to stop a phase becoming unreviewable, and
+today made phase 3 <em>more</em> reviewable: thirty invisible requirements are now listed.
+Nothing here blocks the build.</p>
+<p><strong>Correction, 2026-09-11 (verifier): this decision no longer needs you.</strong> The thirty rows
+were not new work. Each one repeats a requirement that an older row already tracks and
+that was already built and tested — for example REQ-FN-117 and REQ-FN-068 both carry
+BRD-76. The step that adds rows did not recognise the older rows' titles (filed upstream as
+TF-025), and it also added REQ-FN-135 as a copy of REQ-FN-112. All 31 copies are now marked N/A, each
+naming the row that covers it, and no id was reused. Phase 3 has 86 live rows, under the
+limit of 100, so neither option is needed.</p>
+<h3 id="on-a-phone-the-menu-slides-out-the-mockups-draw-a-narrow-icon-strip">4. On a phone, the menu slides out; the mockups draw a narrow icon strip<a class="anchor-link" href="#on-a-phone-the-menu-slides-out-the-mockups-draw-a-narrow-icon-strip">#</a></h3>
+<p><strong>Answered by your amendment that follows this correction.</strong> Nothing more is needed here.</p>
+<p>Added 2026-09-11 by the verifier. Twelve requirements on the Misses and Phase effort
+pages pass every one of their own tests, and the pages look right at both widths. They
+are held at <code>Needs re-verify</code> for one reason: when either page is opened on a phone-sized
+screen, the app hides the sidebar behind the menu button at the top left and slides it
+out when tapped, while the approved mockups keep a narrow strip of menu icons down the
+left edge. The two are different designs, and the check compares the app with the mockup.
+The same behaviour applies to every page, because they share one frame.</p>
+<table>
+<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
+<tbody>
+<tr><td><strong>A — keep the slide-out menu</strong></td><td>The mockups are updated to draw the slide-out menu at phone width; the twelve rows are graded again and should pass.</td><td>A short document pass; no code change.</td></tr>
+<tr><td><strong>B — build the icon strip</strong></td><td>The app is changed to match the mockups at phone width; the twelve rows are graded again after the build.</td><td>A change to the shared page frame, which every page uses.</td></tr>
+</tbody>
+</table>
+<p><strong>My recommendation: A</strong> — the slide-out menu is what the component library draws by
+design, it leaves the whole narrow screen to the figures, and nothing in the requirements
+asks for the icon strip.</p>
+<h3 id="two-business-document-lines-disagree-about-how-list-price-keys-are-named">5. Two business-document lines disagree about how list-price keys are named<a class="anchor-link" href="#two-business-document-lines-disagree-about-how-list-price-keys-are-named">#</a></h3>
+<p><strong>Answered by your amendment that follows this correction.</strong> Nothing more is needed here.</p>
+<p>Added 2026-09-11 by the verifier. BRD-128 says every figure worked out from the rate card
+must have a name ending in <code>_usd_estimate</code>, so a reader can never mistake an estimate for
+money paid. BRD-195 and BRD-197, added later, name the new list-price figures <code>list_usd</code>
+and <code>cost_list_usd_per_miss</code>, without that ending. The app follows the later lines, and
+so does the framework's reference script, which the parity check requires the export to
+match key for key. No test fails today, because each test follows the line written for
+its own requirement.</p>
+<table>
+<thead><tr><th>Option</th><th>What happens</th><th>What it costs</th></tr></thead>
+<tbody>
+<tr><td><strong>A — the list price is its own kind of figure</strong></td><td>BRD-128 gains one sentence: a list price is labelled as a list price, not as an estimate. Nothing else changes.</td><td>A one-line document amendment.</td></tr>
+<tr><td><strong>B — the ending applies to list prices too</strong></td><td>The keys are renamed in the app, and the reference script has to be changed to match, or the parity check fails.</td><td>A code change plus an upstream request.</td></tr>
+</tbody>
+</table>
+<p><strong>My recommendation: A</strong> — the list price is published on purpose as the one money-shaped
+figure every harness has, the Price providers page already says it is reported as a list
+price and never as spend, and renaming it would break the parity check that reached zero
+findings this week.</p>
+<h2 id="what-i-do-when-you-answer">What I do when you answer<a class="anchor-link" href="#what-i-do-when-you-answer">#</a></h2>
+<ul>
+<li>Decisions 1 and 3: nothing. Neither needs you any more.
+</li>
+<li>Decisions 2, 4 and 5: your amendment answers them, and I fold it into the documents with <code>*amend-docs</code> — the architecture contradiction first, then the mockups or the business-document lines the amendment names.
+</li>
+<li>Decision 4: once the mockups and the app agree, the twelve Misses and Phase effort rows are graded again.
+</li>
+<li>When all three are folded in, this file moves unchanged to <code>docs/OldDocs/</code>, and the live name is free for the next question.
+</li>
+</ul>
+<h2 id="copy-this-back-to-me">Copy this back to me<a class="anchor-link" href="#copy-this-back-to-me">#</a></h2>
+<p>Decisions 1 and 3 need no reply, so their blocks are gone. The blocks for 2, 4 and 5
+stay as the record of the choices; your amendment is the answer.</p>
+<pre><code>TfLens: decision 2 — go with option B. Run *amend-docs and settle the
+architecture's MissReview table sketch first: it gives the table a bigserial
+primary key and types UserId as text and Ts as timestamptz, while all four
+sibling tables use no surrogate key, an integer UserId and a text Ts. The
+code follows the siblings. Fix the document, then leave the rest of the
+template drift for a later pass.</code></pre>
+<pre><code>TfLens: decision 4 — go with option A. Run *amend-docs and update the
+mockups so the sidebar is a slide-out menu at phone width, then re-run
+*verify TfLens REQ-UI-035,REQ-UI-036,REQ-UI-037,REQ-UI-038,REQ-UI-045,
+REQ-UI-046,REQ-UI-047,REQ-UI-048,REQ-UI-049,REQ-UI-052,REQ-UI-053,REQ-UI-054.</code></pre>
+<pre><code>TfLens: decision 4 — go with option B. Build the narrow icon strip in the
+shared page frame at phone width, then re-run the verifier on the twelve
+Misses and Phase effort rows.</code></pre>
+<pre><code>TfLens: decision 5 — go with option A. Run *amend-docs and add one sentence
+to BRD-128: a list price is labelled as a list price, not as an estimate, so
+list_usd and cost_list_usd_per_miss keep their names.</code></pre>
+<pre><code>TfLens: decision 5 — go with option B. Rename list_usd and
+cost_list_usd_per_miss to end in _usd_estimate, and file an upstream
+request for the reference script to rename them too.</code></pre>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

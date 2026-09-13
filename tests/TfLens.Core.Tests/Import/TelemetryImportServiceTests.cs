@@ -130,7 +130,7 @@ public sealed class TelemetryImportServiceTests
     /// <summary>
     /// The size cap is applied before the body is read — proven with a body that cannot be read.
     /// </summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the import service refuses an upload over the cap before reading any of its body")]
     public async Task TheSizeCapIsAppliedBeforeTheBodyIsRead()
     {
         var vRoot = ImportTestSupport.TempRoot("cap-before-read");
@@ -153,7 +153,7 @@ public sealed class TelemetryImportServiceTests
     }
 
     /// <summary>The extension is judged before the body is read too.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — the import service refuses a disallowed extension before reading any of its body")]
     public async Task TheExtensionIsJudgedBeforeTheBodyIsRead()
     {
         var vRoot = ImportTestSupport.TempRoot("extension-before-read");
@@ -433,7 +433,7 @@ public sealed class TelemetryImportServiceTests
     }
 
     /// <summary>Every write is confined to the signed-in user's own raw root.</summary>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-014 — every file an import commit writes lands inside the signed-in user's own raw root")]
     public async Task EveryWriteLandsInsideTheCallersOwnRawRoot()
     {
         var vRoot = ImportTestSupport.TempRoot("confined");

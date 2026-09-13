@@ -1,9 +1,18 @@
 @*
     One KPI tile — the "StatTile" the UI design calls for.
 
-    TrBlazeUI 2.0.0 (the latest published package) does not ship Components/Stat, so this reproduces
-    the documented StatTile shape on the library's own Card composition — see TR-001 in
-    docs/TfLens-TrBlazeUI-Feedback.md. Drop this shim the moment the library ships the real one.
+    TR-003: TrBlazeUI 2.1.0-ci.10 DOES ship `TrBlazeUI.Components.Stat.StatTile` / `StatGroup` now,
+    and this is deliberately NOT that component. The shipped one is a bare value-over-caption
+    statistic (`Value`, `Label`, `Trend`, `TrendDirection`) meant for a marketing row; the mockups'
+    `.kpi` (docs/mockups/misses.html line 60 and every report screen) is a Card with a title row, an
+    accent chip carrying a Lucide glyph, a 28px tabular value, a muted note line and a `--chart-1`
+    trend line — five parts the shipped component has no parameters for. Swapping would lose the
+    chip, the sparkline (REQ-UI-018), the provenance adornment (REQ-UI-036) and the responsive column
+    span, so the local composition stays. It is the library's own documented Card composition, which
+    is what docs/TfLens-UIDesign.md §KPI pattern specifies, not a shim for a missing control.
+
+    ⚠ `TrBlazeUI.Components.Stat` is therefore NOT in _Imports.razor. Adding it would make every
+    `<StatTile>` in the app an ambiguous component reference against this one.
 *@
 
 <Card Class="@CardClass" @attributes="AdditionalAttributes">

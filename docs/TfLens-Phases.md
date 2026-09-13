@@ -25,7 +25,7 @@ found during build and UAT sit in phase 1, because they applied from the first s
 |---|---|---|---|---|
 | 1 | Foundation | Login, Register, Forgot password, Reset password, Repos, Profile | BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-81, BRD-83 to BRD-83, BRD-85 to BRD-88, BRD-90 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144, BRD-182 to BRD-188 | done |
 | 2 | Reports | Coverage / health, Gate outcomes, Harness comparison, Routing & economics, Snapshot export | BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-82 to BRD-82, BRD-84 to BRD-84, BRD-89 to BRD-89, BRD-143 to BRD-143 | done |
-| 3 | Depth | Misses & rework, Phase effort, Playbook framework state of the report pages | BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181 | building |
+| 3 | Depth | Misses & rework, Phase effort, Playbook framework state of the report pages, Price providers | BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181, BRD-189 to BRD-201 | building |
 
 **Phase 1 — Foundation** is everything needed before a figure can be shown: sign-in, the Repos screen,
 the sync, the raw archive, the parser and store, the shell, the container. Nothing here renders a

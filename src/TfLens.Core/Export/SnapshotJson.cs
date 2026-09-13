@@ -58,6 +58,13 @@ internal static class SnapshotJson
         {
             ["per_repo"] = PerRepo(aInputs),
             ["tainted_reqs"] = Strings(aInputs.Analysis.TaintedReqs),
+
+            // What the append-only corrections removed (SCHEMA.md §2.7, REQ-FN-135). The records are
+            // still on the stream and still in the raw archive; these three keys are how a reader learns
+            // that some of them stopped being counted, and why.
+            ["runs_voided_n"] = aInputs.Analysis.RunsVoidedN,
+            ["runs_voided"] = Strings(aInputs.Analysis.RunsVoided),
+            ["run_voids_orphaned_n"] = aInputs.Analysis.RunVoidsOrphanedN,
             ["live"] = Segments(aInputs.Analysis.Live),
             ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
             ["pooled"] = Pooled(aInputs.Analysis.Pooled),
@@ -322,7 +329,27 @@ internal static class SnapshotJson
             ["cost_usd_per_miss_measured"] = vMeasured is null
                 ? null
                 : Number(vMeasured.MeasuredUsdPerMiss, MeasuredUsdDigits),
-            ["cost_usd_records"] = vMeasured?.MeasuredUsdRecords ?? 0
+            ["cost_usd_records"] = vMeasured?.MeasuredUsdRecords ?? 0,
+
+            // Repairs whose dollars were measured and are NOT money — a subscription's zero, a local
+            // model's absent bill. Beside the figure, never inside it (SCHEMA.md §2.5b).
+            ["cost_usd_excluded_not_money_n"] = aInputs.Reviews.CostExcludedNotMoneyN,
+
+            // The money-shaped figure that works on every harness: what the repair's tokens cost at the
+            // published rate. A Claude Code repair can have no measured dollars at all.
+            ["cost_list_usd_per_miss"] = aInputs.Reviews.ListUsdPerMiss,
+            ["cost_list_usd_records"] = aInputs.Reviews.ListUsdRecords,
+
+            // Owner reviews (SCHEMA.md §5.5.9). Counted here and reaching no miss figure anywhere: a
+            // review is not a mistake. It is the only record in any stream that prices a specification
+            // defect, and the owner's review time is the scarcest input the framework consumes.
+            ["reviews_n"] = aInputs.Reviews.ReviewsN,
+            ["review_corrections"] = aInputs.Reviews.Corrections,
+            ["reviews_by_phase"] = Counts(aInputs.Reviews.ByPhase),
+            ["review_tokens_produce_mean"] = Number(aInputs.Reviews.TokensToProduce, TokensPerMissDigits),
+            ["review_tokens_produce_n"] = aInputs.Reviews.TokensToProduceN,
+            ["review_tokens_correct_mean"] = Number(aInputs.Reviews.TokensToCorrect, TokensPerMissDigits),
+            ["review_tokens_correct_n"] = aInputs.Reviews.TokensToCorrectN
         };
     }
 
@@ -373,6 +400,14 @@ internal static class SnapshotJson
             ["scope_coverage"] = Counts(aPhases.ScopeCoverage),
             ["tokens_out_total"] = aPhases.TokensOutTotal,
             ["duration_s_total"] = aPhases.DurationSecondsTotal,
+
+            // What the duration total is actually built on (BRD-189 to BRD-192). A total is only honest
+            // when the reader is told what it left out: TechieBlog's 46 run records yield 33 usable ones,
+            // and the wall clock falls from 79.0 h to 72.9 h once the impossible ones are excluded.
+            ["duration_measured_n"] = aPhases.DurationMeasuredN,
+            ["duration_impossible_n"] = aPhases.DurationImpossibleN,
+            ["duration_absent_n"] = aPhases.DurationAbsentN,
+            ["duration_recomputed_n"] = aPhases.DurationRecomputedN,
             ["note"] = PhaseEffortAnalysis.StandingNote,
             ["phases"] = vRows
         };
@@ -433,8 +468,91 @@ internal static class SnapshotJson
             ["drifted"] = aRow.Routing.Drifted,
             ["unknown"] = aRow.Routing.Unknown
         },
-        ["cost_usd_by_harness"] = HarnessCosts(aRow.CostUsdByHarness)
+        ["cost_usd_by_harness"] = HarnessCosts(aRow.CostUsdByHarness),
+
+        // ---- the money block (SCHEMA.md §2.5b, REQ-FN-136, REQ-FN-137). Three figures that are never
+        // merged: a LIST PRICE computed from tokens at the published rate, a PLAN ALLOWANCE consumed
+        // against a per-model limit, and MONEY actually billed by a metered provider. A window that
+        // mixed billing modes gets its own line, because its real money cannot be separated from the
+        // part a subscription had already paid for.
+        ["billing_modes"] = Counts(aRow.Money.BillingModes),
+        ["cost_usd_by_billing_mode"] = Usds(aRow.Money.CostUsdByBillingMode),
+        ["money_usd"] = aRow.Money.MoneyUsd,
+        ["money_records"] = aRow.Money.MoneyRecords,
+        ["money_mixed_usd"] = aRow.Money.MixedUsd,
+        ["money_mixed_records"] = aRow.Money.MixedRecords,
+        ["spend_by_model"] = Spends(aRow.Money.SpendByModel),
+        ["spend_unattributed"] = Spend(aRow.Money.SpendUnattributed),
+        ["list_usd"] = aRow.Money.ListUsd,
+        ["list_usd_records"] = aRow.Money.ListUsdRecords,
+        ["list_usd_unpriced_n"] = aRow.Money.ListUsdUnpricedN,
+        ["plan_allowance_usd"] = aRow.Money.PlanAllowanceUsd,
+        ["plan_allowance_records"] = aRow.Money.PlanAllowanceRecords,
+        ["plan_allowance_by_model"] = Usds(aRow.Money.PlanAllowanceByModel),
+        ["by_mode"] = ByMode(aRow.Money.ByMode)
     };
+
+    /// <summary>Dollars per key, in the order the block already sorted them.</summary>
+    /// <param name="aEntries">The key-to-dollars pairs.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject Usds(IReadOnlyList<KeyValuePair<string, decimal>> aEntries)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vEntry in aEntries)
+        {
+            vObject[vEntry.Key] = vEntry.Value;
+        }
+
+        return vObject;
+    }
+
+    /// <summary>Spend per model, each with the records it was measured over.</summary>
+    /// <param name="aEntries">The model-to-spend pairs.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject Spends(IReadOnlyList<KeyValuePair<string, PhaseSpend>> aEntries)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vEntry in aEntries)
+        {
+            vObject[vEntry.Key] = Spend(vEntry.Value);
+        }
+
+        return vObject;
+    }
+
+    /// <summary>One spend figure with its own denominator beside it.</summary>
+    /// <param name="aSpend">The spend.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject Spend(PhaseSpend aSpend) => new()
+    {
+        ["usd"] = aSpend.Usd,
+        ["records"] = aSpend.Records
+    };
+
+    /// <summary>The phase split by <c>mode</c>, in the order the modes first ran.</summary>
+    /// <param name="aSlices">The slices.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject ByMode(IReadOnlyList<KeyValuePair<string, PhaseModeSlice>> aSlices)
+    {
+        var vObject = new JsonObject();
+
+        foreach (var vSlice in aSlices)
+        {
+            vObject[vSlice.Key] = new JsonObject
+            {
+                ["runs"] = vSlice.Value.Runs,
+                ["duration_s"] = vSlice.Value.DurationSeconds,
+                ["tokens_out"] = vSlice.Value.TokensOut,
+                ["tokens_unmeasured_n"] = vSlice.Value.TokensUnmeasuredN,
+                ["files_written"] = vSlice.Value.FilesWritten,
+                ["first_started"] = vSlice.Value.FirstStarted
+            };
+        }
+
+        return vObject;
+    }
 
     /// <summary>
     /// The fan-out block — the denominator first, the numbers after (BRD-147, ADR-026).
@@ -471,11 +589,20 @@ internal static class SnapshotJson
 
         foreach (var vModel in aModels)
         {
-            vObject[vModel.Model] = new JsonObject
+            var vEntry = new JsonObject
             {
                 ["runs"] = vModel.Runs,
                 ["tokens_out"] = vModel.TokensOut
             };
+
+            // Only where the window ran ONE model, so the key is absent rather than zero on a model that
+            // was only ever seen inside a mixed window — the reference emits it on exactly the same terms.
+            if (vModel.ListUsd is { } vListUsd)
+            {
+                vEntry["list_usd"] = vListUsd;
+            }
+
+            vObject[vModel.Model] = vEntry;
         }
 
         return vObject;
@@ -652,7 +779,10 @@ internal static class SnapshotJson
         ["tokens_total"] = aPooled.TokensTotal,
         ["tokens_per_verified_req"] = Number(aPooled.TokensPerVerifiedReq, TokensPerVerifiedDigits),
         ["cost_usd"] = null,
-        ["commits"] = aPooled.Commits,
+        ["list_usd_total"] = aPooled.ListUsdTotal,
+            ["list_usd_records"] = aPooled.ListUsdRecords,
+            ["list_usd_per_verified_req"] = aPooled.ListUsdPerVerifiedReq,
+            ["commits"] = aPooled.Commits,
         ["commit_duplicates_collapsed"] = aPooled.CommitDuplicatesCollapsed,
         ["session_duplicates_collapsed"] = aPooled.SessionDuplicatesCollapsed,
         ["active_days"] = aPooled.ActiveDays,

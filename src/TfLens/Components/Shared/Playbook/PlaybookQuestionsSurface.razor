@@ -48,13 +48,10 @@
                 <TabsList>
                     @foreach (var vGate in Gates)
                     {
-                        @* TR-010 — TabsTrigger captures no unmatched attributes, so the test id sits on the
-                           label span it renders around; a click on the span still activates the trigger. *@
-                        <TabsTrigger Value="@vGate">
-                            <span class="flex items-center gap-2" data-testid="@($"pb-gate-tab-{vGate}")">
-                                <span class="font-mono text-xs">@vGate</span>
-                                <Badge Variant="BadgeVariant.Secondary">@EventsOf(vGate)</Badge>
-                            </span>
+                        @* One element per id: the test id is on the trigger itself, nowhere else. *@
+                        <TabsTrigger Value="@vGate" Class="gap-2" data-testid="@($"pb-gate-tab-{vGate}")">
+                            <span class="font-mono text-xs">@vGate</span>
+                            <Badge Variant="BadgeVariant.Secondary">@EventsOf(vGate)</Badge>
                         </TabsTrigger>
                     }
                 </TabsList>
@@ -65,11 +62,11 @@
                 var vQuestions = QuestionsOf(vGate);
 
                 <TabsContent Value="@vGate">
-                    <div class="tflens-stack tflens-tab-body">
+                    <div class="tflens-stack mt-4">
 
                         <StatGroup Columns="3" data-testid="@($"pb-kpis-{vGate}")">
                             <StatTile Title="First-pass rate (phase_gate)"
-                                      IconName="circle-check"
+                                      IconName="check-circle"
                                       Accent="StatAccent.Chart2"
                                       Description="@FirstPassFormula"
                                       data-testid="@($"pb-kpi-first-pass-{vGate}")">

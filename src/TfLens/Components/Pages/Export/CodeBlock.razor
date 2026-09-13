@@ -1,9 +1,22 @@
 @*
     The `CodeBlock` the UI design mandates for the parity-compare output (REQ-UI-033).
 
-    TrBlazeUI 2.0.0 does not ship Components/CodeBlock — see TR-003 in docs/TfLens-TrBlazeUI-Feedback.md
-    — so this reproduces the documented shape (titled bar, copy action, monospaced scrolling body) on
-    the library's own Button and icon set. Drop this shim the moment the library ships the real one.
+    TR-003 is CLOSED — `TrBlazeUI.Components.CodeBlock.CodeBlock` ships in 2.1.0-ci.10 — and this
+    component is KEPT anyway, deliberately, because the shipped one does not draw what
+    `docs/mockups/export.html` draws. Two differences, checked against the shipped component rather
+    than assumed:
+
+      • Its copy affordance is a TEXT button reading `Copy` / `Copied` (`h-6 px-2 text-xs`). The
+        mockup's `.codeblk .cb-h` puts a ghost ICON button carrying `#i-copy` there, and the mockup
+        -parity gate reads control shape off exactly that element.
+      • Its bar label is the `Language` parameter — a language tag. The label this block carries is a
+        title, `parity-compare output`, and passing a sentence as a language would be a misuse that
+        the next reader has to unpick.
+
+    Everything else about the shipped component matches (bordered rounded box, mono label bar,
+    horizontally scrolling `<pre><code>` body), so this is a two-line gap, not a rewrite. Swapping
+    would trade a documented mockup match for a deletion, which is the wrong trade. Revisit when
+    `CodeBlock` grows a title slot or an icon-only copy control.
 
     The body scrolls inside itself so a long compare line can never widen the page.
 *@

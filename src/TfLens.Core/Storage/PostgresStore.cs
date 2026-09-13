@@ -1111,13 +1111,15 @@ public sealed class PostgresStore : ITelemetryStore
             "Harness","Cmd","Mode","Started","Ended","DurationS","ReqsTouched","ReqsCount","Subagents",
             "FilesWritten","BuildResult","Tier","TierModel","Model","Models","Routed","TokensIn","TokensOut",
             "TokensCacheRead","TokensCacheWrite","CostUsd","TokensScope","Attempt",
-            "SubagentRuns","TokensOutSubagents","ModelTokensOut","Overflow")
+            "SubagentRuns","TokensOutSubagents","ModelTokensOut","BillingMode","Kind","VoidReason",
+            "SourceLineNo","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@Cmd,@Mode,@Started,@Ended,@DurationS,@ReqsTouched,@ReqsCount,@Subagents,
             @FilesWritten,@BuildResult,@Tier,@TierModel,@Model,@Models,@Routed,@TokensIn,@TokensOut,
             @TokensCacheRead,@TokensCacheWrite,@CostUsd,@TokensScope,@Attempt,
-            @SubagentRuns,@TokensOutSubagents,CAST(@ModelTokensOut AS jsonb),CAST(@Overflow AS jsonb))
+            @SubagentRuns,@TokensOutSubagents,CAST(@ModelTokensOut AS jsonb),@BillingMode,@Kind,@VoidReason,
+            @SourceLineNo,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1157,14 +1159,18 @@ public sealed class PostgresStore : ITelemetryStore
         ON CONFLICT DO NOTHING
         """;
 
-    /// <summary>Idempotent insert for a <c>miss</c>; conflicts on <c>UcMissUserRepoMissId</c> are no-ops.</summary>
+    /// <summary>
+    /// Idempotent insert for a <c>miss</c>; conflicts on the edition's own natural key are no-ops.
+    /// </summary>
     /// <remarks>
     /// One table, two editions (ADR-024). <c>"ItemId"</c> and <c>"FoundPhaseGate"</c> are written beside
     /// <c>"ReqId"</c> and <c>"FoundGate"</c> rather than into them, and a TechieFlow row simply leaves
-    /// all three of the new columns <c>null</c> (REQ-FN-104, REQ-FN-103). A Playbook row additionally
-    /// conflicts on <c>UcMissUserRepoSourceLine</c>, which the <c>ON CONFLICT DO NOTHING</c> covers
-    /// without naming — the clause is unqualified precisely so a second natural key on the same table
-    /// does not need a second statement.
+    /// all three of the new columns <c>null</c> (REQ-FN-104, REQ-FN-103). The two keys are both partial
+    /// and never overlap: a TechieFlow row (no hash) conflicts on <c>UcMissUserRepoMissId</c> only, a
+    /// Playbook row conflicts on <c>UcMissUserRepoSourceLine</c> only — so a Playbook line that repeats
+    /// a <c>miss_id</c> with different content is a new row, not a duplicate. The unqualified
+    /// <c>ON CONFLICT DO NOTHING</c> covers whichever key applies without naming it, so the two editions
+    /// need no second statement. <c>"MissFix"</c> and <c>"MissAmend"</c> carry the same pair of keys.
     /// </remarks>
     private const string InsertMissSql = """
         INSERT INTO "Miss" (
@@ -1195,12 +1201,12 @@ public sealed class PostgresStore : ITelemetryStore
             "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
             "Harness","MissId","ReqId","FixRunId","FixCmd","FixAttempt","VerdictAfter","Reopened",
             "CostAttribution","TokensIn","TokensOut","TokensCacheRead","TokensCacheWrite","CostUsd",
-            "TokensScope","Model","SourceLineHash","Overflow")
+            "TokensScope","Model","BillingMode","SourceLineHash","Overflow")
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
             @Harness,@MissId,@ReqId,@FixRunId,@FixCmd,@FixAttempt,@VerdictAfter,@Reopened,
             @CostAttribution,@TokensIn,@TokensOut,@TokensCacheRead,@TokensCacheWrite,@CostUsd,
-            @TokensScope,@Model,@SourceLineHash,CAST(@Overflow AS jsonb))
+            @TokensScope,@Model,@BillingMode,@SourceLineHash,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 

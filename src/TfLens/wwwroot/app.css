@@ -37,55 +37,183 @@ h1:focus {
     text-align: start;
 }
 /* ------------------------------------------------------------------------
-   TrBlazeUI design tokens that the shipped trblazeui.css does not define
-   (TR-001). Without these, `var(--chart-1)` and `var(--alert-*)` resolve to
-   nothing: charts paint black or transparent, alert tints vanish, and the
-   live/backfilled bars on Gate outcomes lose the blue/purple distinction
-   the mockups rely on to tell the two provenances apart.
+   THE TfLens PALETTE — the few tokens whose value differs from the library's.
 
-   Each page that noticed this declared them locally, which is why some
-   screens matched the mockup and others quietly did not. Declaring them once,
-   globally, is the fix — page-local copies can be removed as they are touched.
-   Values are the OKLCH palette from docs/TfLens-UIDesign.md §Design system.
+   TR-001 is CLOSED as of TrBlazeUI 2.1.0-ci.10: the shipped trblazeui.css now
+   declares every token it references — `--alert-*` (colour, `-bg` and
+   `-foreground`), all nine `--sidebar*`, `--chart-1..5`, `--font-sans` and
+   `--font-mono` — in zero-specificity `:where(:root)` / `:where(.dark)` rules.
+   The copies that used to be restated in AuthLayout, Profile and here (because
+   an Alert otherwise rendered colourless and the sidebar painted nothing) are
+   gone; a plain `:root` rule wins over `:where(:root)` with no !important, so
+   what remains below is an ordinary theme override, not a workaround.
+
+   ONE thing is still stated here: `--chart-1..5`, the chart series ramp, which
+   the mockups fix and the library's own five do not match.
+
+   The values below are `docs/mockups/*.html`'s five, converted to OKLCH — the
+   same five, to the same precision, that GateOutcomes.razor.css and
+   Routing.razor.css were each holding a private copy of. Until now this block
+   held a THIRD, unrelated ramp (`--chart-2` violet against the mockups' green),
+   and because a plain `:root` beats the library's `:where(:root)` it won
+   app-wide, which is exactly why those two pages had to shadow it back. Aligned
+   here, the page-level copies become exact duplicates and can go.
+
+   `--alert-*` is NO LONGER declared here. It used to be, with the mockups' four
+   hues — but only the hues, not the `-bg` and `-foreground` companions the
+   library pairs with each. That left an Alert taking its BORDER from one palette
+   and its SURFACE and INK from another: the sign-in failure alert drew a hue
+   25.3 border around a hue 22.216 ground. Half a palette in front of a whole one
+   is the shape of the bug TR-001 was, so the whole family now comes from the
+   shipped sheet, which is theme-aware and contrast-validated across every
+   foreground/surface pair. The hues move by a few degrees against the mockups'
+   hexes and the alerts are internally consistent for the first time.
    ------------------------------------------------------------------------ */
 :root {
-    --chart-1: oklch(0.646 0.222 264);
-    --chart-2: oklch(0.627 0.245 303);
-    --chart-3: oklch(0.696 0.17 162);
-    --chart-4: oklch(0.769 0.188 70);
-    --chart-5: oklch(0.645 0.246 16);
-
-    --alert-success: oklch(0.696 0.17 162);
-    --alert-info: oklch(0.646 0.222 264);
-    --alert-warning: oklch(0.769 0.188 70);
-    --alert-danger: oklch(0.645 0.246 16);
+    --chart-1: oklch(71.4% 0.143 254.6); /* #60a5fa */
+    --chart-2: oklch(77.3% 0.153 163.2); /* #34d399 */
+    --chart-3: oklch(72.5% 0.175 349.8); /* #f472b6 */
+    --chart-4: oklch(83.7% 0.164 84.4); /* #fbbf24 */
+    --chart-5: oklch(70.9% 0.159 293.5); /* #a78bfa */
 }
 
 /* ---------------- shell: the sidebar differences against the mockup -------- */
 
-/* The mockup sets the group labels in small caps with letter-spacing; the code
-   rendered them in plain title case, which reads as body text rather than as a
-   section divider. */
-[data-sidebar="group-label"],
-.tflens-sidebar-group-label {
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    font-size: 11px;
-    font-weight: 600;
-    opacity: .72;
+/* REQ-UI-006 — the two sidebar tokens the mockups set darker than the library does.
+
+   Every mockup draws the dark sidebar as `--sidebar:#0f0f0f` (a step UP from the `#0a0a0a` page
+   ground) and its hover/active surface as `--accent:#1f1f1f`. TrBlazeUI's dark defaults are lighter
+   than both, so the panel read as a lighter slab than the design. The light palette and the other
+   seven `--sidebar*` tokens now match the shipped defaults exactly and are no longer restated.
+
+   These live in app.css, not in MainLayout.razor.css, because the phone menu renders inside the
+   PortalHost — outside every element a scoped stylesheet here could reach. */
+:root.dark {
+    --sidebar: oklch(0.169 0 0);
+    --sidebar-accent: var(--muted);
 }
 
-/* The current page had no highlight at all, so the sidebar never showed you
-   where you were — the single most noticeable difference from the mockups. */
-/* TrBlazeUI marks the current item with an EMPTY data-active attribute (data-active="") plus
-   aria-current="page" — not data-active="true", which an earlier attempt at this matched and which
-   therefore never applied. Match on presence. */
-a[data-active],
-a[aria-current="page"] {
-    background: color-mix(in oklab, var(--sidebar-accent, #ffffff) 10%, transparent);
+/* TR-035 is CLOSED. The phone sheet reads `--sidebar-width-mobile` (18rem) itself now, so the
+   `@media (max-width: 47.999rem) { :root { --sidebar-width: var(--sidebar-width-mobile) } }` rule
+   that used to stand here has been deleted: left in place it would compound with the library's own
+   fix and leave the DESKTOP token wrong below 768px. `SidebarProvider` also takes
+   `Width` / `MobileWidth` / `IconWidth` for a shell that wants to differ from the tokens; TfLens
+   wants exactly the tokens, so it passes none of them. */
+
+/* The sidebar's parts measured to the mockups' `.sb-head` / `.sb-body` / `.grp-label` / `.sb-foot`.
+   Hooks are set in MainLayout.razor and match in the desktop sidebar and the phone menu alike. */
+.tflens-sb-head {
+    /* `.sb-head{height:64px}` — level with the header's 64px rule, which the border-b continues. */
+    height: 4rem;
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.tflens-sb-title {
+    font-size: 15px;
+    letter-spacing: -0.01em;
+}
+
+/* `.brand span{font-size:11px}`. At the library's 12px the subtitle did not fit its 183px and was
+   ellipsised to "lens on TechieFlow & Playbo…"; at 11px it reads whole, as the mockup draws it. */
+.tflens-sb-subtitle {
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* `.sb-body{padding:12px 8px;gap:16px}` with the groups themselves unpadded, so the items start 8px in
+   from the edge and the active bar (below) can sit on the edge itself. */
+.tflens-sb-body {
+    padding: 12px 8px;
+    gap: 16px;
+}
+
+    .tflens-sb-body > [data-sidebar="group"] {
+        padding: 0;
+    }
+
+    /* `.nav a{height:36px;padding:0 10px;gap:10px}`, stacked with no gap between them. The icon rail
+       keeps the library's own sizing: it sets `!size-8 !p-2` there, which these do not touch. */
+    .tflens-sb-body ul {
+        gap: 0;
+    }
+
+    .tflens-sb-body a[data-testid^="nav-"] {
+        height: 36px;
+        padding: 0 10px;
+        gap: 10px;
+    }
+
+    [data-collapsible="icon"] .tflens-sb-body ul {
+        gap: 4px;
+    }
+
+/* In the 48px icon rail the footer's switch and version line cannot fit: they spilled out of the rail
+   as a clipped "v0.1 · rea" under the page. The mockup hides both there
+   (`body.sidebar-collapsed .sb-foot span, .sb-foot .switch{display:none}`) and keeps the ruled strip. */
+[data-collapsible="icon"] .tflens-sb-foot > * {
+    display: none;
+}
+
+/* The phone menu is TrBlazeUI's Sheet, which spaces its children with `gap-4`; the mockup's panel runs
+   the head straight into the body (`.sb-head` then `.sb-body{padding-top:12px}`), so the 16px gap only
+   pushed every item down. */
+[role="dialog"]:has(> .tflens-sb-head) {
+    gap: 0;
+}
+
+/* `.grp-label` — an 11px uppercase caption, one line, 6px above its items. The library's label is a
+   32px-tall `h-8` box, which stood each caption 10px taller than the mockup's and put an empty half-line
+   under "WORKSPACE" and "REPORTS". */
+[data-sidebar="group-label"],
+.tflens-sidebar-group-label {
+    height: auto;
+    margin-bottom: 6px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+}
+
+/* The current page — `.nav a.active`: the muted surface, weight 500, and a 3px bar in the primary ink
+   on the sidebar's own edge (`left:-8px` from an item that starts 8px in).
+   TrBlazeUI marks the current item with an EMPTY data-active attribute (data-active="") plus
+   aria-current="page" — not data-active="true". Match on presence. The bar hangs off the item's <li>
+   because the <a> clips its own overflow. Scoped to the sidebar body so no other current-page link
+   (a pager, a breadcrumb) picks up the bar. */
+.tflens-sb-body a[data-active],
+.tflens-sb-body a[aria-current="page"] {
+    background: var(--sidebar-accent);
     border-radius: 8px;
-    font-weight: 600;
-    box-shadow: inset 2px 0 0 0 var(--chart-1);
+    font-weight: 500;
+}
+
+.tflens-sb-body li:has(> a[data-active])::before,
+.tflens-sb-body li:has(> a[aria-current="page"])::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--sidebar-primary);
+}
+
+/* The theme switch's glyph follows the theme, as the mockups' `.switch .sun` / `.switch .moon` do:
+   a sun on the light palette, a moon on the dark one. Both are rendered; one is hidden. */
+.tflens-theme-moon,
+.dark .tflens-theme-sun {
+    display: none;
+}
+
+.dark .tflens-theme-moon {
+    display: block;
 }
 
 /* The repo count rendered on its own line beneath the Repos link instead of
@@ -122,30 +250,22 @@ li:has(> [data-testid="nav-repo-count"]) {
    missing. The class names are unique to this layout, so dropping the scoping
    attribute changes nothing about what they match.
 
-   Written by hand rather than with Tailwind utilities because the TrBlazeUI
-   2.0.0 stylesheet ships only the utilities the library itself uses — it carries
-   no responsive (sm:/md:/lg:) variants at all, so a media query cannot be
-   expressed in markup (TR-002).
+   TR-001 is closed and the token block that used to head `.auth-split` is gone
+   — the shipped sheet defines `--sidebar*` and every `--alert-*` itself, and
+   the four status hues the mockups draw are declared once at the top of this
+   file instead of a second time here.
+
+   TR-002 is closed for the sheet as a whole (`sm:`/`md:`/`lg:`/`xl:`/`2xl:` all
+   ship, at 40/48/64/80/96rem) but NOT for this breakpoint: the two declarations
+   that define it — the brand panel's `width: 45%` and the swap of its rule from
+   the bottom edge to the right edge — have no utility in the pre-built sheet
+   (`md:w-[45%]` is an arbitrary value, and there is no responsive `border-*`
+   variant at all). Splitting one breakpoint between this file and the markup to
+   move the two declarations that DO have utilities would leave the layout
+   harder to read than the rule it replaced, so the query stays whole.
    ------------------------------------------------------------------------ */
 
 .auth-split {
-    /*
-        TR-001 — TrBlazeUI 2.0.0 references these tokens from bg-sidebar and from every Alert
-        variant but never defines them, so an Alert renders with no colour at all. Custom
-        properties inherit, so declaring them here repairs every TrBlazeUI control in the layout.
-    */
-    --sidebar: var(--muted);
-    --sidebar-foreground: var(--foreground);
-    --sidebar-border: var(--border);
-    --alert-success: oklch(72.3% 0.19 149.6);
-    --alert-success-bg: color-mix(in oklab, oklch(72.3% 0.19 149.6) 10%, transparent);
-    --alert-info: oklch(62.3% 0.19 259.8);
-    --alert-info-bg: color-mix(in oklab, oklch(62.3% 0.19 259.8) 10%, transparent);
-    --alert-warning: oklch(76.9% 0.16 70.1);
-    --alert-warning-bg: color-mix(in oklab, oklch(76.9% 0.16 70.1) 10%, transparent);
-    --alert-danger: oklch(63.7% 0.21 25.3);
-    --alert-danger-bg: color-mix(in oklab, oklch(63.7% 0.21 25.3) 10%, transparent);
-
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -255,16 +375,18 @@ li:has(> [data-testid="nav-repo-count"]) {
 /* ------------------------------------------------------------------------
    .tflens-stack — the standard page rhythm (REQ-NFR-015).
 
-   TrBlazeUI's shipped CSS carries `gap-4` but no `gap-6`, and the mockups set
-   sections 24px apart, so this one measurement has to be written by hand. It
-   was written by hand ELEVEN times — once in each page's scoped stylesheet —
-   which meant a new page got no spacing at all until someone remembered to
-   copy it, and it made the page's rhythm depend on the scoped-CSS bundle
-   arriving. That is the REQ-UI-001 failure shape in miniature.
+   The mockups set sections 24px apart. This was written by hand ELEVEN times —
+   once in each page's scoped stylesheet — which meant a new page got no spacing
+   at all until someone remembered to copy it, and it made the page's rhythm
+   depend on the scoped-CSS bundle arriving. That is the REQ-UI-001 failure
+   shape in miniature. Declared once here, globally, from app.css (served
+   straight from wwwroot).
 
-   Declared once here, globally, from app.css (served straight from wwwroot).
-   The per-page scoped copies are identical and harmless where they remain;
-   delete them as those pages are next touched.
+   2.1.0-ci.10 ships the full spacing scale, so this is now exactly
+   `flex flex-col gap-6` and the class is a NAME for the page rhythm rather than
+   a stand-in for a missing utility. It is kept because eleven pages spell it,
+   and because one named rule is still the thing that stops the rhythm drifting;
+   it is no longer a TR-002 workaround.
    ------------------------------------------------------------------------ */
 .tflens-stack {
     display: flex;
@@ -272,36 +394,20 @@ li:has(> [data-testid="nav-repo-count"]) {
     gap: 1.5rem;
 }
 
-/* ------------------------------------------------------------------------
-   Badge tones the mockups use and TrBlazeUI 2.0.0 does not ship (TR-016).
+/* TR-016 is CLOSED and the `.tflens-badge-info` / `-success` / `-warning` block that used to stand
+   here is deleted. `BadgeVariant` gained `Success`, `Info` and `Warning` in 2.1.0-ci.10, so the three
+   tones the mockups draw on every status column are component parameters now instead of classes the
+   caller has to remember. Every call site was converted in this pass — Effort, Misses, Prices, Repos
+   and the Playbook surfaces — and `grep -rn "tflens-badge"` over `src/`, `tests/verify/` and
+   `docs/mockups/` returns nothing, which is what made the deletion safe.
 
-   `BadgeVariant` offers exactly four members — Default, Destructive, Outline,
-   Secondary — so `info`, `success` and `warning`, which docs/mockups/*.html
-   use on every status column, had no expression at all. The build rendered
-   them all monochrome, which is why the Repos grid read as flatter than its
-   mockup and why a synced row and a stale row looked alike (REQ-UI-011).
-
-   These ride on the existing --alert-* tokens rather than inventing colours,
-   so a badge and its matching Alert are the same hue. Applied through the
-   component's `Class`, so the library's own shape and metrics still win.
+   Why the classes existed: `BadgeVariant` offered exactly four members — Default, Destructive,
+   Outline, Secondary — so `info`, `success` and `warning` had no expression at all and every status
+   pill rendered monochrome. That is why the Repos grid read flatter than its mockup and why a synced
+   row and a stale row looked alike (REQ-UI-011). The `--alert-*` tokens they rode on are still
+   declared at the top of this file, and the library's own variants read the same four hues, so a
+   badge and its matching Alert remain the same colour.
    ------------------------------------------------------------------------ */
-.tflens-badge-info {
-    background: color-mix(in oklab, var(--alert-info) 14%, transparent);
-    color: var(--alert-info);
-    border-color: color-mix(in oklab, var(--alert-info) 30%, transparent);
-}
-
-.tflens-badge-success {
-    background: color-mix(in oklab, var(--alert-success) 14%, transparent);
-    color: var(--alert-success);
-    border-color: color-mix(in oklab, var(--alert-success) 30%, transparent);
-}
-
-.tflens-badge-warning {
-    background: color-mix(in oklab, var(--alert-warning) 14%, transparent);
-    color: var(--alert-warning);
-    border-color: color-mix(in oklab, var(--alert-warning) 30%, transparent);
-}
 
 /* ============================================================================
    REQ-UI-001 .. REQ-UI-004, REQ-UI-009 — mockup parity for the anonymous screens

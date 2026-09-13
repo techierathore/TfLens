@@ -338,6 +338,17 @@ public static class MissFigures
             vRates.Add(new MissPhaseRate(vPhase.Key, vPhase.Value, vRuns, Share(vPhase.Value, vRuns)));
         }
 
+        // REQ-UI-038 — the model card's denominator is the runs that model actually did, read off the
+        // run's observed `model` exactly as the per-phase rate reads the run's `cmd`. The numerator is
+        // the same linked-only count as ByOriginModel, so the two can never disagree.
+        var vModelRates = vModelCounts
+            .Select(aModel =>
+            {
+                var vRuns = aRuns.Count(aRun => string.Equals(aRun.Model, aModel.Key, StringComparison.Ordinal));
+                return new MissModelRate(aModel.Key, aModel.Value, vRuns, PerHundredRuns(aModel.Value, vRuns));
+            })
+            .ToList();
+
         return new MissAttributionFigures
         {
             AttributedN = vSet.AttributedN,
@@ -347,8 +358,42 @@ public static class MissFigures
             ByOriginPhase = Rows(vPhaseCounts, vPhaseN),
             ByOriginModel = Rows(vModelCounts, vModelCounts.Sum(aEntry => aEntry.Value)),
             ByOriginAgent = Rows(vAgentCounts, vAgentCounts.Sum(aEntry => aEntry.Value)),
-            MissRatePerOriginPhase = vRates
+            MissRatePerOriginPhase = vRates,
+            MissRatePerOriginModel = vModelRates
         };
+    }
+
+    /// <summary>
+    /// Misses per 100 runs, to one decimal place, refusing below the minimum-n floor on either side.
+    /// </summary>
+    /// <remarks>
+    /// A per-model rate stands on two counts and is only as good as the smaller: a model with two misses
+    /// is not a rate however many runs it did, and a model with two runs is not a rate however many misses
+    /// named it (REQ-UI-038 — "a row under the minimum n renders insufficient data and never a rate").
+    /// No live run at all is <i>not applicable</i>, never a zero and never an infinity.
+    /// </remarks>
+    /// <param name="aMisses">Linked misses naming the model.</param>
+    /// <param name="aRuns">Live runs of that model in the segment.</param>
+    /// <returns>The rate, <c>insufficient data (n=…)</c>, or not applicable.</returns>
+    private static Figure PerHundredRuns(int aMisses, int aRuns)
+    {
+        if (aRuns == 0)
+        {
+            return Figure.NotApplicable();
+        }
+
+        if (aMisses < MetricsConstants.MinN)
+        {
+            return Figure.InsufficientData(aMisses);
+        }
+
+        if (aRuns < MetricsConstants.MinN)
+        {
+            return Figure.InsufficientData(aRuns, "runs");
+        }
+
+        var vRate = 100.0 * aMisses / aRuns;
+        return Figure.Value(vRate, aRuns, vRate.ToString("F1", CultureInfo.InvariantCulture));
     }
 
     /// <summary>

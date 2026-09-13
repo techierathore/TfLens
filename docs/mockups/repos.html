@@ -16,7 +16,7 @@ svg.i{width:16px;height:16px;flex:none}
 .row{display:flex;align-items:center;gap:8px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.stack{display:flex;flex-direction:column;gap:16px}
 .grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
 .shell{display:flex;height:100vh}
-.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden}
+.sidebar{width:256px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;transition:width .2s;position:relative;overflow:visible}.sb-rail{position:absolute;top:0;bottom:0;right:-16px;width:16px;transform:translateX(-50%);border:0;background:transparent;padding:0;cursor:w-resize;z-index:20}.sb-rail::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px}.sb-rail:hover::after{background:var(--sidebar-border)}@media (max-width:767px){.sb-rail{display:none}}
 .sb-head{height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--sidebar-border);white-space:nowrap}
 .mark{width:32px;height:32px;border-radius:8px;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;flex:none}.mark svg{width:18px;height:18px}
 .brand b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}.brand span{display:block;font-size:11px;color:var(--muted-foreground)}
@@ -28,9 +28,11 @@ svg.i{width:16px;height:16px;flex:none}
 .nav a svg{width:18px;height:18px;color:var(--muted-foreground)}.nav a.active svg{color:var(--primary)}.nav .lbl{flex:1}
 .mbadge{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--muted);font-weight:500}
 .sb-foot{border-top:1px solid var(--sidebar-border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;white-space:nowrap;font-size:12px;color:var(--muted-foreground)}
+@media (min-width:768px){
 body.sidebar-collapsed .sidebar{width:56px}body.sidebar-collapsed .sb-head{padding:0 12px}
 body.sidebar-collapsed .brand,body.sidebar-collapsed .grp-label,body.sidebar-collapsed .lbl,body.sidebar-collapsed .mbadge,body.sidebar-collapsed .sb-foot span,body.sidebar-collapsed .sb-foot .switch{display:none}
 body.sidebar-collapsed .nav a{justify-content:center;padding:0}body.sidebar-collapsed .sb-foot{justify-content:center;padding:12px 8px}
+}
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .hdr{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--background)}
 .crumb{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted-foreground)}.crumb b{color:var(--foreground);font-weight:500}.crumb svg{width:14px;height:14px}
@@ -113,12 +115,14 @@ pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;bac
 @media (max-width:1100px){
  .grid.g5,.grid.g4,.grid.g3{grid-template-columns:repeat(2,1fr)}
 }
-@media (max-width:900px){
+@media (min-width:768px) and (max-width:900px){
  .sidebar{width:56px}
  .sb-head{padding:0 12px}
  .brand,.grp-label,.nav .lbl,.mbadge,.sb-foot span,.sb-foot .switch{display:none}
  .nav a{justify-content:center;padding:0}
  .sb-foot{justify-content:center;padding:12px 8px}
+}
+@media (max-width:900px){
  .hdr{padding:0 12px;gap:8px}
  .crumb>span,.crumb>svg{display:none}
  .hdr>.badge.outline{display:none}
@@ -190,6 +194,13 @@ p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
  .empty>*{max-width:100%;min-width:0}
  .empty .row{flex-wrap:wrap;justify-content:center}
 }
+/* ---- phone-width menu (amended 2026-09-11, owner decision 4) — below 768px the sidebar leaves the page and the menu button at the top left slides it out, 18rem wide with its labels, over a dark backdrop, as TrBlazeUI's SidebarProvider draws it; the icon strip is a 768px-and-up state only ---- */
+.sb-backdrop{display:none}
+@media (max-width:767px){
+ .sidebar{position:fixed;top:0;bottom:0;left:0;z-index:50;width:18rem;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s}
+ body.sidebar-open .sidebar{transform:none;visibility:visible;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+ body.sidebar-open .sb-backdrop{display:block;position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.8)}
+}
 </style>
 </head>
 <body>
@@ -230,9 +241,10 @@ p.row{align-items:flex-start}p.row>svg.i{margin-top:3px}
 <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
 <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
 <symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-badge-dollar-sign" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></symbol>
 </defs></svg>
 <script>(function(){if(localStorage.getItem('tflens:sidebar')==='collapsed')document.body.classList.add('sidebar-collapsed');})();
-function toggleSidebar(){var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
+function toggleSidebar(){if(window.innerWidth<768){document.body.classList.toggle('sidebar-open');return;}var c=document.body.classList.toggle('sidebar-collapsed');localStorage.setItem('tflens:sidebar',c?'collapsed':'open');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('tflens-theme',d?'dark':'light');}
 function sourceMode(m){
  var api=m==='api';
@@ -244,10 +256,11 @@ function sourceMode(m){
  document.getElementById('btn-import').style.display=api?'none':'';
 }</script>
 <div class="shell">
+<div class="sb-backdrop" onclick="toggleSidebar()"></div>
 <aside class="sidebar" data-testid="app-sidebar">
  <div class="sb-head"><div class="mark"><svg><use href="#i-aperture"/></svg></div><div class="brand"><b>TfLens</b><span>lens on TechieFlow &amp; Playbook</span></div></div>
  <div class="sb-body">
-  <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos" class="active"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a></nav></div>
+  <div><div class="grp-label">Workspace</div><nav class="nav"><a href="repos.html" title="Repos" class="active"><svg><use href="#i-git-branch"/></svg><span class="lbl">Repos</span><span class="mbadge">5</span></a><a href="prices.html" title="Price providers"><svg><use href="#i-badge-dollar-sign"/></svg><span class="lbl">Price providers</span></a></nav></div>
   <div><div class="grp-label">Reports</div><nav class="nav">
    <a href="coverage.html" title="Coverage / health"><svg><use href="#i-activity"/></svg><span class="lbl">Coverage / health</span></a>
    <a href="gate-outcomes.html" title="Gate outcomes"><svg><use href="#i-shield-check"/></svg><span class="lbl">Gate outcomes</span></a>
@@ -259,7 +272,7 @@ function sourceMode(m){
   </nav></div>
  </div>
  <div class="sb-foot"><button class="switch" onclick="toggleTheme()" title="Toggle theme"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button><span>v0.1 · read-only lens</span></div>
-</aside>
+<button class="sb-rail" title="Toggle Sidebar" tabindex="-1" aria-label="Toggle Sidebar" onclick="toggleSidebar()"></button></aside>
 <div class="main">
  <header class="hdr">
   <button class="btn ghost icon" onclick="toggleSidebar()" title="Toggle sidebar" data-testid="sidebar-trigger"><svg class="i"><use href="#i-panel-left"/></svg></button>

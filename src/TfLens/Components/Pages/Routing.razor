@@ -18,6 +18,8 @@
    for this one. _Imports.razor is shared, so the app-wide fix is reported rather than made here. *@
 @using TrBlazeUI.Components.Empty
 @using TrBlazeUI.Components.Typography
+@using TrBlazeUI.Components.Chart
+@using ApexCharts
 @using TfLens.Components.Shared.Playbook
 @implements IDisposable
 @inject IExtraMetrics objExtraMetrics
@@ -78,28 +80,19 @@
                this the page container itself scrolls sideways. It scrolls inside its own box instead. *@
             <div class="tflens-tabs-scroll">
             <TabsList>
-                @* TR-010: TabsTrigger captures no unmatched attributes, so the required test id sits on
-                   the trigger's own label span — a click on it still activates the trigger. *@
-                <TabsTrigger Value="drift">
-                    <span data-testid="routing-tab-drift">Routing drift</span>
-                </TabsTrigger>
-                <TabsTrigger Value="models">
-                    <span data-testid="routing-tab-models">Tokens by model</span>
-                </TabsTrigger>
-                <TabsTrigger Value="repricing">
-                    <span data-testid="routing-tab-repricing">Repricing (estimate)</span>
-                </TabsTrigger>
-                <TabsTrigger Value="poolable">
-                    <span data-testid="routing-tab-poolable">Poolable metrics</span>
-                </TabsTrigger>
+                @* REQ-UI-027 asserts these four ids literally, so each one is on the trigger itself and
+                   nowhere else — exactly one element in the document matches each. *@
+                <TabsTrigger Value="drift" data-testid="routing-tab-drift">Routing drift</TabsTrigger>
+                <TabsTrigger Value="models" data-testid="routing-tab-models">Tokens by model</TabsTrigger>
+                <TabsTrigger Value="repricing" data-testid="routing-tab-repricing">Repricing (estimate)</TabsTrigger>
+                <TabsTrigger Value="poolable" data-testid="routing-tab-poolable">Poolable metrics</TabsTrigger>
             </TabsList>
             </div>
 
             @* ── Routing drift ─────────────────────────────────────────────────────────────── *@
             <TabsContent Value="drift">
                 <div class="tflens-stack" data-testid="routing-panel-drift">
-                    <div class="tflens-kpi-row tflens-kpi-3">
-                        <StatGroup Columns="3">
+                    <StatGroup Columns="3">
                             <StatTile Sparkline="@(objRunSeries.IsPlottable ? objRunSeries.Values : null)"
                                       SparklineLabel="@objRunSeries.Label"
                                       Title="Runs with routing fields"
@@ -120,8 +113,7 @@
                                       IconName="database"
                                       Accent="StatAccent.Chart5"
                                       data-testid="kpi-distinct-models" />
-                        </StatGroup>
-                    </div>
+                    </StatGroup>
 
                     @if (DriftRows.Count == 0)
                     {
@@ -139,8 +131,9 @@
                         <Card>
                             <CardHeader>
                                 <CardTitle>Routing drift</CardTitle>
-                                @* TR-009: DataTable pages silently, so the row total is stated in the
-                                   description — a reader can always see how many rows the table stands for. *@
+                                @* This table keeps its pager (25 rows a page is a real page size, not a
+                                   truncation guard). The row total stays in the description so a reader
+                                   can see how many runs the table stands for without paging through it. *@
                                 <CardDescription>
                                     <span data-testid="drift-row-count">@DriftRows.Count runs carry routing fields</span>
                                     — declared tier and tier_model beside the model actually observed.
@@ -261,8 +254,11 @@
                     }
                     else
                     {
-                        <div class="tflens-grid tflens-grid-tokens">
-                            <Card>
+                        @* TR-002 closed — the shipped sheet carries the sm:/md:/lg: variants now, so the
+                           table-beside-chart split is markup rather than a hand-written media query.
+                           Five columns split 3 / 2 at lg (64rem), one column below it. *@
+                        <div class="grid items-start gap-4 grid-cols-1 lg:grid-cols-5">
+                            <Card Class="lg:col-span-3">
                                 <CardHeader>
                                     <CardTitle>Tokens by observed model</CardTitle>
                                     <CardDescription>
@@ -275,7 +271,6 @@
                                                    Data="@objRouting.TokensByModel"
                                                    ShowToolbar="false"
                                                    ShowPagination="false"
-                                                   InitialPageSize="100"
                                                    AriaLabel="Tokens by observed model"
                                                    data-testid="model-tokens">
                                             <Columns>
@@ -321,7 +316,7 @@
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card Class="lg:col-span-2">
                                 <CardHeader>
                                     <CardTitle>Total tokens by model</CardTitle>
                                     <CardDescription>
@@ -329,19 +324,43 @@
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent Class="pt-0">
-                                    @* TR-011: TrBlazeUI's BarChart renders an empty div in this app — the
-                                       ApexCharts runtime the package wraps is never loaded, so the chart
-                                       component produces a blank box rather than bars. The totals are drawn
-                                       here instead, each labelled with the exact figure the table states. *@
-                                    <div class="tflens-bars" data-testid="model-tokens-bars">
-                                        @foreach (var vPoint in ModelTotals)
-                                        {
-                                            <div class="tflens-bar">
-                                                <span class="text-xs font-semibold tabular-nums">@Tokens((long)vPoint.Total)</span>
-                                                <span class="tflens-bar-fill @AccentOf(vPoint)" style="@BarStyle(vPoint)"></span>
-                                                <span class="text-xs text-muted-foreground">@vPoint.Model</span>
-                                            </div>
-                                        }
+                                    @* docs/mockups/routing.html draws this as a bar chart, so it is one:
+                                       `ChartContainer → BarChart`, with `Bare="true"` so the container
+                                       does not paint a second card inside the Card that already holds it,
+                                       and `Options` steering the shape without giving the wrapper up.
+
+                                       The series is a nested `ApexPointSeries` — the wrapper's documented
+                                       second form — rather than the `Items`/`XValue`/`YValue` shorthand,
+                                       for one measured reason (TR-037): `ShowDataLabels` is a PER-SERIES
+                                       flag underneath, and the shorthand's own series does not carry it,
+                                       so `ApexChart.SetDataLabels` writes `dataLabels.enabled = false`
+                                       over both the chart-level `ShowDataLabels="true"` and
+                                       `Options.DataLabels.Enabled` before paint, and no bar gets a label.
+                                       The series still states real `XValue`/`YValue`: nothing is inferred
+                                       from property order, which is what TR-005/TR-011a were about.
+
+                                       The chart is SUPPLEMENTARY. docs/TfLens-UIDesign.md §Library gaps
+                                       requires every charted value to be readable as text as well, and the
+                                       "Tokens by observed model" table beside it states each model's exact
+                                       total — the chart is never the only place a figure appears. *@
+                                    <div data-testid="model-tokens-bars">
+                                        <ChartContainer Bare="true">
+                                            <BarChart TItem="ModelTotal"
+                                                      Items="@ModelTotals"
+                                                      Height="220px"
+                                                      ShowLegend="false"
+                                                      ShowDataLabels="true"
+                                                      Options="@objTokenChartOptions"
+                                                      OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)">
+                                                <ApexPointSeries TItem="ModelTotal"
+                                                                 Items="@ModelTotals"
+                                                                 Name="Total tokens"
+                                                                 SeriesType="SeriesType.Bar"
+                                                                 ShowDataLabels="true"
+                                                                 XValue="@(aPoint => aPoint.Model)"
+                                                                 YValue="@(aPoint => (decimal?)aPoint.Total)" />
+                                            </BarChart>
+                                        </ChartContainer>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -365,7 +384,7 @@
                         </Alert>
                     }
 
-                    <div class="tflens-grid tflens-grid-3">
+                    <div class="grid items-start gap-4 grid-cols-1 lg:grid-cols-3">
                         <Card Class="h-full" data-testid="repricing-actual">
                             <CardHeader Class="flex flex-row items-start justify-between gap-2">
                                 <div>
@@ -423,7 +442,7 @@
                                 </span>
                             </CardHeader>
                             <CardContent Class="pt-0">
-                                <div class="tflens-money tflens-money-saved" data-testid="repricing-delta-value">@DeltaText</div>
+                                <div class="@DeltaClass" data-testid="repricing-delta-value">@DeltaText</div>
                                 <p class="mt-1 text-xs text-muted-foreground" data-testid="repricing-delta-share">@SavedLine</p>
                                 <div class="mt-2">
                                     <Badge Variant="BadgeVariant.Outline" data-testid="repricing-delta-estimate">
@@ -458,8 +477,10 @@
             @* ── Poolable metrics ──────────────────────────────────────────────────────────── *@
             <TabsContent Value="poolable">
                 <div class="tflens-stack" data-testid="routing-panel-poolable">
-                    <div class="tflens-kpi-row tflens-kpi-5">
-                        <StatGroup Columns="5">
+                    @* The five-column row the mockup draws at 1280 — see Routing.razor.css: the
+                       12-column helper StatTile spans cannot divide into five. *@
+                    <div class="tflens-kpi-5">
+                    <StatGroup Columns="5">
                             <StatTile Title="Rework ratio"
                                       Description="fix-mode runs over build-phase runs"
                                       IconName="refresh-cw"
@@ -505,7 +526,7 @@
                                     <FigureText Value="@objPooled.CommitsPerActiveDay" TestId="pooled-commit-cadence-value" />
                                 </ValueContent>
                             </StatTile>
-                        </StatGroup>
+                    </StatGroup>
                     </div>
 
                     <TypographyMuted>
@@ -519,9 +540,14 @@
     }
 </div>
 
-@* REQ-UI-030 — the rate card is the source of truth; this dialog edits the file, nothing else. *@
+@* REQ-UI-030 — the rate card is the source of truth; this dialog edits the file, nothing else.
+
+   The five-column rate card is given the width it needs on the DialogContent itself (`max-w-3xl`,
+   merged through the component's own class merge), instead of the four rates being squeezed into
+   `w-14` cells to survive a 512px box. DialogContent is a flex column capped at the viewport with a
+   scrolling body, so a long card scrolls inside the dialog rather than off the bottom of it. *@
 <Dialog @bind-Open="objIsPricesOpen">
-    <DialogContent data-testid="edit-prices-dialog">
+    <DialogContent Class="max-w-3xl" data-testid="edit-prices-dialog">
         <DialogHeader>
             <DialogTitle>Edit prices.json</DialogTitle>
             <DialogDescription>
@@ -531,17 +557,24 @@
             </DialogDescription>
         </DialogHeader>
 
+        @* This grid PAGES, and 10 is a real page size rather than a truncation guard. prices.json
+           carries 452 models: with `ShowPagination="false"` now rendering the whole sequence (TR-009)
+           that is 452 rows of four bound number inputs in one dialog — the breaking change the
+           2.1.0-ci.10 notes warn about, and it was measured here at 868px of dialog against a 900px
+           viewport. Paged, the card is a page at a time with the grid's own search over the model
+           column, which is also the only way to reach a model by name in a list this long. *@
         <div class="overflow-x-auto">
             <DataTable TData="PriceEditRow"
                        Data="@objPriceRows"
-                       ShowToolbar="false"
-                       ShowPagination="false"
-                       InitialPageSize="100"
+                       ShowToolbar="true"
+                       ShowColumnChooser="false"
+                       ShowPagination="true"
+                       InitialPageSize="10"
                        AriaLabel="Rate card"
                        data-testid="edit-prices-table">
                 <Columns>
                     <DataTableColumn TData="PriceEditRow" TValue="string"
-                                     Property="@(aRow => aRow.Model)" Header="model">
+                                     Property="@(aRow => aRow.Model)" Header="model" Filterable>
                         <CellTemplate Context="vRow">
                             <span class="flex flex-col">
                                 <span class="font-mono text-xs">@vRow.Model</span>
@@ -558,7 +591,7 @@
                             <Field IsInvalid="@(!IsCellValid(vRow, vRow.InputRate))">
                                 <FieldContent>
                                     <Input Type="InputType.Number"
-                                           Class="w-14 text-right"
+                                           Class="w-20 text-right"
                                            Value="@vRow.InputRate"
                                            ValueChanged="@(aValue => SetRate(vRow, PriceColumns.Input, aValue))"
                                            data-testid="@($"price-{vRow.Model}-input")" />
@@ -576,7 +609,7 @@
                             <Field IsInvalid="@(!IsCellValid(vRow, vRow.OutputRate))">
                                 <FieldContent>
                                     <Input Type="InputType.Number"
-                                           Class="w-14 text-right"
+                                           Class="w-20 text-right"
                                            Value="@vRow.OutputRate"
                                            ValueChanged="@(aValue => SetRate(vRow, PriceColumns.Output, aValue))"
                                            data-testid="@($"price-{vRow.Model}-output")" />
@@ -594,7 +627,7 @@
                             <Field IsInvalid="@(!IsCellValid(vRow, vRow.CacheReadRate))">
                                 <FieldContent>
                                     <Input Type="InputType.Number"
-                                           Class="w-14 text-right"
+                                           Class="w-20 text-right"
                                            Value="@vRow.CacheReadRate"
                                            ValueChanged="@(aValue => SetRate(vRow, PriceColumns.CacheRead, aValue))"
                                            data-testid="@($"price-{vRow.Model}-cache-read")" />
@@ -612,7 +645,7 @@
                             <Field IsInvalid="@(!IsCellValid(vRow, vRow.CacheWriteRate))">
                                 <FieldContent>
                                     <Input Type="InputType.Number"
-                                           Class="w-14 text-right"
+                                           Class="w-20 text-right"
                                            Value="@vRow.CacheWriteRate"
                                            ValueChanged="@(aValue => SetRate(vRow, PriceColumns.CacheWrite, aValue))"
                                            data-testid="@($"price-{vRow.Model}-cache-write")" />
@@ -662,6 +695,78 @@
 
     /// <summary>The refusal shown against a rate that is not a number, or is negative.</summary>
     private const string RateErrorMessage = "Enter a number of zero or more — a rate cannot be blank or negative.";
+
+    /// <summary>
+    /// The abbreviation drawn above each bar of the totals chart.
+    /// </summary>
+    /// <remarks>
+    /// `docs/mockups/routing.html` writes the value above the bar as <c>24.5M</c>. The abbreviation is
+    /// the CHART's label only; the exact grouped figure is in the table beside it, which is what
+    /// docs/TfLens-UIDesign.md §Library gaps requires of every charted value.
+    /// </remarks>
+    private const string TokenLabelFormatter =
+        "function (v) { return v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' "
+        + ": v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' "
+        + ": v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : String(v) }";
+
+    /// <summary>
+    /// The chart options the mockup's shape needs, merged over the wrapper's own defaults.
+    /// </summary>
+    /// <remarks>
+    /// The mockup draws bare bars: no axis, no gridlines, the value above each bar and the model name
+    /// under it. Held in an instance field because the wrapper fills the object in place.
+    /// </remarks>
+    private readonly ApexChartOptions<ModelTotal> objTokenChartOptions = new()
+    {
+        Grid = new Grid
+        {
+            Show = false,
+            Xaxis = new GridXAxis { Lines = new Lines { Show = false } },
+            Yaxis = new GridYAxis { Lines = new Lines { Show = false } }
+        },
+        Yaxis = [new YAxis { Show = false }],
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar
+            {
+                Horizontal = false,
+                BorderRadius = 4,
+                ColumnWidth = "60%",
+                // One colour per bar off the wrapper's own --chart-1 … --chart-5 list, which is how the
+                // mockup paints them. Setting PlotOptions at all means the wrapper stops supplying the
+                // Bar block, so the defaults it would have given are restated here.
+                Distributed = true,
+                DataLabels = new PlotOptionsBarDataLabels { Position = BarDataLabelPosition.Top }
+            }
+        },
+        DataLabels = new DataLabels
+        {
+            Enabled = true,
+            // Above the bar, as the design draws it — ApexCharts centres a bar's label inside it by
+            // default, and the smallest model here is a sub-pixel bar with nowhere to put one.
+            OffsetY = -20,
+            Style = new DataLabelsStyle
+            {
+                FontSize = "12px",
+                FontWeight = "600",
+                Colors = ["var(--foreground)"]
+            }
+        },
+        Xaxis = new XAxis
+        {
+            AxisBorder = new AxisBorder { Show = false },
+            AxisTicks = new AxisTicks { Show = false },
+            Labels = new XAxisLabels
+            {
+                Rotate = -35,
+                RotateAlways = true,
+                HideOverlappingLabels = false,
+                Trim = true,
+                MaxHeight = 70,
+                Style = new AxisLabelStyle { FontSize = "10px" }
+            }
+        }
+    };
 
     private readonly List<PriceEditRow> objPriceRows = [];
 
@@ -779,8 +884,15 @@
         // A saving is shown as a negative because it is money the observed mix did NOT reach; a zero
         // delta is not a saving, so it takes no sign.
         > 0m and var vDelta => $"−{Money(vDelta)}",
+        // The counterfactual prices the pooled tokens at ONE model, so a mix whose models each lead a
+        // different rate (one on output, another on cache writes) can cost more than any single model.
+        // That excess is stated with a plus sign on its magnitude, never as "$-305.56".
+        < 0m and var vDelta => $"+{Money(-vDelta)}",
         var vDelta => Money(vDelta)
     };
+
+    /// <summary>The delta card's money class: the saved colour only when there is a saving.</summary>
+    private string DeltaClass => objRouting?.DeltaUsd is < 0m ? "tflens-money" : "tflens-money tflens-money-saved";
 
     /// <summary>The saving stated as a percentage of the counterfactual.</summary>
     private string SavedLine
@@ -794,7 +906,9 @@
 
             var vShare = (double)(vDelta / vMax) * 100.0;
             var vAgainst = objRouting.MostExpensiveModel ?? "the most expensive model";
-            return $"routing saved {vShare.ToString("F1", CultureInfo.InvariantCulture)}% against the all-{vAgainst} counterfactual";
+            return vDelta < 0m
+                ? $"the observed mix cost {(-vShare).ToString("F1", CultureInfo.InvariantCulture)}% more than the all-{vAgainst} counterfactual — its models each lead on a different rate"
+                : $"routing saved {vShare.ToString("F1", CultureInfo.InvariantCulture)}% against the all-{vAgainst} counterfactual";
         }
     }
 
@@ -814,8 +928,9 @@
 
     /// <summary>The muted line under the share bar.</summary>
     private string ActualShareLine =>
-        objRouting?.AllAtMaxUsd is { } vMax && vMax > 0m
-            ? $"the actual mix is {ActualSharePercent.ToString("F0", CultureInfo.InvariantCulture)}% of the counterfactual estimate"
+        // The bar is clamped to 100; the words are not, so a mix above the counterfactual reads as it is.
+        objRouting?.AllAtMaxUsd is { } vMax && vMax > 0m && objRouting.ActualMixUsd is { } vActual
+            ? $"the actual mix is {((double)(vActual / vMax) * 100.0).ToString("F0", CultureInfo.InvariantCulture)}% of the counterfactual estimate"
             : "the actual mix cannot be compared until both estimates exist";
 
     /// <summary>The warning title naming the unpriced observed models.</summary>
@@ -1159,29 +1274,6 @@
         _ => Missing
     };
 
-    /// <summary>
-    /// The chart colour one bar takes, cycling the five chart accents.
-    /// </summary>
-    /// <param name="aPoint">The model's total.</param>
-    /// <returns>The bar's accent class.</returns>
-    private string AccentOf(ModelTotal aPoint)
-    {
-        var vIndex = ModelTotals.ToList().FindIndex(aOther => aOther.Model == aPoint.Model);
-        return $"tflens-bar-{(vIndex < 0 ? 0 : vIndex % 5) + 1}";
-    }
-
-    /// <summary>
-    /// The inline height of one bar, as a share of the largest total.
-    /// </summary>
-    /// <param name="aPoint">The model's total.</param>
-    /// <returns>A CSS declaration setting the bar's height.</returns>
-    private string BarStyle(ModelTotal aPoint)
-    {
-        var vMax = ModelTotals.Count == 0 ? 0d : ModelTotals.Max(aOther => aOther.Total);
-        var vShare = vMax <= 0d ? 0d : aPoint.Total / vMax * 100.0;
-        return $"height:{Math.Max(vShare, 2d).ToString("F1", CultureInfo.InvariantCulture)}%";
-    }
-
     /// <summary>Re-queries when the Framework switch changes the axis.</summary>
     private void OnPreferencesChanged() => InvokeAsync(async () =>
     {
@@ -1202,8 +1294,13 @@
     }
 
     /// <summary>One point of the supplementary totals chart.</summary>
-    /// <param name="Model">The observed model id.</param>
-    /// <param name="Total">All four token classes added together.</param>
+    /// <remarks>
+    /// The chart reads these through the <c>XValue</c> / <c>YValue</c> accessors the markup states, so
+    /// the order the members are declared in carries no meaning and neither member may be renamed into
+    /// significance.
+    /// </remarks>
+    /// <param name="Model">The observed model id — the chart's category.</param>
+    /// <param name="Total">All four token classes added together — the chart's value.</param>
     public sealed record ModelTotal(string Model, double Total);
 
     /// <summary>One editable line of the rate card, held as text so a bad entry can be shown back.</summary>

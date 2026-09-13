@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — UI Design — Phase 3: Depth</h1>
-    <div class="subtitle">Rendered 2026-09-08 &middot; source <code>TfLens-P3-UIDesign.md</code></div>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-P3-UIDesign.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -115,7 +115,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#screen-misses-rework-misses">Screen: Misses &amp;amp; rework (/misses)</a></li>
         <li class="h3"><a href="#screen-phase-effort-effort">Screen: Phase effort (/effort)</a></li>
         <li class="h3"><a href="#screen-playbook-framework-state-of-the-report-pages">Screen: Playbook framework state of the report pages</a></li>
-        <li><a href="#library-gaps">Library gaps</a></li>
+        <li class="h3"><a href="#screen-price-providers-prices">Screen: Price providers (/prices)</a></li>
+        <li><a href="#where-the-rest-lives">Where the rest lives</a></li>
       </ol>
     </div>
 <table>
@@ -128,8 +129,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Date</td><td>2026-09-08</td></tr>
 </tbody>
 </table>
-<p>The design system, the click-through flow and the library-gap log are shared and live in <a href="./TfLens-UIDesign.md">TfLens-UIDesign.md</a> (phase 1). This file holds the 3 screens of phase 3.</p>
-<p>Requirements: <a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a> · Work list: <a href="./TfLens-P3-Checklist.md">TfLens-P3-Checklist.md</a> · Map: <a href="./TfLens-Phases.md">TfLens-Phases.md</a></p>
+<p>This file holds the 4 screens of phase 3; what every phase shares is listed under <em>Where the rest lives</em> at the end.</p>
 <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
 <h3 id="screen-misses-rework-misses">Screen: Misses &amp; rework (<code>/misses</code>)<a class="anchor-link" href="#screen-misses-rework-misses">#</a></h3>
 <p><strong>Mockup:</strong> <a href="./mockups/misses.html">docs/mockups/misses.html</a> · Playbook state: <a href="./mockups/misses-playbook.html">docs/mockups/misses-playbook.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-118..BRD-126, BRD-171..BRD-176 (feature F-MISS, BRD-112..BRD-130) · <strong>REQ:</strong> REQ-UI-035..REQ-UI-038 · <strong>Phase 3</strong> <em>(added 2026-08-28; amended 2026-09-08 — the <code>sort</code> band, the <code>what</code> sentence on each row, and the review-cost band)</em></p>
@@ -227,8 +227,47 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </tbody>
 </table>
 <p><strong>Notes / interactions:</strong> switching framework re-queries every figure on the page; the export writes one snapshot per framework.</p>
-<h2 id="library-gaps">Library gaps<a class="anchor-link" href="#library-gaps">#</a></h2>
-<p>Logged once, for the whole project, in <a href="./TfLens-UIDesign.md">TfLens-UIDesign.md</a> and <code>docs/TfLens-TrBlazeUI-Feedback.md</code>.</p>
+<h3 id="screen-price-providers-prices">Screen: Price providers (<code>/prices</code>)<a class="anchor-link" href="#screen-price-providers-prices">#</a></h3>
+<p><strong>Mockup:</strong> <a href="./mockups/prices.html">docs/mockups/prices.html</a> · <strong>Role(s):</strong> User · <strong>BRD:</strong> BRD-200, BRD-201 · <strong>REQ:</strong> REQ-UI-072, REQ-FN-142 · <em>added 2026-09-11, drawn after the page was built</em></p>
+<p><strong>Layout (one line):</strong> shell (Workspace › Price providers, no Framework switch); header with the rate count; a standing note; one <code>Card</code> per provider with its rates; then Add a provider and Add or change a rate side by side.</p>
+<table>
+<thead><tr><th>Region</th><th>TrBlazeUI control</th><th>Shows or binds</th><th>States</th></tr></thead>
+<tbody>
+<tr><td>Header</td><td><code>TypographyH2</code>, <code>Badge Variant=Outline</code> <code>prices-model-count</code></td><td>rates and providers</td><td>—</td></tr>
+<tr><td>Standing note</td><td><code>Alert</code> <code>prices-standing-note</code></td><td>nobody was billed these amounts: a list price, never spend</td><td>always</td></tr>
+<tr><td>Clash warning</td><td><code>Alert Variant=Warning</code> <code>prices-clashes</code></td><td>models two providers price; the first wins, never averaged</td><td>only on a clash</td></tr>
+<tr><td>Provider card</td><td><code>Card</code> <code>prices-provider-{id}</code>: title, published-page link, endpoint or typed <code>Badge</code>, <code>prices-checked-{id}</code>, Refresh <code>prices-refresh-{id}</code> (endpoint only), Remove <code>prices-remove-{id}</code></td><td>one provider</td><td>"never checked" instead of a date</td></tr>
+<tr><td>Rates</td><td><code>DataTable</code> <code>prices-table-{id}</code>: Model (mono), Input, Output, Cache read, Cache write; paged, with a filter when long</td><td>USD per 1M tokens</td><td>none: "No rates yet"</td></tr>
+<tr><td>Add a provider</td><td><code>Card</code> <code>prices-add-provider</code>, 3× <code>Input</code>, <code>Button</code> <code>prices-add</code></td><td>—</td><td>—</td></tr>
+<tr><td>Add or change a rate</td><td><code>Card</code> <code>prices-add-rate</code>, <code>Select</code> <code>prices-rate-provider</code>, 5× <code>Input</code>, <code>Button</code> <code>prices-save-rate</code></td><td>—</td><td>—</td></tr>
+<tr><td>Result</td><td><code>Alert</code> <code>prices-message</code></td><td>the last action's outcome</td><td>after an action</td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Validation</th></tr></thead>
+<tbody>
+<tr><td>Provider name</td><td>text</td><td>yes</td><td>not empty, not already listed</td></tr>
+<tr><td>Published pricing page</td><td>url</td><td>no</td><td>—</td></tr>
+<tr><td>Endpoint</td><td>url</td><td>no</td><td>given → refreshed from it</td></tr>
+<tr><td>Rate provider</td><td>select</td><td>yes</td><td>an existing provider</td></tr>
+<tr><td>Model id</td><td>text</td><td>yes</td><td>matched exactly against run records</td></tr>
+<tr><td>Four rates per 1M</td><td>number</td><td>yes</td><td>a number, not negative</td></tr>
+</tbody>
+</table>
+<p><strong>Dialogs opened here:</strong> none.</p>
+<p><strong>States:</strong> empty: a provider with no rates says so, and an unpriced model is counted, never priced at zero · loading: <code>Skeleton</code> cards; buttons disabled during a refresh or save · error: a failed refresh leaves the stored rates unchanged and says so.</p>
+<h2 id="where-the-rest-lives">Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
+<table>
+<thead><tr><th>What</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>UI library, theme and the design system</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
+<tr><td>The click-through flow across every phase</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
+<tr><td>Library gaps — controls TrBlazeUI lacks, logged once for every phase</td><td><a href="./TfLens-TrBlazeUI-Feedback.md">TfLens-TrBlazeUI-Feedback.md</a></td></tr>
+<tr><td>This phase's requirements</td><td><a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a></td></tr>
+<tr><td>This phase's work list</td><td><a href="./TfLens-P3-Checklist.md">TfLens-P3-Checklist.md</a></td></tr>
+<tr><td>Every phase and its screens</td><td><a href="./TfLens-Phases.md">TfLens-Phases.md</a></td></tr>
+</tbody>
+</table>
   </main>
 </div>
 

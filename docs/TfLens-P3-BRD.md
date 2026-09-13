@@ -14,7 +14,7 @@
 
 Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 2 — Reports](./TfLens-P2-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
 
-**The whole-project context lives in phase 1 and is not repeated here:** the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens, its features and its requirements.
+**The whole-project context lives in phase 1 and is not repeated here:** the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens and its requirements.
 
 ## 1. Summary
 
@@ -29,202 +29,16 @@ unmeasured, not zero.** `tokens_scope: "none"`, a fan-out window that never look
 Playbook execution, a `sort` field that did not exist when the record was written — each is absence,
 and each is reported as absence with its denominator beside it.
 
-## 2. Development status
+## 2. Screens and flow
 
-Written by the status gate after every build, verify and handoff; not by hand.
+| Screen | Route | Role | What it answers | Fields | Feature | Requirements | Mockup |
+|---|---|---|---|---|---|---|---|
+| Misses & rework | `/misses` | Owner, Author | **What was missed, which practice let it through, and what did the repair cost?** This is the schema's **fourth** question (added 2026-08-28) and it is deliberately its **own page rather than a fourth band on Gate outcomes** — the three questions are canon and a well-understood surface, and adding to them would dilute it. Its *escape share* is a different measurement from Gate outcomes' *escape rate* and the two are never merged. Two tests of “still open” deliberately disagree and are never reconciled (BRD-120): the open-misses tile leaves out `wont-fix`, while the framework's own check keeps a `wont-fix` miss live, because the next failure on that REQ is the same defect. Each of the four answers to *whose gap was it* has its own fixed remedy, shown beside it. | Four bands: KPI row · where misses come from (origin phase × class, **beside the `sort` distribution — whose gap it was — in words, with its `n of N sorted` denominator**, and beside the failed-practice distribution) · who was running (model + agent, `linked` only, labelled observational) · cost of rework (measured \| apportioned \| unattributable) **and what reviews cost, per review phase, copied never computed**; per-miss detail table **carrying the one-sentence `what` description** with the raw record behind a disclosure; period filter defaulting to **all history**; Framework switch | F-MISS | [BRD‑118](#brd-118) · [BRD‑119](#brd-119) · [BRD‑120](#brd-120) · [BRD‑121](#brd-121) · [BRD‑122](#brd-122) · [BRD‑123](#brd-123) · [BRD‑124](#brd-124) · [BRD‑125](#brd-125) · [BRD‑126](#brd-126) · [BRD‑167](#brd-167) · [BRD‑171](#brd-171) · [BRD‑172](#brd-172) · [BRD‑173](#brd-173) · [BRD‑175](#brd-175) · [BRD‑176](#brd-176) | [misses.html](./mockups/misses.html) · Playbook state: [misses-playbook.html](./mockups/misses-playbook.html) |
+| Phase effort | `/effort` | Owner, Author, Ops (capacity) | **What did each phase cost — in time, tokens, models and subagents?** A **budgeting and capacity** view, never a quality scoreboard: `*build-phase` costing more than `*log-miss` is a fact about what those phases *are*. Quality lives on `/misses` and Coverage. Every figure carries its own denominator on screen, because a run whose token window was never computed is not a run that spent nothing. **Playbook state — Phase efficiency:** the same question, answered from the Playbook's own producer. Normalized schema-2 phase metrics with stricter bounds of their own: incomplete (`eof`) windows carry no duration, partial active-time coverage renders as an explicit lower bound, and a harness with no normalized producer reads *unsupported*, never zero. A phase is a `cmd` in `runs.jsonl`, and the main thread's own output is `tokens_out − tokens_out_subagents`. The KPI row carries fan-out coverage rather than a fan-out average because, when this was written, 1 of 13 runs on the framework's own data had been observed. Wall-clock time and observed active time add up only across executions that do not overlap; human effort is never added up because it is never captured. Incomplete rows stay visible in the table. The export writes an `effort` section. | **TechieFlow:** KPI row (runs · wall clock · output tokens with `measured on n of N` · heaviest phase · **fan-out coverage**) · phase table one row per `cmd` sorted by output share, with `Measured` as a **column** · expandable per-phase detail (Time · Tokens with mean beside median · By model · Fan-out with the declared-vs-measured line) · routing band · Framework switch. **Playbook:** summary cards (completed phases · median & p90 wall clock · complete-coverage active time with `n of N eligible` · five-part token breakdown · measured cost, with rate-card estimates on a **separate** card · `contributors / spawned` · data-quality cards) · charts · execution table with expandable per-model usage, subagent tree and data-quality explanations · filters · empty & unsupported states | F-EFFORT | [BRD‑146](#brd-146) · [BRD‑147](#brd-147) · [BRD‑148](#brd-148) · [BRD‑149](#brd-149) · [BRD‑150](#brd-150) · [BRD‑151](#brd-151) · [BRD‑156](#brd-156) · [BRD‑157](#brd-157) · [BRD‑158](#brd-158) · [BRD‑159](#brd-159) · [BRD‑160](#brd-160) · [BRD‑161](#brd-161) · [BRD‑162](#brd-162) · [BRD‑163](#brd-163) | [effort.html](./mockups/effort.html) · Playbook state: [effort-playbook.html](./mockups/effort-playbook.html) |
+| Playbook framework state of the report pages | `/` · `/gate-outcomes` · `/harness` · `/routing` · `/misses` · `/effort` · `/export`, Playbook state | User, Owner | **Do the same reports work for Playbook projects?** The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data gets the whole report set, not one page: the single `/playbook` page is retired and every report page has a Playbook state, chosen by the header Framework switch ([BRD‑108](./TfLens-BRD.md#brd-108)), which shows each framework's repo count. Data arrives two ways. **(1)** A Playbook repo that writes the schema v1 streams — as SCHEMA.md §11 says it will once it grows agents — goes through the same parser, engine and pages, with nothing new but the framework tag set when the repo is connected, and the switch. **(2)** Otherwise the Playbook exporter's normalized output, written to standard output with its diagnostics on standard error, is uploaded through Import metric files. On Gate outcomes the Playbook state is keyed by `phase_gate` — plan review · verify · gap report · post-verification bugs. When the Playbook converges on schema v1, the second path shrinks to nothing. Built in phase 3, after the TechieFlow reports had shipped and passed parity (owner decision 2026-08-26). | Framework switch in the header (TechieFlow \| Playbook, persisted per user); each report page in its Playbook state with the same layout; Gate outcomes keyed by `phase_gate`; Coverage showing the imported Playbook streams; `/misses` and `/effort` with real figures where the Playbook emits them, the empty state elsewhere | F-FRAMEWORK | [BRD‑73](#brd-73) · [BRD‑74](#brd-74) · [BRD‑75](#brd-75) · [BRD‑76](#brd-76) · [BRD‑108](./TfLens-BRD.md#brd-108) · [BRD‑109](#brd-109) · [BRD‑110](#brd-110) · [BRD‑126](#brd-126) · [BRD‑153](#brd-153) · [BRD‑162](#brd-162) · [BRD‑163](#brd-163) · [BRD‑165](#brd-165) · [BRD‑167](#brd-167) | [playbook.html](./mockups/playbook.html) (Coverage) · [gate-outcomes-playbook.html](./mockups/gate-outcomes-playbook.html) · [harness-playbook.html](./mockups/harness-playbook.html) · [routing-playbook.html](./mockups/routing-playbook.html) · [misses-playbook.html](./mockups/misses-playbook.html) · [effort-playbook.html](./mockups/effort-playbook.html) · [export-playbook.html](./mockups/export-playbook.html) |
+| Price providers | `/prices` | User | **Where does each rate come from, and how current is it?** The price list every money figure is priced from: a published rate applied to measured tokens, reported as a list price and never as spend. It sits in the sidebar as the second Workspace item, under Repos, not among the reports, because it is an input someone maintains rather than a figure the streams produced; every report that shows money reads it and none can edit it. A rate read from a provider's own endpoint and a rate typed from its published page are visibly different claims. Added 2026-09-11; its mockup was drawn after the page was built. | Rate count; standing note that nobody was billed these amounts; one card per provider (name, published-page link, endpoint-or-typed badge, last-checked date, Refresh for an endpoint provider, Remove) with its rates table (model · input · output · cache read · cache write, USD per 1M tokens, paged); clash warning when two providers price one model; Add a provider (name, published page, endpoint optional); Add or change a rate (provider, model id, four rates) | F-UI, F-ENGINE | [BRD‑200](#brd-200) · [BRD‑201](#brd-201) | [prices.html](./mockups/prices.html) |
 
-**Snapshot as of 2026-09-09.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
-
-| Screen | Requirements | Verified | Open | Status |
-|---|---|---|---|---|
-| UI / Pages | 12 | 10 | 2 | Partial |
-| Functional requirements | 50 | 48 | 2 | Partial |
-| Non-functional | 11 | 11 | 0 | Done |
-
-## 3. Screens and flow
-
-| Screen | Route | What it answers | Feature | Requirements | Mockup |
-|---|---|---|---|---|---|
-| Misses & rework | `/misses` | **What was missed, which practice let it through, and what did the repair cost?** This is the schema's **fourth** question (added 2026-08-28) and it is deliberately its **own page rather than a fourth band on Gate outcomes** — the three questions are canon and a well-understood surface, and adding to them would dilute it. Its *escape share* is a different measurement from Gate outcomes' *escape rate* and the two are never merged. | F-MISS | [BRD‑118](#brd-118) · [BRD‑119](#brd-119) · [BRD‑120](#brd-120) · [BRD‑121](#brd-121) · [BRD‑122](#brd-122) · [BRD‑123](#brd-123) · [BRD‑124](#brd-124) · [BRD‑125](#brd-125) · [BRD‑126](#brd-126) · [BRD‑167](#brd-167) · [BRD‑171](#brd-171) · [BRD‑172](#brd-172) · [BRD‑173](#brd-173) · [BRD‑175](#brd-175) · [BRD‑176](#brd-176) | [misses.html](./mockups/misses.html) · Playbook state: [misses-playbook.html](./mockups/misses-playbook.html) |
-| Phase effort | `/effort` | **What did each phase cost — in time, tokens, models and subagents?** A **budgeting and capacity** view, never a quality scoreboard: `*build-phase` costing more than `*log-miss` is a fact about what those phases *are*. Quality lives on `/misses` and Coverage. Every figure carries its own denominator on screen, because a run whose token window was never computed is not a run that spent nothing. | F-EFFORT | [BRD‑146](#brd-146) · [BRD‑147](#brd-147) · [BRD‑148](#brd-148) · [BRD‑149](#brd-149) · [BRD‑150](#brd-150) · [BRD‑151](#brd-151) | [effort.html](./mockups/effort.html) |
-| Playbook framework state of the report pages | `/effort` | **Phase efficiency — the same question, answered from the Playbook's own producer.** Normalized schema-2 phase metrics with stricter bounds of their own: incomplete (`eof`) windows carry no duration, partial active-time coverage renders as an explicit lower bound, and a harness with no normalized producer reads *unsupported*, never zero. | F-EFFORT, F-FRAMEWORK | [BRD‑156](#brd-156) · [BRD‑157](#brd-157) · [BRD‑158](#brd-158) · [BRD‑159](#brd-159) · [BRD‑160](#brd-160) · [BRD‑161](#brd-161) · [BRD‑162](#brd-162) · [BRD‑163](#brd-163) | [effort-playbook.html](./mockups/effort-playbook.html) |
-
-## 4. Feature catalog
-
-### F-MISS: Misses and rework economics
-
-**Personas:** Owner, Author · **Phase:** 3 *(added 2026-08-28 — source: `docs/Miss-Telemetry-TfLens.md`)*
-
-TechieFlow gained a **fifth stream** on 2026-08-28, `docs/metrics/misses.jsonl`, and it is the first stream whose records do not all have the same shape. It carries three record kinds linked by `miss_id`: a **`miss`** (what was missed, which phase/agent/model let it through, who found it), a **`miss-fix`** (the repair run, its outcome, its token and cost window) and a **`miss-amend`** (an append-only way to *complete* a field the `miss` left `null` — it may fill a `null`, and may never overwrite a value, including one an earlier amend set). TfLens pulls it, archives it, parses it, stores it, computes over it and shows it on a sixth report page, under the same provenance discipline it already applies to the four existing streams. The producing side is real, not hypothetical: `tf-metrics.sh --rollup --json` already reports a `misses` block, so every figure here is parity-diffable from the first commit and none ships marked unverified.
-
-**Why this feature gets its own guards.** The product's stated dangerous failure mode is a *plausible wrong number* (§1), and miss data is the most seductive material in the system for producing one, because it invites three specific mistakes that all look like ordinary arithmetic:
-
-1. **Presenting an apportioned cost as a measured one.** A fix run that repaired three misses has **one** token window. Dividing by three is arithmetic, not measurement.
-2. **Presenting an inferred attribution as an observed one.** *"This model produces the most misses"* is a career-shaping claim if half the attributions were guessed.
-3. **Rendering an optional field's distribution over the whole population.** `why_missed` is optional and `null` means *not assessed*, never a zero in some category; using the miss count as the denominator understates every category at once.
-
-All three are handled the way TfLens already handles live-vs-backfilled: **in the shape of the result type, with no switch to relax it** (ADR-007's technique, applied twice more — ADR-019).
-
-**Two open predicates that deliberately disagree.** The lifecycle splits three ways and TfLens must not reconcile the first two, because they answer different questions:
-
-| Question | Predicate | Where it belongs |
-|---|---|---|
-| How much work is outstanding? (the backlog the owner reads) | latest `MissFix.VerdictAfter ∉ {Verified, wont-fix}` | the KPI tile **open misses** |
-| Is this defect still live? (the producer's collapse check) | latest `VerdictAfter != "Verified"` — **`wont-fix` is still live** | not TfLens's job; it explains the gap |
-| Deliberately declined | latest `VerdictAfter == "wont-fix"` | its own tile, never folded into open |
-
-`deferred` is outstanding work and stays **open** in both. `wont-fix` is a decision, not a backlog item — but the next failure on that REQ is still the same defect, which is why the producer's check keeps it live. A reviewer will eventually try to "fix" one of these to match the other; the standing comment in `tf-metrics.sh` and BRD-120 exist to stop that.
-
-*Amended 2026-09-08 (the `sort` / `what` / `review` fields).* The stream gained two fields and a **fourth record kind** on 2026-09-07, and together they change what this page is for. `miss_class` says **what broke**; the new **`sort`** says **whose gap it was** — the project's own specification, something the framework never said anywhere, a check that existed and was too weak, or a rule that was written down and ignored — and each of those four has a **different fixed remedy**. On the framework's own 126 misses roughly half sorted `weak-check`: the dominant failure is not a missing rule but a weak check, which no class-only chart can show. The page therefore carries the two distributions **side by side and never merged** (BRD-171), written out in words rather than as raw values. **`what`** puts the owner's own sentence on the row (BRD-173), because a miss identified only by a class and a date is unrecognisable a month later. The fourth kind, **`review`**, is not a miss at all and is never counted as one (BRD-174) — it prices what an owner review cost, which is the only record anywhere in the streams that puts a number on a **specification** defect. The honest denominator is the whole difficulty: both fields arrived after most of the records did — **286 of 359 misses across the estate carry no `sort`** — and those records are reported as **predating the field, never as unsorted** (BRD-172).
-
-| Screen | Route | Description | Mockup |
-|--------|-------|-------------|--------|
-| Misses & rework | `/misses` | Four bands: KPI row · where misses come from (origin phase × class, **beside the `sort` distribution — whose gap it was — in words, with its `n of N sorted` denominator**, and beside the failed-practice distribution) · who was running (model + agent, `linked` only, labelled observational) · cost of rework (measured \| apportioned \| unattributable) **and what reviews cost, per review phase, copied never computed**; per-miss detail table **carrying the one-sentence `what` description** with the raw record behind a disclosure; period filter defaulting to **all history**; Framework switch | [misses.html](./mockups/misses.html) · Playbook state: [misses-playbook.html](./mockups/misses-playbook.html) |
-
-```mermaid
-flowchart TB
-  A["misses.jsonl (raw archive)"] --> B{"record kind?"}
-  B -->|"miss"| C["Miss table"]
-  B -->|"miss-fix"| D["MissFix table"]
-  B -->|"miss-amend"| E["MissAmend table (stored, never collapsed)"]
-  B -->|"anything else"| F["InvalidLines++ and skip"]
-  C --> G["Fold amendments at READ time, oldest first<br/>fill null only, allowlist + closed vocabulary"]
-  E --> G
-  G --> H{"OriginConfidence == linked?"}
-  H -->|"no"| I["MissAttributionTaint: excluded and COUNTED"]
-  H -->|"yes"| J["per-phase / per-model / per-agent figures"]
-  D --> K{"CostAttribution"}
-  K -->|"sole"| L["MissCost.Sole (measured)"]
-  K -->|"shared:n"| M["MissCost.Apportioned (labelled)"]
-  K -->|"none"| N["MissCost.NoneCount (no numbers at all)"]
-```
-
-**Workflow:**
-1. Sync fetches `misses.jsonl` at the pinned SHA, archives it verbatim, and parses it — dispatching on each record's own `kind` **within** the misses stream. An unknown `kind` is counted as an invalid line and skipped, never thrown (the same contract as a malformed line, BRD-25).
-2. Storage upserts into `Miss` / `MissFix` / `MissAmend` on their natural keys. Amend rows are **stored, not collapsed** — folding is a read-time operation, so `rebuild` re-derives identical values.
-3. `MissMetrics` folds amendments oldest-first (re-applying the null-check while folding — a merged stream from several machines can carry an amend and a later-written value in either order), applies `MissAttributionTaint`, and returns each figure as a `Figure` and each cost as a `MissCost`.
-4. `/misses` renders the four bands; Coverage renders the data-quality facts; the export writes the `misses` section; `parity-compare.py` diffs the whole block against the oracle.
-
-**Requirements:** BRD-112, BRD-113, BRD-114, BRD-115, BRD-116, BRD-117, BRD-118, BRD-119, BRD-120, BRD-121, BRD-122, BRD-123, BRD-124, BRD-125, BRD-126, BRD-127, BRD-128, BRD-129, BRD-130, BRD-164, BRD-165, BRD-166, BRD-167, BRD-170, BRD-171, BRD-172, BRD-173, BRD-174, BRD-175, BRD-176
-
-
-### F-EFFORT: Phase effort and efficiency — what each phase cost
-
-**Personas:** Owner, Author, Ops (capacity) · **Phase:** 3 *(added 2026-09-01 — sources: `docs/Phase-Effort-Telemetry-TfLens.md` (TechieFlow), `docs/Phase-Efficiency-TfLens-Contract.md` and `docs/Miss-Telemetry-TfLens-From-AIFP.md` (AI-First-Playbook))*
-
-The owner's question is one sentence: **"how much effort, time and tokens went into each phase — with which model, for how long, and how many subagents did it spin up?"** Both frameworks now answer it, and both shipped their producer before this consumer existed, so nothing here is speculative.
-
-**What was already there, and what genuinely was not.** On the TechieFlow side, most of the answer had been in `runs.jsonl` since the stream started: `cmd` is the phase, `started`/`ended`/`duration_s` the time, the §2.5 fields the tokens and the model, `harness` the harness, `mode`/`attempt` the build-vs-rework split. What was missing was **an aggregation** — nothing grouped by `cmd` — plus three fields that were self-reported or not represented at all, shipped 2026-08-31 as SCHEMA §2.6:
-
-| Field | Type | Why it had to exist |
-|---|---|---|
-| `subagent_runs` | `int?` | *"How many subagents did it spin?"* had **no honest answer**. `subagents` is a list of agent *kinds* the agent types into its own emit — it carries no count when the same kind is spawned four times, and nothing checked it against reality. `subagent_runs` is **counted from the harness's own store** |
-| `tokens_out_subagents` | `int?` | The share of the window the children actually consumed; `tokens_out − tokens_out_subagents` is the main thread's own |
-| `model_tokens_out` | `Dictionary<string,long>?` | The per-model **split**, not just the winner's name |
-
-`subagents` stays alongside `subagent_runs` because they answer different questions — *which kinds were invoked* (only the agent knows) versus *how many actually ran* (only the harness knows) — and **where they disagree the measured one is right**. The gap between them is itself a finding about how accurately tasks self-report, so the page shows both (BRD-149).
-
-The model split matters more than the model name. A run that spent 90% of its output on one model and 10% on another, and a run that split evenly, are different facts about cost and about routing; `model` (dominant) and `models` (the set) cannot tell them apart, so **any per-model effort figure built on `model` alone silently attributes the whole window to the winner** (BRD-150). The Playbook states the identical rule from the other side: never group a mixed-model execution solely under its dominant model (BRD-158).
-
-**The three denominators — the whole feature rests on these.** Every figure on this page is bounded, and the bound is **on screen next to the figure**, never in a tooltip. This is the same discipline `/misses` applies to `n of N assessed`, for the same reason: *an exclusion the reader cannot see is indistinguishable from a bug.*
-
-| Bound | Excludes | Renders as |
-|---|---|---|
-| **Token window** (BRD-146) | runs with `tokens_scope: "none"` or no scope — no token numbers exist for them | `measured on n of N runs` on every token tile |
-| **Fan-out observation** (BRD-147) | runs whose window was not `tree` scope, split **two ways**: `unobserved_not_tree` (*we did not look*) and `unobserved_predates_field` (*we could not have looked* — written before 2026-08-31) | `observed_n of runs` **first**, numbers second; `observed_n == 0` reads **"not observed"** |
-| **Playbook completeness** (BRD-155, BRD-161) | `complete:false` / EOF windows from duration figures; `active_coverage != "complete"` from active-time comparisons; `data_quality.valid:false` from every numeric aggregate | `n of N eligible` beneath each card; incomplete rows stay visible in the table |
-
-The fan-out bound is the one most likely to be got wrong, **and it fails silently**. A `main`-scope window never read the subagent transcripts at all, so `subagent_runs` is absent — and a consumer that coerces that to `0` reports *"this phase spawns no subagents"* when the truth is *"we did not look."* Pooling the two produces a confident fan-out average largely composed of runs that could not have seen a subagent. On today's framework data the honest headline is **1 of 13 runs observed**, which is why the KPI row carries fan-out **coverage** rather than a fan-out average.
-
-**Three timing concepts that must never substitute for one another** (BRD-156), from the Playbook contract:
-
-| Concept | What it means | Summable? |
-|---|---|---|
-| **Wall-clock elapsed** | how long the command window stayed open | across non-overlapping executions |
-| **Observed active time** | the **union** of assistant-message and tool intervals across main and child sessions; overlapping and nested work counted **once** | across non-overlapping executions |
-| **Human effort** | time a person spent reading, deciding, waiting, reviewing | **never captured, never inferred** |
-
-`assistant_elapsed_ms` and `tool_elapsed_ms` are diagnostic sums that legitimately overlap — an assistant envelope can contain tool execution — so the producer unions the intervals and TfLens **never adds the components**. Observed active time is busy wall time and is never labelled human effort, CPU time, utilization or additive compute.
-
-**Command phase, not conceptual phase** (BRD-157). The Playbook's `phase` field is the slash command, and one command can contain several lifecycle stages — `/implement` covers build *and* self-review, `/verify` covers verify *and* the results gate. TfLens labels the dimension **Command phase** and never splits one window between conceptual phases by token proportion. The same producer has **no trustworthy cross-command task identity**, so a whole-task total requires an explicit cohort (repository + checklist + the exact execution IDs or time boundary) supplied by ingestion; a reused `session_id` is **not** sufficient, because one session may execute several tasks, and inferring a cohort from it would group unrelated work under a confident total.
-
-| Screen | Route | Description | Mockup |
-|--------|-------|-------------|--------|
-| Phase effort (TechieFlow) | `/effort` | KPI row (runs · wall clock · output tokens with `measured on n of N` · heaviest phase · **fan-out coverage**) · phase table one row per `cmd` sorted by output share, with `Measured` as a **column** · expandable per-phase detail (Time · Tokens with mean beside median · By model · Fan-out with the declared-vs-measured line) · routing band · Framework switch | [effort.html](./mockups/effort.html) |
-| Phase efficiency (Playbook) | `/effort` | Summary cards (completed phases · median & p90 wall clock · complete-coverage active time with `n of N eligible` · five-part token breakdown · measured cost, with rate-card estimates on a **separate** card · `contributors / spawned` · data-quality cards) · charts · execution table with expandable per-model usage, subagent tree and data-quality explanations · filters · empty & unsupported states | [effort-playbook.html](./mockups/effort-playbook.html) |
-
-```mermaid
-flowchart TB
-  A["runs.jsonl (TechieFlow)"] --> B{"tokens_scope?"}
-  B -->|"none / absent"| C["tokens_unmeasured_n<br/>excluded, NEVER counted as zero"]
-  B -->|"main / conversation"| D["token figures OK<br/>fan-out: unobserved_not_tree"]
-  B -->|"tree"| E{"subagent_runs present?"}
-  E -->|"no (pre 2026-08-31)"| F["fan-out: unobserved_predates_field"]
-  E -->|"yes"| G["fanout.observed_n<br/>the DENOMINATOR, shown first"]
-  H["phase-metric NDJSON (Playbook, schema 2)"] --> I{"data_quality.valid?"}
-  I -->|"false"| J["QUARANTINE<br/>zero-valued totals never aggregate"]
-  I -->|"true"| K{"complete?"}
-  K -->|"false (eof)"| L["no elapsed, no duration figure<br/>visible in the table"]
-  K -->|"true"| M{"active_coverage?"}
-  M -->|"partial / unavailable"| N["lower bound only<br/>excluded from comparisons"]
-  M -->|"complete"| O["eligible for active-time comparison"]
-  D --> P["/effort — every figure beside its denominator"]
-  G --> P
-  O --> P
-  L --> P
-  N --> P
-```
-
-**What this page is not.** Effort per phase is a **budgeting and capacity** view, not a quality scoreboard — quality lives on `/misses` and `/coverage`. `*build-phase` costing more than `*log-miss` is a fact about what those phases *are*, not evidence that one is inefficient, and the page must not frame it as such (BRD-169). Nor is there a per-REQ effort view, per-subagent detail, or an estimated dollar anywhere on it.
-
-**Workflow:**
-1. **TechieFlow:** the ordinary sync fetches `runs.jsonl` at the pinned SHA; the parser stores the three §2.6 fields as **nullable** (BRD-145) and an unrecognised producer field goes to `Overflow`, never to `InvalidLines` — §2.5 added fields in August, §2.6 added more, and it will happen again.
-2. **Playbook:** the user runs the framework's own exporter and uploads its stdout through **Import metric files** (BRD-153); `TelemetryImportService` recognises the two new entries, archives the bytes verbatim, and hands them to the same parser — no second ingest path (BRD-132).
-3. `PhaseMetrics` groups TechieFlow runs by `cmd` and applies the three denominators; the Playbook adapter validates the §3.1 invariants, quarantines invalid rows, and aggregates `phase_model_usage` for anything per-model.
-4. `/effort` renders both axes behind the Framework switch; the export writes an `effort` section; `parity-compare.py` diffs the whole `phases` block against the oracle (BRD-152).
-
-**Requirements:** BRD-145, BRD-146, BRD-147, BRD-148, BRD-149, BRD-150, BRD-151, BRD-152, BRD-153, BRD-154, BRD-155, BRD-156, BRD-157, BRD-158, BRD-159, BRD-160, BRD-161, BRD-162, BRD-163, BRD-168, BRD-169
-
-
-### F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)
-
-**Personas:** User, Owner · **Phase:** 3 *(amended 2026-08-26: replaces "F-PB: Playbook adapter and page")*
-
-TfLens is a lens over **both** frameworks. The owner will build applications on the AI-First-Playbook specifically to collect its telemetry, so Playbook data deserves the same reports as TechieFlow data — not a single page. **Framework** is therefore a third provenance axis beside live/backfilled and `project_type`: every report page (Coverage, Gate outcomes, Harness comparison, Routing & economics, **Misses & rework**, **Phase effort** and Snapshot export) carries a **Framework switch** (TechieFlow | Playbook) in the header, and no figure ever pools across frameworks — the same rule, applied once more. The single `/playbook` page is retired; its content becomes the Playbook state of the report pages.
-
-*Amended 2026-09-01.* The Playbook is **no longer a schema-discovery problem**. It now publishes two normalized producer contracts — a schema-2 `phase-metric` record (`docs/Phase-Efficiency-TfLens-Contract.md`) and a normalized miss export (`docs/Miss-Telemetry-TfLens-From-AIFP.md`) — both emitted as NDJSON on the exporter's **stdout**, with diagnostics on stderr. That changes what path 2 below actually is, and it changes what the Playbook axis of `/misses` shows: real figures where the Playbook emits them, not a blanket empty state (BRD-167). What does **not** change is the axis separation: Playbook `item_id` and TechieFlow `req_id` are two names for the requirement axis, and Playbook process `found_phase_gate` and TechieFlow assertion `found_gate` are two genuinely different measurements — neither pair ever shares a column or a chart (BRD-165), for the same reason `phase_gate` and `gate` never have.
-
-Two ingestion paths, one set of pages:
-
-1. **Schema v1 streams from a Playbook repo.** SCHEMA.md §11 says the Playbook will emit the same four streams (plus `actor`) when it grows agents. A repo whose telemetry path is `docs/metrics/` flows through the *same* parser, engine and pages automatically, tagged `framework: playbook` at connect time — zero new code beyond the tag and the switch.
-2. **The Playbook's own normalized exports** (rewritten 2026-09-01). `verification/telemetry/events.ndjson` is **transient and rotates** — it is the exporter's input, not TfLens's. What TfLens consumes is the exporter's normalized stdout: schema-2 `phase-metric` rows (→ three tables, `PbPhaseExecution` / `PbPhaseModelUsage` / `PbPhaseSubagent`, BRD-154) and normalized `miss` / `miss-fix` / `miss-amend` rows (→ the **existing** three miss tables, with the Playbook axes as their own nullable columns, BRD-164). Because the file rotates, TfLens cannot fetch it on a schedule and must not ask the Playbook to commit it, so it arrives through **Import metric files** (BRD-153) — the mode that already exists for exactly this shape of problem. Playbook-native equivalents still cover the three questions per **`phase_gate`** (plan review · verify · gap report · post-verification bugs), phase token/cost totals, main-vs-subagent split and routing/tokens by model. Playbook process-gates (`phase_gate`) and TechieFlow assertion-gates (`gate`) never share a column or a chart (SCHEMA.md §11). Schema discovery is **satisfied for these two record types** — the contracts document every field — and remains open only for anything the exporter does not yet normalize. When the Playbook converges on schema v1, path 2 shrinks to nothing.
-
-Phase order (owner decision 2026-08-26): Phase 3 — after the TechieFlow reports ship and pass parity. Until then the Playbook state of each page shows the "No Playbook data yet" empty state.
-
-| Screen | Route | Description | Mockup |
-|--------|-------|-------------|--------|
-| Framework switch | (header, every report page) | Segmented control TechieFlow / Playbook; persisted per user; badge with each framework's repo count | [coverage.html](./mockups/coverage.html) (header) |
-| Report pages — Playbook state | `/`, `/gate-outcomes`, `/harness`, `/routing`, `/misses`, `/effort`, `/export` | Same layouts as the TechieFlow state; Gate outcomes keyed by `phase_gate`; Coverage shows the imported Playbook streams; `/misses` and `/effort` render real figures where the Playbook emits them (BRD-162, BRD-167), empty state elsewhere | [playbook.html](./mockups/playbook.html) (Coverage) · [gate-outcomes-playbook.html](./mockups/gate-outcomes-playbook.html) · [harness-playbook.html](./mockups/harness-playbook.html) · [routing-playbook.html](./mockups/routing-playbook.html) · [misses-playbook.html](./mockups/misses-playbook.html) · [effort-playbook.html](./mockups/effort-playbook.html) · [export-playbook.html](./mockups/export-playbook.html) |
-
-```mermaid
-flowchart LR
-  A["Connected repo"] --> B{"Telemetry path?"}
-  B -->|"docs/metrics (schema v1)"| C["StreamParser + MetricsEngine<br/>framework tag = techieflow or playbook"]
-  B -->|"verification/telemetry/events.ndjson"| D["PlaybookAdapter (Phase 3)<br/>PbEvent tables, phase_gate axis"]
-  C --> E["Report pages<br/>Framework switch"]
-  D --> E
-  E --> F["Never pooled across frameworks"]
-```
-
-**Workflow:**
-1. Connect detects the path → tags the repo `framework` (F-REPOS).
-2. Sync archives raw and parses via the matching path.
-3. Every page filters by the selected framework; export writes one snapshot per framework.
-
-**Requirements:** BRD-73, BRD-74, BRD-75, BRD-76, BRD-108, BRD-109, BRD-110, BRD-126, BRD-153, BRD-162, BRD-163, BRD-165, BRD-167
-
-
-## 5. Requirements
+## 3. Requirements
 
 - <a id="brd-73"></a>**BRD-73** — System shall fetch `verification/telemetry/events.ndjson` (and the joiner output if committed) for Playbook repos that carry it, archive raw, and parse into separate `PbEvent` tables with overflow. **Amended 2026-09-01:** `events.ndjson` is the Playbook exporter's **transient** input — it rotates by design and is frequently absent — so it is a best-effort fetch, never a required one, and its absence is never an error nor a zero-valued run. The Playbook's durable, normalized inputs are the exporter's stdout (schema-2 `phase-metric` rows, BRD-153) and its committed `misses.ndjson`, and TfLens never runs the exporter itself. *(F-FRAMEWORK — amended 2026-08-26, 2026-09-01)*
 - <a id="brd-74"></a>**BRD-74** — System shall keep Playbook `phase_gate` data in separate tables and charts from TechieFlow `gate` data — never a shared column or chart. *(F-FRAMEWORK)*
@@ -252,7 +66,7 @@ flowchart LR
 - <a id="brd-125"></a>**BRD-125** — The `/misses` page shall default to **all history**, with a period filter that narrows the view but does not gate the first one — miss counts are low-volume and a default period would routinely render `insufficient data (n=…)` on a page whose whole job is to show a trend. *(F-MISS)*
 - <a id="brd-126"></a>**BRD-126** — `/misses` shall carry the header Framework switch like every other report page and shall show the `PlaybookEmpty` state on the Playbook axis until the Playbook emits miss data; the switch is rendered, never hidden, for a surface one framework has and the other does not. **Amended 2026-09-01:** the Playbook *does* now emit miss data, so the empty state is no longer the permanent condition of that axis — it is what shows when no Playbook miss records have been imported for the signed-in user. Where they have, the axis renders real figures (BRD-167). *(F-MISS, F-FRAMEWORK — amended 2026-09-01)*
 - <a id="brd-127"></a>**BRD-127** — Owner can see, on Coverage: the per-repo stream table with **five** rows; `escapes_missing_why` (escapes arriving with no `WhyMissed` — a data-quality figure, stated here and never on the `/misses` KPI row); the **`project_type` reclassification split** stated in words whenever a repo's current classification disagrees with its own stored records, each segment described as a *period* of the project rather than as the whole of it; and the orphan `miss-fix` / `miss-amend` counts. A repo emitting misses with no `miss-fix` records at all is a **warning, not an error**. **Amended 2026-09-08:** Coverage gains **two field-completeness counts** — misses carrying no `sort` and misses carrying no `what` — each stated per repo **as a count against that repo's eligible misses**, never as a health failure. Both are large today and will stay large: across the estate **286 of 359 misses carry no `sort`**, and on TfLens's own repository the figure is every record it has. That is a field arriving after the records did, which is why the count belongs on the data-quality page beside the other provenance facts and **never on the `/misses` KPI row**. *(F-MISS, F-COVER)*
-- <a id="brd-128"></a>**BRD-128** — System shall write a `misses` section into both export files; the attribution split shall survive into the JSON as **three distinct keys**, never collapsed for tidiness, and every rate-card figure's key shall end `_usd_estimate` while measured ones do not. *(F-MISS, F-EXPORT)*
+- <a id="brd-128"></a>**BRD-128** — System shall write a `misses` section into both export files; the attribution split shall survive into the JSON as **three distinct keys**, never collapsed for tidiness, and every rate-card figure's key shall end `_usd_estimate` while measured ones do not. **Amended 2026-09-11:** a list price is labelled as a list price, not as an estimate, so `list_usd` and `cost_list_usd_per_miss` (BRD-195, BRD-197) keep their names. *(F-MISS, F-EXPORT — amended 2026-09-11)*
 - <a id="brd-129"></a>**BRD-129** — Parity shall cover the miss figures key-for-key against `tf-metrics.sh --rollup --json`'s `misses` block (`misses_total` · `miss_fixes_total` · `orphan_fixes` · `open_misses` · `wont_fix` · `resolved_misses` · `why_missed_n` · `why_missed{}` · `escapes_missing_why` · `why_missed_eligible` · `why_missed_predates_field` · `amendments_applied` · `orphan_amends` · `class_distribution{}` · `found_by{}` · `design_miss_share` · `escape_share` · `attributed_n` · `attribution_excluded` · `by_origin_phase{}` · `by_origin_model{}` · `by_origin_agent{}` · `cost_sole_n` · `cost_shared_n` · `cost_unattributable_n` · `tokens_per_miss_measured` · `tokens_per_miss_apportioned` · `cost_usd_per_miss_measured` · `cost_usd_records`) — the oracle already ships them, so no miss figure ships marked unverified. *(F-MISS, F-PARITY)*
 - <a id="brd-130"></a>**BRD-130** — Integrity: the miss invariants shall have no configuration switch, no query parameter and no UI toggle that relaxes them — no blended measured-and-apportioned cost anywhere (page, export or parity); no per-model or per-agent figure computed from `inferred` attributions, and no hidden exclusion count; no `WhyMissed` distribution rendered over all misses; no `wont-fix` folded into open; no rate-card dollars presented as spend; no miss record folded into the existing `gates`-derived escape rate. *(F-MISS — the NFR sibling of BRD-89)*
 
@@ -361,13 +175,62 @@ flowchart LR
 - <a id="brd-176"></a>**BRD-176** — System shall state, beside any distribution computed over folded records, **how many field values were completed by a `miss-amend`**. A reader who ignores amendments sees nothing false but sees less; a reader who folds them silently cannot tell a field that was answered from one that was answered later. BRD-116 already folds them — this clause requires the count to be **visible**. *(F-MISS, F-ENGINE)*
 - <a id="brd-177"></a>**BRD-177** — System shall segregate gate records carrying **`req_class: "FR"`** — the framework grading **itself** against its own requirement lines — from every application figure, and shall never pool them with `UI`, `FN`, `RAG` or `NFR`. A framework rule and an application screen are not the same unit and a rate computed across both measures nothing. They shall appear in their own segment or not at all; the choice to exclude is legitimate, the choice to average is not. *(F-3Q, F-ENGINE — the same boundary as `project_type`, SCHEMA §6)*
 - <a id="brd-178"></a>**BRD-178** — System shall key a requirement by **`(project, req_id)`** and never by `req_id` alone, in every rollup, join, distribution, first-pass rate, taint set, export key and parity comparison. Every project emits a `REQ-UI-001`; a rollup keyed on the id alone silently fuses TfLens's with every other project's and reports one requirement where there are many. **The framework's own combined first-pass rate read 72% under this bug and 48% once keyed correctly** — any cross-project figure TfLens publishes today is wrong by roughly that margin. *(F-ENGINE, F-3Q, F-EXPORT, F-PARITY)*
-- <a id="brd-179"></a>**BRD-179** — System shall **derive a run's `duration_s` at read time** from `started` and `ended` wherever the record omits it, treating `ts` as `ended` where `ended` is absent too (SCHEMA's own definition), and shall state **how many durations were derived** beside every time figure built on them. A summed `duration_s` that skips these records **counts them as zero time while still counting their tokens** — so a phase's time covers one set of runs and its tokens another. The framework's reset reported **16h49m** under this bug against a true **55h57m**. Across the estate **10 run records carry no duration and do carry `started` and `ended`**, so every one of them is derivable and none needs a guess. The derivation is a **read-time** operation: TfLens writes to no stream (§3) and nothing is backfilled. *(F-ENGINE, F-EFFORT)*
+- <a id="brd-179"></a>**BRD-179** — *(amended 2026-09-10 — see the amendment below; the rule below is the one in force)* System shall take a run's `duration_s` **from the record's own `started` and `ended` whenever both of them parse**, shall **override a stored `duration_s` that disagrees with those timestamps by more than one second**, shall treat a record whose **`ended` precedes its `started` as carrying no duration at all** and exclude it from every duration figure, shall count a run that **starts and ends in the same second as recording no elapsed time** rather than as corrupt, and shall fall back to a **positive stored `duration_s` only where the timestamps cannot be read**, treating `ts` as `ended` where `ended` is absent (SCHEMA's own definition). It shall state **how many durations were derived** beside every time figure built on them. A summed `duration_s` that skips records carrying two clocks and no duration **counts them as zero time while still counting their tokens** — so a phase's time covers one set of runs and its tokens another. The framework's reset reported **16h49m** under that bug against a true **55h57m**. The derivation is a **read-time** operation: TfLens writes to no stream (§3) and nothing is backfilled. *(F-ENGINE, F-EFFORT)*
 - <a id="brd-180"></a>**BRD-180** — System shall **derive `attempt` at read time** for gate records that omit it — `attempt` is *defined* as one plus the number of prior live records for the same `(project, req_id)`, a count over the stream in order and not a judgement — and shall **never alter a record that carries one**. A record with no `attempt` drops out of the first-pass rate entirely rather than failing it: **the framework's own twelve requirement verdicts, all passing, reported a first-pass rate of 0%.** Across the estate **80 gate records carry no `attempt`**. Like BRD-179 this is derived by the reader and **never backfilled**, and the derived count is stated beside the rate. *(F-ENGINE, F-3Q)*
 
 **I — Never drop what you do not recognise**
 - <a id="brd-181"></a>**BRD-181** — System shall **never discard or hide a record because a value is unfamiliar**. Where a vocabulary is open at the producer — `cmd`, gate `verdict`, `harness` — TfLens shall render the unrecognised value **as it stands** and count it, rather than filtering to a known list. The `cmd` vocabulary alone grew by five values on 2026-09-07 (`metrics-report`, `generate-html`, `render-workflow-docs`, `triage-and-fix`, `framework-reset`) and a whitelist would silently hide **27 records that already exist across the estate**; TfLens's own data carries a `rename-page` run and **37 off-list verdicts** (33 `PASS`, 2 `NOT-OBSERVABLE`, 2 `In Progress`) that a strict filter would erase. **Showing an unknown value is a data-quality finding; dropping it is a wrong number** — and this product exists to prevent the second one. *(F-ENGINE, F-PARSE, F-HARN, F-EFFORT)*
 
-## 6. Where the rest lives
+### Amendment 2026-09-10 — the timestamps win
+
+*Source: the TechieFlow reference of 2026-09-09, read from `.tfcore/telemetry/tf-metrics.sh` and checked against live data across the estate. The change-set and the reasoning are in [TfLens-Duration-Rule-Amendment.md](./TfLens-Duration-Rule-Amendment.md). Nothing is renumbered and nothing is removed; BRD-179 is amended in place.*
+
+**What changed, and why a stored number is no longer trusted.** The old rule filled in gaps: a record with no `duration_s` had one worked out from its own clocks, and a record that already carried one was left alone. That was right when the only problem was an absent field. It is wrong now, because a stored duration can **contradict the record's own clocks**. TechieBlog holds fourteen such records — one storing `-166`, and thirteen storing a plausible round number (3600, 2700, 1800, 900, 600) bearing no relation to their own timestamps; one `refresh-status` record started at 20:05:00, ended at 17:59:39, and stored 600. Only the one storing the negative was ever detectable by reading the number alone. So the timestamps win, and the stored figure survives only where the timestamps cannot be read.
+
+**Why the counts ship with the rule.** Excluding a record makes a total more truthful and, on its own, makes it *less* explainable: TechieBlog's wall clock drops from **79.0 h to 72.9 h** and nothing on the page says why. A total without its exclusions is just a different wrong number, so the four counts below are published beside it. The first three **partition the live run records exactly** — measured plus impossible plus absent equals `runs_live` — and the fourth is a subset of the measured ones.
+
+- <a id="brd-189"></a>**BRD-189** — System shall publish **`duration_measured_n`**, the number of live run records that produced a usable duration, beside every duration total. It is the total's **denominator**, and a total published without it invites the reader to take it for a figure over every run. *(F-ENGINE, F-EFFORT, F-PARITY)*
+- <a id="brd-190"></a>**BRD-190** — System shall publish **`duration_impossible_n`**, the number of records whose **`ended` precedes their `started`** and which therefore carry no duration and are excluded from every duration figure. TfLens shall **never substitute, clamp or guess** a duration for such a record, and shall **never edit or delete it** — the streams are append-only (SCHEMA.md §3); the record stays, the exclusion is published. *(F-ENGINE, F-EFFORT, F-PARITY)*
+- <a id="brd-191"></a>**BRD-191** — System shall publish **`duration_absent_n`**, the number of records that **record no elapsed time** — a run that starts and ends in the same second, or one whose timestamps cannot be read and which carries no positive stored duration. A record that records no elapsed time shall be **reported in those words and never as corrupt, impossible or failing**. *"Its start is after its end"* and *"it never recorded any elapsed time"* are different facts with different remedies, and reporting the second as the first made this repository look as though it held thirty corrupt records when it held thirty runs that simply recorded no elapsed time. A reader told the wrong reason chases the wrong thing. *(F-ENGINE, F-EFFORT, F-PARITY — the same rule as BRD-146 and BRD-172, on its ninth field)*
+- <a id="brd-192"></a>**BRD-192** — System shall publish **`duration_recomputed_n`**, the number of records whose timestamps **overrode a stored `duration_s` that disagreed with them by more than one second**. The tolerance is one second so that ordinary rounding is never reported as a disagreement. This count is what makes the override auditable: a total that moved because stored figures were overridden is a **different claim** from one read straight off the stream, and without the count the two are indistinguishable. *(F-ENGINE, F-EFFORT, F-PARITY)*
+
+### Amendment 2026-09-11 — the money the framework stopped storing, and the runs it took back
+
+*Source: the TechieFlow documents of 2026-09-09 and 2026-09-10 — `TechieFlow-Telemetry-Explained.md` §5a and `TechieFlow-How-It-Works.md` §6 — plus SCHEMA.md §2.5b and §2.7. Nothing is renumbered and nothing is removed.*
+
+**What the framework decided, and why it lands here.** The framework's job is to record what it **measured**: tokens, per model, per run, and whatever cost a provider itself reported. Turning tokens into money is a **reporting** job, so from 2026-09-10 the framework stores no computed price at all and the report works one out when it runs. That is SCHEMA §8's existing rule — *derived metrics are computed, never stored* — applied to money, and it is why a rate card can change and **every run ever recorded re-prices without a single record having been wrong**. The framework's own documentation says outright that these numbers could be produced by TfLens from the same files. This amendment is TfLens taking that up.
+
+**Three money figures, never merged.** The separation is the requirement, not the presentation. A **list price** is the published rate applied to measured tokens — the only figure that compares a subscription phase with a metered one, because it asks the same question of both. **Plan allowance** is what a monthly plan's per-model limit was consumed by: a meter, not an invoice. **Money billed** is what a provider that charges per token actually charged. A flat monthly fee bills nothing extra, so a subscription's marginal cost is a true zero and is never spend.
+
+- <a id="brd-193"></a>**BRD-193** — System shall parse and store **`billing_mode`** on a `runs` and a `miss-fix` record (SCHEMA §2.5b) — `subscription`, `metered`, `plan`, `local`, `mixed` or `unknown` — and shall treat a record written before 2026-09-10 as **`unrecorded`**, counted separately and never assumed into one of the five. A change of schema shall not silently rewrite the past. *(F-PARSE, F-ENGINE)*
+- <a id="brd-194"></a>**BRD-194** — System shall publish, per phase, **`money_usd`** over `metered` records only, **`plan_allowance_usd`** and `plan_allowance_by_model` over `plan` records, and **`money_mixed_usd`** on its own line for a window that ran models paid for in different ways — real money that cannot be separated from the part a subscription had already covered. Each shall carry its own record count. These three shall **never** be added together, and a subscription's zero shall never appear as spend. *(F-EFFORT, F-ENGINE)*
+- <a id="brd-195"></a>**BRD-195** — System shall compute a **list price** for every run whose tokens were measured, at read time from a rate card, and shall publish it as **`list_usd`** with `list_usd_records` and **`list_usd_unpriced_n`** beside it. A model the card cannot price shall be **left out and counted, never priced at zero** — a phase that ran only unpriced models must not read as free. Per-model list price shall be attributed **only where the window ran one model**; splitting a mixed window's price by token share is arithmetic, not measurement. *(F-EFFORT, F-ENGINE)*
+- <a id="brd-196"></a>**BRD-196** — System shall publish the **owner-review** figures (SCHEMA §5.5.9) — `reviews_n`, `review_corrections`, `reviews_by_phase`, and the mean tokens to produce the reviewed output and to apply the corrections, each with the count of records carrying it. A review record is the **only record in any stream that prices a specification defect**, and a report showing build and verify costs but not review costs tells its reader that documents are free. Review records shall reach **no miss figure**: a review is not a mistake. *(F-MISS, F-EFFORT)*
+- <a id="brd-197"></a>**BRD-197** — System shall publish **`cost_usd_excluded_not_money_n`** — repairs whose dollars were measured and are **not money** (a subscription's zero, a local model's absent bill) — beside the measured-dollars figure and never inside it; and **`cost_list_usd_per_miss`**, the money-shaped figure that works on every harness, because a Claude Code repair can have no measured dollars at all. *(F-MISS, F-EFFORT)*
+
+**Corrections without deletion.** A stream is append-only, so a run recorded with a wrong figure can be neither edited nor deleted — and nothing inside the record says it is wrong, so every figure over it is quietly polluted.
+
+- <a id="brd-198"></a>**BRD-198** — System shall honour **`kind: "run-void"`** (SCHEMA §2.7): a correction record naming one run by `cmd` + `started` and saying why. The named run shall leave **every** figure — never clamped, halved or guessed at — the void record shall never itself be counted as a run, and the counts shall be published as **`runs_voided_n`**, the reasons as `runs_voided`, and a void naming no run on the stream as **`run_voids_orphaned_n`**. Neither record shall ever be edited or deleted. Until this shipped TfLens read **81 live runs on TechieFlow against the reference's 75** — three corrections counted as work, and the three wrong runs they corrected still inside every total. *(F-PARSE, F-ENGINE)*
+- <a id="brd-199"></a>**BRD-199** — System shall identify a run record by its **line in its source file**, not by `(ts, app, cmd)`. That key is not unique: two `log-miss` runs land in the same second, and so do two `run-void` records naming different runs — and collapsing the latter silently un-voids a run. The streams are append-only, so line *n* is always the same record: re-parsing a file shall remain the no-op BRD-28 requires, while **two byte-identical records shall both survive**. *(F-PARSE)*
+
+**The price list itself.**
+- <a id="brd-200"></a>**BRD-200** — User can see, on a **Price providers** screen, every provider a rate comes from — starting with Anthropic, OpenAI, OpenCode Go and OpenRouter — with each model's published rate, the page a person can check it against, and **when it was last checked**. User can add a provider and its endpoint, add or change a rate, and remove a provider. A provider that publishes rates as data shall be **refreshed from its own endpoint**; one that does not shall be marked as typed from its published page, and the two shall be **visibly different claims**. A rate the endpoint declines to publish (OpenRouter's `-1`) shall be **skipped, never stored and never coerced to zero**. A refresh that fails shall leave the stored rates unchanged and say so. Where two providers price the same model the first shall win and the clash shall be **reported, never averaged** — the mean of two published rates is a number nobody publishes. *(F-UI, F-ENGINE)*
+- <a id="brd-201"></a>**BRD-201** — A superseded model shall **keep its rate**. A record naming an older model is history and still has to report what it cost; dropping the rate would move those runs into `list_usd_unpriced_n` and make a past phase read as cheaper than it was. *(F-ENGINE)*
+
+## 4. Development status
+
+Written by the status gate after every build, verify and handoff; not by hand.
+
+**Snapshot as of 2026-09-13.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+
+| Screen | Requirements | Verified | Open | Status |
+|---|---|---|---|---|
+| UI / Pages | 12 | 5 | 7 | Partial |
+| Functional requirements | 50 | 50 | 0 | Done |
+| Non-functional | 11 | 6 | 5 | Partial |
+| Other | 44 | 43 | 1 | Partial |
+
+## 5. Where the rest lives
 
 | What | Where |
 |---|---|

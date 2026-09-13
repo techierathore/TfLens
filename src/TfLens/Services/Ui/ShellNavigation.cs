@@ -37,7 +37,7 @@ public static class ShellNavigation
     public const string AccountSection = "Account";
 
     /// <summary>
-    /// The eight navigation items, in the fixed working order the checklist asserts.
+    /// The nine navigation items, in the fixed working order the checklist asserts.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -45,6 +45,12 @@ public static class ShellNavigation
     /// Routing &amp; economics and Snapshot export. The position is an acceptance criterion, not a
     /// preference: the reports read left to right as coverage → quality → harness → routing → rework →
     /// export, and the export item stays last because it is the only one that leaves the app.
+    /// </para>
+    /// <para>
+    /// Amended 2026-09-11 (REQ-UI-071): <c>/prices</c> — "Price providers" — is the second Workspace
+    /// item, under Repos. It belongs beside the repositories rather than among the reports because it
+    /// is an <b>input</b>: a published rate the operator maintains, not a figure the streams produced.
+    /// Every report that shows money reads it, and none of them can edit it.
     /// </para>
     /// <para>
     /// Amended 2026-09-01 (BRD-5, BRD-151, REQ-UI-045): <c>/effort</c> — "Phase effort" — is the eighth
@@ -56,6 +62,7 @@ public static class ShellNavigation
     public static readonly IReadOnlyList<ShellNavItem> Items =
     [
         new ShellNavItem("/repos", "Repos", "git-branch", WorkspaceSection, false, false),
+        new ShellNavItem("/prices", "Price providers", "badge-dollar-sign", WorkspaceSection, false, false),
         new ShellNavItem("/", "Coverage / health", "activity", ReportsSection, true, true),
         new ShellNavItem("/gate-outcomes", "Gate outcomes", "shield-check", ReportsSection, false, true),
         new ShellNavItem("/harness", "Harness comparison", "git-compare", ReportsSection, false, true),

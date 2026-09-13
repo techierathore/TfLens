@@ -201,9 +201,12 @@ public sealed record PhaseTokens(long In, long Out, long CacheRead, long CacheWr
 /// <param name="MaxSeconds">The longest timed run, or <c>null</c> when no run was timed.</param>
 /// <param name="TimedN">Runs carrying a non-zero <c>duration_s</c>; the block's own denominator.</param>
 /// <param name="DerivedN">
-/// How many of <paramref name="TimedN"/> were computed from the record's own <c>started</c> and
-/// <c>ended</c> — or <c>ts</c>, SCHEMA.md's stand-in for an absent <c>ended</c> — because the record
-/// carried no <c>duration_s</c>. A subset of the timed runs, never an addition to them.
+/// The oracle's <c>duration_s.derived_n</c>, exported key-for-key: runs whose window this read closed
+/// from their own <c>started</c> and <c>ended</c> — or <c>ts</c>, SCHEMA.md's stand-in for an absent
+/// <c>ended</c> — because they carried no usable duration. <b>Not a subset of
+/// <paramref name="TimedN"/></b>: a run that starts and ends in the same second is closed from its
+/// timestamps and still contributes nothing, which is why a page states <see cref="DerivedTimedN"/>
+/// beside its time figure instead of this (REQ-FN-112).
 /// </param>
 public sealed record PhaseDuration(
     long TotalSeconds,
@@ -214,6 +217,37 @@ public sealed record PhaseDuration(
 {
     /// <summary>The block for a phase in which nothing was timed.</summary>
     public static PhaseDuration None { get; } = new(0, null, null, 0, 0);
+
+    /// <summary>
+    /// Timed runs whose duration was derived from the record's own timestamps — the subset of
+    /// <see cref="TimedN"/> a page states beside the time figure (REQ-FN-112, BRD-179).
+    /// </summary>
+    /// <remarks>
+    /// Always at most <see cref="TimedN"/>, so a surface can say "<i>d</i> of those <i>n</i> durations
+    /// were derived" and have it be true. <see cref="DerivedN"/> can exceed <see cref="TimedN"/> — a
+    /// phase of same-second runs is all derived and nothing timed — and printed as a share of the timed
+    /// runs it read "62 of 36", which is no count at all.
+    /// </remarks>
+    public int DerivedTimedN { get; init; }
+
+    /// <summary>
+    /// Timed runs whose timestamps overrode a stored <c>duration_s</c> that disagreed with them by more
+    /// than a second (BRD-192) — the phase's share of <c>duration_recomputed_n</c>.
+    /// </summary>
+    public int RecomputedN { get; init; }
+
+    /// <summary>
+    /// Runs whose <c>ended</c> precedes their <c>started</c>, excluded from every duration figure of the
+    /// phase (BRD-190) — the phase's share of <c>duration_impossible_n</c>.
+    /// </summary>
+    public int ImpossibleN { get; init; }
+
+    /// <summary>
+    /// Runs that recorded no elapsed time (BRD-191) — never corrupt; the phase's share of
+    /// <c>duration_absent_n</c>. With <see cref="TimedN"/> and <see cref="ImpossibleN"/> it partitions
+    /// the phase's live runs.
+    /// </summary>
+    public int AbsentN { get; init; }
 }
 
 /// <summary>
@@ -247,6 +281,17 @@ public sealed record PhaseDuration(
 /// <param name="TokensOut">Output tokens attributed to it.</param>
 public sealed record PhaseModelEffort(string Model, int Runs, long TokensOut)
 {
+    /// <summary>
+    /// What this model's tokens would cost at the published rate, or <c>null</c> where nothing prices
+    /// it (SCHEMA.md §2.5b, REQ-FN-136).
+    /// </summary>
+    /// <remarks>
+    /// Attributed only from runs that ran <b>one</b> model. Splitting a mixed window's price across its
+    /// models by token share is arithmetic, not measurement — the same line drawn everywhere else in
+    /// this file between what was observed and what was apportioned. A price, never a bill.
+    /// </remarks>
+    public decimal? ListUsd { get; init; }
+
     /// <summary>Contributing runs that carried a <c>model_tokens_out</c> split — the strong observation.</summary>
     public int RunsFromSplit { get; init; }
 
@@ -337,6 +382,24 @@ public sealed record PhaseEffortRow
     /// screen wherever a token figure is rather than in a tooltip (BRD-146).
     /// </remarks>
     public required int TokensUnmeasuredN { get; init; }
+
+    /// <summary>
+    /// The money block for one phase — three figures that are never merged (SCHEMA.md §2.5b).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>List price</b> is what these tokens would cost at the published rate: a price, computed at read
+    /// time over every record that can be priced, and the only figure that compares a subscription phase
+    /// with a metered one. <b>Plan allowance</b> is what a monthly plan's per-model limit was consumed by
+    /// — a meter, not an invoice. <b>Money billed</b> is what a metered provider actually charged.
+    /// </para>
+    /// <para>
+    /// A window that ran models paid for in different ways contributes real money that cannot be
+    /// separated from the part a subscription had already covered, so it gets its own line rather than
+    /// being folded into any of the three.
+    /// </para>
+    /// </remarks>
+    public required PhaseMoney Money { get; init; }
 
     /// <summary>The four token totals over the measured runs.</summary>
     public required PhaseTokens Tokens { get; init; }
@@ -446,6 +509,10 @@ public sealed record PhaseEffortAnalysis
         ScopeCoverage = [],
         TokensOutTotal = 0,
         DurationSecondsTotal = 0,
+        DurationMeasuredN = 0,
+        DurationImpossibleN = 0,
+        DurationAbsentN = 0,
+        DurationRecomputedN = 0,
         Phases = []
     };
 
@@ -466,6 +533,53 @@ public sealed record PhaseEffortAnalysis
 
     /// <summary>Timed wall clock across every phase — the denominator of <c>share_of_duration</c>.</summary>
     public required long DurationSecondsTotal { get; init; }
+
+    /// <summary>
+    /// Live records that produced a usable duration — the denominator of
+    /// <see cref="DurationSecondsTotal"/> (BRD-189).
+    /// </summary>
+    /// <remarks>
+    /// Published beside the total rather than left to be inferred: a total offered without it invites
+    /// the reader to take it for a figure over every run, which on TechieBlog would be 46 runs where
+    /// only 33 are usable. With <see cref="DurationImpossibleN"/> and <see cref="DurationAbsentN"/> it
+    /// partitions <see cref="RunsLive"/> exactly, so the three counts can be checked against each other.
+    /// </remarks>
+    public required int DurationMeasuredN { get; init; }
+
+    /// <summary>
+    /// Live records whose <c>ended</c> precedes their <c>started</c>, excluded from every duration
+    /// figure (BRD-190).
+    /// </summary>
+    /// <remarks>
+    /// Nothing is substituted, clamped or guessed for these, and the records themselves are never
+    /// edited or deleted — the streams are append-only (SCHEMA.md §3). They stay where they are and
+    /// this count is what the report publishes in their place.
+    /// </remarks>
+    public required int DurationImpossibleN { get; init; }
+
+    /// <summary>
+    /// Live records that recorded no elapsed time (BRD-191).
+    /// </summary>
+    /// <remarks>
+    /// A run whose start and end fall in the same second, or one whose timestamps cannot be read and
+    /// which carries no positive stored duration. This is <b>not</b> corruption and must never be
+    /// rendered as such: reporting it as impossible made the framework's own repository look as though
+    /// it held thirty corrupt records when it held thirty runs that recorded nothing, and a reader told
+    /// the wrong reason chases the wrong thing.
+    /// </remarks>
+    public required int DurationAbsentN { get; init; }
+
+    /// <summary>
+    /// Live records where the timestamps overrode a stored <c>duration_s</c> that disagreed with them
+    /// by more than a second (BRD-192).
+    /// </summary>
+    /// <remarks>
+    /// A subset of <see cref="DurationMeasuredN"/>, never an addition to it. It is what makes the
+    /// override auditable: a total that moved because stored figures were overridden is a different
+    /// claim from one read straight off the stream, and without this count the two are
+    /// indistinguishable.
+    /// </remarks>
+    public required int DurationRecomputedN { get; init; }
 
     /// <summary>One row per <c>cmd</c>, heaviest measured output first.</summary>
     public required IReadOnlyList<PhaseEffortRow> Phases { get; init; }
@@ -490,6 +604,17 @@ public sealed record PhaseEffortAnalysis
     /// being told is how many of them were worked out rather than read.
     /// </remarks>
     public int DurationsDerivedN => Phases.Sum(aRow => aRow.Duration.DerivedN);
+
+    /// <summary>
+    /// Timed runs whose duration was derived from their own timestamps, across every phase — the count
+    /// the wall-clock headline states beside <see cref="DurationSecondsTotal"/> (REQ-FN-112).
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="DurationsDerivedN"/> this is a subset of <see cref="DurationMeasuredN"/>, so it
+    /// can be read as "<i>d</i> of the <i>n</i> timed runs" without claiming more derived durations than
+    /// there are durations.
+    /// </remarks>
+    public int DurationsDerivedTimedN => Phases.Sum(aRow => aRow.Duration.DerivedTimedN);
 }
 
 /// <summary>
@@ -504,4 +629,181 @@ public static class PhaseShare
 {
     /// <summary>What a share reads when its denominator is zero.</summary>
     public const string NotApplicable = "—";
+
+    /// <summary>
+    /// The share of all measured output a surface may show for one phase (REQ-FN-089, BRD-146).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PhaseEffortRow.ShareOfTokensOut"/> stays the oracle's own string, because the export is
+    /// diffed against the reference key-for-key (BRD-152) — and for a phase measured on no run the
+    /// reference writes <c>"0%"</c>, a share of zero taken over tokens nobody counted. Printed on a page
+    /// that is the zero standing in for "not measured" BRD-146 forbids. A surface therefore reads the
+    /// share through this method: <see cref="NotApplicable"/> where no run carried a token window, the
+    /// oracle's string unaltered everywhere else (a measured zero included).
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The share string, or <see cref="NotApplicable"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aRow"/> is <c>null</c>.</exception>
+    public static string OfMeasuredOutput(PhaseEffortRow aRow)
+    {
+        ArgumentNullException.ThrowIfNull(aRow);
+
+        return aRow.TokensMeasuredN == 0 ? NotApplicable : aRow.ShareOfTokensOut;
+    }
+}
+
+/// <summary>
+/// One phase's money block — three figures that mean different things and are never merged
+/// (SCHEMA.md §2.5b, REQ-FN-136, REQ-FN-137).
+/// </summary>
+/// <remarks>
+/// <para>
+/// The separation is the point. <b>List price</b> is a rate card applied to measured tokens: it exists
+/// for every priced run on every harness, and it is the only figure that lets a subscription phase be
+/// compared with a metered one. <b>Plan allowance</b> is what a monthly plan's per-model limit was
+/// consumed by — a meter, not an invoice. <b>Money billed</b> is what a provider that charges per token
+/// actually charged. A flat monthly fee bills nothing extra, so a subscription's marginal cost is a true
+/// zero and never appears as spend.
+/// </para>
+/// <para>
+/// <see cref="MixedUsd"/> is real money that cannot be attributed: the window ran models paid for in
+/// different ways, so part of the bill is inseparable from the part a subscription had already covered.
+/// It gets its own line rather than being folded into <see cref="MoneyUsd"/> or dropped.
+/// </para>
+/// <para>
+/// Every count that a figure rests on travels with it — <see cref="ListUsdRecords"/> and
+/// <see cref="ListUsdUnpricedN"/> beside <see cref="ListUsd"/>, and each records count beside its
+/// dollars — because a money total offered without what it excluded is just a different wrong number.
+/// </para>
+/// </remarks>
+public sealed record PhaseMoney
+{
+    /// <summary>The block for a phase in which nothing could be priced and nothing was billed.</summary>
+    public static PhaseMoney None { get; } = new()
+    {
+        BillingModes = [],
+        CostUsdByBillingMode = [],
+        SpendByModel = [],
+        PlanAllowanceByModel = [],
+        ByMode = []
+    };
+
+    /// <summary>
+    /// Priced runs per <c>billing_mode</c>, <c>unrecorded</c> for a run written before the field existed.
+    /// </summary>
+    /// <remarks>
+    /// A record from before 2026-09-10 is admitted on its old terms and counted separately, so adding
+    /// the field does not silently rewrite the past.
+    /// </remarks>
+    public required IReadOnlyList<KeyValuePair<string, int>> BillingModes { get; init; }
+
+    /// <summary>Provider-reported dollars per billing mode; only <c>metered</c> is money.</summary>
+    public required IReadOnlyList<KeyValuePair<string, decimal>> CostUsdByBillingMode { get; init; }
+
+    /// <summary>Dollars a metered provider actually billed.</summary>
+    public decimal MoneyUsd { get; init; }
+
+    /// <summary>Priced runs whose models were all billed per token — the denominator of <see cref="MoneyUsd"/>.</summary>
+    public int MoneyRecords { get; init; }
+
+    /// <summary>Real money from windows that mixed billing modes, reported apart because it cannot be split.</summary>
+    public decimal MixedUsd { get; init; }
+
+    /// <summary>Priced runs in that state.</summary>
+    public int MixedRecords { get; init; }
+
+    /// <summary>Metered spend per model, attributed only where the window ran <b>one</b> model.</summary>
+    /// <remarks>
+    /// Splitting one window's dollars across several models by token share is arithmetic, not
+    /// measurement — the same line drawn between a miss fixed by one run and one fixed by several.
+    /// </remarks>
+    public required IReadOnlyList<KeyValuePair<string, PhaseSpend>> SpendByModel { get; init; }
+
+    /// <summary>Metered spend from windows that ran several models, so it belongs to no single one.</summary>
+    public PhaseSpend SpendUnattributed { get; init; } = new(0m, 0);
+
+    /// <summary>What every priced run's tokens would cost at the published rate — a price, never a bill.</summary>
+    public decimal ListUsd { get; init; }
+
+    /// <summary>Priced runs that produced a list price.</summary>
+    public int ListUsdRecords { get; init; }
+
+    /// <summary>
+    /// Priced runs no rate card could price, left out rather than counted as free.
+    /// </summary>
+    /// <remarks>
+    /// A model with no rate is the one case where silence is honest and a zero is a lie: counting it as
+    /// free would make an unpriced phase look cheap.
+    /// </remarks>
+    public int ListUsdUnpricedN { get; init; }
+
+    /// <summary>What a monthly plan's allowance was consumed by — a meter against a limit, not an invoice.</summary>
+    public decimal PlanAllowanceUsd { get; init; }
+
+    /// <summary>Priced runs on a plan.</summary>
+    public int PlanAllowanceRecords { get; init; }
+
+    /// <summary>Plan allowance per model; these are the numbers a per-model limit is read against.</summary>
+    public required IReadOnlyList<KeyValuePair<string, decimal>> PlanAllowanceByModel { get; init; }
+
+    /// <summary>
+    /// The phase split by <c>mode</c>, in the order the modes first happened.
+    /// </summary>
+    /// <remarks>
+    /// A phase run in named modes — a reset's sessions, a build's fresh and fix passes — is several
+    /// different jobs under one <c>cmd</c>, and the split says which. Same denominators as the phase
+    /// itself: a run with no computable window contributes no tokens, never a zero.
+    /// </remarks>
+    public required IReadOnlyList<KeyValuePair<string, PhaseModeSlice>> ByMode { get; init; }
+}
+
+/// <summary>Dollars and the number of records they were measured over.</summary>
+/// <param name="Usd">The dollars.</param>
+/// <param name="Records">Runs that contributed them — never inferred from the total.</param>
+public sealed record PhaseSpend(decimal Usd, int Records);
+
+/// <summary>
+/// One <c>mode</c>'s slice of a phase (SCHEMA.md §2, REQ-FN-137).
+/// </summary>
+/// <param name="Runs">Runs in this mode.</param>
+/// <param name="DurationSeconds">Their wall clock, read through the one duration rule.</param>
+/// <param name="TokensOut">Output tokens over the runs with a usable window only.</param>
+/// <param name="TokensUnmeasuredN">Runs excluded from that total because no window could be computed.</param>
+/// <param name="FilesWritten">Files the mode's runs wrote.</param>
+/// <param name="FirstStarted">When the mode first ran; the empty string when no run recorded a start.</param>
+public sealed record PhaseModeSlice(
+    int Runs,
+    long DurationSeconds,
+    long TokensOut,
+    int TokensUnmeasuredN,
+    long FilesWritten,
+    string FirstStarted);
+
+/// <summary>
+/// The <c>billing_mode</c> vocabulary (SCHEMA.md §2.5b, added 2026-09-10).
+/// </summary>
+/// <remarks>
+/// Five producer values plus <see cref="Unrecorded"/>, which is <b>not</b> one of them: it is what a
+/// record written before the field existed reads as. Keeping it distinct is what stops the arrival of a
+/// new field silently rewriting the past into one of its buckets.
+/// </remarks>
+public static class BillingModes
+{
+    /// <summary>A flat monthly fee; its marginal cost is a true zero and never appears as spend.</summary>
+    public const string Subscription = "subscription";
+
+    /// <summary>Billed per token. The only value whose dollars are money.</summary>
+    public const string Metered = "metered";
+
+    /// <summary>A monthly plan whose dollars are allowance consumed against a per-model limit.</summary>
+    public const string Plan = "plan";
+
+    /// <summary>A provider running on this machine, which has no bill at all.</summary>
+    public const string Local = "local";
+
+    /// <summary>One window that ran models of more than one mode — what a fallback looks like.</summary>
+    public const string Mixed = "mixed";
+
+    /// <summary>A record written before the field existed; never assumed into one of the five.</summary>
+    public const string Unrecorded = "unrecorded";
 }

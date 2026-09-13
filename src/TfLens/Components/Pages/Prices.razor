@@ -1,0 +1,780 @@
+@*
+    REQ-UI-072 / REQ-FN-139 — the Price providers screen (docs/mockups/prices.html).
+
+    Where a rate comes from, and how current it is. The framework records what it MEASURED — tokens,
+    per model, per run — and never writes a price into a record; turning tokens into money is a
+    reporting job, which is why the price list lives here. A rate changing re-prices every run ever
+    recorded, and no record was ever wrong.
+
+    Two claims are kept apart on this page and never merged. A rate read from a provider's own endpoint
+    is data; a rate typed from a provider's published page is a person's reading of it. Both are
+    legitimate, so every provider carries a label saying which it is (`prices-kind-{id}`, a blue badge
+    for an endpoint and a grey one for a typed page) and the date it was last checked, rather than
+    appearing as bare authority. Only OpenRouter publishes rates as an endpoint today.
+
+    Rebuilt 2026-09-11 against the mockup drawn after the first build: the type label, the pager
+    (`prices-page-prev-{id}` / `prices-page-next-{id}`, five rates a page) and the model filter on a long
+    provider (`prices-filter-{id}`) were missing, and at 390px the rate headers ran together and model ids
+    broke mid-name. Each provider's table is now a DataTable fed one page at a time by PriceRatePage.
+
+    Taken up on TrBlazeUI 2.1.0-ci.10 (2026-09-12): the figure columns align through the column's own
+    `Align`, the endpoint claim is a real `BadgeVariant.Info`, the layout rows are the shipped
+    responsive utilities, and the select paints its own chevron again. The scoped sheet is what is
+    left over once those are gone.
+*@
+@page "/prices"
+@using System.Globalization
+@using System.Text.Json
+@using Microsoft.Extensions.Options
+@using TfLens.Core.Metrics
+@using TrBlazeUI.Components.InputGroup
+@using TrBlazeUI.Components.NativeSelect
+@inject IOptions<TfLensOptions> objOptions
+@inject IHttpClientFactory objHttpClientFactory
+
+<PageTitle>Price providers · TfLens</PageTitle>
+
+<div class="tflens-stack tflens-prices">
+
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <TypographyH2>Price providers</TypographyH2>
+            <TypographyMuted>
+                Published list rates, used to price measured tokens. A price, never a bill.
+            </TypographyMuted>
+        </div>
+        <Badge Variant="BadgeVariant.Outline" data-testid="prices-model-count">@CountLabel</Badge>
+    </div>
+
+    <Alert Variant="AlertVariant.Info" data-testid="prices-standing-note">
+        <LucideIcon Name="info" Size="16" />
+        <AlertTitle>Nobody was billed these amounts</AlertTitle>
+        <AlertDescription>
+            These are <strong>published rates</strong> applied to tokens that were measured. They are
+            reported as a <strong>list price</strong> and never as spend. The only measured dollars in
+            TfLens come from a provider that billed per token; a flat monthly plan bills nothing extra,
+            so its marginal cost is a true zero and never appears here. Applying a change rewrites
+            <code>@objOptions.Value.PricesPath</code>, which every figure is priced from.
+        </AlertDescription>
+    </Alert>
+
+    @if (objClashes.Count > 0)
+    {
+        <Alert Variant="AlertVariant.Warning" data-testid="prices-clashes">
+            <LucideIcon Name="triangle-alert" Size="16" />
+            <AlertTitle>@objClashes.Count model id(s) priced by more than one provider</AlertTitle>
+            <AlertDescription>
+                @string.Join(", ", objClashes). The first provider listed wins and the rest are ignored —
+                never averaged, because the mean of two published rates is a number nobody publishes.
+                Remove the duplicate from whichever provider should not own it.
+            </AlertDescription>
+        </Alert>
+    }
+
+    @if (objIsLoading)
+    {
+        for (var vSkeleton = 0; vSkeleton < 3; vSkeleton++)
+        {
+            <Card>
+                <CardHeader>
+                    <Skeleton Class="h-5 w-40" />
+                    <Skeleton Class="h-4 w-64" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton Class="h-16 w-full" />
+                </CardContent>
+            </Card>
+        }
+    }
+
+    @foreach (var vProvider in objProviders)
+    {
+        var vPage = PageFor(vProvider);
+
+        <Card data-testid="@($"prices-provider-{vProvider.Id}")">
+            <CardHeader Class="tflens-prices-cardhead">
+                <div class="flex w-full min-w-0 flex-col items-start gap-3 md:flex-row md:justify-between">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">@vProvider.Name</CardTitle>
+                        <CardDescription>
+                            @if (vProvider.SourceUrl is { Length: > 0 } vSource)
+                            {
+                                <a class="tflens-prices-source" href="@vSource" target="_blank" rel="noopener noreferrer">@vSource</a>
+                            }
+                            else
+                            {
+                                <span>no published page recorded</span>
+                            }
+                        </CardDescription>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-start gap-2 md:justify-end">
+                        @* The two claims are two different badges, never one badge with two words: a
+                           blue "read from its endpoint" and a grey "typed from the published page".
+                           The blue is the library's own Info variant, which is the tone the mockup
+                           draws it in. *@
+                        @if (IsEndpoint(vProvider))
+                        {
+                            <Badge Variant="BadgeVariant.Info"
+                                   data-testid="@($"prices-kind-{vProvider.Id}")">read from its endpoint</Badge>
+                        }
+                        else
+                        {
+                            <Badge Variant="BadgeVariant.Secondary"
+                                   data-testid="@($"prices-kind-{vProvider.Id}")">typed from the published page</Badge>
+                        }
+                        <Badge Variant="BadgeVariant.Outline" data-testid="@($"prices-checked-{vProvider.Id}")">
+                            @CheckedLabel(vProvider)
+                        </Badge>
+                        @if (IsEndpoint(vProvider) && vProvider.ApiUrl is { Length: > 0 })
+                        {
+                            <Button Variant="ButtonVariant.Outline"
+                                    Size="ButtonSize.Small"
+                                    Disabled="@objIsBusy"
+                                    data-testid="@($"prices-refresh-{vProvider.Id}")"
+                                    OnClick="() => RefreshAsync(vProvider)">
+                                <LucideIcon Name="refresh-cw" Size="16" />
+                                Refresh
+                            </Button>
+                        }
+                        <Button Variant="ButtonVariant.Ghost"
+                                Size="ButtonSize.Small"
+                                Disabled="@objIsBusy"
+                                data-testid="@($"prices-remove-{vProvider.Id}")"
+                                OnClick="() => RemoveAsync(vProvider)">
+                            Remove
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+
+            @if (vProvider.Models.Count == 0)
+            {
+                <CardContent>
+                    <TypographyMuted>
+                        No rates yet. @(IsEndpoint(vProvider)
+                            ? "Refresh to read them from the endpoint."
+                            : "Add a model below.") A model with no rate is left out of every money
+                        figure and counted as unpriced — never priced at zero.
+                    </TypographyMuted>
+                </CardContent>
+            }
+            else
+            {
+                if (PriceRatePage.NeedsFilter(vProvider.Models.Count))
+                {
+                    <CardContent Class="pt-0 tflens-prices-cardbody">
+                        <div class="tflens-prices-filter">
+                            <InputGroup>
+                                <InputGroupAddon Align="InputGroupAlign.InlineStart">
+                                    <LucideIcon Name="search" Size="16" />
+                                </InputGroupAddon>
+                                <InputGroupInput Value="@FilterOf(vProvider)"
+                                                 ValueChanged="@((string? aText) => OnFilterChanged(vProvider, aText))"
+                                                 Placeholder="Filter models…"
+                                                 AriaLabel="@($"Filter {vProvider.Name} models")"
+                                                 data-testid="@($"prices-filter-{vProvider.Id}")" />
+                            </InputGroup>
+                        </div>
+                    </CardContent>
+                }
+
+                <CardContent Class="tflens-prices-flush">
+                    @if (vPage.Rows.Count == 0)
+                    {
+                        <TypographyMuted Class="tflens-prices-nomatch">
+                            No model id contains “@FilterOf(vProvider)”.
+                        </TypographyMuted>
+                    }
+                    else
+                    {
+                        @* The table is handed exactly one page of rates, so pagination is off and every
+                           row it is given is drawn. Compact density sets the cell padding and each
+                           column's own classes are merged over it, so the header and body cells carry
+                           the mockup's 10/16 and 12/16 without any page CSS reaching into the grid. *@
+                        <DataTable TData="PriceProviderModel"
+                                   Data="@vPage.Rows"
+                                   ShowToolbar="false"
+                                   ShowPagination="false"
+                                   Density="DataTableDensity.Compact"
+                                   AriaLabel="@($"{vProvider.Name} rates")"
+                                   data-testid="@($"prices-table-{vProvider.Id}")">
+                            <Columns>
+                                @* A model id is one token. Its hyphens are soft-wrap points, so without
+                                   nowrap the column shrinks below the id and `claude-` sits above
+                                   `fable-5` at 390px. The table scrolls in its own box instead. *@
+                                <DataTableColumn TData="PriceProviderModel" TValue="string"
+                                                 Property="@(aRate => aRate.Model)" Header="Model"
+                                                 CellClass="@ModelCell" HeaderClass="@ModelHeader">
+                                    <CellTemplate Context="vRate">
+                                        <span class="font-mono text-xs">@vRate.Model</span>
+                                    </CellTemplate>
+                                </DataTableColumn>
+                                @* Align, not text-right: it reaches the th, the header label's own flex
+                                   box and every body cell together, which is what puts "Input" over the
+                                   figures instead of at the left of the column. *@
+                                <DataTableColumn TData="PriceProviderModel" TValue="decimal"
+                                                 Property="@(aRate => aRate.InputPerMillion)" Header="Input"
+                                                 Align="DataTableColumnAlign.End"
+                                                 CellClass="@RateCell" HeaderClass="@RateHeader">
+                                    <CellTemplate Context="vRate">@Usd(vRate.InputPerMillion)</CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="PriceProviderModel" TValue="decimal"
+                                                 Property="@(aRate => aRate.OutputPerMillion)" Header="Output"
+                                                 Align="DataTableColumnAlign.End"
+                                                 CellClass="@RateCell" HeaderClass="@RateHeader">
+                                    <CellTemplate Context="vRate">@Usd(vRate.OutputPerMillion)</CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="PriceProviderModel" TValue="decimal"
+                                                 Property="@(aRate => aRate.CacheReadPerMillion)" Header="Cache read"
+                                                 Align="DataTableColumnAlign.End"
+                                                 CellClass="@RateCell" HeaderClass="@RateHeader">
+                                    <CellTemplate Context="vRate">@Usd(vRate.CacheReadPerMillion)</CellTemplate>
+                                </DataTableColumn>
+                                <DataTableColumn TData="PriceProviderModel" TValue="decimal"
+                                                 Property="@(aRate => aRate.CacheWritePerMillion)" Header="Cache write"
+                                                 Align="DataTableColumnAlign.End"
+                                                 CellClass="@RateCell" HeaderClass="@RateHeader">
+                                    <CellTemplate Context="vRate">@Usd(vRate.CacheWritePerMillion)</CellTemplate>
+                                </DataTableColumn>
+                            </Columns>
+                        </DataTable>
+                    }
+                </CardContent>
+
+                <CardFooter Class="@(vPage.HasPager ? "tflens-prices-foot" : "tflens-prices-foot tflens-prices-foot-start")">
+                    <span class="tflens-prices-hint">@FooterNote(vProvider, vPage)</span>
+                    @if (vPage.HasPager)
+                    {
+                        <span class="inline-flex gap-2">
+                            <Button Variant="ButtonVariant.Outline"
+                                    Size="ButtonSize.Small"
+                                    Disabled="@(!vPage.CanGoBack)"
+                                    data-testid="@($"prices-page-prev-{vProvider.Id}")"
+                                    OnClick="() => GoToPage(vProvider, vPage.PageIndex - 1)">
+                                Previous
+                            </Button>
+                            <Button Variant="ButtonVariant.Outline"
+                                    Size="ButtonSize.Small"
+                                    Disabled="@(!vPage.CanGoForward)"
+                                    data-testid="@($"prices-page-next-{vProvider.Id}")"
+                                    OnClick="() => GoToPage(vProvider, vPage.PageIndex + 1)">
+                                Next
+                            </Button>
+                        </span>
+                    }
+                </CardFooter>
+            }
+        </Card>
+    }
+
+    <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+        <Card data-testid="prices-add-provider">
+            <CardHeader>
+                <CardTitle Class="text-base">Add a provider</CardTitle>
+                <CardDescription>
+                    Give it the page a person can check the rates against. An endpoint is optional — only a
+                    provider that publishes its rates as data can be refreshed, and today that is OpenRouter.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-col gap-4">
+                    <Field>
+                        <FieldLabel For="prices-new-name">Name</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-new-name" @bind-Value="objNewName" Placeholder="e.g. Google"
+                                   data-testid="prices-new-name" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-new-source">Published pricing page</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-new-source" Type="InputType.Url" @bind-Value="objNewSource"
+                                   Placeholder="https://…" Class="font-mono" data-testid="prices-new-source" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-new-api">Endpoint (optional)</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-new-api" Type="InputType.Url" @bind-Value="objNewApi"
+                                   Placeholder="https://…/models" Class="font-mono" data-testid="prices-new-api" />
+                            <FieldDescription>Leave empty for a provider whose rates are typed from its page.</FieldDescription>
+                        </FieldContent>
+                    </Field>
+                </div>
+            </CardContent>
+            <CardFooter Class="tflens-prices-foot tflens-prices-foot-end">
+                <Button Disabled="@objIsBusy" data-testid="prices-add" OnClick="AddAsync">
+                    <LucideIcon Name="plus" Size="16" />
+                    Add provider
+                </Button>
+            </CardFooter>
+        </Card>
+
+        <Card data-testid="prices-add-rate">
+            <CardHeader>
+                <CardTitle Class="text-base">Add or change a rate</CardTitle>
+                <CardDescription>
+                    The model id must match what a run record names, exactly — that is what the rate is
+                    matched on. A rate that matches nothing prices nothing and is never an error.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field>
+                        <FieldLabel For="prices-rate-provider">Provider</FieldLabel>
+                        <FieldContent>
+                            @* NativeSelect, the library's own select over a real <select>: the list is
+                               a handful of provider names, and a native control keeps the choice
+                               keyboard- and test-drivable exactly as the mockup draws it. *@
+                            <NativeSelect @bind-Value="objRateProvider"
+                                          id="prices-rate-provider"
+                                          data-testid="prices-rate-provider">
+                                @foreach (var vProvider in objProviders)
+                                {
+                                    <option value="@vProvider.Id">@vProvider.Name</option>
+                                }
+                            </NativeSelect>
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-rate-model">Model id</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-rate-model" @bind-Value="objRateModel" Placeholder="claude-opus-5"
+                                   Class="font-mono" data-testid="prices-rate-model" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-rate-in">Input / 1M</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-rate-in" @bind-Value="objRateIn" inputmode="decimal" data-testid="prices-rate-in" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-rate-out">Output / 1M</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-rate-out" @bind-Value="objRateOut" inputmode="decimal" data-testid="prices-rate-out" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-rate-cr">Cache read / 1M</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-rate-cr" @bind-Value="objRateCacheRead" inputmode="decimal" data-testid="prices-rate-cr" />
+                        </FieldContent>
+                    </Field>
+                    <Field>
+                        <FieldLabel For="prices-rate-cw">Cache write / 1M</FieldLabel>
+                        <FieldContent>
+                            <Input Id="prices-rate-cw" @bind-Value="objRateCacheWrite" inputmode="decimal" data-testid="prices-rate-cw" />
+                        </FieldContent>
+                    </Field>
+                </div>
+                <FieldDescription Class="mt-4">
+                    USD per 1,000,000 tokens. A negative or non-numeric rate is refused and nothing is saved.
+                </FieldDescription>
+            </CardContent>
+            <CardFooter Class="tflens-prices-foot tflens-prices-foot-end">
+                <Button Disabled="@objIsBusy" data-testid="prices-save-rate" OnClick="SaveRateAsync">Save rate</Button>
+            </CardFooter>
+        </Card>
+    </div>
+
+    @* The outcome of the last action sits under the forms, where the mockup draws it, and is brought
+       into view when it changes. It is always in the page and hidden until there is something to say,
+       so a Refresh pressed at the top of the page still lands the reader on its answer. *@
+    <div class="tflens-prices-message" tabindex="-1" @ref="objMessageRef">
+        <Alert Variant="@(objIsMessageProblem ? AlertVariant.Warning : AlertVariant.Info)"
+               Class="@(objMessage is { Length: > 0 } ? null : "tflens-prices-message-idle")"
+               data-testid="prices-message">
+            <LucideIcon Name="@(objIsMessageProblem ? "triangle-alert" : "info")" Size="16" />
+            <AlertDescription>@objMessage</AlertDescription>
+        </Alert>
+    </div>
+</div>
+
+@code {
+    // The mockup's rate table: a 10px/16px header cell and a 12px/16px body cell, over the grid's
+    // own Compact density. A column's classes are merged after the density's, so these win; nothing
+    // has to reach into the table from the page's stylesheet (TR-025).
+    private const string CellPad = "px-4 py-3";
+    private const string HeaderPad = "px-4 text-xs";
+
+    private const string ModelCell = CellPad + " whitespace-nowrap";
+    private const string ModelHeader = HeaderPad + " whitespace-nowrap";
+    private const string RateCell = CellPad + " tabular-nums whitespace-nowrap";
+    private const string RateHeader = HeaderPad + " whitespace-nowrap";
+
+    private List<PriceProvider> objProviders = [];
+    private IReadOnlyList<string> objClashes = [];
+    private readonly Dictionary<string, int> objPages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> objFilters = new(StringComparer.OrdinalIgnoreCase);
+    private bool objIsLoading = true;
+    private bool objIsBusy;
+
+    private string? objMessage;
+    private bool objIsMessageProblem;
+    private bool objIsMessageNew;
+    private ElementReference objMessageRef;
+
+    private string objNewName = string.Empty;
+    private string objNewSource = string.Empty;
+    private string objNewApi = string.Empty;
+
+    private string objRateProvider = string.Empty;
+    private string objRateModel = string.Empty;
+    private string objRateIn = "0";
+    private string objRateOut = "0";
+    private string objRateCacheRead = "0";
+    private string objRateCacheWrite = "0";
+
+    /// <summary>The header badge: every rate the book holds, over every provider.</summary>
+    private string CountLabel
+    {
+        get
+        {
+            var vRates = objProviders.Sum(aProvider => aProvider.Models.Count);
+            var vProviders = objProviders.Count;
+
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"{vRates} {(vRates == 1 ? "rate" : "rates")} over {vProviders} {(vProviders == 1 ? "provider" : "providers")}");
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        objIsLoading = false;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool aFirstRender)
+    {
+        if (!objIsMessageNew)
+        {
+            return;
+        }
+
+        objIsMessageNew = false;
+        await objMessageRef.FocusAsync();
+    }
+
+    /// <summary>Reads the provider book and the clashes it carries.</summary>
+    /// <returns>The running read.</returns>
+    private async Task ReloadAsync()
+    {
+        objProviders = [.. await PriceProviders.LoadAsync(objOptions.Value.PriceProvidersPath)];
+        objClashes = PriceProviders.Clashes(objProviders);
+        objRateProvider = objProviders.FirstOrDefault()?.Id ?? string.Empty;
+    }
+
+    /// <summary>Writes the book and rewrites the flat card every figure is priced from.</summary>
+    /// <returns>The running write.</returns>
+    private async Task PersistAsync()
+    {
+        await PriceProviders.SaveAsync(objOptions.Value.PriceProvidersPath, objProviders);
+        await PriceProviders.ApplyAsync(objOptions.Value.PricesPath, objProviders);
+        objClashes = PriceProviders.Clashes(objProviders);
+    }
+
+    /// <summary>Shows the outcome of an action and brings it into view.</summary>
+    /// <param name="aText">What happened.</param>
+    /// <param name="aIsProblem">Whether it is something the reader has to act on.</param>
+    private void Say(string aText, bool aIsProblem = false)
+    {
+        objMessage = aText;
+        objIsMessageProblem = aIsProblem;
+        objIsMessageNew = true;
+    }
+
+    /// <summary>
+    /// Reads a provider's rates from its own endpoint.
+    /// </summary>
+    /// <remarks>
+    /// A failure leaves the stored rates exactly as they were and says so. Replacing a checked rate
+    /// with nothing because a request timed out would turn a priced estate into an unpriced one with
+    /// no record of why. A rate the endpoint declines to publish (OpenRouter's <c>-1</c>) is skipped by
+    /// <see cref="PriceProviders.ReadOpenRouter"/>, never stored and never coerced to zero.
+    /// </remarks>
+    /// <param name="aProvider">The provider to refresh.</param>
+    /// <returns>The running refresh.</returns>
+    private async Task RefreshAsync(PriceProvider aProvider)
+    {
+        objIsBusy = true;
+
+        try
+        {
+            var vModels = await FetchAsync(aProvider);
+
+            if (vModels.Count == 0)
+            {
+                Say($"{aProvider.Name} returned no rates this reader could understand. The stored rates are unchanged.", true);
+                return;
+            }
+
+            Replace(aProvider, aProvider with { Models = vModels, LastChecked = Today() });
+            objPages.Remove(aProvider.Id);
+            await PersistAsync();
+            Say($"{aProvider.Name}: {vModels.Count} rate(s) read from its endpoint.");
+        }
+        catch (Exception vError) when (vError is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            Say($"{aProvider.Name} could not be reached ({vError.GetType().Name}). The stored rates are unchanged.", true);
+        }
+        catch (ArgumentOutOfRangeException vError)
+        {
+            // A rate the endpoint published that this page will not store. It is reported rather than
+            // swallowed: the operator should know the provider sent something unusable.
+            Say($"{aProvider.Name} published a rate that cannot be stored ({vError.ActualValue}). The stored rates are unchanged.", true);
+        }
+        finally
+        {
+            objIsBusy = false;
+        }
+    }
+
+    /// <summary>Calls a provider's endpoint and reads the rates out of its answer.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <returns>The rates it published; empty when none could be read.</returns>
+    private async Task<IReadOnlyList<PriceProviderModel>> FetchAsync(PriceProvider aProvider)
+    {
+        using var vClient = objHttpClientFactory.CreateClient();
+        vClient.Timeout = TimeSpan.FromSeconds(30);
+
+        var vJson = await vClient.GetStringAsync(aProvider.ApiUrl!);
+
+        return PriceProviders.ReadOpenRouter(vJson);
+    }
+
+    /// <summary>Adds a provider with no rates yet.</summary>
+    /// <returns>The running add.</returns>
+    private async Task AddAsync()
+    {
+        var vName = objNewName.Trim();
+        var vId = IdOf(vName);
+
+        if (vId.Length == 0)
+        {
+            Say("A provider needs a name.", true);
+            return;
+        }
+
+        if (objProviders.Any(aProvider => string.Equals(aProvider.Id, vId, StringComparison.OrdinalIgnoreCase)))
+        {
+            Say($"A provider called {vName} is already listed.", true);
+            return;
+        }
+
+        objIsBusy = true;
+
+        try
+        {
+            objProviders.Add(NewProvider(vId, vName));
+            await PersistAsync();
+            Say($"{vName} added. It prices nothing until it has a rate.");
+            objNewName = objNewSource = objNewApi = string.Empty;
+        }
+        finally
+        {
+            objIsBusy = false;
+        }
+    }
+
+    /// <summary>Builds the provider the Add form describes.</summary>
+    /// <param name="aId">Its key.</param>
+    /// <param name="aName">Its name.</param>
+    /// <returns>The provider, with no rates and never checked.</returns>
+    private PriceProvider NewProvider(string aId, string aName)
+    {
+        var vApi = string.IsNullOrWhiteSpace(objNewApi) ? null : objNewApi.Trim();
+
+        return new PriceProvider(
+            aId,
+            aName,
+            string.IsNullOrWhiteSpace(objNewSource) ? null : objNewSource.Trim(),
+            vApi,
+            vApi is null ? PriceFetch.Manual : PriceFetch.Api,
+            null,
+            []);
+    }
+
+    /// <summary>Removes a provider and re-applies the flat card without its rates.</summary>
+    /// <param name="aProvider">The provider to remove.</param>
+    /// <returns>The running removal.</returns>
+    private async Task RemoveAsync(PriceProvider aProvider)
+    {
+        objIsBusy = true;
+
+        try
+        {
+            objProviders.Remove(aProvider);
+            objPages.Remove(aProvider.Id);
+            objFilters.Remove(aProvider.Id);
+
+            if (string.Equals(objRateProvider, aProvider.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                objRateProvider = objProviders.FirstOrDefault()?.Id ?? string.Empty;
+            }
+
+            await PersistAsync();
+            Say($"{aProvider.Name} removed. Any model only it priced now reports as unpriced.");
+        }
+        finally
+        {
+            objIsBusy = false;
+        }
+    }
+
+    /// <summary>Adds or replaces one model's rate on a provider.</summary>
+    /// <returns>The running save.</returns>
+    private async Task SaveRateAsync()
+    {
+        var vProvider = objProviders.FirstOrDefault(aProvider => aProvider.Id == objRateProvider);
+        var vModel = objRateModel.Trim();
+
+        if (vProvider is null || vModel.Length == 0)
+        {
+            Say("Choose a provider and give the model id a run record would carry.", true);
+            return;
+        }
+
+        if (TypedRate(vModel) is not { } vRate)
+        {
+            Say("Every rate must be a number and none of them may be negative. Nothing was saved.", true);
+            return;
+        }
+
+        objIsBusy = true;
+
+        try
+        {
+            var vUpdated = WithRate(vProvider, vRate);
+            Replace(vProvider, vUpdated);
+            await PersistAsync();
+            ShowModel(vUpdated, vModel);
+            Say($"{vModel} priced on {vProvider.Name}.");
+            objRateModel = string.Empty;
+        }
+        finally
+        {
+            objIsBusy = false;
+        }
+    }
+
+    /// <summary>Reads the four typed rates into one model's rate line.</summary>
+    /// <param name="aModel">The model id.</param>
+    /// <returns>The rate line, or <c>null</c> when any rate is not a usable number.</returns>
+    private PriceProviderModel? TypedRate(string aModel) =>
+        TryRate(objRateIn, out var vIn) && TryRate(objRateOut, out var vOut)
+            && TryRate(objRateCacheRead, out var vCacheRead) && TryRate(objRateCacheWrite, out var vCacheWrite)
+            ? new PriceProviderModel(aModel, vIn, vOut, vCacheRead, vCacheWrite)
+            : null;
+
+    /// <summary>A provider with one model's rate added, or replaced when it already had one.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <param name="aRate">The rate line.</param>
+    /// <returns>The provider as it now stands, checked today.</returns>
+    private static PriceProvider WithRate(PriceProvider aProvider, PriceProviderModel aRate) =>
+        aProvider with
+        {
+            Models = aProvider.Models
+                .Where(aModel => !string.Equals(aModel.Model, aRate.Model, StringComparison.OrdinalIgnoreCase))
+                .Append(aRate)
+                .ToList(),
+            LastChecked = Today()
+        };
+
+    /// <summary>Puts a changed provider back in its place in the list.</summary>
+    /// <param name="aBefore">The provider as it was.</param>
+    /// <param name="aAfter">The provider as it now is.</param>
+    private void Replace(PriceProvider aBefore, PriceProvider aAfter) =>
+        objProviders[objProviders.IndexOf(aBefore)] = aAfter;
+
+    /// <summary>Turns a provider's pager to the page a model sits on, clearing its filter.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <param name="aModel">The model id.</param>
+    private void ShowModel(PriceProvider aProvider, string aModel)
+    {
+        objFilters.Remove(aProvider.Id);
+        objPages[aProvider.Id] = PriceRatePage.PageOf(aProvider.Models, aModel);
+    }
+
+    /// <summary>The page of a provider's rates the reader is on.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <returns>The page.</returns>
+    private PriceRatePage PageFor(PriceProvider aProvider) =>
+        PriceRatePage.Of(aProvider.Models, FilterOf(aProvider), objPages.GetValueOrDefault(aProvider.Id));
+
+    /// <summary>The filter typed over a provider's rates.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <returns>The filter text; empty when none.</returns>
+    private string FilterOf(PriceProvider aProvider) => objFilters.GetValueOrDefault(aProvider.Id) ?? string.Empty;
+
+    /// <summary>Narrows a provider's rates to the model ids containing the typed text.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <param name="aText">The text typed.</param>
+    private void OnFilterChanged(PriceProvider aProvider, string? aText)
+    {
+        objFilters[aProvider.Id] = aText ?? string.Empty;
+        objPages[aProvider.Id] = 0;
+    }
+
+    /// <summary>Moves a provider's pager.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <param name="aPageIndex">The zero-based page wanted.</param>
+    private void GoToPage(PriceProvider aProvider, int aPageIndex) => objPages[aProvider.Id] = Math.Max(0, aPageIndex);
+
+    /// <summary>The footer line: the unit, the page count, and for an endpoint what it never stores.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <param name="aPage">The page shown.</param>
+    /// <returns>The line.</returns>
+    private static string FooterNote(PriceProvider aProvider, PriceRatePage aPage)
+    {
+        var vParts = new List<string> { "USD per 1,000,000 tokens" };
+
+        if (aPage.Summary is { } vSummary)
+        {
+            vParts.Add(vSummary);
+        }
+
+        if (IsEndpoint(aProvider))
+        {
+            vParts.Add("a rate the endpoint declines to publish is skipped, never stored as zero");
+        }
+
+        return string.Join(" · ", vParts);
+    }
+
+    /// <summary>Whether a provider's rates are read from its own endpoint rather than typed.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <returns><c>true</c> for an endpoint provider.</returns>
+    private static bool IsEndpoint(PriceProvider aProvider) => aProvider.Fetch == PriceFetch.Api;
+
+    /// <summary>The last-checked badge text.</summary>
+    /// <param name="aProvider">The provider.</param>
+    /// <returns>"last checked" and the date, or "never checked".</returns>
+    private static string CheckedLabel(PriceProvider aProvider) =>
+        aProvider.LastChecked is { Length: > 0 } vChecked ? $"last checked {vChecked}" : "never checked";
+
+    /// <summary>A provider's key, from its name: lower case, anything but a letter or digit a hyphen.</summary>
+    /// <param name="aName">The name.</param>
+    /// <returns>The key; empty for a blank name.</returns>
+    private static string IdOf(string aName) =>
+        new(aName.ToLowerInvariant().Select(aChar => char.IsLetterOrDigit(aChar) ? aChar : '-').ToArray());
+
+    /// <summary>Today's date as the book stores it.</summary>
+    /// <returns>The date, <c>yyyy-MM-dd</c>, UTC.</returns>
+    private static string Today() => DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>Reads one typed rate, refusing a negative one.</summary>
+    /// <param name="aText">What the operator typed.</param>
+    /// <param name="aRate">The parsed rate.</param>
+    /// <returns><c>true</c> when it is a usable rate.</returns>
+    private static bool TryRate(string aText, out decimal aRate) =>
+        decimal.TryParse(aText, NumberStyles.Float, CultureInfo.InvariantCulture, out aRate) && aRate >= 0m;
+
+    /// <summary>Renders one rate.</summary>
+    /// <param name="aRate">The rate.</param>
+    /// <returns>The display string.</returns>
+    private static string Usd(decimal aRate) => "$" + aRate.ToString("0.####", CultureInfo.InvariantCulture);
+}

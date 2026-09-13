@@ -141,7 +141,11 @@ public sealed class StreamParser : IStreamParser
         // §2.6, added to the stream 2026-08-31 (REQ-FN-088, BRD-145). Listing them here is what stops
         // Coverage reporting them as fields SCHEMA.md does not document, and what gives them columns
         // rather than an Overflow payload.
-        "subagent_runs", "tokens_out_subagents", "model_tokens_out"
+        "subagent_runs", "tokens_out_subagents", "model_tokens_out",
+        // §2.5b `billing_mode` (2026-09-10) and §2.7 `reason` (2026-09-09, on a `run-void` record).
+        // `kind` is already common to every stream; it needs a column here rather than merely a
+        // vocabulary, because a `run-void` that is not recognised is counted as a run.
+        "billing_mode", "reason"
     ];
 
     /// <summary>Fields SCHEMA.md §3 documents for <c>gates</c>.</summary>
@@ -181,7 +185,9 @@ public sealed class StreamParser : IStreamParser
     [
         "miss_id", "req_id", "fix_run_id", "fix_cmd", "fix_attempt", "verdict_after", "reopened",
         "cost_attribution", "tokens_in", "tokens_out", "tokens_cache_read", "tokens_cache_write",
-        "cost_usd", "tokens_scope", "model"
+        // §2.5b, added 2026-09-10. Without it a repair paid for by a subscription reads as measured
+        // spend of zero, which is true of the marginal cost and false of the money.
+        "cost_usd", "tokens_scope", "model", "billing_mode"
     ];
 
     /// <summary>Fields SCHEMA.md §5.5.7 documents for a <c>miss-amend</c> record.</summary>
@@ -370,6 +376,7 @@ public sealed class StreamParser : IStreamParser
                 continue;
             }
 
+            vState.LineNo++;
             ReadLine(vLine, vState);
         }
 
@@ -858,6 +865,13 @@ public sealed class StreamParser : IStreamParser
             SubagentRuns = ReadInt(aObj, "subagent_runs"),
             TokensOutSubagents = ReadInt(aObj, "tokens_out_subagents"),
             ModelTokensOut = ReadLongMap(aObj, "model_tokens_out"),
+            // SCHEMA.md §2.5b and §2.7. `kind` is read rather than assumed: a `run-void` record is not a
+            // run, and a reader that cannot tell them apart counts the correction as another run AND
+            // keeps the run it corrects — which is exactly the figure the void exists to remove.
+            BillingMode = ReadString(aObj, "billing_mode"),
+            Kind = ReadString(aObj, "kind"),
+            VoidReason = ReadString(aObj, "reason"),
+            SourceLineNo = aState.LineNo,
             Overflow = vOverflow
         };
     }
@@ -1347,6 +1361,18 @@ public sealed class StreamParser : IStreamParser
 
         /// <summary>Which stream is being parsed.</summary>
         public StreamKind Stream { get; } = aStream;
+
+        /// <summary>
+        /// Which non-blank line of the source file is being read, counting from one.
+        /// </summary>
+        /// <remarks>
+        /// The streams are append-only (SCHEMA.md §3), so line <i>n</i> is always the same record: the
+        /// ordinal is a stable identity, and re-parsing the same file maps every line back onto the row
+        /// it already wrote. It is what lets two <b>byte-identical</b> records both survive — a stream
+        /// can legitimately hold two, and collapsing them silently loses a run (TechieFlow holds three
+        /// such pairs on `log-miss`, and the reference counts all six).
+        /// </remarks>
+        public int LineNo { get; set; }
 
         /// <summary>Run records read so far, before dedupe.</summary>
         public List<RunRecord> Runs { get; } = [];

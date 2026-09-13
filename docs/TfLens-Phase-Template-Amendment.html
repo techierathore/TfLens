@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — amendment of 2026-09-11: phase documents to their templates, and decisions 2, 4 and 5</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — amendment of 2026-09-11: phase documents to their templates, and decisions 2, 4 and 5</h1>
+    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-Phase-Template-Amendment.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#what-changed">What changed</a></li>
+        <li><a href="#where-the-removed-feature-catalogs-went">Where the removed feature catalogs went</a></li>
+        <li><a href="#also-changed">Also changed</a></li>
+        <li><a href="#added-after-your-question-the-price-providers-screen">Added after your question: the Price providers screen</a></li>
+        <li><a href="#found-not-changed">Found, not changed</a></li>
+        <li><a href="#next">Next</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Date</td><td>2026-09-11</td></tr>
+<tr><td>Command</td><td>the document amendment, run unattended (YOLO on), started 2026-09-11T13:17:38Z</td></tr>
+<tr><td>Requirements</td><td>none added, none removed, none renumbered; the highest id is still BRD-201</td></tr>
+</tbody>
+</table>
+<h2 id="what-changed">What changed<a class="anchor-link" href="#what-changed">#</a></h2>
+<table>
+<thead><tr><th>#</th><th>Change</th><th>Documents</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Phase BRDs to the phase template</td><td><code>TfLens-P2-BRD.md</code>, <code>TfLens-P3-BRD.md</code></td><td>Feature catalog removed. Whatever it said that no screen row or requirement already said is now in the Screens and flow table. Sections now run Summary, Screens and flow, Requirements, Development status, Where the rest lives.</td></tr>
+<tr><td>1</td><td>Phase UI designs to the phase template</td><td><code>TfLens-P2-UIDesign.md</code>, <code>TfLens-P3-UIDesign.md</code></td><td>The pointer sentence is now a <em>Where the rest lives</em> table that links to the phase-1 UI design. The <em>Library gaps</em> section is gone, and the feedback file now says it is the one gap log for every phase.</td></tr>
+<tr><td>2</td><td>Decision 2, option B</td><td><code>TfLens-Architecture.md</code></td><td>The MissReview table sketch and its diagram box now match <code>database/001-schema.sql</code>: no surrogate key, an integer <code>UserId</code>, a text <code>Ts</code>, and the cost columns as built. A dated correction note says what was wrong. The rest of the architecture's template drift is left for later, as you chose.</td></tr>
+<tr><td>3</td><td>Decision 4, option A</td><td>all 20 mockups, phase-1 UI design</td><td>Below 768px the sidebar is off the page, and the menu button at the top left slides it out, 18rem wide with its labels, over a dark backdrop. This is what the app and the UI library draw. The icon strip is now a 768px-and-up state only.</td></tr>
+<tr><td>4</td><td>Decision 5, option A</td><td><code>TfLens-P3-BRD.md</code> BRD-128</td><td>One sentence added: a list price is labelled as a list price, not as an estimate, so the two list-price figures of BRD-195 and BRD-197 keep their names.</td></tr>
+<tr><td>5</td><td>Document check and TF-024</td><td><code>TfLens-TechieFlow-Feedback.md</code></td><td>The strict check shows no section finding on the four phase documents: failures went from 265 to 255, and the ten removed are exactly those findings. TF-024 is closed, and the feedback summary now reads 7 fixed upstream and waiting, 21 closed.</td></tr>
+</tbody>
+</table>
+<h2 id="where-the-removed-feature-catalogs-went">Where the removed feature catalogs went<a class="anchor-link" href="#where-the-removed-feature-catalogs-went">#</a></h2>
+<p>The test was your wording: a fact moved only if no screen row or requirement already said it. I counted the phase-1 BRD as already saying something. Its business objectives, its parity section and BRD-108 were not copied, because a phase BRD does not repeat phase 1.</p>
+<p>The table gained the template's two missing columns: <strong>Role</strong>, which holds each feature's personas, and <strong>Fields</strong>, which holds each feature's one-line screen description. Other new facts were added to the end of that screen's <em>What it answers</em> cell.</p>
+<table>
+<thead><tr><th>Feature</th><th>Moved into the table</th><th>Already said, so not copied</th></tr></thead>
+<tbody>
+<tr><td>Metrics engine</td><td>Gate outcomes row: a field-for-field port of <code>analyse()</code>; reads each repo's streams and removes duplicate commits per repo; one result, laid out like the framework's combined report, kept in memory until the next sync or rebuild; live and backfilled blocks per project type, with no total; a REQ left out for backfilled records restarts its live <code>attempt</code> at 1. Routing row: the rounding rules.</td><td>BRD-30 to BRD-38 (no pooling, the three-record minimum, dollars never pooled, late gates, the fixture test). The step order is in Architecture §7.</td></tr>
+<tr><td>Coverage</td><td>GREEN criteria; the <code>update-framework.sh</code> fix and why; the configurable threshold; how many run durations and attempt numbers were worked out rather than read, shown beside the unknown-fields list; in-place refresh; repo kind and linked short SHA (Fields)</td><td>BRD-21, BRD-39 to BRD-44, BRD-127, BRD-137, BRD-181</td></tr>
+<tr><td>Gate outcomes</td><td>the 2026-09-01 rename and the kept id F-3Q, with a link to phase 1's note; the evidence base for B3; the per-type counts line; the collapsible panel</td><td>BRD-45 to BRD-50</td></tr>
+<tr><td>Harness comparison</td><td>the four-way token split and its two sources; Codex reads "not measured"; one bar chart</td><td>BRD-51 to BRD-55, BRD-72; B1 is a phase-1 objective</td></tr>
+<tr><td>Routing &amp; economics</td><td>the rounding rules</td><td>BRD-56 to BRD-62; the repricing formula is BRD-58 in words; B3 is a phase-1 objective</td></tr>
+<tr><td>Snapshot export</td><td><code>snapshot.md</code> is sectioned like the pages; what <code>extras</code> and <code>parity</code> carry; one snapshot per framework (Fields); the comparison is key by key because key order and formatting may differ</td><td>BRD-63 to BRD-72, BRD-128, BRD-160; the parity principle is phase-1 §13</td></tr>
+<tr><td>Misses &amp; rework</td><td>the two "still open" tests and why the framework keeps <code>wont-fix</code> live; each <em>whose gap</em> answer has its own remedy</td><td>BRD-112 to BRD-130 and BRD-164 to BRD-176 cover the three record kinds, folding, attribution, cost split and the <code>sort</code>, <code>what</code> and <code>review</code> fields</td></tr>
+<tr><td>Phase effort</td><td>a phase is a <code>cmd</code>; the main thread's own output is the run's output tokens less the part its subagents used; the 1-of-13 observation behind fan-out coverage; which times add up and which never do; incomplete rows stay visible; the export's <code>effort</code> section</td><td>BRD-145 to BRD-163, BRD-168, BRD-169</td></tr>
+<tr><td>Playbook as a framework</td><td>a new row body: why Playbook gets the full report set; the two ways data arrives; the Playbook's four process-gate names; diagnostics on standard error; path 2 shrinking to nothing; the 2026-08-26 phase decision; the repo count on the switch</td><td>BRD-73 to BRD-76, BRD-108 to BRD-110, BRD-153, BRD-165</td></tr>
+</tbody>
+</table>
+<p><strong>One row was mislabelled and is fixed.</strong> Phase 3's third screen row was named <em>Playbook framework state of the report pages</em>, but it described the Playbook view of Phase effort. That text and its requirements (BRD-156 to BRD-163) moved to the Phase effort row, beside a <em>Playbook state</em> mockup link. The third row now holds the Playbook-state content that only the catalog carried, and it matches its entry in the phase-3 UI design.</p>
+<p><strong>The two diagrams per feature and the numbered workflows were not carried.</strong> Every step in them is a requirement already, and the order of work is in the architecture.</p>
+<h2 id="also-changed">Also changed<a class="anchor-link" href="#also-changed">#</a></h2>
+<ul>
+<li><strong>Phase-1 BRD:</strong> the ten "moved to phase n" feature stubs pointed at a §4 that no longer exists. They now point at the screen row in §2 and the requirements in §3.
+</li>
+<li><strong>Phase 3 checklist:</strong> REQ-FN-080 carries BRD-128, so it moved from Verified to <em>Needs re-verify</em> with a remark saying what changed. REQ-UI-059 carries BRD-128 too, but it is a marked duplicate and stays N/A. The twelve Misses and Phase effort rows held by decision 4 were already at <em>Needs re-verify</em> and are untouched.
+</li>
+<li><strong>Misses logged and closed against this run:</strong> MISS-TfLens-20260911-20 (the architecture sketch), -21 (BRD-128 against BRD-195 and BRD-197) and -22 (the phone-width icon strip). Each was two documents saying different things, so each should have been right the first time. None of the 16 older open document misses is about these changes, so none was closed.
+</li>
+<li><strong>Decision Request:</strong> decisions 2, 4 and 5 are folded in, so it moved unchanged to <code>docs/OldDocs/TfLens-Decision-Request-2026-09-11.md</code>.
+</li>
+<li><strong>TF-029, filed, fixed upstream and closed the same day.</strong> A miss logged inside this amendment wrote its run record over the amendment's own time, so the amendment's record was refused; it was repaired with the framework's correction record. The framework fixed the logger within the hour. The follow-up below re-checked it: the logger wrote no record of its own, and the amendment's record was accepted with no correction.
+</li>
+</ul>
+<h2 id="added-after-your-question-the-price-providers-screen">Added after your question: the Price providers screen<a class="anchor-link" href="#added-after-your-question-the-price-providers-screen">#</a></h2>
+<p>BRD-200 adds a screen, <strong>Price providers</strong> at <code>/prices</code>, and the app has had it since 2026-09-11, second in the sidebar under Repos, with both of its rows verified. But no document drew it. The amendment that added BRD-200 skipped the step that writes a screen row and a mockup, and my first pass today rebuilt the phase 3 screens table without noticing. The document check had flagged that REQ-UI-072 had no mockup link, but it carried that as an old finding that did not block.</p>
+<p>Now fixed:</p>
+<ul>
+<li><strong>A mockup</strong>, <code>docs/mockups/prices.html</code>, drawn with the shared frame and the app's real provider list: four provider cards, each with its source link, an endpoint-or-typed badge, the last-checked date, Refresh (OpenRouter only) and Remove, and its rates in a paged table. Below them sit the Add a provider and Add or change a rate forms. It was checked at 1280px and 390px, and nothing runs off the screen.
+</li>
+<li><strong>The sidebar item</strong> "Price providers" in all 17 mockups with the app frame, where the app has it.
+</li>
+<li><strong>A screen row</strong> in the phase 3 BRD, an <strong>entry</strong> in the phase 3 UI design, the phase map's screen list, and phase 1's navigation line and click-through diagram.
+</li>
+<li><strong>BRD-5</strong> amended in place: nine sidebar items, Price providers second.
+</li>
+<li><strong>Checklist:</strong> REQ-UI-072 now links its mockup and, with REQ-UI-006 (the sidebar order), moved from Verified to <em>Needs re-verify</em>, because each can now be compared against a design it never had.
+</li>
+</ul>
+<p>This is logged as MISS-TfLens-20260911-23, found by you and closed by this run. The check that should have stopped it is the framework's, so it is filed upstream:</p>
+<table>
+<thead><tr><th>Problem</th><th>What it affects</th><th>Does it block or break anything</th></tr></thead>
+<tbody>
+<tr><td>TF-030 — the document check never sees a screen that is named only inside a requirement, and its one related finding does not block</td><td>A screen added by a later amendment can be built with no design, as Price providers was</td><td>No. The screen can be drawn afterwards, as it was here</td></tr>
+</tbody>
+</table>
+<p>To get it fixed, paste this in the framework's own window:</p>
+<pre><code>Fix TF-030 from docs/TfLens-TechieFlow-Feedback.md in the TfLens repo.</code></pre>
+<p><strong>Where the build differs from the new design.</strong> The next verify will show two differences. The app lists every rate in a plain table, 434 rows for OpenRouter, where the design pages them in the library's data table. The app's rate form uses a plain browser select where the design uses the library's select. Both are the build's to change, not the design's.</p>
+<h2 id="found-not-changed">Found, not changed<a class="anchor-link" href="#found-not-changed">#</a></h2>
+<table>
+<thead><tr><th>What</th><th>Why it was left</th></tr></thead>
+<tbody>
+<tr><td>Architecture §4 (and a guarantee list further down) names a <code>ReviewCost(int Corrections, Figure ProducedCost, Figure CorrectionCost)</code> result type; no type of that name exists in the code</td><td>Not part of the table sketch you asked me to correct; it belongs to the later architecture pass.</td></tr>
+<tr><td>204 findings from the normal document check across the project (phase-1 BRD, architecture, phase-1 UI design, the mockups' inert buttons, older feedback files)</td><td>The template drift you chose to leave for later. None was introduced here. The phase-1 UI design's <em>Design system</em> section grew by about 50 words for the phone-width note, and it was already over its limit.</td></tr>
+<tr><td>Between 768px and 900px the mockups still draw the icon strip, where the app shows the full sidebar until it is collapsed</td><td>Decision 4 was about phone width only, and screens are graded at 390px and 1280px.</td></tr>
+</tbody>
+</table>
+<h2 id="next">Next<a class="anchor-link" href="#next">#</a></h2>
+<p>Fifteen rows are graded again: the twelve Misses and Phase effort rows and the sidebar order (REQ-UI-006) against the updated mockups, Price providers (REQ-UI-072) against its new mockup, and REQ-FN-080 against the amended BRD-128:</p>
+<pre><code>*verify TfLens REQ-UI-006,REQ-UI-035,REQ-UI-036,REQ-UI-037,REQ-UI-038,REQ-UI-045,REQ-UI-046,REQ-UI-047,REQ-UI-048,REQ-UI-049,REQ-UI-052,REQ-UI-053,REQ-UI-054,REQ-UI-072,REQ-FN-080</code></pre>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

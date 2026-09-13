@@ -105,17 +105,40 @@ public static class PhaseMetrics
     /// <param name="aRuns">Every stored run record for the framework, live and backfilled.</param>
     /// <returns>The block; a framework with no live run returns <see cref="PhaseEffortAnalysis.Empty"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="aRuns"/> is <c>null</c>.</exception>
-    public static PhaseEffortAnalysis Compute(IReadOnlyList<RunRecord> aRuns)
+    public static PhaseEffortAnalysis Compute(IReadOnlyList<RunRecord> aRuns, RateCard? aPrices = null)
     {
         ArgumentNullException.ThrowIfNull(aRuns);
 
-        // REQ-FN-112 / BRD-179 — a run carrying `started` and `ended` but no `duration_s` was worth ZERO
-        // TIME here while its tokens still counted, so the phase's time covered one set of runs and its
-        // tokens another. The duration is derived from the record's own two timestamps before anything is
-        // grouped, and every row carries the count of derivations in `PhaseDuration.DerivedN`.
-        var vLive = RunDuration.Derive(aRuns).Records
-            .Where(aRun => aRun.Backfilled != true)
-            .ToList();
+        // REQ-FN-112 / BRD-179 — THE TIMESTAMPS WIN. Every record's duration is read from its own
+        // `started` and `ended` before anything is grouped: a stored figure that disagrees with them by
+        // more than a second is overridden, and a record whose `ended` precedes its `started` carries no
+        // duration at all. Backfilled records pass through untouched and are counted in nothing, so the
+        // four counts are over the live records the page publishes them against (BRD-189 to BRD-192).
+        return Compute(RunDuration.Derive(aRuns), aPrices);
+    }
+
+    /// <summary>
+    /// Computes the block over records whose durations have already been read.
+    /// </summary>
+    /// <remarks>
+    /// The engine derives once and hands the same result to this block and to the pooled one, so the two
+    /// cannot disagree about how long a run took. Deriving a second time here would be worse than
+    /// redundant: a window closed from <c>ts</c> would no longer look like a derivation the second time
+    /// round, and the published count of them would silently fall.
+    /// </remarks>
+    /// <param name="aRead">Run records with their durations read, and the four counts.</param>
+    /// <param name="aPrices">The rate card, or <c>null</c> to price nothing.</param>
+    /// <returns>The block.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aRead"/> is <c>null</c>.</exception>
+    public static PhaseEffortAnalysis Compute(DerivedDurations aRead, RateCard? aPrices = null)
+    {
+        ArgumentNullException.ThrowIfNull(aRead);
+
+        // No card means no list price anywhere — never a zero, which would make an unpriced estate look
+        // free. `PhaseMoney.ListUsdUnpricedN` carries the count instead.
+        var vPrices = aPrices;
+        var vRead = aRead;
+        var vLive = aRead.Records.Where(aRun => aRun.Backfilled != true).ToList();
 
         if (vLive.Count == 0)
         {
@@ -130,7 +153,7 @@ public static class PhaseMetrics
 
         var vRows = vLive
             .GroupBy(CmdOf, StringComparer.Ordinal)
-            .Select(aGroup => RowFor(aGroup.Key, aGroup.ToList(), vTokensOutTotal, vDurationTotal))
+            .Select(aGroup => RowFor(aGroup.Key, aGroup.ToList(), vTokensOutTotal, vDurationTotal, vPrices))
             .OrderByDescending(aRow => aRow.Tokens.Out)
             .ThenBy(aRow => aRow.Cmd, StringComparer.Ordinal)
             .ToList();
@@ -141,6 +164,10 @@ public static class PhaseMetrics
             ScopeCoverage = ScopeCoverageOf(vLive),
             TokensOutTotal = vTokensOutTotal,
             DurationSecondsTotal = vDurationTotal,
+            DurationMeasuredN = vRead.MeasuredN,
+            DurationImpossibleN = vRead.ImpossibleN,
+            DurationAbsentN = vRead.AbsentN,
+            DurationRecomputedN = vRead.RecomputedN,
             Phases = vRows
         };
     }
@@ -157,7 +184,8 @@ public static class PhaseMetrics
         string aCmd,
         IReadOnlyList<RunRecord> aRuns,
         long aTokensOutTotal,
-        long aDurationTotal)
+        long aDurationTotal,
+        RateCard? aPrices)
     {
         // ---- the token window (REQ-FN-089). The partition is the whole point: `vPriced` is the divisor
         // of every token figure below, and the runs outside it are COUNTED rather than summed in as zeros.
@@ -182,7 +210,16 @@ public static class PhaseMetrics
                 MetricsConstants.Median(vSeconds),
                 vTimed.Count == 0 ? null : vTimed.Max(aRun => (long)aRun.DurationS!.Value),
                 vTimed.Count,
-                aRuns.Count(aRun => aRun.DurationDerivedFrom is not null)),
+                aRuns.Count(aRun => aRun.DurationDerivedFrom is not null))
+            {
+                // REQ-FN-112 — the phase's own share of the four duration counts. `DerivedN` above is
+                // the oracle's key and counts same-second runs closed from their timestamps too; what a
+                // page may print as "d of those n durations" is the derived subset of the TIMED runs.
+                DerivedTimedN = vTimed.Count(aRun => aRun.DurationDerivedFrom is not null),
+                RecomputedN = aRuns.Count(aRun => aRun.DurationQuality == RunDuration.Recomputed),
+                ImpossibleN = aRuns.Count(aRun => aRun.DurationQuality == RunDuration.Impossible),
+                AbsentN = aRuns.Count(aRun => aRun.DurationQuality == RunDuration.NoElapsedTime)
+            },
             ShareOfDuration = MetricsConstants.Pct(
                 vTimed.Sum(aRun => (long)aRun.DurationS!.Value),
                 aDurationTotal),
@@ -193,7 +230,8 @@ public static class PhaseMetrics
                 vPriced.Select(aRun => (double)aRun.TokensOut!.Value)),
             TokensOutPerRun = PerRunOf(vTokens.Out, vPriced.Count, vUnpriced),
             ShareOfTokensOut = MetricsConstants.Pct(vTokens.Out, aTokensOutTotal),
-            Models = ModelsOf(vPriced),
+            Models = ModelsOf(vPriced, aPrices),
+            Money = MoneyOf(aRuns, vPriced, aPrices),
             Harnesses = ByKey(aRuns, aRun => aRun.Harness, Unknown),
             Modes = ByKey(aRuns, aRun => aRun.Mode, NotRecorded),
             BuildResults = ByKey(aRuns, aRun => aRun.BuildResult, NotRecorded),
@@ -323,8 +361,9 @@ public static class PhaseMetrics
     /// </remarks>
     /// <param name="aPriced">The phase's runs that carry a usable token window.</param>
     /// <returns>One row per model observed, heaviest first.</returns>
-    private static IReadOnlyList<PhaseModelEffort> ModelsOf(IReadOnlyList<RunRecord> aPriced)
+    private static IReadOnlyList<PhaseModelEffort> ModelsOf(IReadOnlyList<RunRecord> aPriced, RateCard? aPrices)
     {
+        var vListUsd = SingleModelListPrices(aPriced, aPrices);
         var vTokens = new Dictionary<string, long>(StringComparer.Ordinal);
         var vFromSplit = new Dictionary<string, int>(StringComparer.Ordinal);
         var vFromLabel = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -352,6 +391,7 @@ public static class PhaseMetrics
                 vFromSplit.GetValueOrDefault(aEntry.Key) + vFromLabel.GetValueOrDefault(aEntry.Key),
                 aEntry.Value)
             {
+                ListUsd = vListUsd.TryGetValue(aEntry.Key, out var vUsd) ? vUsd : null,
                 RunsFromSplit = vFromSplit.GetValueOrDefault(aEntry.Key),
                 RunsFromLabel = vFromLabel.GetValueOrDefault(aEntry.Key)
             })
@@ -535,6 +575,226 @@ public static class PhaseMetrics
     /// <param name="aValueOf">Reads the field.</param>
     /// <param name="aAbsent">The bucket a run carrying no value falls into.</param>
     /// <returns>One entry per observed value, ordinally ordered by key as the oracle orders them.</returns>
+    /// <summary>
+    /// The list price of every priced run that ran exactly one model, keyed by that model.
+    /// </summary>
+    /// <remarks>
+    /// A mixed-model window is deliberately absent: splitting one window's price across its models by
+    /// token share is arithmetic, not measurement, and the per-model band must only ever show what was
+    /// observed. Such a window still counts in the phase's own <c>list_usd</c>, where it belongs.
+    /// </remarks>
+    /// <param name="aPriced">The phase's runs with a usable token window.</param>
+    /// <param name="aPrices">The rate card, or <c>null</c> when nothing prices anything.</param>
+    /// <returns>Model to summed list price.</returns>
+    private static IReadOnlyDictionary<string, decimal> SingleModelListPrices(
+        IReadOnlyList<RunRecord> aPriced,
+        RateCard? aPrices)
+    {
+        // Accumulated in float64 and rounded on every addition, which is what the reference does. It
+        // matters: summing the exact decimals instead gives a more accurate total that disagrees with
+        // the published one in the sixth place, and the gate compares published digits.
+        var vRunning = new Dictionary<string, double>(StringComparer.Ordinal);
+        var vByModel = new Dictionary<string, decimal>(StringComparer.Ordinal);
+
+        if (aPrices is null)
+        {
+            return vByModel;
+        }
+
+        foreach (var vRun in aPriced)
+        {
+            var vPrice = ListPrice.For(vRun, aPrices);
+            var vModels = ModelsNamedBy(vRun);
+
+            if (vPrice is null || vModels.Count != 1)
+            {
+                continue;
+            }
+
+            vRunning[vModels[0]] = ListPrice.Round(
+                vRunning.GetValueOrDefault(vModels[0]) + vPrice.Value,
+                UsdDigits);
+
+            vByModel[vModels[0]] = (decimal)vRunning[vModels[0]];
+        }
+
+        return vByModel;
+    }
+
+    /// <summary>
+    /// The models one run is known to have used, from its split where it carries one and its label
+    /// otherwise.
+    /// </summary>
+    /// <param name="aRun">The run.</param>
+    /// <returns>The model ids; empty when the run names none.</returns>
+    private static IReadOnlyList<string> ModelsNamedBy(RunRecord aRun)
+    {
+        // The `models` LIST, never the `model_tokens_out` split. They answer different questions: the
+        // split says how one window's output divided, while this says how many models the window ran at
+        // all — and it is the second that decides whether a dollar figure may be attributed to a single
+        // model. A window can carry a split with one entry and still name two models, and attributing its
+        // whole spend to the one that produced output would be a guess.
+        if (!string.IsNullOrWhiteSpace(aRun.Models))
+        {
+            try
+            {
+                var vNamed = JsonSerializer.Deserialize<List<string>>(aRun.Models);
+
+                if (vNamed is { Count: > 0 })
+                {
+                    return vNamed;
+                }
+            }
+            catch (JsonException)
+            {
+                // A malformed list is not a model name. Fall through to the dominant label, which is the
+                // same thing the reference does when `models` is absent or empty.
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(aRun.Model) ? [] : [aRun.Model];
+    }
+
+    /// <summary>
+    /// Builds one phase's money block (SCHEMA.md §2.5b, REQ-FN-136, REQ-FN-137).
+    /// </summary>
+    /// <remarks>
+    /// Every money figure is read over <paramref name="aPriced"/> — the runs with a usable token window —
+    /// because a run whose window could not be computed has no tokens to price and no attributable spend.
+    /// The <c>by_mode</c> split is the exception: it describes the phase's work rather than its money, so
+    /// it is read over every run and carries its own unmeasured count.
+    /// </remarks>
+    /// <param name="aRuns">Every run in the phase.</param>
+    /// <param name="aPriced">Those with a usable token window.</param>
+    /// <param name="aPrices">The rate card, or <c>null</c>.</param>
+    /// <returns>The block.</returns>
+    private static PhaseMoney MoneyOf(
+        IReadOnlyList<RunRecord> aRuns,
+        IReadOnlyList<RunRecord> aPriced,
+        RateCard? aPrices)
+    {
+        var vModeN = new Dictionary<string, int>(StringComparer.Ordinal);
+        var vCostByMode = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        var vSpendByModel = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        var vSpendRecords = new Dictionary<string, int>(StringComparer.Ordinal);
+        var vPlanByModel = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        var vUnattributed = 0m;
+        var vUnattributedN = 0;
+        var vListUsd = 0d;
+        var vListRecords = 0;
+
+        foreach (var vRun in aPriced)
+        {
+            // A record written before 2026-09-10 carries no billing mode. It is admitted on its old
+            // terms under its own key rather than assumed into one of the five, so adding the field
+            // never rewrites the past.
+            var vMode = string.IsNullOrWhiteSpace(vRun.BillingMode) ? BillingModes.Unrecorded : vRun.BillingMode;
+            vModeN[vMode] = vModeN.GetValueOrDefault(vMode) + 1;
+
+            if (aPrices is not null && ListPrice.For(vRun, aPrices) is { } vPrice)
+            {
+                vListUsd += vPrice;
+                vListRecords++;
+            }
+
+            if (vRun.CostUsd is not { } vCost)
+            {
+                continue;
+            }
+
+            vCostByMode[vMode] = vCostByMode.GetValueOrDefault(vMode) + vCost;
+
+            var vModels = ModelsNamedBy(vRun);
+
+            if (vMode == BillingModes.Plan && vModels.Count == 1)
+            {
+                vPlanByModel[vModels[0]] = vPlanByModel.GetValueOrDefault(vModels[0]) + vCost;
+            }
+
+            if (vMode != BillingModes.Metered)
+            {
+                continue;
+            }
+
+            if (vModels.Count == 1)
+            {
+                vSpendByModel[vModels[0]] = vSpendByModel.GetValueOrDefault(vModels[0]) + vCost;
+                vSpendRecords[vModels[0]] = vSpendRecords.GetValueOrDefault(vModels[0]) + 1;
+            }
+            else
+            {
+                vUnattributed += vCost;
+                vUnattributedN++;
+            }
+        }
+
+        return new PhaseMoney
+        {
+            BillingModes = vModeN
+                .OrderBy(aEntry => aEntry.Key, StringComparer.Ordinal)
+                .ToList(),
+            CostUsdByBillingMode = vCostByMode
+                .OrderBy(aEntry => aEntry.Key, StringComparer.Ordinal)
+                .Select(aEntry => new KeyValuePair<string, decimal>(aEntry.Key, Usd(aEntry.Value)))
+                .ToList(),
+            MoneyUsd = Usd(vCostByMode.GetValueOrDefault(BillingModes.Metered)),
+            MoneyRecords = vModeN.GetValueOrDefault(BillingModes.Metered),
+            MixedUsd = Usd(vCostByMode.GetValueOrDefault(BillingModes.Mixed)),
+            MixedRecords = vModeN.GetValueOrDefault(BillingModes.Mixed),
+            SpendByModel = vSpendByModel
+                .OrderByDescending(aEntry => aEntry.Value)
+                .ThenBy(aEntry => aEntry.Key, StringComparer.Ordinal)
+                .Select(aEntry => new KeyValuePair<string, PhaseSpend>(
+                    aEntry.Key,
+                    new PhaseSpend(Usd(aEntry.Value), vSpendRecords.GetValueOrDefault(aEntry.Key))))
+                .ToList(),
+            SpendUnattributed = new PhaseSpend(Usd(vUnattributed), vUnattributedN),
+            ListUsd = (decimal)ListPrice.Round(vListUsd, UsdDigits),
+            ListUsdRecords = vListRecords,
+            ListUsdUnpricedN = aPriced.Count - vListRecords,
+            PlanAllowanceUsd = Usd(vCostByMode.GetValueOrDefault(BillingModes.Plan)),
+            PlanAllowanceRecords = vModeN.GetValueOrDefault(BillingModes.Plan),
+            PlanAllowanceByModel = vPlanByModel
+                .OrderByDescending(aEntry => aEntry.Value)
+                .Select(aEntry => new KeyValuePair<string, decimal>(aEntry.Key, Usd(aEntry.Value)))
+                .ToList(),
+            ByMode = ByModeOf(aRuns)
+        };
+    }
+
+    /// <summary>
+    /// Splits a phase by <c>mode</c>, in the order the modes first ran.
+    /// </summary>
+    /// <param name="aRuns">Every run in the phase.</param>
+    /// <returns>One slice per mode.</returns>
+    private static IReadOnlyList<KeyValuePair<string, PhaseModeSlice>> ByModeOf(IReadOnlyList<RunRecord> aRuns)
+    {
+        return aRuns
+            .GroupBy(aRun => string.IsNullOrWhiteSpace(aRun.Mode) ? NotRecorded : aRun.Mode, StringComparer.Ordinal)
+            .Select(aGroup => new
+            {
+                aGroup.Key,
+                Runs = aGroup.ToList(),
+                First = aGroup.Min(aRun => aRun.Started ?? string.Empty) ?? string.Empty
+            })
+            .OrderBy(aSlice => aSlice.First, StringComparer.Ordinal)
+            .Select(aSlice => new KeyValuePair<string, PhaseModeSlice>(
+                aSlice.Key,
+                new PhaseModeSlice(
+                    aSlice.Runs.Count,
+                    aSlice.Runs.Sum(aRun => (long)(aRun.DurationS ?? 0)),
+                    aSlice.Runs.Where(IsPriced).Sum(aRun => (long)aRun.TokensOut!.Value),
+                    aSlice.Runs.Count(aRun => !IsPriced(aRun)),
+                    aSlice.Runs.Sum(aRun => (long)(aRun.FilesWritten ?? 0)),
+                    aSlice.First)))
+            .ToList();
+    }
+
+    /// <summary>Rounds dollars the way every money figure in the block is rounded.</summary>
+    /// <param name="aValue">The amount.</param>
+    /// <returns>The rounded amount.</returns>
+    private static decimal Usd(decimal aValue) => Math.Round(aValue, UsdDigits, MidpointRounding.ToEven);
+
     private static IReadOnlyList<KeyValuePair<string, int>> ByKey(
         IReadOnlyList<RunRecord> aRuns,
         Func<RunRecord, string?> aValueOf,

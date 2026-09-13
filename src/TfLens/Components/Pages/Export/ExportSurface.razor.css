@@ -1,25 +1,12 @@
 /*
-    The export surface's own measurements. Hand-written because the shipped trblazeui.css carries no
-    responsive variants at all and `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*`
-    (TR-002), so neither of the two layouts below can be expressed in markup.
+    The export surface's own measurements — the ones the shipped utility set still cannot express.
 
-    Both grids are one column until there is room for two, which is what keeps the page from ever
-    scrolling horizontally on a phone — the wide tables scroll inside their own containers instead.
+    TR-002 is closed: trblazeui.css ships the sm:/md:/lg:/xl:/2xl: variants now (40/48/64/80/96rem),
+    so the two grids on this surface are `grid-cols-1 lg:grid-cols-3` / `lg:grid-cols-2` in the markup
+    and the `@media (min-width: 64rem)` block that stood in for them is gone. What is left below is
+    table-cell behaviour, which no utility reaches: every rule here targets a cell inside DataTable's
+    own markup and therefore needs `::deep`.
 */
-
-.tflens-export-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-}
-
-.tflens-parity-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-}
 
 /* A long target path must wrap rather than widen the card.
 
@@ -46,13 +33,6 @@
     word-break: normal;
 }
 
-/* REQ-UI-032 — the field column holds short, fixed labels (`Parity status`, `Script hash`), so it
-   wraps only because the value beside it is competing for the width. Holding the labels on one line
-   is what the mockup does, and the value now has break points of its own to give ground with. */
-.tflens-facts ::deep td:first-child {
-    white-space: nowrap;
-}
-
 /* REQ-UI-032 — dataset identity. Every cell in this table is an identifier a reader must be able to
    re-type: a repo slug, a branch, a 7-character commit SHA, a sync age. `30e6616` needed 62px in a
    51px cell and came apart mid-hash — a broken SHA is a wrong SHA, on the one screen whose job is
@@ -64,20 +44,10 @@
     white-space: nowrap;
 }
 
-@media (min-width: 64rem) {
-    .tflens-export-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-    }
-
-    .tflens-parity-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-}
-
 /* REQ-UI-032 / REQ-UI-033 — mockup parity for the Export card (owner UAT, 2026-08-29). */
 
 /* The mockup's card header is a two-part row: title + description on the left, the download icon
-   button on the right. CardHeader is a CSS grid in TrBlazeUI 2.0.0, so the row is one child of it. */
+   button on the right, and this element is that row. */
 .tflens-export-head {
     display: flex;
     align-items: flex-start;
@@ -86,28 +56,34 @@
     width: 100%;
 }
 
-/* The summary card is headerless in the mockup — the left cell IS the label, so a "Field | Value"
-   header row only repeats it. Same treatment as the Harness and Profile key/value tables. */
-.tflens-facts ::deep thead {
-    display: none;
-}
-
-/* No explicit width any more: `white-space: nowrap` below already sizes this column to its longest
-   label, and the 38% it used to claim was 22px MORE than `Parity status` needs — width the value
-   column wanted, which is why `6 synced repo(s) · 1,174 records` came out over three lines at 1280. */
+/* REQ-UI-032 — the field column holds short, fixed labels (`Parity status`, `Script hash`). Holding
+   them on one line is what the mockup does; the value beside them has `<wbr>` break points of its own
+   to give ground with. No explicit width: `white-space: nowrap` already sizes the column to its
+   longest label, and the 38% it used to claim was 22px MORE than `Parity status` needs — width the
+   value column wanted, which is why `6 synced repo(s) · 1,174 records` came out over three lines at
+   1280. (The `::deep thead { display: none }` that used to sit here is gone: the two facts tables
+   pass `ShowHeader="false"` now — TR-012.) */
 .tflens-facts ::deep td:first-child {
+    white-space: nowrap;
     width: 1%;
     color: var(--muted-foreground);
 }
 
-/* The parity pill. Amber is the default for everything that is not an affirmative QUOTABLE. */
-.tflens-parity-ok {
+/* REQ-UI-033 — the parity pill's two tones. Amber is the default for everything that is not an
+   affirmative QUOTABLE.
+
+   These reach the Badge through `::deep`, not as bare class selectors: `Class="tflens-parity-ok"` on
+   a child component lands on an element that carries BADGE's scope attribute, never this file's, so a
+   bare `.tflens-parity-ok { … }` compiles to a rule that can never match (REQ-NFR-021 — the same trap
+   `.tflens-export-chip` above documents). The `.tflens-pill` wrapper is what gives `::deep` an
+   ancestor inside this component to hang off. */
+.tflens-pill ::deep .tflens-parity-ok {
     color: var(--alert-success);
     border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
     background: var(--alert-success-bg);
 }
 
-.tflens-parity-warn {
+.tflens-pill ::deep .tflens-parity-warn {
     color: var(--alert-warning);
     border-color: color-mix(in oklab, var(--alert-warning) 45%, transparent);
     background: var(--alert-warning-bg);
@@ -121,14 +97,6 @@
     background: color-mix(in oklab, var(--chart-1) 15%, transparent);
     color: var(--chart-1);
     border-color: transparent;
-}
-
-/* REQ-UI-033 — the parity pill. TrBlazeUI's Badge does not set `white-space`, so as a table cell's
-   only child it wrapped `NOT QUOTABLE` over two lines where the design holds it on one. A status
-   read at a glance is exactly the wrong thing to break in half. */
-.tflens-pill ::deep > div,
-.tflens-pill ::deep > span {
-    white-space: nowrap;
 }
 
 /* REQ-UI-032 — the SHA column. `white-space: nowrap` stops the hash breaking, but the gate measures

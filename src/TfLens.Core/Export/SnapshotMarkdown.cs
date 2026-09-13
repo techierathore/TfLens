@@ -951,5 +951,7 @@ internal static class SnapshotMarkdown
     /// <param name="aValue">The estimated amount.</param>
     /// <returns>The rendered cell.</returns>
     private static string Money(decimal? aValue) =>
-        aValue is { } vValue ? "$" + vValue.ToString("F2", CultureInfo.InvariantCulture) + " (est.)" : "—";
+        aValue is { } vValue
+            ? (vValue < 0m ? "-$" : "$") + Math.Abs(vValue).ToString("F2", CultureInfo.InvariantCulture) + " (est.)"
+            : "—";
 }

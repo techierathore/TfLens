@@ -28,7 +28,6 @@
 <div class="tflens-stack">
 
     <div class="flex flex-wrap items-center justify-between gap-3">
-        @* TrBlazeUI 2.0.0 ships no Typography components (TR-005), so the page heading is plain markup. *@
         <div>
             <h1 class="text-2xl font-semibold">Coverage / health</h1>
             <p class="mt-1 text-sm text-muted-foreground">@Subtitle</p>
@@ -138,13 +137,21 @@
             {
                 <div class="trblazeui-col-12 trblazeui-col-md-6">
                     <Card Class="h-full" data-testid="@($"repo-card-{vCard.Repo.Name}")">
-                        @* CardHeader is a CSS grid in 2.0.0, so the header row is one flex child of it. *@
+                        @* `CardHeader` is a grid; the title row is one flex child of it. *@
                         <CardHeader>
                             @* REQ-UI-014, fixed 2026-08-29: `flex-wrap` on THIS row let the status pill
                                drop to a line of its own, so the card read as three stacked rows against
                                the mockup's one. The inner span still wraps — that is where extra badges
-                               belong — while the pill states its size and stays right-aligned. *@
-                            <div class="flex w-full flex-nowrap items-start justify-between gap-2">
+                               belong — while the pill states its size and stays right-aligned.
+
+                               Amended: the `nowrap` is `md:` and up only. A `Badge` label is held on ONE
+                               line by the component now, so at 390 the widest pill ("2 streams stale",
+                               ~110px, and `shrink-0`) and the repo name met and overlapped by 19px —
+                               measured on `repo-card-TechieBlog`. Below `md` the row wraps, which is
+                               also the shared mockup stylesheet's own rule for badges under 700px
+                               (UIDesign, shell revision 2026-09-01); at 1280 nothing changes and the
+                               2026-08-29 finding still holds. *@
+                            <div class="flex w-full flex-wrap items-start justify-between gap-2 md:flex-nowrap">
                                 <span class="flex min-w-0 flex-wrap items-center gap-2">
                                     <CardTitle Class="text-base">@vCard.Repo.Repo</CardTitle>
                                     <Badge Variant="BadgeVariant.Secondary">@vCard.Repo.Kind</Badge>
@@ -205,16 +212,22 @@
                                mid-date — the mockup shows all five. Sorting buys nothing on a table of
                                at most four fixed stream rows, and `docs/mockups/coverage.html` has no
                                sort control here at all. *@
-                            <div class="mt-2 w-full overflow-x-auto coverage-streams">
-                                @* TR-009: ShowPagination="false" only hides the pager — the grid still
-                                   truncates to InitialPageSize, so it is set well above the four rows
-                                   a framework can have. *@
+                            @* `Density="Compact"` is what buys this table its width. Measured at 1280:
+                               five columns wanted 432px in a 420px card box with 16px of cell padding a
+                               side, and `Newest` was left 52px of content against the 81px an ISO date
+                               needs, so the browser broke the date at its own hyphens — "2026-" / "08-" /
+                               "28". Compact's `px-2.5` is 10px a side, which gives 60px back across five
+                               columns; that is more than the date column takes, so the table fits.
+                               `docs/mockups/coverage.html` spends the same width differently — its table
+                               is flush to the card edges (`card-c flush`) — and lands in the same place:
+                               five columns visible, the date on one line. *@
+                            <div class="mt-2 w-full overflow-x-auto">
                                 <DataTable TData="StreamRow"
                                            Data="@vCard.Streams"
                                            ShowToolbar="false"
                                            ShowPagination="false"
+                                           Density="DataTableDensity.Compact"
                                            Sortable="false"
-                                           InitialPageSize="16"
                                            AriaLabel="@($"{vCard.Repo.Repo} streams")"
                                            data-testid="@($"repo-streams-{vCard.Repo.Name}")">
                                     <Columns>
@@ -260,8 +273,8 @@
                                             </CellTemplate>
                                         </DataTableColumn>
 
-                                        @* `MinWidth` is a real `DataTableColumn` parameter (TR-024) and
-                                           says the intent where it belongs, on the column: this one is
+                                        @* `MinWidth` says the intent where it belongs, on the column:
+                                           this one is
                                            never narrower than a whole `yyyy-MM-dd`. An ISO date measures
                                            ~5.8em at the table's size and the cells carry ~1.4em of
                                            padding, so 7.5em is that with a little to spare, in `em` so it
@@ -282,8 +295,8 @@
                                                    space between them. The cell's textContent is unchanged
                                                    ("yyyy-MM-dd HH:mm"), so nothing that reads the text moves.
                                                    The date's box is now the column's min-content, which is
-                                                   what buys the column its width; the padding trim in
-                                                   Coverage.razor.css pays for it. *@
+                                                   what buys the column its width; the table's
+                                                   `Density="Compact"` pays for it. *@
                                                 <span class="text-muted-foreground"><span class="whitespace-nowrap">@vRow.NewestDatePart</span>@vRow.NewestSeparator<span class="whitespace-nowrap">@vRow.NewestTimePart</span></span>
                                             </CellTemplate>
                                         </DataTableColumn>
@@ -448,8 +461,6 @@
            where a field is written by the producer and not yet read by TfLens, the count is absent and
            says so, because printing 0 would claim a measurement nobody has made. *@
         <div class="flex flex-col gap-1" data-testid="data-quality">
-            @* TrBlazeUI 2.0.0 ships no Typography components that can carry a test id (TR-005, TR-013),
-               so the band heading is plain markup, as the page heading above is. *@
             <h3 class="text-lg font-semibold">Data quality</h3>
             <p class="text-sm text-muted-foreground">
                 Facts about the records themselves. <b>None of these is a warning</b> and none appears on
@@ -477,13 +488,13 @@
                         </div>
                     </CardHeader>
                     <CardContent Class="pt-0">
-                        <div class="w-full overflow-x-auto coverage-streams">
+                        <div class="w-full overflow-x-auto">
                             <DataTable TData="FieldCompletenessRow"
                                        Data="@FieldCompletenessRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
+                                       Density="DataTableDensity.Compact"
                                        Sortable="false"
-                                       InitialPageSize="64"
                                        AriaLabel="Miss field completeness per repository"
                                        data-testid="cov-field-completeness-table">
                                 <Columns>
@@ -556,13 +567,13 @@
                         </div>
                     </CardHeader>
                     <CardContent Class="pt-0">
-                        <div class="w-full overflow-x-auto coverage-streams">
+                        <div class="w-full overflow-x-auto">
                             <DataTable TData="DerivedRow"
                                        Data="@DerivedRows"
                                        ShowToolbar="false"
                                        ShowPagination="false"
+                                       Density="DataTableDensity.Compact"
                                        Sortable="false"
-                                       InitialPageSize="16"
                                        AriaLabel="Values derived at read time"
                                        data-testid="cov-derived-table">
                                 <Columns>
@@ -630,13 +641,13 @@
                         }
                         else
                         {
-                            <div class="w-full overflow-x-auto coverage-streams">
+                            <div class="w-full overflow-x-auto">
                                 <DataTable TData="UnrecognisedRow"
                                            Data="@UnrecognisedRows"
                                            ShowToolbar="false"
                                            ShowPagination="false"
+                                           Density="DataTableDensity.Compact"
                                            Sortable="false"
-                                           InitialPageSize="64"
                                            AriaLabel="Values no SCHEMA.md vocabulary lists"
                                            data-testid="cov-unrecognised-table">
                                     <Columns>
@@ -693,8 +704,12 @@
                         </div>
                     </CardHeader>
                     <CardContent Class="pt-0">
-                        @* TR-012 — DataTable cannot hide its header row, so a key/value table is written
-                           as rows of markup rather than as a headerless grid. *@
+                        @* Not a table. Each of these rows is a label, one figure, and a sentence that
+                           explains what the figure is not, and the sentence has to wrap and reflow with
+                           the other two — `DataTable` can hide its header (`ShowHeader="false"`, used on
+                           the Harness key/value tables) but it still lays each row out in fixed columns,
+                           which would either clip the prose or force a third column wide enough to make
+                           the figures unreadable at 390. Markup rows, deliberately. *@
                         <div class="flex flex-col gap-3">
 
                             @* An escape is the most valuable record in the stream: something got past
@@ -829,12 +844,13 @@
             <Collapsible @bind-Open="objIsUnknownOpen">
                 <Card>
                     <CardContent Class="p-4">
-                        <CollapsibleTrigger>
-                            <span class="flex items-center gap-2 text-sm font-medium"
-                                  data-testid="unknown-fields-trigger">
-                                <LucideIcon Name="@(objIsUnknownOpen ? "chevron-down" : "chevron-right")" Size="16" />
-                                Fields observed that SCHEMA.md doesn't document (@objUnknownFieldNames.Count)
-                            </span>
+                        @* The id and the layout classes are the trigger's own — `CollapsibleTrigger`
+                           takes a `Class` and captures unmatched attributes, so the span that used to
+                           carry them both is gone rather than duplicated. *@
+                        <CollapsibleTrigger Class="flex items-center gap-2 text-sm font-medium"
+                                            data-testid="unknown-fields-trigger">
+                            <LucideIcon Name="@(objIsUnknownOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                            Fields observed that SCHEMA.md doesn't document (@objUnknownFieldNames.Count)
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <div class="mt-4 flex flex-col gap-3">
@@ -884,15 +900,11 @@
 <AlertDialog @bind-Open="objIsRebuildOpen">
     <AlertDialogContent>
         <AlertDialogHeader>
-            <AlertDialogTitle>
-                <span data-testid="rebuild-title">Drop the parsed tables and reparse?</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-                <span data-testid="rebuild-description">
-                    Every parsed row of yours is deleted and re-derived from the raw archive with
-                    parser @ParserVersion.Current. The raw archive and your GitHub repos are untouched, and
-                    nothing else on this page changes until the replay finishes.
-                </span>
+            <AlertDialogTitle data-testid="rebuild-title">Drop the parsed tables and reparse?</AlertDialogTitle>
+            <AlertDialogDescription data-testid="rebuild-description">
+                Every parsed row of yours is deleted and re-derived from the raw archive with
+                parser @ParserVersion.Current. The raw archive and your GitHub repos are untouched, and
+                nothing else on this page changes until the replay finishes.
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -1240,7 +1252,8 @@
         var vMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
         var vFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
         var vAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
-        var vRuns = await objStore.ReadRunsAsync(objUserId.Value, objFramework);
+        // REQ-FN-140 — voided runs and the void records leave every figure (SCHEMA.md §2.7).
+        var vRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework)).Kept;
         var vGates = await objStore.ReadGatesAsync(objUserId.Value, objFramework);
 
         objMisses = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);

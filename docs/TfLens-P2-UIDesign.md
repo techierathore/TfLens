@@ -8,9 +8,7 @@
 | Phase | 2 of 3 |
 | Date | 2026-09-08 |
 
-The design system, the click-through flow and the library-gap log are shared and live in [TfLens-UIDesign.md](./TfLens-UIDesign.md) (phase 1). This file holds the 5 screens of phase 2.
-
-Requirements: [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) · Work list: [TfLens-P2-Checklist.md](./TfLens-P2-Checklist.md) · Map: [TfLens-Phases.md](./TfLens-Phases.md)
+This file holds the 5 screens of phase 2; what every phase shares is listed under *Where the rest lives* at the end.
 
 ## Screens
 
@@ -121,6 +119,13 @@ Requirements: [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) · Work list: [TfLens-P2-Ch
 | Parity record | `Card` "Last parity run" → date, dataset SHAs, script hash, parser version, compare output (`pre`) | `data/parity-last.json` | none → `Alert Variant=Warning` |
 
 
-## Library gaps
+## Where the rest lives
 
-Logged once, for the whole project, in [TfLens-UIDesign.md](./TfLens-UIDesign.md) and `docs/TfLens-TrBlazeUI-Feedback.md`.
+| What | Where |
+|---|---|
+| UI library, theme and the design system | [phase 1 UI design](./TfLens-UIDesign.md) |
+| The click-through flow across every phase | [phase 1 UI design](./TfLens-UIDesign.md) |
+| Library gaps — controls TrBlazeUI lacks, logged once for every phase | [TfLens-TrBlazeUI-Feedback.md](./TfLens-TrBlazeUI-Feedback.md) |
+| This phase's requirements | [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) |
+| This phase's work list | [TfLens-P2-Checklist.md](./TfLens-P2-Checklist.md) |
+| Every phase and its screens | [TfLens-Phases.md](./TfLens-Phases.md) |

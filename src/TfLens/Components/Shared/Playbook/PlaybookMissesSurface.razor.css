@@ -4,75 +4,40 @@
    reach this component's markup: these are its own copies rather than references to them (the same
    arrangement PlaybookHarnessSurface.razor.css already uses).
 
-   TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
-   none of them, so anything painted with them is transparent — the KPI accent chips and every Alert
-   tint. Custom properties inherit, so declaring them on this surface's root reaches every TrBlazeUI
-   control rendered inside it, whether or not the host page declares them too. Values are the approved
-   mockup's palette (docs/mockups/misses-playbook.html), which reads on both surfaces.
-
-   TR-002: the package ships no responsive variants at all, so every breakpoint here is hand-written. */
+   2026-09-12 (TrBlazeUI 2.1.0-ci.10) — TR-001 and TR-002 are fixed. The shipped trblazeui.css now
+   DEFINES --chart-1..5 and the whole --alert-* family, wwwroot/app.css overrides them once with the
+   product's palette, and the `sm:`/`lg:` variants work, so the token block and the hand-written grid
+   breakpoints that used to live here are gone. The chips below ride on the SEMANTIC --alert-* tokens
+   rather than on a chart index, so green still means "measured" and amber "apportioned" whatever the
+   chart ramp is set to. */
 .pb-misses-surface {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     min-width: 0;
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
 }
-
-/* TR-002: `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*` (no media query), so the
-   library's own grid helpers collapse to a fixed span at every width. The KPI rows drive
-   grid-template-columns directly instead — one column on a phone, four once there is room. */
-.pb-kpi-row ::deep .trblazeui-grid {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-    .pb-kpi-row ::deep .trblazeui-grid > * {
-        grid-column: auto;
-    }
 
 .pb-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     min-width: 0;
 }
+
+/* No `grid-template-columns` above, deliberately — a scoped class selector carries this file's scope
+   attribute, so declaring one here would out-specify the `lg:grid-cols-*` utility on the div. The div
+   carries `grid-cols-1` instead, which is the SAME `repeat(1, minmax(0, 1fr))`. The `minmax(0, …)` is
+   load-bearing and must never become a bare `auto`: measured 2026-09-12, a plain `display:grid` sized
+   its implicit track to max-content and the widest table pushed the page pane 787px sideways at 390. */
 
     .pb-grid > * {
         min-width: 0;
     }
 
-@media (min-width: 40rem) {
-    .pb-kpi-row ::deep .trblazeui-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
+/* `lg:grid-cols-2` / `lg:grid-cols-3` are utilities in the markup now (TR-002). Only the origin
+   pair stays here: its 1.35fr/1fr split is an arbitrary value, and arbitrary values are still not in
+   the pre-built sheet. */
 @media (min-width: 64rem) {
-    .pb-kpi-row ::deep .trblazeui-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .pb-grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .pb-grid-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
     /* The cross-tab is the wider of the pair: it carries a column per observed miss class. The
        minmax(0, …) is load-bearing — a bare `1.35fr` lets the table's intrinsic width push the column
        past its share and shove the card beside it off the right edge of the page. */
@@ -197,13 +162,13 @@
 }
 
 .pb-chip-2 {
-    background: color-mix(in oklab, var(--chart-2) 15%, transparent);
-    color: var(--chart-2);
+    background: color-mix(in oklab, var(--alert-success) 15%, transparent);
+    color: var(--alert-success);
 }
 
 .pb-chip-4 {
-    background: color-mix(in oklab, var(--chart-4) 15%, transparent);
-    color: var(--chart-4);
+    background: color-mix(in oklab, var(--alert-warning) 15%, transparent);
+    color: var(--alert-warning);
 }
 
 .pb-chip-5 {
@@ -227,9 +192,16 @@
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--alert-success) 35%, transparent);
 }
 
-.pb-kpi-row ::deep .pb-measured-badge {
-    color: var(--alert-success);
-    border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
-    background: var(--alert-success-bg);
-    font-weight: 500;
+/* TR-033 — the per-miss filter sits in the card header, as docs/mockups/misses-playbook.html draws it
+   (`.inwrap .input{width:220px}`). It is bound to the grid through `@bind-SearchText`, so nothing
+   about the filtering moved — only the box. */
+.pb-detail-filter {
+    display: block;
+    width: 100%;
+}
+
+@media (min-width: 40rem) {
+    .pb-detail-filter {
+        width: 14rem;
+    }
 }

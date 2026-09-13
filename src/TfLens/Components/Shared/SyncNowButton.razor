@@ -28,7 +28,25 @@
         }
         <span class="hidden md:flex">@(objIsRunning ? "Syncing…" : "Sync now")</span>
     </Button>
-    <Badge Variant="BadgeVariant.Outline" data-testid="last-sync-badge">@BadgeText</Badge>
+    @* TR-029 / breaking change — `Badge` no longer wraps a label that will not fit; it overflows.
+       This label is DATA ("synced just now" through "synced 23 hours ago", or "never synced"), so its
+       width is not a constant the header can be tuned against, and it is the one control REQ-UI-023
+       allows to go below its content when the desktop row is tight. `Truncate="true"` is the component
+       saying so, and it is the parameter this badge should carry.
+
+       It WORKS. Measured 2026-09-12 on an instance whose stylesheet was verified live first: this
+       badge renders `… max-w-full overflow-hidden text-ellipsis whitespace-nowrap`, computing to
+       `overflow: hidden`, `text-overflow: ellipsis`, `max-width: 100%`, against a same-page `Outline`
+       badge in the default mode computing `visible` / `clip` / `none`. (An earlier note claimed the
+       parameter was inert; that was read off an app built before this edit — the TF-043 shared-`obj/`
+       family — and is withdrawn.) The `::deep` ellipsis rule in ShellHeader.razor.css is therefore
+       redundant now and is kept only belt-and-braces; its `min-width: 0` is not, and stays.
+
+       ⚠ TR-038 applies to this exact call site: `Outline` is the one variant whose colour class is the
+       bare `text-foreground`, which the merge groups with `text-ellipsis`, so `Truncate` deletes it
+       here. Harmless in this header — the bar's own ink is `--foreground` and the badge inherits the
+       same colour — but do not copy this pairing onto a surface with a different foreground. *@
+    <Badge Variant="BadgeVariant.Outline" Truncate="true" data-testid="last-sync-badge">@BadgeText</Badge>
 </div>
 
 @code {

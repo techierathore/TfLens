@@ -14,15 +14,35 @@
     The leading sun was not only extra: at 1280 the header needs 1090px of a 1024px bar on the six report
     routes, and those 22px were part of why the breadcrumb had no room and the row wrapped (REQ-UI-010).
     The switch itself still states both states to a screen reader through its label.
+
+    Fix cycle 1, 2026-09-11 — drawn to the mockups' `<button class="switch">` control for control:
+    * the glyph follows the theme — a sun on the light palette, a moon on the dark one. The mockups carry
+      both and hide one (`html.dark .switch .sun{display:none}`); so does this, from app.css, so the right
+      glyph is on the first byte whatever the circuit has read yet. Only one is ever visible, so the
+      width the REQ-UI-010 budget above counted is unchanged.
+    * the track is the mockup's 36×20 (`.switch .trk`), which is TrBlazeUI's `SwitchSize.Small`.
+    * the test id sits on the whole control — glyph and track — which is where every mockup hangs
+      `theme-toggle`. It used to sit on the track alone, leaving the glyph outside the anchored node (the
+      anchoring waiver in tests/verify/_mockup-parity.ts names exactly this move as the way to lift it).
+
+    2026-09-12, cluster C's `theme-toggle > span[0]` positional-icon finding — the sr-only `<Label>` is
+    gone. The mockups' control has exactly three children (`svg.sun`, `svg.moon`, `span.trk`) and this
+    had four, with a 1×1 `<label>` at index 0 (measured: `label` 1×1, `svg` 0×0, `svg` 16×16, `button`
+    36×20). Every glyph was therefore one position out against the mockup, which is what the gate saw.
+
+    Nothing accessible is lost, and nothing was ever gained: `Switch` carries `AriaLabel="Dark mode"`,
+    and `aria-label` WINS over an associated `<label for>` in the accessible-name computation, so the
+    element only ever added a node to the DOM. The control still announces itself as "Dark mode", and
+    `role="switch"` still states on/off. `Id` stays on the Switch — the tests address it.
 *@
-<div class="flex items-center gap-2">
-    <Label For="@Id" Class="sr-only">Dark mode</Label>
-    <LucideIcon Name="moon" Size="14" Class="text-muted-foreground" />
+<div class="tflens-theme-toggle flex items-center gap-2" data-testid="@TestId">
+    <LucideIcon Name="sun" Size="16" Class="tflens-theme-sun text-muted-foreground" />
+    <LucideIcon Name="moon" Size="16" Class="tflens-theme-moon text-muted-foreground" />
     <Switch Id="@Id"
+            Size="SwitchSize.Small"
             Checked="@objPreferences.IsDark"
             CheckedChanged="OnCheckedChangedAsync"
-            AriaLabel="Dark mode"
-            data-testid="@TestId" />
+            AriaLabel="Dark mode" />
 </div>
 
 @code {

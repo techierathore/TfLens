@@ -242,13 +242,15 @@ test('REQ-UI-005 profile renders the AppManager values, the Manager badge and th
 // REQ-UI-006 — the app shell
 // ─────────────────────────────────────────────────────────────────────────────
 // Amended 2026-08-28 (BRD-5, BRD-124): SEVEN items — Misses & rework sits between Routing and Export.
-test('REQ-UI-006 app shell shows the eight nav items in order, a repo-count badge and no /playbook item', async ({ page }) => {
+// Amended 2026-09-11 (BRD-5, BRD-200): NINE items — Price providers is second, under Repos.
+test('REQ-UI-006 app shell shows the nine nav items in order, collapses to an icon rail, a repo-count badge and no /playbook item', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
   await signIn(page);
   await gotoScreen(page, '/');
 
   await expect(page.locator('[data-testid="app-sidebar"]').first()).toBeVisible();
 
-  const ids = ['nav-repos', 'nav-coverage', 'nav-gate-outcomes', 'nav-harness', 'nav-routing',
+  const ids = ['nav-repos', 'nav-prices', 'nav-coverage', 'nav-gate-outcomes', 'nav-harness', 'nav-routing',
     'nav-misses', 'nav-effort', 'nav-export'];
   for (const id of ids) {
     expect(await page.locator(`[data-testid="${id}"]`).count(), `${id} missing`).toBeGreaterThan(0);
@@ -260,12 +262,69 @@ test('REQ-UI-006 app shell shows the eight nav items in order, a repo-count badg
     expect(order[i], `${ids[i]} is not after ${ids[i - 1]} in DOM order: ${JSON.stringify(order)}`).toBeGreaterThan(order[i - 1]);
   }
 
+  // No tenth item: every nav-* link in the sidebar is one of the nine.
+  const navIds = await page.locator('[data-testid="app-sidebar"] [data-testid^="nav-"]').evaluateAll(
+    els => Array.from(new Set(els.map(e => e.getAttribute('data-testid') || ''))).filter(id => id !== 'nav-repo-count'));
+  expect(navIds.sort(), `the sidebar carries items outside BRD-5: ${JSON.stringify(navIds)}`).toEqual([...ids].sort());
+
+  // Collapses to an icon rail: after the trigger, every item is still on screen but narrow (icon only).
+  const firstItem = page.locator('[data-testid="nav-repos"]').first();
+  const openWidth = (await firstItem.boundingBox())?.width ?? 0;
+  expect(openWidth, 'nav-repos is not showing its label while the sidebar is open').toBeGreaterThan(100);
+  await page.locator('[data-testid="sidebar-trigger"]').first().click();
+  await expect.poll(async () => (await firstItem.boundingBox())?.width ?? 0,
+    { message: 'the sidebar did not collapse to an icon rail', timeout: 10_000 }).toBeLessThanOrEqual(64);
+  for (const id of ids) {
+    const box = await page.locator(`[data-testid="${id}"]`).first().boundingBox();
+    expect(box, `${id} is not on screen in the icon rail`).not.toBeNull();
+    expect(box!.x, `${id} is off screen in the icon rail`).toBeGreaterThanOrEqual(0);
+    expect(box!.width, `${id} is wider than an icon in the rail`).toBeLessThanOrEqual(64);
+  }
+  await page.locator('[data-testid="sidebar-trigger"]').first().click();
+
   // BRD-108 — the framework is a header switch, never a nav item.
   expect(await page.locator('a[href*="/playbook"]').count(), 'a /playbook nav item exists').toBe(0);
 
   const badge = page.locator('[data-testid="nav-repo-count"]').first();
   await badge.waitFor({ state: 'attached', timeout: 20_000 });
   expect((((await badge.textContent()) || '')).trim().length, 'nav-repo-count is empty').toBeGreaterThan(0);
+});
+
+// UIDesign shell revision 2026-09-11 (owner decision 4): below 768px the sidebar is off the page and the
+// header's menu button slides it out, with its labels, over a dark backdrop. The labels must be read
+// against the panel, so the panel paints a solid surface — never the page showing through behind it.
+test('REQ-UI-006 at phone width the menu button slides out the sidebar with its nine items on a solid panel', async ({ page }) => {
+  // Sign in at desktop width: the shared helpers wait for the sidebar, which a phone does not show.
+  await page.setViewportSize(DESKTOP);
+  await signIn(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/misses');
+  await page.locator('[data-testid="sidebar-trigger"]').first().waitFor({ state: 'visible', timeout: 30_000 });
+  await page.waitForTimeout(1500);
+
+  await page.locator('[data-testid="sidebar-trigger"]').first().click();
+  const ids = ['nav-repos', 'nav-prices', 'nav-coverage', 'nav-gate-outcomes', 'nav-harness', 'nav-routing',
+    'nav-misses', 'nav-effort', 'nav-export'];
+  for (const id of ids) {
+    await expect(page.locator(`[data-testid="${id}"]`).first(), `${id} is not shown in the slid-out menu`).toBeVisible();
+  }
+  await page.waitForTimeout(1500); // the slide-in animation settles
+
+  // The nearest painted surface behind the first item, walking up to the slid-out panel itself.
+  const surface = await page.locator('[data-testid="nav-repos"]').first().evaluate(el => {
+    const alpha = (c: string) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return c === 'transparent' ? 0 : 1;
+      const p = m[1].split(/[ ,/]+/).filter(Boolean); return p.length > 3 ? parseFloat(p[3]) : 1; };
+    let n: HTMLElement | null = el as HTMLElement;
+    while (n && n !== document.body) {
+      const cs = getComputedStyle(n);
+      if (alpha(cs.backgroundColor) >= 0.95) return { painted: true, by: n.tagName.toLowerCase(), bg: cs.backgroundColor };
+      if (cs.position === 'fixed') return { painted: false, by: n.tagName.toLowerCase(), bg: cs.backgroundColor };
+      n = n.parentElement;
+    }
+    return { painted: false, by: 'body', bg: '' };
+  });
+  expect(surface.painted,
+    `the slid-out sidebar panel (${surface.by}) paints ${surface.bg || 'nothing'}: the page shows through behind the menu labels`).toBe(true);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

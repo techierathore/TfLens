@@ -8,26 +8,79 @@ export const USER2 = { email: 'tflenstest2@techierathore.com', password: 'TfLens
 export const DESKTOP = { width: 1280, height: 800 };
 export const MOBILE = { width: 390, height: 844 };
 
+// The shell's sidebar is the shipped TrBlazeUI <Sidebar>, whose root class list is
+// `group peer hidden md:flex …`. Below 768px it is DISPLAY:NONE and the phone menu is a portalled
+// Sheet under <body> instead — so waiting for it to be *visible* can never resolve at 390 and burns
+// the whole timeout before failing. Every wait on it is therefore `state: 'attached'`: the element
+// is in the DOM at both widths, which is all "the shell has rendered" needs to mean.
+const SHELL = '[data-testid="app-sidebar"]';
+async function waitForShell(page: Page) {
+  await page.waitForSelector(SHELL, { state: 'attached', timeout: 30_000 });
+}
+
 /** Sign in through the real /login form and wait for the shell. */
 export async function signIn(page: Page, user = USER1) {
   await page.goto('/login');
-  await page.waitForSelector('[data-testid="login-email"]');
-  await page.fill('[data-testid="login-email"]', user.email);
-  await page.fill('[data-testid="login-pass"]', user.password);
+  await page.waitForSelector('[data-testid="login-email"]', { state: 'attached' });
+
+  // Blazor Server hydration race: the form exists in the static SSR render, so a fill can land
+  // BEFORE the circuit attaches — and the first interactive render then blanks both fields, so the
+  // submit posts empty and the sign-in fails for a reason that looks nothing like a race. Fill, read
+  // back, and retry until the values stick.
+  await expect(async () => {
+    await page.fill('[data-testid="login-email"]', user.email);
+    await page.fill('[data-testid="login-pass"]', user.password);
+    await expect(page.locator('[data-testid="login-email"]')).toHaveValue(user.email);
+    await expect(page.locator('[data-testid="login-pass"]')).toHaveValue(user.password);
+  }).toPass({ timeout: 30_000 });
+
   await Promise.all([
     page.waitForURL(u => !u.pathname.startsWith('/login'), { timeout: 45_000 }),
     page.click('[data-testid="login-submit"]'),
   ]);
-  await page.waitForSelector('[data-testid="app-sidebar"]', { timeout: 30_000 });
+  await waitForShell(page);
 }
 
 /** Navigate inside the shell and wait for Blazor Server to finish the first render. */
 export async function gotoScreen(page: Page, route: string) {
   await page.goto(route);
-  await page.waitForSelector('[data-testid="app-sidebar"]', { timeout: 30_000 });
+  await waitForShell(page);
   await page.waitForLoadState('networkidle').catch(() => {});
   // Blazor Server: give the circuit a beat to swap skeletons for data.
   await page.waitForTimeout(1500);
+}
+
+/**
+ * Fail loudly when the Blazor scoped-CSS bundle did not load.
+ *
+ * A concurrent build against the shared `src/TfLens/obj/` can leave the running app serving
+ * `TfLens.<fingerprint>.styles.css` as **200 OK with zero bytes** under `Accept-Encoding: gzip`
+ * (framework defect TF-043). The page still renders and every request still succeeds, but the
+ * browser parses NO scoped rules — so every `::deep` rule is inert, the header measures 105px
+ * instead of 64px, and any geometry assertion silently measures a page that was never styled.
+ * That is indistinguishable from a real regression, and it reads as a PASS for any test whose
+ * subject is a scoped rule having been removed.
+ *
+ * Call this at the top of any spec whose findings depend on scoped CSS, passing one or more rules
+ * you know are live on that screen. Three is plenty. Cluster C's `ui-prices.spec.ts` was the first
+ * to do it; it belongs in every screen suite.
+ */
+export async function assertScopedCssLoaded(
+  page: Page,
+  rules: { testid: string; property: string; expected: string }[],
+) {
+  for (const rule of rules) {
+    const actual = await page
+      .locator(`[data-testid="${rule.testid}"]`)
+      .first()
+      .evaluate((el, prop) => getComputedStyle(el).getPropertyValue(prop).trim(), rule.property);
+    expect(
+      actual,
+      `scoped CSS did not load: [data-testid="${rule.testid}"] { ${rule.property} } is "${actual}", ` +
+        `expected "${rule.expected}". The app is probably serving an empty styles bundle (TF-043) — ` +
+        `re-check with: curl --compressed <base>/TfLens.<fingerprint>.styles.css | wc -c`,
+    ).toBe(rule.expected);
+  }
 }
 
 /** Wait until a testid exists, tolerating Blazor's deferred render. */

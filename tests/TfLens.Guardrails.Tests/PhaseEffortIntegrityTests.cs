@@ -217,7 +217,7 @@ public sealed class PhaseEffortIntegrityTests
     /// where absent means <i>not measured</i>, so ordinary <c>?? 0</c> on a count that really is zero
     /// stays legal. ADR-026 explains why the fix is a predicate rather than a default.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-023 — no code or SQL turns an unmeasured effort field or denominator into a zero")]
     public void NotMeasuredIsNeverCoercedToZero()
     {
         var vFindings = ScanCode(
@@ -244,7 +244,7 @@ public sealed class PhaseEffortIntegrityTests
     /// spawn count or a token total without also holding the number of runs it rests on — the same
     /// "make the wrong number unrepresentable" technique as <c>Figure</c> and <c>MissCost</c>.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-023 — measured and unobserved counts are never added together, and effort figures carry their unmeasured counts beside them")]
     public void MeasuredAndUnobservedAreNeverPooled()
     {
         var vFindings = ScanCode(
@@ -470,7 +470,7 @@ public sealed class PhaseEffortIntegrityTests
     /// way: an integrity rule with an off switch is a default, not an invariant, and the switch is
     /// always added for a reason that sounds good at the time.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-023 — no setting, option, query parameter or toggle exists that relaxes an effort invariant")]
     public void NoSwitchCanRelaxThePhaseEffortInvariants()
     {
         const string vWhy =
@@ -518,7 +518,7 @@ public sealed class PhaseEffortIntegrityTests
     /// the efficiency verdict all fail. Narrowing any of these guardrails into uselessness fails here
     /// first.
     /// </remarks>
-    [Fact]
+    [Fact(DisplayName = "REQ-NFR-023 — the effort checks catch a zero-fill and a relaxing switch and still allow honest code")]
     public void TheChecksRefuseTheDefectAndPermitTheHonestShape()
     {
         AssertAllowed(CoercedToZero, "        var vFixes = vRow.TokensIn ?? 0;");

@@ -51,13 +51,9 @@
         <div class="flex flex-wrap items-center gap-2">
             <Badge Variant="BadgeVariant.Outline" data-testid="effort-period-label">@PeriodLabel</Badge>
             <div class="tflens-period">
-                @* TR-020: SelectValue renders the raw bound value until SelectContent has rendered once,
-                   so the closed trigger read "all" rather than "All history (default)".
-                   DisplayTextSelector is the library's own hook and resolves it without the popover. *@
                 <Select TValue="string"
                         Value="@objPeriod"
                         ValueChanged="OnPeriodChangedAsync"
-                        DisplayTextSelector="@PeriodTextOf"
                         Class="w-full">
                     <SelectTrigger data-testid="effort-period">
                         <SelectValue Placeholder="All history (default)" />
@@ -118,8 +114,7 @@
     else if (objLoadError is not null)
     {
         <Alert Variant="AlertVariant.Danger" AccentBorder="true" data-testid="effort-error">
-            @* TR-008: 2.0.0 ships only the post-rename Lucide names — `alert-triangle` renders nothing. *@
-            <LucideIcon Name="triangle-alert" Size="16" />
+            <LucideIcon Name="alert-triangle" Size="16" />
             <AlertTitle>Couldn't build the effort view</AlertTitle>
             <AlertDescription>@objLoadError</AlertDescription>
         </Alert>
@@ -140,10 +135,12 @@
 
            StatGroup is not used here and the reason is arithmetic: its shim spans tiles on TrBlazeUI's
            own 12-column grid, and twelve does not divide by five, so a five-tile row lands 4 + 1. The
-           approved design puts five equal tiles across at 1280 and one per row at 390, so this row is
-           the page's own grid and the tiles stand alone inside it (TR-002 — the library ships no
-           responsive grid utilities, so the breakpoints are real media queries in the scoped sheet). *@
-        <div class="tflens-effort-kpis" data-testid="effort-kpis">
+           approved design puts five equal tiles across at 1280, two in the middle and one per row at
+           390, so this row is the page's own grid and the tiles stand alone inside it. The breakpoints
+           are the shipped responsive utilities (md = 48rem, lg = 64rem), which is what the design's own
+           media queries measure. *@
+        <div class="tflens-effort-kpis grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5"
+             data-testid="effort-kpis">
 
             <StatTile Title="Runs recorded"
                       Value="@CountText(objPhases.RunsLive)"
@@ -164,7 +161,9 @@
                       data-testid="kpi-wallclock">
                 <DescriptionContent>
                     Σ <span class="font-mono">duration_s</span> over @CountText(TimedRuns) timed runs ·
-                    <b data-testid="kpi-wallclock-derived">@DerivedDurationsNote</b> · how
+                    <b data-testid="kpi-wallclock-derived">@DerivedDurationsNote</b> ·
+                    <span data-testid="kpi-wallclock-recomputed">@RecomputedDurationsNote</span> ·
+                    <span data-testid="kpi-wallclock-excluded">@ExcludedDurationsNote</span> · how
                     long the command windows stayed open, <b>never human effort</b>
                 </DescriptionContent>
             </StatTile>
@@ -187,7 +186,11 @@
                       Accent="StatAccent.Chart3"
                       data-testid="kpi-heaviest">
                 <ValueContent>
-                    <span class="tflens-kpi-cmd font-mono">@HeaviestCmd</span>
+                    @* REQ-UI-046 — the command holds ONE line, as the design's `.kpi .v { nowrap }` does:
+                       the box is a size container and the fit class sizes the name to it. *@
+                    <span class="tflens-kpi-cmd-box">
+                        <span class="tflens-kpi-cmd font-mono @HeaviestCmdFitClass" data-testid="kpi-heaviest-cmd">@HeaviestCmd</span>
+                    </span>
                 </ValueContent>
                 <DescriptionContent>
                     @HeaviestSummary
@@ -211,29 +214,29 @@
 
         @* ---- BAND 2 — the denominators (BRD-146, BRD-147, BRD-148) ------------------------------ *@
         <h3 class="tflens-band-heading">What is excluded, and why</h3>
-        <div class="tflens-effort-denominators" data-testid="effort-denominators">
+        <div class="tflens-effort-denominators grid grid-cols-1 gap-4 md:grid-cols-2"
+             data-testid="effort-denominators">
 
             <Card Class="h-full" data-testid="effort-token-window">
-                <CardHeader>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <CardTitle Class="text-base">Token window</CardTitle>
-                            <CardDescription>A run with no token window is not a run that spent nothing</CardDescription>
-                        </div>
-                        <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">
-                            @TokensMeasuredRuns of @objPhases.RunsLive measured
-                        </Badge>
+                @* TR-015 — CardHeader honours a caller display class now, so the row IS the header
+                   rather than a div inside it. That is the element the mockup draws (`div.card-h`
+                   holding a title block and a pill), so the two structures line up one for one. *@
+                <CardHeader Class="flex flex-row items-start justify-between gap-3 tflens-card-head">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">Token window</CardTitle>
+                        <CardDescription>A run with no token window is not a run that spent nothing</CardDescription>
                     </div>
+                    <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">
+                        @TokensMeasuredRuns of @objPhases.RunsLive measured
+                    </Badge>
                 </CardHeader>
-                <CardContent Class="pt-0">
-                    <div class="tflens-table">
-                        @* TR-009: ShowPagination="false" hides the pager but still truncates to
-                           InitialPageSize, so the page size has to cover every row or rows vanish. *@
+                <CardContent Class="pt-0 tflens-flush-bottom">
+                    <div class="tflens-table tflens-table-flush">
                         <DataTable TData="ScopeRow"
                                    Data="@ScopeRows"
                                    ShowToolbar="false"
+                                   Density="DataTableDensity.Compact"
                                    ShowPagination="false"
-                                   InitialPageSize="50"
                                    AriaLabel="Runs by token scope"
                                    data-testid="effort-scope-table">
                             <Columns>
@@ -243,9 +246,11 @@
                                         <span class="font-mono @(vRow.IsUnmeasured ? "text-muted-foreground" : string.Empty)">@vRow.Scope</span>
                                     </CellTemplate>
                                 </DataTableColumn>
+                                @* TR-031 — `Align` reaches th, the header's label box and every body
+                                   cell together, which is what the mockup's `th class="r"` draws. *@
                                 <DataTableColumn TData="ScopeRow" TValue="int"
                                                  Property="@(aRow => aRow.Runs)" Header="Runs"
-                                                 CellClass="text-right">
+                                                 Align="DataTableColumnAlign.End">
                                     <CellTemplate Context="vRow">
                                         <span class="tabular-nums @(vRow.IsUnmeasured ? "font-semibold" : string.Empty)"
                                               data-testid="@($"scope-{vRow.TestKey}")">@CountText(vRow.Runs)</span>
@@ -261,38 +266,49 @@
                         </DataTable>
                     </div>
                 </CardContent>
+                @* The mockup's `.card-f` note: a top rule, 13px copy, and the info glyph in its own column
+                   beside the text (`p.muted.sm.row`). *@
                 <CardFooter Class="tflens-card-note">
-                    <p class="text-sm text-muted-foreground">
+                    <p class="tflens-small text-muted-foreground tflens-note-row">
                         <LucideIcon Name="info" Size="16" />
-                        Every token tile carries
-                        <b><span class="font-mono">measured on n of N runs</span></b> as visible text, never
-                        as a tooltip. Below <span class="font-mono">MIN_N = @MetricsConstants.MinN</span> a
-                        per-run figure renders <i>insufficient data (n=…)</i> and never
-                        <span class="font-mono">0</span>.
+                        <span>
+                            Every token tile carries
+                            <b><span class="font-mono">measured on n of N runs</span></b> as visible text, never
+                            as a tooltip. Below <span class="font-mono">MIN_N = @MetricsConstants.MinN</span> a
+                            per-run figure renders <i>insufficient data (n=…)</i> and never
+                            <span class="font-mono">0</span>.
+                        </span>
                     </p>
                 </CardFooter>
             </Card>
 
             @* BRD-147 — the two exclusions, published two ways and never pooled. *@
             <Card Class="h-full" data-testid="effort-fanout-exclusions">
-                <CardHeader>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <CardTitle Class="text-base">Fan-out observation</CardTitle>
-                            <CardDescription>Two different facts, published two ways and never pooled</CardDescription>
-                        </div>
-                        <Badge Variant="BadgeVariant.Outline"
-                               Class="tflens-badge-warning tflens-nowrap-badge"
-                               data-testid="effort-observed-badge">@objPhases.FanoutObservedN observed</Badge>
+                @* TR-015 — CardHeader honours a caller display class now, so the row IS the header
+                   rather than a div inside it. That is the element the mockup draws (`div.card-h`
+                   holding a title block and a pill), so the two structures line up one for one. *@
+                <CardHeader Class="flex flex-row items-start justify-between gap-3 tflens-card-head">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">Fan-out observation</CardTitle>
+                        <CardDescription>Two different facts, published two ways and never pooled</CardDescription>
                     </div>
+                    @* TR-016 — the mockup draws this pill `badge warning`; BadgeVariant carries the
+                       real member now, so the tone is the library's rather than a local class. *@
+                    <Badge Variant="BadgeVariant.Warning"
+                           Class="tflens-nowrap-badge"
+                           data-testid="effort-observed-badge">@objPhases.FanoutObservedN observed</Badge>
                 </CardHeader>
-                <CardContent Class="pt-0">
-                    <div class="tflens-table tflens-kv-table">
+                <CardContent Class="pt-0 tflens-flush-bottom">
+                    <div class="tflens-table tflens-table-flush tflens-kv-table">
+                        @* TR-012 — this table is headerless in the mockup: its left cell IS the label,
+                           so a header row would repeat it. `ShowHeader="false"` suppresses the rendered
+                           thead and keeps the column metadata the sort and the aria label need. *@
                         <DataTable TData="ExclusionRow"
                                    Data="@ExclusionRows"
                                    ShowToolbar="false"
+                                   Density="DataTableDensity.Compact"
                                    ShowPagination="false"
-                                   InitialPageSize="50"
+                                   ShowHeader="false"
                                    AriaLabel="Fan-out observation and its two exclusions"
                                    data-testid="effort-fanout-table">
                             <Columns>
@@ -322,7 +338,7 @@
                                 </DataTableColumn>
                                 <DataTableColumn TData="ExclusionRow" TValue="string"
                                                  Property="@(aRow => aRow.Text)" Header="Runs"
-                                                 CellClass="text-right">
+                                                 Align="DataTableColumnAlign.End">
                                     <CellTemplate Context="vRow">
                                         <span class="tabular-nums tflens-nowrap" data-testid="@($"fanout-{vRow.TestKey}")">
                                             @if (vRow.IsObservedRow)
@@ -342,7 +358,7 @@
                     </div>
                 </CardContent>
                 <CardFooter Class="tflens-card-note">
-                    <p class="text-sm text-muted-foreground">
+                    <p class="tflens-small text-muted-foreground">
                         <b>Pooling these two would be the defect.</b> A <span class="font-mono">main</span>-scope
                         window never read a subagent transcript at all, so coercing its absent
                         <span class="font-mono">subagent_runs</span> to <span class="font-mono">0</span> reports
@@ -351,7 +367,7 @@
                         <span class="font-mono">subagent_runs</span>,
                         <span class="font-mono">tokens_out_subagents</span> and
                         <span class="font-mono">model_tokens_out</span> at
-                        <span class="font-mono">@FieldSince</span>, in the same table and the same code path as
+                        <span class="font-mono tflens-nowrap">@FieldSince</span>, in the same table and the same code path as
                         <span class="font-mono">LATE_GATES</span>.
                     </p>
                 </CardFooter>
@@ -373,13 +389,13 @@
         </div>
 
         <Card data-testid="effort-phases">
-            <CardContent Class="pt-6">
-                <div class="tflens-table">
+            <CardContent Class="pt-6 tflens-flush-bottom">
+                <div class="tflens-table tflens-table-flush">
                     <DataTable TData="PhaseTableRow"
                                Data="@PhaseTableRows"
                                ShowToolbar="false"
+                               Density="DataTableDensity.Compact"
                                ShowPagination="false"
-                               InitialPageSize="200"
                                AriaLabel="Effort by command phase"
                                data-testid="effort-phase-table">
                         <Columns>
@@ -390,19 +406,19 @@
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="int"
-                                             Property="@(aRow => aRow.Runs)" Header="Runs" CellClass="text-right">
+                                             Property="@(aRow => aRow.Runs)" Header="Runs" Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums">@CountText(vRow.Runs)</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
-                                             Property="@(aRow => aRow.WallClock)" Header="Wall clock" CellClass="text-right">
+                                             Property="@(aRow => aRow.WallClock)" Header="Wall clock" Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums tflens-nowrap">@vRow.WallClock</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
-                                             Property="@(aRow => aRow.Median)" Header="Median" CellClass="text-right">
+                                             Property="@(aRow => aRow.Median)" Header="Median" Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums tflens-nowrap">@vRow.Median</span>
                                 </CellTemplate>
@@ -410,21 +426,21 @@
                             @* BRD-152 — the oracle's own share string, rendered and never reformatted. *@
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.ShareOfDuration)" Header="Share of time"
-                                             CellClass="text-right">
+                                             Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums">@vRow.ShareOfDuration</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.TokensOut)" Header="Output tokens"
-                                             CellClass="text-right">
+                                             Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums tflens-nowrap" title="@vRow.TokensOutExact">@vRow.TokensOut</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.ShareOfTokensOut)" Header="Share of output"
-                                             CellClass="text-right">
+                                             Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <b class="tabular-nums" data-testid="@($"phase-share-{vRow.Key}")">@vRow.ShareOfTokensOut</b>
                                 </CellTemplate>
@@ -432,7 +448,7 @@
                             @* REQ-UI-047 / BRD-151 — Measured is a COLUMN. *@
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.Measured)" Header="Measured"
-                                             CellClass="text-right">
+                                             Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums tflens-nowrap" data-testid="@($"phase-measured-{vRow.Key}")">@vRow.Measured</span>
                                 </CellTemplate>
@@ -440,7 +456,7 @@
                             @* ADR-026 — `not observed`, never `0 subagents`. *@
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.Fanout)" Header="Fan-out"
-                                             CellClass="text-right">
+                                             Align="DataTableColumnAlign.End">
                                 <CellTemplate Context="vRow">
                                     <span class="tabular-nums tflens-nowrap @(vRow.IsFanoutObserved ? string.Empty : "text-muted-foreground")"
                                           data-testid="@($"phase-fanout-{vRow.Key}")">@vRow.Fanout</span>
@@ -451,14 +467,16 @@
                 </div>
             </CardContent>
             <CardFooter Class="tflens-card-note">
-                <p class="text-sm text-muted-foreground">
+                <p class="tflens-small text-muted-foreground tflens-note-row">
                     <LucideIcon Name="info" Size="16" />
-                    The dimension is the <b>command phase</b> — the producer's
-                    <span class="font-mono">cmd</span> is a slash command, and one command can contain
-                    several lifecycle stages (<span class="font-mono">*build-phase</span> covers build
-                    <i>and</i> self-smoke). A window is never split between conceptual phases by token
-                    proportion, and a <b>whole-task total is unavailable</b> without an explicit cohort — a
-                    reused session is not one.
+                    <span>
+                        The dimension is the <b>command phase</b> — the producer's
+                        <span class="font-mono">cmd</span> is a slash command, and one command can contain
+                        several lifecycle stages (<span class="font-mono">*build-phase</span> covers build
+                        <i>and</i> self-smoke). A window is never split between conceptual phases by token
+                        proportion, and a <b>whole-task total is unavailable</b> without an explicit cohort — a
+                        reused session is not one.
+                    </span>
                 </p>
             </CardFooter>
         </Card>
@@ -473,236 +491,243 @@
 
                 <Card Class="tflens-detail" data-testid="@($"effort-detail-{vKey}")">
                     <Collapsible Open="@vIsOpen" OpenChanged="@(aOpen => OnPhaseToggled(vRow.Cmd, aOpen))">
-                        <CollapsibleTrigger>
+                        @* TR-030 — CollapsibleTrigger renders a real button, which shrinks to fit; the
+                           row's spacer needs the full card width to push the badge flush right. *@
+                        <CollapsibleTrigger Class="w-full text-left">
                             <span class="tflens-detail-trigger" data-testid="@($"effort-detail-trigger-{vKey}")">
                                 <LucideIcon Name="@(vIsOpen ? "chevron-down" : "chevron-right")" Size="16" />
                                 <span class="font-mono">@vRow.Cmd</span>
                                 <span class="text-muted-foreground">— @TriggerSummary(vRow)</span>
                                 <span class="tflens-spacer"></span>
-                                <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@ObservationBadge(vRow)</Badge>
+                                @* The design's open row says `expanded` in a filled secondary pill; a closed row
+                                   carries its observation count in an outline one. The open row loses nothing: its
+                                   Fan-out band leads with the same `n of N runs observed`. *@
+                                @if (vIsOpen)
+                                {
+                                    <Badge Variant="BadgeVariant.Secondary" Class="tflens-nowrap-badge">expanded</Badge>
+                                }
+                                else
+                                {
+                                    <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@ObservationBadge(vRow)</Badge>
+                                }
                             </span>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                            @* TR-018: a closed CollapsibleContent still lays its children out and overlaps
-                               what follows, so the subtree is guarded rather than merely hidden. *@
-                            @if (vIsOpen)
-                            {
-                                <div class="tflens-detail-body">
+                            <div class="tflens-detail-body">
 
-                                    @* --- 1 · Time --- *@
-                                    <div class="tflens-panel">
-                                        <div class="tflens-panel-label">1 · Time</div>
-                                        <div class="tflens-quad">
-                                            <div>
-                                                <div class="tflens-xs text-muted-foreground">Total</div>
-                                                <div class="tflens-figure" data-testid="@($"time-total-{vKey}")">@PhaseTotalText(vRow)</div>
-                                            </div>
-                                            <div>
-                                                <div class="tflens-xs text-muted-foreground">Median run</div>
-                                                <div class="tflens-figure">@SecondsText(vRow.Duration.MedianSeconds)</div>
-                                            </div>
-                                            <div>
-                                                <div class="tflens-xs text-muted-foreground">Longest run</div>
-                                                <div class="tflens-figure">@SecondsText(vRow.Duration.MaxSeconds)</div>
-                                            </div>
-                                            <div>
-                                                <div class="tflens-xs text-muted-foreground">Share of all wall clock</div>
-                                                <div class="tflens-figure">@vRow.ShareOfDuration</div>
-                                            </div>
+                                @* --- 1 · Time --- *@
+                                <div class="tflens-panel">
+                                    <div class="tflens-panel-label">1 · Time</div>
+                                    <div class="tflens-quad grid grid-cols-2 md:grid-cols-4">
+                                        <div>
+                                            <div class="tflens-xs text-muted-foreground">Total</div>
+                                            <div class="tflens-figure" data-testid="@($"time-total-{vKey}")">@PhaseTotalText(vRow)</div>
                                         </div>
-                                        <p class="tflens-xs text-muted-foreground">
-                                            Wall-clock elapsed is how long the command window stayed open. It is
-                                            not active time and it is <b>never</b> human effort — nobody sat
-                                            watching for @PhaseTotalText(vRow), and TfLens will not imply that
-                                            they did. @TimedRunsNote(vRow)
-                                        </p>
+                                        <div>
+                                            <div class="tflens-xs text-muted-foreground">Median run</div>
+                                            <div class="tflens-figure">@SecondsText(vRow.Duration.MedianSeconds)</div>
+                                        </div>
+                                        <div>
+                                            <div class="tflens-xs text-muted-foreground">Longest run</div>
+                                            <div class="tflens-figure">@SecondsText(vRow.Duration.MaxSeconds)</div>
+                                        </div>
+                                        <div>
+                                            <div class="tflens-xs text-muted-foreground">Share of all wall clock</div>
+                                            <div class="tflens-figure">@vRow.ShareOfDuration</div>
+                                        </div>
                                     </div>
+                                    <p class="tflens-xs text-muted-foreground">
+                                        Wall-clock elapsed is how long the command window stayed open. It is
+                                        not active time and it is <b>never</b> human effort — nobody sat
+                                        watching for @PhaseTotalText(vRow), and TfLens will not imply that
+                                        they did. @TimedRunsNote(vRow)
+                                    </p>
+                                </div>
 
-                                    @* --- 2 · Tokens --- BRD-146: the band label carries its own denominator. *@
-                                    <div class="tflens-panel">
-                                        <div class="tflens-panel-label">
-                                            2 · Tokens
-                                            <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge tflens-panel-badge"
-                                                   data-testid="@($"tokens-measured-{vKey}")">
-                                                measured on @vRow.TokensMeasuredN of @vRow.Runs runs
-                                            </Badge>
-                                        </div>
+                                @* --- 2 · Tokens --- BRD-146: the band label carries its own denominator. *@
+                                <div class="tflens-panel">
+                                    <div class="tflens-panel-label">
+                                        2 · Tokens
+                                        <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge tflens-panel-badge"
+                                               data-testid="@($"tokens-measured-{vKey}")">
+                                            measured on @vRow.TokensMeasuredN of @vRow.Runs runs
+                                        </Badge>
+                                    </div>
+                                    <div class="tflens-panel-table">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Component</th>
+                                                    <th class="tflens-right">Total</th>
+                                                    <th class="tflens-right">Median / run</th>
+                                                    <th class="tflens-right">Mean / run</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Output</td>
+                                                    <td class="tflens-right"><b>@TokenTotalText(vRow, vRow.Tokens.Out)</b></td>
+                                                    <td class="tflens-right">@TokenFromDouble(vRow.TokensOutMedian)</td>
+                                                    @* ADR-007 — the one Figure on this page; below MIN_N it
+                                                       refuses to be a number and FigureText prints the refusal. *@
+                                                    <td class="tflens-right">
+                                                        <FigureText Value="@Grouped(vRow.TokensOutPerRun.Tokens)"
+                                                                    Class="tabular-nums"
+                                                                    TestId="@($"tokens-mean-{vKey}")" />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Input</td>
+                                                    <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.In)</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Cache read</td>
+                                                    <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheRead)</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Cache write</td>
+                                                    <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheWrite)</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                    <td class="tflens-right text-muted-foreground">@Dash</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="tflens-xs text-muted-foreground">
+                                        <b>Mean sits beside median, not instead of it.</b> @MeanVersusMedian(vRow)
+                                        Only <span class="font-mono">tokens_out</span> carries a per-run figure —
+                                        the producer reports the other three as totals over the measured runs, so
+                                        a median or a mean for them would be invented here rather than measured.
+                                        @UnmeasuredNote(vRow)
+                                    </p>
+                                </div>
+
+                                @* --- 3 · By model --- BRD-150. *@
+                                <div class="tflens-panel">
+                                    <div class="tflens-panel-label">3 · By model</div>
+                                    @if (vRow.Models.Count == 0)
+                                    {
+                                        <p class="tflens-xs text-muted-foreground" data-testid="@($"models-none-{vKey}")">
+                                            No run in this phase carried a model attribution — neither a
+                                            <span class="font-mono">model_tokens_out</span> split nor a dominant
+                                            <span class="font-mono">model</span> label. Not observed, rather than
+                                            a phase that ran on no model.
+                                        </p>
+                                    }
+                                    else
+                                    {
                                         <div class="tflens-panel-table">
                                             <table>
                                                 <thead>
                                                     <tr>
-                                                        <th>Component</th>
-                                                        <th class="tflens-right">Total</th>
-                                                        <th class="tflens-right">Median / run</th>
-                                                        <th class="tflens-right">Mean / run</th>
+                                                        <th>Model</th>
+                                                        <th class="tflens-right">Runs</th>
+                                                        <th class="tflens-right">Output tokens</th>
+                                                        <th>Share of this phase</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr>
-                                                        <td>Output</td>
-                                                        <td class="tflens-right"><b>@TokenTotalText(vRow, vRow.Tokens.Out)</b></td>
-                                                        <td class="tflens-right">@TokenFromDouble(vRow.TokensOutMedian)</td>
-                                                        @* ADR-007 — the one Figure on this page; below MIN_N it
-                                                           refuses to be a number and FigureText prints the refusal. *@
-                                                        <td class="tflens-right">
-                                                            <FigureText Value="@vRow.TokensOutPerRun.Tokens"
-                                                                        Class="tabular-nums"
-                                                                        TestId="@($"tokens-mean-{vKey}")" />
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Input</td>
-                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.In)</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Cache read</td>
-                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheRead)</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Cache write</td>
-                                                        <td class="tflens-right">@TokenTotalText(vRow, vRow.Tokens.CacheWrite)</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                        <td class="tflens-right text-muted-foreground">@Dash</td>
-                                                    </tr>
+                                                    @foreach (var vModel in vRow.Models)
+                                                    {
+                                                        <tr>
+                                                            <td><span class="font-mono">@vModel.Model</span></td>
+                                                            <td class="tflens-right tabular-nums">@CountText(vModel.Runs)</td>
+                                                            <td class="tflens-right tabular-nums">@TokenText(vModel.TokensOut)</td>
+                                                            <td>
+                                                                <span class="tflens-bar-row">
+                                                                    <span class="tflens-bar">
+                                                                        <Progress Value="@Percent(vModel.TokensOut, vRow.Tokens.Out)"
+                                                                                  Class="h-2"
+                                                                                  IndicatorClass="tflens-fill-1" />
+                                                                    </span>
+                                                                    <span class="tabular-nums tflens-nowrap">@PercentText(vModel.TokensOut, vRow.Tokens.Out)</span>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    }
                                                 </tbody>
                                             </table>
                                         </div>
                                         <p class="tflens-xs text-muted-foreground">
-                                            <b>Mean sits beside median, not instead of it.</b> @MeanVersusMedian(vRow)
-                                            Only <span class="font-mono">tokens_out</span> carries a per-run figure —
-                                            the producer reports the other three as totals over the measured runs, so
-                                            a median or a mean for them would be invented here rather than measured.
-                                            @UnmeasuredNote(vRow)
+                                            Computed from <span class="font-mono">model_tokens_out</span> — the
+                                            per-model <b>split</b>. A mixed-model run's whole window is never
+                                            attributed to its dominant <span class="font-mono">model</span>, which
+                                            is why the run counts here can exceed the phase's own.
+                                            @ModelSourceNote(vRow) <b>This ranking is observational, not
+                                            causal</b> — which model gets the hard phases is not random.
                                         </p>
-                                    </div>
-
-                                    @* --- 3 · By model --- BRD-150. *@
-                                    <div class="tflens-panel">
-                                        <div class="tflens-panel-label">3 · By model</div>
-                                        @if (vRow.Models.Count == 0)
-                                        {
-                                            <p class="tflens-xs text-muted-foreground" data-testid="@($"models-none-{vKey}")">
-                                                No run in this phase carried a model attribution — neither a
-                                                <span class="font-mono">model_tokens_out</span> split nor a dominant
-                                                <span class="font-mono">model</span> label. Not observed, rather than
-                                                a phase that ran on no model.
-                                            </p>
-                                        }
-                                        else
-                                        {
-                                            <div class="tflens-panel-table">
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Model</th>
-                                                            <th class="tflens-right">Runs</th>
-                                                            <th class="tflens-right">Output tokens</th>
-                                                            <th>Share of this phase</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach (var vModel in vRow.Models)
-                                                        {
-                                                            <tr>
-                                                                <td><span class="font-mono">@vModel.Model</span></td>
-                                                                <td class="tflens-right tabular-nums">@CountText(vModel.Runs)</td>
-                                                                <td class="tflens-right tabular-nums">@TokenText(vModel.TokensOut)</td>
-                                                                <td>
-                                                                    <span class="tflens-bar-row">
-                                                                        <span class="tflens-bar">
-                                                                            <Progress Value="@Percent(vModel.TokensOut, vRow.Tokens.Out)"
-                                                                                      Class="h-2"
-                                                                                      IndicatorClass="tflens-fill-1" />
-                                                                        </span>
-                                                                        <span class="tabular-nums tflens-nowrap">@PercentText(vModel.TokensOut, vRow.Tokens.Out)</span>
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <p class="tflens-xs text-muted-foreground">
-                                                Computed from <span class="font-mono">model_tokens_out</span> — the
-                                                per-model <b>split</b>. A mixed-model run's whole window is never
-                                                attributed to its dominant <span class="font-mono">model</span>, which
-                                                is why the run counts here can exceed the phase's own.
-                                                @ModelSourceNote(vRow) <b>This ranking is observational, not
-                                                causal</b> — which model gets the hard phases is not random.
-                                            </p>
-                                        }
-                                    </div>
-
-                                    @* --- 4 · Fan-out --- BRD-149: observed_n of runs FIRST, then the numbers. *@
-                                    <div class="tflens-panel">
-                                        <div class="tflens-panel-label">4 · Fan-out</div>
-                                        <Alert Variant="AlertVariant.Warning" Class="tflens-panel-alert"
-                                               data-testid="@($"fanout-alert-{vKey}")">
-                                            <LucideIcon Name="git-fork" Size="18" />
-                                            <AlertTitle>@vRow.Fanout.ObservedN of @vRow.Runs runs observed</AlertTitle>
-                                            <AlertDescription>@FanoutCoverageSentence(vRow)</AlertDescription>
-                                        </Alert>
-
-                                        @if (vRow.Fanout.IsObserved)
-                                        {
-                                            <div class="tflens-panel-table tflens-kv-panel">
-                                                <table>
-                                                    <tbody>
-                                                        <tr>
-                                                            <td>Spawns, total</td>
-                                                            <td class="tflens-right tabular-nums"><b data-testid="@($"spawns-total-{vKey}")">@CountText(vRow.Fanout.SpawnsTotal)</b></td>
-                                                            <td class="tflens-small text-muted-foreground">across the @vRow.Fanout.ObservedN observed runs</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Spawns, median / max</td>
-                                                            <td class="tflens-right tabular-nums">@SpawnsMedianAndMax(vRow.Fanout)</td>
-                                                            <td class="tflens-small text-muted-foreground">per observed run</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Observed runs that spawned anything</td>
-                                                            <td class="tflens-right tabular-nums">@vRow.Fanout.RunsWithFanout of @vRow.Fanout.ObservedN</td>
-                                                            <td class="tflens-small text-muted-foreground"><span class="font-mono">runs_with_fanout</span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Subagent output tokens</td>
-                                                            <td class="tflens-right tabular-nums">@TokenText(vRow.Fanout.TokensOutSubagents)</td>
-                                                            <td class="tflens-small text-muted-foreground"><span class="font-mono">tokens_out_subagents</span> — a count, never a divisor</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Subagent share of output</td>
-                                                            <td class="tflens-right tabular-nums">@vRow.Fanout.SubagentShareOfTokensOut</td>
-                                                            <td class="tflens-small text-muted-foreground">of the observed runs' measured output</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <p class="tflens-xs text-muted-foreground" data-testid="@($"fanout-none-{vKey}")">
-                                                <b>Not observed.</b> No run in this phase satisfied
-                                                <span class="font-mono">tokens_scope == "tree"</span> and
-                                                <span class="font-mono">subagent_runs != null</span>, so there is no
-                                                spawn count, no subagent token total and no share to report. The
-                                                figure is absent, not zero.
-                                            </p>
-                                        }
-
-                                        <p class="tflens-xs text-muted-foreground">
-                                            <b>Declared vs measured.</b> @DeclaredVersusMeasured(vRow) Both are shown
-                                            because they answer different questions: which <i>kinds</i> were invoked
-                                            (only the agent knows) versus how many actually ran (only the harness
-                                            knows). <b>Where they disagree the measured figure is authoritative</b>,
-                                            and the gap is itself a finding about how accurately tasks self-report —
-                                            not an error to reconcile away.
-                                        </p>
-                                    </div>
+                                    }
                                 </div>
-                            }
+
+                                @* --- 4 · Fan-out --- BRD-149: observed_n of runs FIRST, then the numbers. *@
+                                <div class="tflens-panel">
+                                    <div class="tflens-panel-label">4 · Fan-out</div>
+                                    <Alert Variant="AlertVariant.Warning" Class="tflens-panel-alert"
+                                           data-testid="@($"fanout-alert-{vKey}")">
+                                        <LucideIcon Name="git-fork" Size="18" />
+                                        <AlertTitle>@vRow.Fanout.ObservedN of @vRow.Runs runs observed</AlertTitle>
+                                        <AlertDescription>@FanoutCoverageSentence(vRow)</AlertDescription>
+                                    </Alert>
+
+                                    @if (vRow.Fanout.IsObserved)
+                                    {
+                                        <div class="tflens-panel-table tflens-kv-panel">
+                                            <table>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>Spawns, total</td>
+                                                        <td class="tflens-right tabular-nums"><b data-testid="@($"spawns-total-{vKey}")">@CountText(vRow.Fanout.SpawnsTotal)</b></td>
+                                                        <td class="tflens-small text-muted-foreground">across the @vRow.Fanout.ObservedN observed runs</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Spawns, median / max</td>
+                                                        <td class="tflens-right tabular-nums">@SpawnsMedianAndMax(vRow.Fanout)</td>
+                                                        <td class="tflens-small text-muted-foreground">per observed run</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Observed runs that spawned anything</td>
+                                                        <td class="tflens-right tabular-nums">@vRow.Fanout.RunsWithFanout of @vRow.Fanout.ObservedN</td>
+                                                        <td class="tflens-small text-muted-foreground"><span class="font-mono">runs_with_fanout</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Subagent output tokens</td>
+                                                        <td class="tflens-right tabular-nums">@TokenText(vRow.Fanout.TokensOutSubagents)</td>
+                                                        <td class="tflens-small text-muted-foreground"><span class="font-mono">tokens_out_subagents</span> — a count, never a divisor</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Subagent share of output</td>
+                                                        <td class="tflens-right tabular-nums">@vRow.Fanout.SubagentShareOfTokensOut</td>
+                                                        <td class="tflens-small text-muted-foreground">of the observed runs' measured output</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="tflens-xs text-muted-foreground" data-testid="@($"fanout-none-{vKey}")">
+                                            <b>Not observed.</b> No run in this phase satisfied
+                                            <span class="font-mono">tokens_scope == "tree"</span> and
+                                            <span class="font-mono">subagent_runs != null</span>, so there is no
+                                            spawn count, no subagent token total and no share to report. The
+                                            figure is absent, not zero.
+                                        </p>
+                                    }
+
+                                    <p class="tflens-xs text-muted-foreground">
+                                        <b>Declared vs measured.</b> @DeclaredVersusMeasured(vRow) Both are shown
+                                        because they answer different questions: which <i>kinds</i> were invoked
+                                        (only the agent knows) versus how many actually ran (only the harness
+                                        knows). <b>Where they disagree the measured figure is authoritative</b>,
+                                        and the gap is itself a finding about how accurately tasks self-report —
+                                        not an error to reconcile away.
+                                    </p>
+                                </div>
+                            </div>
                         </CollapsibleContent>
                     </Collapsible>
                 </Card>
@@ -714,22 +739,23 @@
         <div class="tflens-effort-lower">
 
             <Card Class="h-full" data-testid="effort-routing">
-                <CardHeader>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <CardTitle Class="text-base">Declared route vs the model that ran</CardTitle>
-                            <CardDescription>Routing is <b>observed</b>, never enforced</CardDescription>
-                        </div>
-                        <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@objPhases.RunsLive runs</Badge>
+                @* TR-015 — CardHeader honours a caller display class now, so the row IS the header
+                   rather than a div inside it. That is the element the mockup draws (`div.card-h`
+                   holding a title block and a pill), so the two structures line up one for one. *@
+                <CardHeader Class="flex flex-row items-start justify-between gap-3 tflens-card-head">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">Declared route vs the model that ran</CardTitle>
+                        <CardDescription>Routing is <b>observed</b>, never enforced</CardDescription>
                     </div>
+                    <Badge Variant="BadgeVariant.Outline" Class="tflens-nowrap-badge">@objPhases.RunsLive runs</Badge>
                 </CardHeader>
                 <CardContent Class="pt-0">
                     <div class="tflens-table tflens-routing-table">
                         <DataTable TData="RoutingRow"
                                    Data="@RoutingRows"
                                    ShowToolbar="false"
+                                   Density="DataTableDensity.Compact"
                                    ShowPagination="false"
-                                   InitialPageSize="10"
                                    AriaLabel="Routing outcomes"
                                    data-testid="effort-routing-table">
                             <Columns>
@@ -738,15 +764,17 @@
                                     <CellTemplate Context="vRow">
                                         @* REQ-UI-049 — `drifted` is INFO. Drift is made visible, never styled as a
                                            failure: a red pill would assert a routing rule the framework does not
-                                           have. TR-016 — BadgeVariant ships no Info/Success member, so the tone
-                                           rides on the shared `--alert-*` class from app.css. *@
-                                        <Badge Variant="BadgeVariant.Outline"
-                                               Class="@($"{vRow.ToneClass} tflens-nowrap-badge")"
+                                           have. TR-016 — BadgeVariant carries the real Success/Info/Warning members
+                                           now, so the three-way distinction the mockup draws (`badge success` /
+                                           `badge info` / `badge outline`) is the library's own tone rather than a
+                                           local class layered over Outline. *@
+                                        <Badge Variant="@vRow.Tone"
+                                               Class="tflens-nowrap-badge"
                                                data-testid="@($"routing-{vRow.Outcome}")">@vRow.Outcome</Badge>
                                     </CellTemplate>
                                 </DataTableColumn>
                                 <DataTableColumn TData="RoutingRow" TValue="int"
-                                                 Property="@(aRow => aRow.Runs)" Header="Runs" CellClass="text-right">
+                                                 Property="@(aRow => aRow.Runs)" Header="Runs" Align="DataTableColumnAlign.End">
                                     <CellTemplate Context="vRow">
                                         <span class="tabular-nums" data-testid="@($"routing-count-{vRow.Outcome}")">@CountText(vRow.Runs)</span>
                                     </CellTemplate>
@@ -777,46 +805,43 @@
                        Closed by default so the card face is the design's own three-row summary. *@
                     <div class="tflens-routing-byphase">
                         <Collapsible @bind-Open="objIsRoutingByPhaseOpen">
-                            <CollapsibleTrigger>
+                            @* TR-030 — the trigger is a real button and shrinks to fit without this. *@
+                            <CollapsibleTrigger Class="w-full text-left">
                                 <span class="tflens-detail-trigger" data-testid="effort-routing-byphase-trigger">
                                     <LucideIcon Name="@(objIsRoutingByPhaseOpen ? "chevron-down" : "chevron-right")" Size="16" />
                                     <span class="text-sm font-medium">By command phase</span>
                                 </span>
                             </CollapsibleTrigger>
                             <CollapsibleContent>
-                                @* TR-018 — guarded, not merely hidden. *@
-                                @if (objIsRoutingByPhaseOpen)
-                                {
-                                    <div class="tflens-panel-table tflens-byphase" data-testid="effort-routing-byphase">
-                                        <table>
-                                            <thead>
+                                <div class="tflens-panel-table tflens-byphase" data-testid="effort-routing-byphase">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Command phase</th>
+                                                <th class="tflens-right">routed</th>
+                                                <th class="tflens-right">drifted</th>
+                                                <th class="tflens-right">unknown</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var vRow in objPhases.Phases)
+                                            {
                                                 <tr>
-                                                    <th>Command phase</th>
-                                                    <th class="tflens-right">routed</th>
-                                                    <th class="tflens-right">drifted</th>
-                                                    <th class="tflens-right">unknown</th>
+                                                    <td><span class="font-mono">@vRow.Cmd</span></td>
+                                                    <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Routed)</td>
+                                                    <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Drifted)</td>
+                                                    <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Unknown)</td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var vRow in objPhases.Phases)
-                                                {
-                                                    <tr>
-                                                        <td><span class="font-mono">@vRow.Cmd</span></td>
-                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Routed)</td>
-                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Drifted)</td>
-                                                        <td class="tflens-right tabular-nums">@CountText(vRow.Routing.Unknown)</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                }
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
                 </CardContent>
                 <CardFooter Class="tflens-card-note">
-                    <p class="text-sm text-muted-foreground">
+                    <p class="tflens-small text-muted-foreground">
                         <span class="font-mono">drifted</span> is styled as information, never as an error.
                         TfLens observes which model ran; it does not enforce a routing policy, and a page
                         that painted drift red would be asserting a rule the framework does not have.
@@ -829,24 +854,25 @@
 
             @* BRD-148 / BRD-160 — measured dollars only. No rate card reaches this page. *@
             <Card Class="h-full" data-testid="effort-cost">
-                <CardHeader>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <CardTitle Class="text-base">Measured spend by harness</CardTitle>
-                            <CardDescription>Provider-reported dollars only</CardDescription>
-                        </div>
-                        <span class="tflens-stat-chip tflens-accent-2 shrink-0">
-                            <LucideIcon Name="dollar-sign" Size="16" />
-                        </span>
+                @* TR-015 — CardHeader honours a caller display class now, so the row IS the header
+                   rather than a div inside it. That is the element the mockup draws (`div.card-h`
+                   holding a title block and a pill), so the two structures line up one for one. *@
+                <CardHeader Class="flex flex-row items-start justify-between gap-3 tflens-card-head">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">Measured spend by harness</CardTitle>
+                        <CardDescription>Provider-reported dollars only</CardDescription>
                     </div>
+                    <span class="tflens-stat-chip tflens-accent-2 shrink-0">
+                        <LucideIcon Name="dollar-sign" Size="16" />
+                    </span>
                 </CardHeader>
-                <CardContent Class="pt-0">
-                    <div class="tflens-table">
+                <CardContent Class="pt-0 tflens-flush-bottom">
+                    <div class="tflens-table tflens-table-flush">
                         <DataTable TData="CostRow"
                                    Data="@CostRows"
                                    ShowToolbar="false"
+                                   Density="DataTableDensity.Compact"
                                    ShowPagination="false"
-                                   InitialPageSize="20"
                                    AriaLabel="Measured spend by harness"
                                    data-testid="effort-cost-table">
                             <Columns>
@@ -862,14 +888,14 @@
                                 </DataTableColumn>
                                 <DataTableColumn TData="CostRow" TValue="int"
                                                  Property="@(aRow => aRow.Records)" Header="Records"
-                                                 CellClass="text-right">
+                                                 Align="DataTableColumnAlign.End">
                                     <CellTemplate Context="vRow">
                                         <span class="tabular-nums" title="runs detected on this harness">@CountText(vRow.Records)</span>
                                     </CellTemplate>
                                 </DataTableColumn>
                                 <DataTableColumn TData="CostRow" TValue="string"
                                                  Property="@(aRow => aRow.Usd)" Header="Measured USD"
-                                                 CellClass="text-right">
+                                                 Align="DataTableColumnAlign.End">
                                     <CellTemplate Context="vRow">
                                         @if (vRow.HasMeasurement)
                                         {
@@ -889,7 +915,7 @@
                     </div>
                 </CardContent>
                 <CardFooter Class="tflens-card-note">
-                    <p class="text-sm text-muted-foreground">
+                    <p class="tflens-small text-muted-foreground">
                         A dash is <b>“no provider cost recorded”</b>, never
                         <span class="font-mono">$0.00</span> and never “free”. <b>There is no rate-card
                         estimate anywhere on this page</b> — an estimated dollar beside a measured one on a
@@ -1004,12 +1030,6 @@
     /// <summary>The badge beside the period select, so the window is stated even when the select is closed.</summary>
     private string PeriodLabel => Period.Badge;
 
-    /// <summary>The label the closed select trigger shows for a period key (TR-020).</summary>
-    /// <param name="aKey">The period key currently bound.</param>
-    /// <returns>The option's label, or the key itself when it names no option.</returns>
-    private static string PeriodTextOf(string aKey) =>
-        PeriodOptions.FirstOrDefault(aOption => aOption.Key == aKey)?.Label ?? aKey;
-
     /// <summary>Runs carrying a usable token window — the divisor of every token figure (BRD-146).</summary>
     private int TokensMeasuredRuns => objPhases.Phases.Sum(aRow => aRow.TokensMeasuredN);
 
@@ -1029,11 +1049,33 @@
     /// the time total and the token total beside it would cover different sets of runs. TfLens works the
     /// duration out from the record's own two timestamps at read time and writes nothing back, and this
     /// line says how many of the minutes above were worked out rather than read.
+    /// <para>
+    /// The count is of <b>timed</b> runs only (<see cref="PhaseEffortAnalysis.DurationsDerivedTimedN"/>),
+    /// so it is always a part of the timed runs it sits beside. A same-second run closed from its
+    /// timestamps contributes no minute to the figure and is stated with the exclusions instead.
+    /// </para>
     /// </remarks>
     private string DerivedDurationsNote =>
-        objPhases.DurationsDerivedN == 0
+        objPhases.DurationsDerivedTimedN == 0
             ? "every duration read from the record"
-            : $"{CountText(objPhases.DurationsDerivedN)} derived from started/ended";
+            : $"{CountText(objPhases.DurationsDerivedTimedN)} derived from started/ended";
+
+    /// <summary>
+    /// How many timed runs had a stored <c>duration_s</c> overridden by their own timestamps
+    /// (REQ-FN-112, BRD-192) — always printed as a number, zero included, because it is a count.
+    /// </summary>
+    private string RecomputedDurationsNote =>
+        $"{CountText(objPhases.DurationRecomputedN)} recomputed from the timestamps over a stored duration_s "
+        + "that disagreed";
+
+    /// <summary>
+    /// The runs the wall-clock total leaves out, in the two words BRD-190 and BRD-191 keep apart: a run
+    /// whose end precedes its start carries no duration, and a run that recorded no elapsed time is not
+    /// corrupt. Together with the timed runs they account for every live run.
+    /// </summary>
+    private string ExcludedDurationsNote =>
+        $"excluded, never counted as zero: {CountText(objPhases.DurationImpossibleN)} with an end before the "
+        + $"start, {CountText(objPhases.DurationAbsentN)} with no elapsed time";
 
     /// <summary>The phase with the largest measured output; the engine already orders by it.</summary>
     private PhaseEffortRow? Heaviest => objPhases.Phases.Count == 0 ? null : objPhases.Phases[0];
@@ -1041,12 +1083,62 @@
     /// <summary>The heaviest phase's command, or the dash when there is no phase at all.</summary>
     private string HeaviestCmd => Heaviest?.Cmd ?? Dash;
 
+    /// <summary>
+    /// A per-run token figure as a reader reads one — whole tokens with thousands separators (REQ-UI-048).
+    /// </summary>
+    /// <remarks>
+    /// The engine renders the mean the way the reference prints it (<c>429094.2</c>), which is the right
+    /// string for parity and export and an unreadable one beside a median of <c>178k</c>. Only a
+    /// <see cref="FigureKind.Value"/> is re-rendered, from its own number and its own supporting count,
+    /// so <c>insufficient data (n=…)</c> and not-applicable pass through untouched and can never be
+    /// turned into a number here (ADR-007). The same rule Misses.razor applies to its token figures.
+    /// </remarks>
+    /// <param name="aFigure">The engine's per-run token figure.</param>
+    /// <returns>The same figure, rendered with separators when it carries a number.</returns>
+    private static Figure Grouped(Figure aFigure) =>
+        aFigure.TryGetValue(out var vValue)
+            ? Figure.Value(vValue, aFigure.SupportingRecords, vValue.ToString("N0", CultureInfo.InvariantCulture))
+            : aFigure;
+
+    /// <summary>
+    /// The size class that keeps the heaviest phase's command on one line inside its tile.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-046 — a command is an identifier, not prose, so it must never break at its hyphen
+    /// (<c>framework-</c> / <c>reset</c>). At 1280 the five-tile row gives it 129px, which holds ten
+    /// monospace characters at the design's 22px. Each class sizes the name to its tile for names up to
+    /// that many characters (Effort.razor.css); a name that fits already keeps the design's 22px. Beyond
+    /// the last bucket the name is allowed to wrap at its hyphens rather than run out of the tile.
+    /// </remarks>
+    private string HeaviestCmdFitClass => HeaviestCmd.Length switch
+    {
+        <= 10 => string.Empty,
+        <= 12 => "tflens-kpi-cmd-fit-12",
+        <= 14 => "tflens-kpi-cmd-fit-14",
+        <= 16 => "tflens-kpi-cmd-fit-16",
+        <= 20 => "tflens-kpi-cmd-fit-20",
+        _ => "tflens-kpi-cmd-long"
+    };
+
     /// <summary>The heaviest phase's sub-line — its two shares and its run count.</summary>
     private string HeaviestSummary =>
         Heaviest is { } vRow
-            ? $"{vRow.ShareOfTokensOut} of all output tokens · {vRow.ShareOfDuration} of wall clock · "
+            ? $"{TokenShareText(vRow)} of all output tokens · {vRow.ShareOfDuration} of wall clock · "
               + $"{CountText(vRow.Runs)} runs"
             : "no phase has recorded a run in this window";
+
+    /// <summary>
+    /// A phase's share of all measured output, or the dash when no run in the phase carried a token
+    /// window (REQ-FN-089, BRD-146) — the same dash as the Output tokens cell beside it.
+    /// </summary>
+    /// <remarks>
+    /// The export keeps the oracle's <c>"0%"</c> for such a phase key-for-key (BRD-152); the page never
+    /// prints it, because a share taken over tokens nobody counted is a zero standing in for "not
+    /// measured". The rule lives in <see cref="PhaseShare.OfMeasuredOutput"/> so it is unit-tested.
+    /// </remarks>
+    /// <param name="aRow">The phase.</param>
+    /// <returns>The oracle's share string, or the dash.</returns>
+    private static string TokenShareText(PhaseEffortRow aRow) => PhaseShare.OfMeasuredOutput(aRow);
 
     /// <summary>Every run that carried a routing outcome of any kind, including none at all.</summary>
     private int RoutingTotal =>
@@ -1139,7 +1231,7 @@
             aRow.ShareOfDuration,
             TokenTotalText(aRow, aRow.Tokens.Out),
             aRow.TokensMeasuredN == 0 ? "no token window on any run in this phase" : ExactTokenText(aRow.Tokens.Out),
-            aRow.ShareOfTokensOut,
+            TokenShareText(aRow),
             $"{aRow.TokensMeasuredN} of {aRow.Runs}",
             FanoutCell(aRow.Fanout),
             aRow.Fanout.IsObserved)).ToList();
@@ -1151,19 +1243,19 @@
             "routed",
             objPhases.Phases.Sum(aRow => aRow.Routing.Routed),
             "the model that ran is the one the routing table names",
-            "tflens-badge-success",
+            BadgeVariant.Success,
             "tflens-fill-2"),
         new RoutingRow(
             "drifted",
             objPhases.Phases.Sum(aRow => aRow.Routing.Drifted),
             "a different model ran — drift made visible, not a failure",
-            "tflens-badge-info",
+            BadgeVariant.Info,
             "tflens-fill-1"),
         new RoutingRow(
             "unknown",
             objPhases.Phases.Sum(aRow => aRow.Routing.Unknown),
             "no declared route on the record",
-            string.Empty,
+            BadgeVariant.Outline,
             "tflens-fill-muted")
     ];
 
@@ -1271,7 +1363,9 @@
 
         try
         {
-            objAllRuns = await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework);
+            // REQ-FN-140 — a `run-void` and the run it names leave every figure, so this page counts the
+            // same live runs the export publishes as `runs_live` (SCHEMA.md §2.7).
+            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework)).Kept;
             objLoadError = null;
         }
         catch (Exception vEx)
@@ -1492,17 +1586,26 @@
     /// <returns>How many of the phase's runs were actually timed.</returns>
     private static string TimedRunsNote(PhaseEffortRow aRow)
     {
-        var vTimed = aRow.Duration.TimedN == aRow.Runs
+        var vDuration = aRow.Duration;
+        var vTimed = vDuration.TimedN == aRow.Runs
             ? $"All {aRow.Runs} runs were timed."
-            : $"Timed on {aRow.Duration.TimedN} of {aRow.Runs} runs; the rest carry no duration_s.";
+            : $"Timed on {vDuration.TimedN} of {aRow.Runs} runs. Excluded, carrying no duration: "
+              + $"{vDuration.ImpossibleN} with an end before the start, {vDuration.AbsentN} with no elapsed time.";
 
         // REQ-FN-112 / BRD-179 — the derived count belongs beside the phase's own time figures, not only
-        // on the page headline: a phase whose whole total was worked out from timestamps is a different
-        // claim from one read straight off the stream.
-        return aRow.Duration.DerivedN == 0
-            ? vTimed
-            : $"{vTimed} {aRow.Duration.DerivedN} of those durations were derived from the record's own "
-              + "started and ended (ts where ended is absent).";
+        // on the page headline. It is the derived part of the TIMED runs (DerivedTimedN), never the
+        // oracle's derived_n, which also counts same-second runs that contribute nothing and so could read
+        // "62 of 36". A stored figure the timestamps overrode is counted beside it (BRD-192).
+        var vDerived = vDuration.DerivedTimedN == 0
+            ? string.Empty
+            : $" {vDuration.DerivedTimedN} of those durations were derived from the record's own started and "
+              + "ended (ts where ended is absent).";
+        var vRecomputed = vDuration.RecomputedN == 0
+            ? string.Empty
+            : $" {vDuration.RecomputedN} recomputed from started and ended over a stored duration_s that "
+              + "disagreed.";
+
+        return vTimed + vDerived + vRecomputed;
     }
 
     /// <summary>
@@ -1755,12 +1858,14 @@
     /// <param name="Outcome"><c>routed</c>, <c>drifted</c> or <c>unknown</c>.</param>
     /// <param name="Runs">Runs with that outcome.</param>
     /// <param name="Meaning">What the outcome means, in one line.</param>
-    /// <param name="ToneClass">
-    /// The badge tone. <c>drifted</c> is <b>info</b> and never destructive: drift is observed, never
-    /// enforced (REQ-UI-049).
+    /// <param name="Tone">
+    /// The badge variant. <c>drifted</c> is <b>Info</b> and never <c>Destructive</c>: drift is observed,
+    /// never enforced (REQ-UI-049), and a red pill would assert a routing rule the framework does not
+    /// have. The three variants are the mockup's own <c>badge success</c> / <c>badge info</c> /
+    /// <c>badge outline</c>.
     /// </param>
     /// <param name="FillClass">Which chart colour the share bar is painted with.</param>
-    private sealed record RoutingRow(string Outcome, int Runs, string Meaning, string ToneClass, string FillClass);
+    private sealed record RoutingRow(string Outcome, int Runs, string Meaning, BadgeVariant Tone, string FillClass);
 
     /// <summary>One harness's measured spend.</summary>
     /// <param name="Harness">The detected harness.</param>

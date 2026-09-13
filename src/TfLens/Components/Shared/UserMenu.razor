@@ -10,11 +10,14 @@
     <DropdownMenuTrigger AsChild="true">
         <Button Variant="ButtonVariant.Ghost"
                 Size="ButtonSize.Small"
-                Class="gap-2"
+                Class="tflens-user-menu gap-2"
                 AriaLabel="Account menu"
                 data-testid="user-menu">
-            <Avatar Size="AvatarSize.Small">
-                <AvatarFallback>@Initials</AvatarFallback>
+            @* The mockups' `.avatar` is ringed (1px `--border`) with the initials in the foreground ink at
+               600 — the ring is what makes it read as an avatar on the dark header rather than as grey
+               letters. `border` is the library's own utility; the ink is set in ShellHeader.razor.css. *@
+            <Avatar Size="AvatarSize.Small" Class="border">
+                <AvatarFallback Class="tflens-avatar-initials">@Initials</AvatarFallback>
             </Avatar>
             <span class="hidden md:flex" data-testid="user-menu-name">@DisplayName</span>
             <LucideIcon Name="chevron-down" Size="14" />

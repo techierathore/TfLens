@@ -1,70 +1,44 @@
 /* Routing & economics — the few measurements TrBlazeUI's shipped utility set cannot express.
 
-   TR-002: trblazeui.css carries no responsive variants, and `trblazeui-col-md-*` / `-lg-*` are byte
-   identical to `trblazeui-col-*` (not wrapped in a media query), so the library's own grid helpers
-   collapse to a fixed span at every width. The KPI rows below therefore drive `grid-template-columns`
-   directly through `::deep` — one column on a phone, three or five once there is room — and this page's
-   own card grids use plain CSS grid rather than classes that do not exist at runtime. */
+   TR-002 is CLOSED, in both halves:
 
-/* TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines none
-   of them, so anything painted with them is transparent (the KPI accent chips, the totals bars, the delta
-   colour, every Alert tint). Declaring them here on the page root is the documented workaround — custom
-   properties inherit, so every TrBlazeUI control rendered inside this page picks them up. Values are the
-   approved mockup's palette (docs/mockups/routing.html), which reads on both the light and dark surfaces. */
-.tflens-stack {
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
-}
+   • trblazeui.css ships the sm:/md:/lg:/xl:/2xl: variants (40/48/64/80/96rem), so this page's own
+     card grids are `grid-cols-1 lg:grid-cols-3` / `lg:grid-cols-5` in the markup and the media
+     queries that stood in for them are gone.
 
-.tflens-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-}
+   • The library's own 12-column helpers are responsive too, and the `.tflens-kpi-row` /
+     `.tflens-kpi-3` / `.tflens-kpi-5` block that used to drive StatGroup's grid from here is gone
+     with them. It was kept one pass too long on a bad reading: `.trblazeui-col-md-4` has the same
+     DECLARATION as `.trblazeui-col-4` (`grid-column:span 4/span 4`), which looked like a
+     non-responsive duplicate — but it sits inside `@media (min-width:48rem)`, and `-lg-` inside
+     `@media (min-width:64rem)`. Identical declarations in different media scopes is how a responsive
+     grid helper is built. The three-tile drift row now takes its column count from
+     `Components/Shared/StatTile`'s own `trblazeui-col-12 / -md-4` spans, and measures 1 / 3 / 3
+     across at 390 / 768 / 1280 with no rule from this file.
 
-.tflens-kpi-row ::deep .trblazeui-grid {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-    .tflens-kpi-row ::deep .trblazeui-grid > * {
-        grid-column: auto;
-    }
-
-@media (min-width: 40rem) {
-    .tflens-kpi-row ::deep .trblazeui-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
+   The one rule below is NOT that workaround coming back. `docs/mockups/routing.html` draws the
+   five-tile Poolable row as `repeat(5, 1fr)` at 1280 — measured in a browser, not read off the
+   source — and a 12-column helper system cannot express five equal columns, because 5 does not
+   divide 12. StatTile's widest span is `trblazeui-col-lg-3`, which is four across and leaves the
+   fifth tile alone on a second row. So this is a design measurement the shipped scale has no step
+   for, in the same class as the `--chart-*` palette above, and it stays until
+   `Components/Shared/StatGroup` can carry a five-column row itself. Reported, not worked around. */
 @media (min-width: 64rem) {
-    .tflens-kpi-3 ::deep .trblazeui-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
     .tflens-kpi-5 ::deep .trblazeui-grid {
         grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 
-    .tflens-grid-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .tflens-grid-tokens {
-        grid-template-columns: 3fr 2fr;
-    }
+        .tflens-kpi-5 ::deep .trblazeui-grid > * {
+            grid-column: auto;
+        }
 }
+
+/* This file declares NO design tokens any more (TR-001).
+
+   The `--alert-*` five went when 2.1.0-ci.10 shipped them. The `--chart-*` five went when
+   `wwwroot/app.css` was corrected to the mockup ramp (2026-09-12) — the block here was an exact
+   duplicate of it. The KPI accent chips, `.tflens-money-saved` below and the totals chart's own
+   series colours all read `var(--chart-N)` and inherit it from :root. */
 
 /* The repricing headline. It is deliberately large, and it is deliberately never rendered without the
    estimate badge that sits directly beneath it in the markup. */
@@ -79,47 +53,6 @@
 .tflens-money-saved {
     color: var(--chart-2);
 }
-
-/* The text twin of the totals chart: a plain CSS bar row that renders whether or not the charting
-   runtime is available, so no figure on this page depends on a script to be readable. */
-.tflens-bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 1rem;
-    height: 160px;
-    padding-top: 0.5rem;
-    overflow-x: auto;
-}
-
-.tflens-bar {
-    flex: 1 1 0;
-    min-width: 64px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.375rem;
-    text-align: center;
-}
-
-.tflens-bar-fill {
-    display: block;
-    width: 100%;
-    max-width: 56px;
-    border-radius: 6px 6px 2px 2px;
-    background: var(--chart-1);
-}
-
-.tflens-bar-1 { background: var(--chart-1); }
-.tflens-bar-2 { background: var(--chart-2); }
-.tflens-bar-3 { background: var(--chart-3); }
-.tflens-bar-4 { background: var(--chart-4); }
-.tflens-bar-5 { background: var(--chart-5); }
-
-/* TR-011: DialogContent is rendered into the library's own portal, directly under <body> and outside this
-   component's subtree, so neither a scoped rule nor ::deep can reach it. The rate-card cells are sized with
-   the library's own utilities on the Input instead (w-16 text-right); nothing for the dialog lives here. */
 
 /* Four tab triggers are wider than a 390px viewport. Without this the page container scrolls sideways
    and drags the rest of the page off-screen with it; here the trigger row scrolls inside its own box. */

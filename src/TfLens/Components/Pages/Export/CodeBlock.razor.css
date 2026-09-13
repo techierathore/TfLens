@@ -1,6 +1,10 @@
 /*
-    The CodeBlock shim's own measurements. Written by hand because the shipped trblazeui.css carries
-    only the utilities the library's own components use (TR-002), and none of these are among them.
+    This block's own measurements. They stay as CSS rather than becoming utilities: `font-size:
+    0.78rem`, `line-height: 1.6`, `max-height: 18rem` and the asymmetric bar padding are all arbitrary
+    values, and TR-002's fix does NOT extend to those — the pre-built sheet can only carry a bracket
+    class that existed when the bundle was built, so `text-[0.78rem]` / `max-h-[18rem]` are absent at
+    runtime and would silently do nothing. The responsive variants TR-002 restored are not needed here:
+    this component has no breakpoint of its own.
 */
 
 .tflens-codeblock {

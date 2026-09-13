@@ -1,54 +1,42 @@
 /*
-    Two cards side by side on a wide screen, stacked under md. Written by hand because the TrBlazeUI
-    2.0.0 stylesheet ships no responsive (sm:/md:/lg:) utility variants at all, so the breakpoint
-    cannot be expressed in markup (TR-002).
+    Two cards side by side on a wide screen, stacked under md.
+
+    TR-001 is closed and the `--alert-*` block that used to head `.profile-page` is gone: the shipped
+    trblazeui.css declares every alert token itself, and the four status hues the mockups draw are
+    declared once in wwwroot/app.css rather than a third time here. The role badge below reads them
+    from there.
+
+    TR-002 is closed and the `min-width: 768px` block that used to sit here is gone. Both of its
+    declarations have utilities in the pre-built sheet now, so they are stated on the elements in
+    Profile.razor as `p-6 md:p-8` and `grid-cols-1 md:grid-cols-2`. Their BASE halves had to move with
+    them: a scoped `.profile-page[b-…]` rule outranks a `.md\:p-8` utility, so leaving `padding` or
+    `grid-template-columns` here would have made the new utilities silently inert — the failure this
+    whole pass is meant to avoid. What is left below is only what no utility expresses.
 */
 
 .profile-page {
-    /*
-        TR-001 — TrBlazeUI 2.0.0 references these tokens from every Alert variant but never defines
-        them, so an Alert would otherwise render with no colour. Custom properties inherit, so
-        declaring them on the page root repairs every TrBlazeUI control rendered inside it.
-    */
-    --alert-success: oklch(72.3% 0.19 149.6);
-    --alert-success-bg: color-mix(in oklab, oklch(72.3% 0.19 149.6) 10%, transparent);
-    --alert-info: oklch(62.3% 0.19 259.8);
-    --alert-info-bg: color-mix(in oklab, oklch(62.3% 0.19 259.8) 10%, transparent);
-    --alert-warning: oklch(76.9% 0.16 70.1);
-    --alert-warning-bg: color-mix(in oklab, oklch(76.9% 0.16 70.1) 10%, transparent);
-    --alert-danger: oklch(63.7% 0.21 25.3);
-    --alert-danger-bg: color-mix(in oklab, oklch(63.7% 0.21 25.3) 10%, transparent);
-
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    /* 75rem is not a step on the max-w scale (max-w-6xl is 72rem), so this one stays here. */
     max-width: 75rem;
     margin: 0 auto;
-    padding: 1.5rem;
 }
 
 .profile-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 1.5rem;
 }
 
-@media (min-width: 768px) {
-    .profile-page {
-        padding: 2rem;
-    }
-
-    .profile-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-}
-
-/* Why minmax(0, 1fr) rather than 1fr: a grid item's default `min-width: auto` refuses to shrink
-   below the intrinsic width of its content, so the profile card (which holds a DataTable ~437px
-   wide) pushed the page sideways at a 390px viewport even though the grid had correctly collapsed
-   to one column. Constraining the TRACK fixes it at the container; a `.profile-grid > * { min-width: 0 }`
-   rule does not, because scoped CSS cannot reach a child component's root element. */
+/* Why the columns are `minmax(0, 1fr)` and not `1fr`: a grid item's default `min-width: auto` refuses
+   to shrink below the intrinsic width of its content, so the profile card (which holds a DataTable
+   ~437px wide) pushed the page sideways at a 390px viewport even though the grid had correctly
+   collapsed to one column. Constraining the TRACK fixes it at the container; a
+   `.profile-grid > * { min-width: 0 }` rule does not, because scoped CSS cannot reach a child
+   component's root element.
+   `grid-cols-1` / `md:grid-cols-2` are `repeat(n, minmax(0, 1fr))` by definition, so moving these to
+   utilities keeps the minmax — it is not lost with the hand-written rule. */
 
 /* minmax(0, 1fr) constrains the TRACK, but the grid ITEM still carries `min-width: auto` and can
    overflow it. The item here is a <Card>, a child component whose root element carries no scope id
@@ -93,18 +81,26 @@
     min-width: 0;
 }
 
+/* `break-word`, not `anywhere`, and for the same reason the kv cell below gives: `anywhere` breaks
+   inside a word even when the word would fit on a line of its own, which is what split the address in
+   the card header as `tflensdemo@techierathore.co` / `m` at 1280 — a width that has room for all of
+   it. `break-word` breaks only a word that genuinely cannot fit, so the email stays whole wherever it
+   fits and still wraps rather than overflowing on a phone. The two places this page shows the address
+   now behave identically. */
 .profile-identity-text ::deep * {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
-/* REQ-UI-005, fixed 2026-08-29 — the profile key/value card, as docs/mockups/profile.html draws it.
+/* REQ-UI-005 — the profile key/value card is headerless, as docs/mockups/profile.html draws it: the
+   left cell IS the label, so a "Field | Value" header row only repeats it. TR-012 is closed and the
+   `::deep thead { display: none }` rule that used to stand here is deleted — `DataTable` takes
+   `ShowHeader="false"`, which is set in Profile.razor. Suppressing the element rather than hiding it
+   also means no empty `thead` box for `table-layout: fixed` to size columns against.
 
-   The mockup's card is headerless: the left cell IS the label, so a "Field | Value" header row only
-   repeats it. TrBlazeUI's DataTable has no ShowHeader switch, so the header stays declared for the
-   component's own metadata and is hidden here — the same treatment the Harness page's kv tables use. */
-.profile-kv ::deep thead {
-    display: none;
-}
+   There is deliberately NO `Density` here (TR-025): this table never carried a `::deep th, td` padding
+   hack, so there is nothing to take up, and the column widths below are set as percentages of a fixed
+   layout rather than by padding. */
 
 /* `table-layout: fixed` above splits the columns 50/50, which is why the email wrapped mid-word:
    `tflensdemo@techierat` / `hore.com`. The label side never needs half the card. */
@@ -134,11 +130,12 @@
     gap: 0.5rem;
 }
 
-.profile-badge-role {
-    color: var(--alert-success);
-    border-color: color-mix(in oklab, var(--alert-success) 40%, transparent);
-    background: var(--alert-success-bg);
-}
+/* TR-016 — `.profile-badge-role` is deleted, not repaired. It was measured INERT on 2026-09-12: the
+   class did reach the DOM (it merges through `cn`), but it lands on `Badge`'s own root, which carries
+   no scope attribute of this page, so `.profile-badge-role[b-…]` could never match and both role
+   pills rendered plain `Secondary` — `oklch(0.985 0 0)` on `oklch(0.269 0 0)`, border transparent —
+   where docs/mockups/profile.html draws them green. `BadgeVariant.Success` ships now and reaches the
+   component, so the colour is carried by a parameter instead of a rule that cannot land. */
 
 /* The mockup's role badge is a green pill with the tick spaced off the word; the built one ran them
    together as "✓Manager". */

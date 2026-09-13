@@ -1,26 +1,15 @@
-/* TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
-   NONE of them, so anything painted with them renders with no colour of its own. Routing.razor.css and
-   Harness.razor.css each declare them on their page root as the documented workaround; this page never
-   did, which is why its KPI chips came out the wrong colours entirely (first-pass violet where the
-   mockup is green, escape green where the mockup is a warning) and why the Live / Backfilled share
-   bars rendered grey. Custom properties inherit, so declaring them here reaches every TrBlazeUI
-   control on the page. Values are the approved mockup's palette (docs/mockups/gate-outcomes.html).
-   Added 2026-08-29 (REQ-UI-018). */
-.tflens-stack {
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
-}
+/* This file declares NO design tokens any more, and that is the whole of TR-001 landing here.
+
+   The `--alert-*` five went when 2.1.0-ci.10 shipped them: trblazeui.css defines
+   --alert-success/info/warning/danger with their -bg and -foreground companions in both token sets,
+   so every Alert and every Success/Warning Badge on this page takes its colour from the library.
+
+   The `--chart-*` five went when `wwwroot/app.css` was corrected to the mockup ramp (2026-09-12):
+   its `:root --chart-2` is the mockup's green #34d399 now, not the violet that made this page's
+   first-pass chip the wrong colour. The block that used to sit here was an exact duplicate of that,
+   so keeping it would only have hidden the next divergence. The KPI chips, the clock chip and the
+   Live / Backfilled share bars below all read `var(--chart-N)` and inherit it from :root.
+   (REQ-UI-018.) */
 
 /* REQ-UI-022 — the Late-gate coverage card's clock chip.
 
@@ -57,17 +46,14 @@
     background: var(--chart-5);
 }
 
-/* The two measurements the Three-questions page needs that the shipped trblazeui.css does not carry:
-   the fixed width of a distribution share bar, and the vertical rhythm inside a tab body. */
-
+/* The one measurement on this page the shipped utility scale cannot express: 6.5rem is not a step on
+   it, and an arbitrary `w-[6.5rem]` is not in the pre-built sheet (TR-002's fix restored the responsive
+   variants and the base scale, not bracket values). The tab body's 1rem offset that used to live beside
+   this rule is now the shipped `mt-4` utility in the markup. */
 .tflens-share-bar {
     display: block;
     width: 6.5rem;
     flex: none;
-}
-
-.tflens-tab-body {
-    margin-top: 1rem;
 }
 
 .tflens-taint-trigger ::deep button {

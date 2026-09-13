@@ -119,11 +119,11 @@ Plan context (from `docs/ravi-90day-positioning-plan-v2.4.2.md`): TfLens is the 
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-08.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-Checklist.md`.
+**Snapshot as of 2026-09-11.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 13 | 13 | 0 | Done |
+| UI / Pages | 13 | 12 | 1 | Partial |
 | Functional requirements | 46 | 46 | 0 | Done |
 | Non-functional | 18 | 15 | 3 | Partial |
 
@@ -471,43 +471,43 @@ flowchart LR
 
 ### F-ENGINE: Metrics engine with provenance rules
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-COVER: Coverage / health page
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-3Q: Gate outcomes page
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-HARN: Harness comparison page
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-ROUTE: Routing and economics page
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-MISS: Misses and rework economics
 
-**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-EFFORT: Phase effort and efficiency — what each phase cost
 
-**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-EXPORT: Weekly snapshot export
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-PARITY: Parity check against tf-metrics.sh
 
-**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 2** on 2026-09-08 — see [TfLens-P2-BRD.md](./TfLens-P2-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)
 
-**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) §4. The heading stays here so every inbound link and every reference to this feature still resolves.
+**Moved to phase 3** on 2026-09-08 — see [TfLens-P3-BRD.md](./TfLens-P3-BRD.md): its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.
 
 ### F-OPS: Container, configuration, health, docs and decisions
 
@@ -527,7 +527,7 @@ A multi-stage Dockerfile produces one image; a `docker-compose.yml` runs it besi
 - <a id="brd-2"></a>**BRD-2** — System shall place every page except `/login`, `/register`, `/forgot-password`, `/reset-password` and `/healthz` behind cookie authentication (sliding 12 h, HttpOnly, Secure). *(F-AUTH — amended 2026-08-26)*
 - ~~**BRD-3**~~ *(removed 2026-08-26: local PBKDF2 credential store superseded by AppManager — see BRD-90)*
 - <a id="brd-4"></a>**BRD-4** — User can sign out from the **user menu** in the header (name → DropdownMenu → Sign out), which calls AppManager `/AuthSvc/logout` and clears the cookie. *(F-SHELL — amended 2026-08-26)*
-- <a id="brd-5"></a>**BRD-5** — User can navigate between Repos, Coverage, Gate outcomes, Harness, Routing & economics, **Misses & rework**, **Phase effort** and Snapshot export via a TrBlazeUI sidebar with a Lucide icon per item, in that order (Playbook page retired — framework is a header switch, BRD-108). *(F-SHELL — amended 2026-08-26 ×2, 2026-08-28: seven items, Misses & rework between Routing and Snapshot export; 2026-09-01: **eight** items, Phase effort between Misses & rework and Snapshot export)*
+- <a id="brd-5"></a>**BRD-5** — User can navigate between Repos, **Price providers**, Coverage, Gate outcomes, Harness, Routing & economics, **Misses & rework**, **Phase effort** and Snapshot export via a TrBlazeUI sidebar with a Lucide icon per item, in that order (Playbook page retired — framework is a header switch, BRD-108). *(F-SHELL — amended 2026-08-26 ×2, 2026-08-28: seven items, Misses & rework between Routing and Snapshot export; 2026-09-01: **eight** items, Phase effort between Misses & rework and Snapshot export; 2026-09-11: **nine** items, Price providers second, under Repos in the Workspace group, BRD-200)*
 - <a id="brd-6"></a>**BRD-6** — User can press **Sync now** in the header and see the last-sync timestamp and a per-repo outcome toast for their own repos. *(F-SHELL — amended 2026-08-26)*
 - ~~**BRD-7**~~ *(removed 2026-08-26: no repo list or demo seed in configuration — repos are managed only on the Repos screen, F-REPOS)*
 - <a id="brd-8"></a>**BRD-8** — System shall read the AppManager API key/secret, the database connection string and the optional GitHub PAT only from environment / user-secrets via the PascalCase env-var provider (`TfLensAppManagerApiKey`, `TfLensAppManagerApiSecret`, `TfLensDbConnection`, `TfLensGitHubToken`), never from files in the repo. *(F-OPS — amended 2026-08-26 ×2)*

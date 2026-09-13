@@ -1,72 +1,41 @@
 /* Misses & rework — the few measurements TrBlazeUI's shipped utility set cannot express.
 
-   TR-001: trblazeui.css 2.0.0 emits utilities for --chart-1..5 and the --alert-* tokens but defines
-   none of them, so anything painted with them is transparent (the KPI accent chips, every Alert tint).
-   Declaring them on the page root is the documented workaround — custom properties inherit, so every
-   TrBlazeUI control rendered inside this page picks them up. Values are the approved mockup's palette
-   (docs/mockups/misses.html), which reads on both the light and the dark surface. */
+   2026-09-12 (TrBlazeUI 2.1.0-ci.10) — TR-001 is fixed: the shipped trblazeui.css now DEFINES
+   --chart-1..5 and the whole --alert-* family in `:where(:root)` and `:where(.dark)`, and
+   wwwroot/app.css overrides them once with the product's own OKLCH palette
+   (docs/TfLens-UIDesign.md §Design system). The page-local copies that used to sit here were
+   deleted: a page that re-declares the palette is exactly how one screen drifts from the next.
+   The chips below therefore ride on the SEMANTIC --alert-* tokens rather than on a chart index,
+   so amber still means "estimate / apportioned" and green still means "measured" whatever the
+   chart ramp is set to. */
 .tflens-stack {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     min-width: 0;
-    --chart-1: #60a5fa;
-    --chart-2: #34d399;
-    --chart-3: #f472b6;
-    --chart-4: #fbbf24;
-    --chart-5: #a78bfa;
-    --alert-success: #22c55e;
-    --alert-success-bg: rgba(34, 197, 94, .08);
-    --alert-info: #3b82f6;
-    --alert-info-bg: rgba(59, 130, 246, .08);
-    --alert-warning: #f59e0b;
-    --alert-warning-bg: rgba(245, 158, 11, .08);
-    --alert-danger: #ef4444;
-    --alert-danger-bg: rgba(239, 68, 68, .08);
 }
-
-/* TR-002: `trblazeui-col-md-*` is byte-identical to `trblazeui-col-*` (no media query), so the
-   library's own grid helpers collapse to a fixed span at every width. The KPI rows drive
-   grid-template-columns directly instead — one column on a phone, four once there is room. */
-.tflens-kpi-row ::deep .trblazeui-grid {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-    .tflens-kpi-row ::deep .trblazeui-grid > * {
-        grid-column: auto;
-    }
 
 .tflens-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     min-width: 0;
 }
+
+/* No `grid-template-columns` above, deliberately — a scoped class selector carries this file's scope
+   attribute, so declaring one here would out-specify the `lg:grid-cols-*` utility on the div. The div
+   carries `grid-cols-1` instead, which is the SAME `repeat(1, minmax(0, 1fr))`. The `minmax(0, …)` is
+   load-bearing and must never become a bare `auto`: measured 2026-09-12, a plain `display:grid` sized
+   its implicit track to max-content and the widest table pushed the page pane 787px sideways at 390. */
 
     .tflens-grid > * {
         min-width: 0;
     }
 
-@media (min-width: 40rem) {
-    .tflens-kpi-row ::deep .trblazeui-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
+/* `lg:grid-cols-2` / `lg:grid-cols-3` are utilities in the markup now (TR-002). Only the origin
+   pair stays here: its 1.35fr/1fr split is an arbitrary value, and arbitrary values are still not
+   in the pre-built sheet. */
 @media (min-width: 64rem) {
-    .tflens-kpi-4 ::deep .trblazeui-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .tflens-grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .tflens-grid-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
     /* The cross-tab is the wider of the pair: it carries a column per observed miss class. The
        minmax(0, …) is load-bearing — a bare `1.35fr` lets the table's intrinsic width push the column
        past its share and shove the card beside it off the right edge of the page. */
@@ -101,6 +70,11 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
+    /* Re-verified 2026-09-11 at 390: TabsList ships `justify-center`, and a centred flex row that
+       overflows spills BOTH ways — the first tab started 10px left of the strip, where no scroll can
+       reach, so "app 91" lost its leading edge. Start-aligned, the overflow goes right only and the
+       strip's own scroll reaches every tab. */
+    justify-content: flex-start;
 }
 
 /* The plain cross-tab. A DataTableColumn needs a compile-time property per column and `miss_class` has
@@ -169,13 +143,23 @@
         overflow-wrap: anywhere;
     }
 
-/* REQ-UI-052 — the whose-gap answer is a short sentence, and TR-026's finding applies to it exactly:
-   the DataTable's own table is `w-full` inside its scroll box, so auto table layout compresses a column
-   below its own text rather than letting the box scroll. Left alone, "It was written down and ignored
-   anyway" stacked four words deep in a 90px cell. Giving the span a floor raises the column's
-   min-content width instead, and the overflow lands on `.tflens-scroll-x` — which is what that box is
-   for. The span is authored here, so it carries this file's scope attribute; the `td` around it does not,
-   which is why the rule goes on the span. */
+    /* The miss id sits flush left above its sentence, as in the mockup. A stretched link Button centres
+       its label in the column, which left the id floating 60px right of the sentence it names. */
+    .tflens-miss-cell ::deep button {
+        align-self: flex-start;
+        height: auto;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+/* REQ-UI-052 — the whose-gap answer is a short sentence in a `w-full` grid, so auto table layout
+   compresses the column below its own text rather than letting the box scroll. Left alone, "It was
+   written down and ignored anyway" stacked four words deep in a 90px cell. Giving the span a floor
+   raises the column's min-content width instead, and the overflow lands on `.tflens-scroll-x` — which
+   is what that box is for. (This is a column-width choice, not a library workaround: `DataTable` now
+   takes `MinWidth`, but that widens EVERY column, and only this one needs a floor.) The span is
+   authored here, so it carries this file's scope attribute; the `td` around it does not, which is why
+   the rule goes on the span. */
 .tflens-gap-cell {
     display: inline-block;
     min-width: 9.5rem;
@@ -183,10 +167,11 @@
 }
 
 /* REQ-UI-054 — a review phase is one identifier, not prose, so it must never break mid-token. At 390px
-   `day1-review` needed 86px in an 83px cell and wrapped after "day1-", which reads as two phases. This is
-   TR-026 again: the DataTable-style `w-full` table compresses a column below its own min-content width
-   rather than letting its box scroll. Holding the token on one line raises that width and the overflow
-   lands on `.tflens-scroll-x`, which is what that box is for. */
+   `day1-review` needed 86px in an 83px cell and wrapped after "day1-", which reads as two phases. The
+   `w-full` table compresses a column below its own min-content width rather than letting its box
+   scroll; holding the token on one line raises that width and the overflow lands on
+   `.tflens-scroll-x`, which is what that box is for. This table is hand-authored, not a `DataTable`,
+   so the library's new `MinWidth` does not reach it. */
 .tflens-review-phase {
     display: inline-block;
     min-width: 6rem;
@@ -250,9 +235,52 @@
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--alert-success) 35%, transparent);
 }
 
-.tflens-kpi-row ::deep .tflens-measured-badge {
+/* 2026-09-11 (fix cycle 1) — the accent chips this page's OWN markup asks for: the amber triangle on the
+   rate-card estimate card, and the green / amber / red chips on the three cost-of-rework cards.
+
+   `docs/mockups/misses.html` draws each as `.chip.cN` — a 32px rounded tile tinted with its chart colour.
+   The page wrote `tflens-stat-chip tflens-accent-N` on those spans, and those classes are declared only in
+   StatTile.razor.css, whose rules Blazor rewrites to StatTile's own `b-…` scope attribute. A span authored
+   HERE carries this file's attribute instead, so not one rule matched: the chip had no size, no ground and
+   no colour, and the icon rendered as a bare white glyph — on the estimate card, the one tile whose amber
+   is part of how a reader tells it apart from a measurement. Gate outcomes, Harness and Effort each hit
+   the same trap and declare the chip again in their own scope; this is that fix, for this page. Colours
+   come from the semantic `--alert-*` tokens, never from literals and never from a chart index — green
+   is "measured", amber is "estimated / apportioned", red is "unattributable". */
+.tflens-stat-chip {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}
+
+.tflens-accent-2 {
+    background: color-mix(in oklab, var(--alert-success) 15%, transparent);
     color: var(--alert-success);
-    border-color: color-mix(in oklab, var(--alert-success) 45%, transparent);
-    background: var(--alert-success-bg);
-    font-weight: 500;
+}
+
+.tflens-accent-4 {
+    background: color-mix(in oklab, var(--alert-warning) 15%, transparent);
+    color: var(--alert-warning);
+}
+
+.tflens-accent-danger {
+    background: color-mix(in oklab, var(--alert-danger) 15%, transparent);
+    color: var(--alert-danger);
+}
+
+/* TR-033 / REQ-UI-053 — the per-miss filter sits in the card header, as docs/mockups/misses.html draws
+   it (`.inwrap .input{width:220px;height:32px}`). It is bound to the grid through `@bind-SearchText`,
+   so nothing about the filtering moved — only the box. On a phone it takes the full row under the
+   title rather than squeezing the heading. */
+.tflens-detail-filter {
+    width: 100%;
+}
+
+@media (min-width: 40rem) {
+    .tflens-detail-filter {
+        width: 14rem;
+    }
 }

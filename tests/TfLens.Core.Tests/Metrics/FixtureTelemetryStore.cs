@@ -26,6 +26,7 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly List<MissRecord> objMisses = [];
     private readonly List<MissFixRecord> objMissFixes = [];
     private readonly List<MissAmendRecord> objMissAmends = [];
+    private readonly List<MissReviewRecord> objMissReviews = [];
     private readonly List<UserRepo> objRepos = [];
 
     /// <summary>
@@ -351,6 +352,42 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     /// <param name="aFixes">The <c>miss-fix</c> records to serve.</param>
     /// <param name="aAmends">The <c>miss-amend</c> records to serve.</param>
     /// <returns>The same store, for chaining.</returns>
+    /// <summary>
+    /// Seeds the review records (SCHEMA.md §5.5.9).
+    /// </summary>
+    /// <remarks>
+    /// Served through their own read so they can never reach a miss figure: a review is not a mistake,
+    /// and the whole point of the fourth record kind is that it is counted apart (BRD-174).
+    /// </remarks>
+    /// <param name="aUserId">The user id the records are attributed to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> they belong to.</param>
+    /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aReviews">The review records.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SeedMissReviews(
+        int aUserId,
+        string aRepo,
+        string aFramework,
+        IEnumerable<MissReviewRecord>? aReviews = null)
+    {
+        RegisterRepo(aUserId, aRepo, aFramework);
+        objMissReviews.AddRange(aReviews ?? []);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissReviewRecord>> ReadMissReviewsAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissReviewRecord>>(
+            objMissReviews
+                .Where(aReview => aReview.UserId == aUserId && (aRepo is null || aReview.Repo == aRepo))
+                .OrderBy(aReview => aReview.Ts, StringComparer.Ordinal)
+                .ToList());
+
     public FixtureTelemetryStore SeedMisses(
         int aUserId,
         string aRepo,

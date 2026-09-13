@@ -1,8 +1,8 @@
 /* REQ-UI-010 — the header is ONE row at desktop, as every mockup draws it.
 
-   TR-002: trblazeui.css ships no responsive variants, so `lg:flex-nowrap` does not exist at runtime
-   and the breakpoint has to be written here. Below 64rem the header keeps wrapping — that is the
-   correct phone behaviour and the reason `flex-wrap` was there in the first place. */
+   The `flex-wrap` / `nowrap` switch on the HEADER itself is still written here: it is keyed to the
+   header element, not to a component, so there is nothing to pass a class to. The BREADCRUMB's half
+   of it has moved into the markup — see ShellHeader.razor and TR-027 below. */
 
 .tflens-header-crumb {
     /* A flex item defaults to `min-width: auto`, which is what stopped the breadcrumb giving up any
@@ -11,17 +11,11 @@
     min-width: 0;
 }
 
-    .tflens-header-crumb ::deep ol {
-        /* Wrap the crumb's own words rather than the header's controls. Nothing is truncated: the
-           full "Reports › Coverage / health" is still readable, on two lines, inside 64px.
-
-           The row gap is separated from the column gap deliberately. The list ships `gap: 10px`, which
-           applies to BOTH axes, so wrapping to two 20px lines cost 10px of pure vertical padding and
-           stood the header at 87px — one row, but still not the mockup's 64. The columns keep their
-           spacing; the rows do not need any. */
-        flex-wrap: wrap;
-        row-gap: 0;
-    }
+/* TR-027 is CLOSED. The `::deep ol { flex-wrap: wrap; row-gap: 0 }` rule that used to stand here is
+   deleted: `Breadcrumb` takes a `Wrap` parameter now, and — the half that actually mattered — the
+   shipped `<ol>` sets its row gap to `gap-y-0` on its own, so a wrapped trail no longer adds 10px of
+   pure vertical padding and stands the header at 87px. The desktop `flex-nowrap` and the mockup's 4px
+   column gap are expressed as `lg:` utilities on `Breadcrumb.ListClass` in ShellHeader.razor. */
 
 .tflens-header-right {
     /* The right cluster states its own size and never absorbs the shortfall. */
@@ -36,35 +30,27 @@
        .fw .tab{height:28px;padding:0 10px;font-size:13px}
        .fw .tab .badge{height:18px;padding:0 6px;font-size:11px}
 
-   TrBlazeUI paints its own track on `TabsList` (`h-10 rounded-md bg-muted p-1`), one level below the
-   node that carries `data-testid="framework-switch"`. Moving the testid down onto `TabsList` is not
-   available — it exposes no `AdditionalAttributes` (TR-024) — so the ground moves UP onto the `Tabs`
-   root, which carries `bg-muted` there, and `TabsList` is flattened here to a bare flex row. ONE
-   track, on the element the mockup puts it on, not a muted box inside a muted box.
+   TrBlazeUI paints its own track on `TabsList` (`h-10 rounded-md bg-muted p-1`), which is the element
+   the mockup means. TR-024 is CLOSED: `TabsList` captures unmatched values and merges its `Class`, so
+   `data-testid="framework-switch"` now sits on the track itself and the "move the ground UP onto the
+   `Tabs` root and flatten `TabsList` to a bare row" workaround is deleted. What is left below re-sizes
+   the library's own track instead of replacing it.
 
-   These are geometry, not colour: the ground is the library's `bg-muted` token class and the active
-   pill is TrBlazeUI's own `data-[state=active]` styling, neither of which is re-painted here. They
-   are written as CSS rather than as `Class` utilities because TR-002 still stands — trblazeui.css is
-   a pre-built bundle with no arbitrary-value utilities in it, so `p-[3px]`, `h-[34px]`, `text-[13px]`
-   and `gap-0.5` are all absent at runtime and silently do nothing.
+   These are geometry, not colour: the ground is the library's own `bg-muted`, and the active pill is
+   its `data-[state=active]` styling — neither is painted here. They are written as CSS rather than as
+   `Class` utilities because the pre-built bundle carries no arbitrary-value utilities, so `p-[3px]`,
+   `h-[34px]`, `text-[13px]` and `gap-0.5` are all still absent at runtime and would silently do
+   nothing. That part of TR-002 stands; the responsive variants below no longer do.
 
-   34px overall (28 + 3 + 3) also buys the header 6px of height and ~30px of width back against the
-   nowrap budget described above. */
-
-.tflens-header ::deep .tflens-framework-switch {
-    gap: 2px;
-    padding: 3px;
-    border-radius: 8px;
-}
+   `height: auto` is what makes the box 28 + 3 + 3 = 34px: the library ships `h-10` on the track, and a
+   fixed height would also stop the 32px the `min-width: 64rem` block below asks for. 34px buys the
+   header 6px of height and ~30px of width back against the nowrap budget described above. */
 
     .tflens-header ::deep .tflens-framework-switch [role="tablist"] {
-        /* Flattened: the track is the parent. Height, ground, inset and rounding all give way; the
-           library's `text-muted-foreground` ink for the inactive trigger stays. */
         height: auto;
         gap: 2px;
-        padding: 0;
-        background: transparent;
-        border-radius: 0;
+        padding: 3px;
+        border-radius: 8px;
     }
 
     .tflens-header ::deep .tflens-framework-switch [role="tab"] {
@@ -116,8 +102,9 @@
     }
 
         .tflens-header-crumb ::deep ol {
-            flex-wrap: nowrap;
-            column-gap: 4px;
+            /* `lg:flex-nowrap` and `lg:gap-x-1` do this half and are passed as utilities in the
+               markup; there is no responsive `whitespace-*` variant in the pre-built sheet, so this
+               one declaration stays here. */
             white-space: nowrap;
         }
 
@@ -127,11 +114,38 @@
         min-width: 0;
     }
 
-        /* The badge's own flex row, which would otherwise refuse to go below its content. */
-        .tflens-header-right ::deep div:has(> [data-testid="last-sync-badge"]) {
+        /* The badge's own flex row, which would otherwise refuse to go below its content.
+           Deliberately UNTAGGED: `Badge` renders a `<span>` in 2.1.0-ci.10, not a `<div>`, and a
+           selector that names the tag of anything near a component is one upgrade away from silently
+           not matching. `:has(> …)` selects the parent, which is SyncNowButton's own row — still a
+           div today, and this rule no longer cares if it stops being one. */
+        .tflens-header-right ::deep :has(> [data-testid="last-sync-badge"]) {
             min-width: 0;
         }
 
+        /* `min-width: 0` is the load-bearing declaration here; the other three are belt-and-braces.
+
+           `Badge.Truncate` WORKS in 2.1.0-ci.10. Re-measured 2026-09-12 on an instance whose scoped
+           CSS was proven live BEFORE anything was read: SyncNowButton's badge renders
+           `… max-w-full overflow-hidden text-ellipsis whitespace-nowrap` and computes to
+           `overflow: hidden`, `text-overflow: ellipsis`, `max-width: 100%`, beside a same-page
+           `Outline` badge in the default mode computing `visible` / `clip` / `none`. An earlier note
+           here claimed the parameter emitted nothing; that reading came from an app whose `TfLens.dll`
+           predated the edit (the TF-043 shared-`obj/` family) and is WITHDRAWN. The class merge was
+           never involved.
+
+           So `overflow`, `text-overflow` and `white-space` below are redundant with the component and
+           are kept on the orchestrator's instruction, not because anything needs them — they are
+           harmless and were load-bearing before the parameter existed. `min-width: 0` is NOT
+           redundant: `max-w-full` caps a flex item's width, it does not let one shrink below its
+           content, and no component parameter says that.
+
+           ⚠ TR-038 lands on this call site. `Outline` is the only variant whose colour class is the
+           bare `text-foreground`, which TailwindMerge groups with `text-ellipsis`, so `Truncate` on an
+           `Outline` badge deletes it — this badge's class list has no `text-foreground` while every
+           other Outline badge in the app does. Harmless HERE only because the header's own ink is
+           `--foreground` and the badge inherits the identical colour; it would not be harmless on a
+           surface with a different foreground. */
         .tflens-header-right ::deep [data-testid="last-sync-badge"] {
             min-width: 0;
             overflow: hidden;
@@ -139,7 +153,7 @@
             white-space: nowrap;
         }
 
-    .tflens-header ::deep .tflens-framework-switch {
+    .tflens-header ::deep .tflens-framework-switch [role="tablist"] {
         padding: 2px;
     }
 
@@ -157,5 +171,100 @@
     /* Wrapped layout: the spacer would otherwise claim a whole row of its own. */
     .tflens-header-spacer {
         display: none;
+    }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Fix cycle 1, 2026-09-11 — the header's controls drawn to docs/mockups/{misses,effort,prices}.html.
+
+   The sidebar trigger is the mockup's 32px ghost icon button (`.btn.ghost.icon`); the library's
+   SidebarTrigger ships `h-7 w-7`. The avatar's initials take the foreground ink at 600, as `.avatar`
+   does; the library's fallback is muted ink at 500, which read as grey letters rather than a person.
+   --------------------------------------------------------------------------------------------- */
+.tflens-header ::deep [data-sidebar="trigger"] {
+    width: 2rem;
+    height: 2rem;
+}
+
+.tflens-header ::deep .tflens-avatar-initials {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+/* MISS-TfLens-20260911-38 (REQ-UI-007) — the phone header is ONE 64px row.
+
+   It stood 139px tall at 390: breadcrumb on one line, the Framework switch on a second, Sync now and
+   the last-sync badge on a third. The mockups keep the phone header to one row by shedding, in steps,
+   exactly what they shed here — their own @media rules, copied breakpoint for breakpoint:
+
+     ≤900px  .hdr{padding:0 12px;gap:8px}  .hdr>.badge.outline{display:none}  .fw .badge{display:none}
+     ≤820px  .crumb{display:none}  .fw .tab{padding:0 9px;font-size:12px}  .hdr>.switch>svg{display:none}
+     ≤700px  sync-now and user-menu drop their words (font-size:0) and keep the icon / the avatar
+     ≤480px  .fw .tab{padding:0 7px;font-size:11px}
+
+   Nothing is lost: the breadcrumb repeats the page's own H1, the sync time is on the Repos page and in
+   the toast every sync raises, the repo counts are on Repos and the sidebar badge, and the theme
+   switch still states its state through its label. The words on Sync now and the user name were
+   already hidden below 768px by `md:flex`.
+
+   Below 768px the sidebar has left the page (the menu button slides it out), so the header owns the
+   full width and holds one row with the spacer pushing the right-hand cluster to the edge. From 768px
+   to 1023px the sidebar is back beside it and the row keeps the wrap it had. */
+@media (max-width: 56.25rem) {
+    .tflens-header {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .tflens-header-right {
+        gap: 0.5rem;
+    }
+
+    .tflens-header ::deep [data-testid="last-sync-badge"],
+    .tflens-header ::deep .tflens-framework-switch [data-testid^="framework-count-"] {
+        display: none;
+    }
+}
+
+@media (max-width: 51.25rem) {
+    .tflens-header-crumb {
+        display: none;
+    }
+
+    .tflens-header ::deep .tflens-framework-switch [role="tab"] {
+        padding: 0 9px;
+        font-size: 12px;
+    }
+
+    .tflens-header ::deep .tflens-theme-toggle svg {
+        display: none;
+    }
+}
+
+@media (max-width: 47.999rem) {
+    .tflens-header {
+        flex-wrap: nowrap;
+        height: 4rem;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .tflens-header-spacer {
+        display: block;
+        min-width: 0;
+    }
+
+    .tflens-header ::deep .tflens-user-menu {
+        gap: 0.25rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .tflens-header ::deep .tflens-framework-switch [role="tab"] {
+        padding: 0 7px;
+        font-size: 11px;
     }
 }

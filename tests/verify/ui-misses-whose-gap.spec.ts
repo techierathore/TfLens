@@ -10,7 +10,7 @@ import { test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { signIn, gotoScreen, testid, expect, DESKTOP, MOBILE, collectErrors } from './_helpers';
+import { signIn, gotoScreen, testid, expect, DESKTOP, MOBILE, collectErrors, assertScopedCssLoaded } from './_helpers';
 
 const ROOT = process.cwd();
 const WORK = path.join(ROOT, 'tests', '.artifacts', 'whose-gap-spec');
@@ -65,6 +65,26 @@ async function importProbe(page: import('@playwright/test').Page) {
   await testid(page, `repo-source-${SHORT}`, 180_000);
   await page.waitForTimeout(2000);
 }
+
+// Added 2026-09-12 (TF-043). `/misses` leans on scoped CSS for things no other gate can see — the
+// estimate card's dashed border, which is the whole of how BRD-123 tells an estimate from a
+// measurement, and the grid tracks that keep a wide table inside its own box instead of widening
+// the page. A build that serves an EMPTY `TfLens.<fingerprint>.styles.css` makes every one of those
+// rules inert, and the page then measures exactly like a real regression. Three known-live rules,
+// asserted before anything else on this screen is graded.
+test('the scoped stylesheet is actually live before anything on this page is measured', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page);
+  await gotoScreen(page, '/misses');
+  await assertScopedCssLoaded(page, [
+    // Misses.razor.css `.tflens-stack { gap: 1.5rem }` — the page's own band spacing.
+    { testid: 'misses-page', property: 'row-gap', expected: '24px' },
+    // Misses.razor.css `.tflens-stack ::deep .tflens-estimate { border-style: dashed }` (BRD-123).
+    { testid: 'kpi-rework-usd-estimate', property: 'border-top-style', expected: 'dashed' },
+    // Misses.razor.css `.tflens-grid { gap: 1rem }` — the cost band's own grid.
+    { testid: 'miss-cost', property: 'row-gap', expected: '16px' },
+  ]);
+});
 
 test('seeds the probe source from this repository own telemetry', async ({ page }) => {
   await page.setViewportSize(DESKTOP);
@@ -138,7 +158,13 @@ test('REQ-UI-052 the per-miss table can be filtered by whose gap', async ({ page
   const rowsBefore = await detail.locator('tbody tr').count();
   expect(rowsBefore).toBeGreaterThan(0);
 
-  const search = detail.locator('input[type="search"], input[type="text"]').first();
+  // Amended 2026-09-12 (TR-033): the filter used to be the grid's own toolbar box, INSIDE
+  // `miss-detail-table`. TrBlazeUI 2.1.0-ci.10 gives `DataTable` a two-way `SearchText`, so the box
+  // now sits in the card header where docs/mockups/misses.html draws it — still filtering the same
+  // grid over the same `Filterable` columns. The locator is scoped to the `miss-detail` CARD, which
+  // holds the header and the grid alike, so it would still find a toolbar box if one came back.
+  const card = page.locator('[data-testid="miss-detail"]');
+  const search = card.locator('[data-testid="miss-detail-search"]').first();
   await expect(search).toBeVisible();
 
   // A term that appears in the whose-gap column and nowhere else on a row.

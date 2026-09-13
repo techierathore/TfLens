@@ -1,22 +1,15 @@
 /* REQ-UI-050 — the measurements docs/mockups/effort-playbook.html needs that the shipped
-   trblazeui.css does not carry (TR-002: the package ships no responsive variants at all, so every
-   breakpoint is hand-written here).
+   trblazeui.css does not carry: arbitrary values, and the ::deep rules that reach a child
+   component's own root.
 
    Blazor scoped CSS is scoped to ONE component, so nothing declared in a page stylesheet can reach
    this component's markup — these are its own rules rather than references to them (REQ-NFR-021).
 
-   TR-001 — the chart and alert tokens are re-declared on this surface's root because the shipped
-   package stylesheet leaves --chart-N and --alert-* undefined, and a var() that resolves to nothing
-   paints an invisible bar. */
+   No colour token is declared here. The shipped package stylesheet defines --chart-1..5 and the
+   --alert-* family in :where(:root) / :where(.dark), and the app's own palette overrides them once
+   in wwwroot/app.css; a copy on this root would only be a third place for them to drift. */
 
 .pb-effort {
-    --chart-1: oklch(0.646 0.222 264);
-    --chart-2: oklch(0.696 0.17 162);
-    --chart-3: oklch(0.769 0.188 70);
-    --chart-4: oklch(0.627 0.265 304);
-    --chart-5: oklch(0.645 0.246 16);
-    --alert-warning: oklch(0.769 0.188 70);
-
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -243,18 +236,10 @@
 
 /* -------------------------------------------------------------------- grids */
 
+/* One column on a phone, two from 64rem — `grid-cols-1 lg:grid-cols-2` on the markup. */
 .pb-grid-2 {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
     align-items: start;
-    gap: 1rem;
     min-width: 0;
-}
-
-@media (min-width: 64rem) {
-    .pb-grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 /* Wide tables scroll inside their own box so the page container never scrolls sideways at 390px. */

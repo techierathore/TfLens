@@ -19,6 +19,7 @@ import { test, Page } from '@playwright/test';
 import {
   signIn,
   gotoScreen,
+  assertScopedCssLoaded,
   testid,
   renderCheck,
   tableCheck,
@@ -113,12 +114,19 @@ async function phaseKeys(page: Page): Promise<string[]> {
       .map(e => (e.getAttribute('data-testid') || '').replace(/^phase-cmd-/, '')));
 }
 
-/** Opens one phase's disclosure if it is not already open, and returns its four band labels. */
+/**
+ * Opens one phase's disclosure if it is not already open, and returns its four band labels.
+ *
+ * Openness is judged by VISIBILITY, never by presence. A closed `CollapsibleContent` still renders
+ * its subtree (it carries `hidden` + `display:none` and contributes no layout box), so
+ * `querySelector('.tflens-detail-body')` finds a body on every phase, open or shut — a presence
+ * probe would report every disclosure already open, never press a trigger, and grade a hidden band.
+ */
 async function openPhase(page: Page, key: string): Promise<string[]> {
   const body = () => page.evaluate(
     (k: string) => {
-      const card = document.querySelector(`[data-testid="effort-detail-${k}"]`);
-      return !!card && !!card.querySelector('.tflens-detail-body');
+      const el = document.querySelector(`[data-testid="effort-detail-${k}"] .tflens-detail-body`);
+      return !!el && (el as HTMLElement).getClientRects().length > 0;
     }, key);
 
   if (!(await body())) {
@@ -154,6 +162,32 @@ async function srgbOf(page: Page, css: string): Promise<[number, number, number]
   }, css);
 }
 
+/* ────────────────────── scoped-CSS liveness (guards every clause below) ────────────────────── */
+
+/**
+ * Every visual clause on this page rests on `Effort.razor.css`, and several rest on a rule having
+ * been DELETED from it (TR-025's cell padding, TR-030's `::deep … button { width: 100% }`). If the
+ * scoped bundle `TfLens.<fingerprint>.styles.css` is served empty — measured on this project when
+ * several builders shared one `obj/`: `Content-Length: 0` under gzip while identity returned 127kB —
+ * a deleted rule and a working replacement are indistinguishable, and every clause here would pass
+ * on a page with no scoped CSS at all. Three rules this file owns are asserted live first, so the
+ * suite fails loudly instead of blessing such a page.
+ */
+test('REQ-UI-045..049 the page\'s own scoped stylesheet is actually loaded', async ({ page }) => {
+  test.setTimeout(120_000);
+  await gotoScreen(page, '/effort');
+
+  await assertScopedCssLoaded(page, [
+    // A plain rule this file owns: the standing actor note is a flex row, not a <p>'s default block.
+    { testid: 'effort-actor-note', property: 'display', expected: 'flex' },
+    // The KPI row's own grid property, the half of it no utility class carries.
+    { testid: 'effort-kpis', property: 'align-items', expected: 'stretch' },
+    // A ::deep rule reaching a CHILD COMPONENT's root — the exact class of rule whose DELETION this
+    // page's TR-025 and TR-030 results rest on. Badge's own default is flex-shrink: 1.
+    { testid: 'effort-observed-badge', property: 'flex-shrink', expected: '0' },
+  ]);
+});
+
 /* ─────────────────────────────── REQ-UI-045 ─────────────────────────────── */
 
 test('REQ-UI-045 /effort is reachable and is the eighth nav item, between Misses & rework and Snapshot export', async ({ page }) => {
@@ -171,9 +205,15 @@ test('REQ-UI-045 /effort is reachable and is the eighth nav item, between Misses
   for (let i = 1; i < order.length; i++) {
     expect(order[i], `${NAV_IDS[i]} is rendered before ${NAV_IDS[i - 1]}`).toBeGreaterThan(order[i - 1]);
   }
-  expect(NAV_IDS.indexOf('nav-effort'), 'nav-effort is not the eighth nav item').toBe(6);
-  expect(NAV_IDS[NAV_IDS.indexOf('nav-effort') - 1], 'nav-effort does not follow nav-misses').toBe('nav-misses');
-  expect(NAV_IDS[NAV_IDS.indexOf('nav-effort') + 1], 'nav-effort does not precede nav-export').toBe('nav-export');
+  // Read the position from the rendered sidebar, not from this file's own list (BRD-5 as amended
+  // 2026-09-11: nine items, Price providers second, so Phase effort is the eighth of nine).
+  const rendered = await page.locator('[data-testid="app-sidebar"] [data-testid^="nav-"]').evaluateAll(
+    els => Array.from(new Set(els.map(e => e.getAttribute('data-testid') || ''))).filter(id => id !== 'nav-repo-count'));
+  console.log(`RENDERED NAV: ${JSON.stringify(rendered)}`);
+  const at = rendered.indexOf('nav-effort');
+  expect(at, `nav-effort is not the eighth nav item: ${JSON.stringify(rendered)}`).toBe(7);
+  expect(rendered[at - 1], 'nav-effort does not follow nav-misses').toBe('nav-misses');
+  expect(rendered[at + 1], 'nav-effort does not precede nav-export').toBe('nav-export');
 
   // BRD-108 — the framework is a header switch and never a nav item.
   expect(await page.locator('a[href*="/playbook"]').count(), 'a /playbook nav item exists').toBe(0);
@@ -544,7 +584,11 @@ test('REQ-UI-049 the routing band publishes routed / drifted / unknown and never
   expect(styling.drifted, 'routing-drifted rendered no badge to style').toBeTruthy();
   expect(styling.drifted.cls, 'routing-drifted carries a destructive class — drift is observed, never enforced')
     .not.toMatch(/destructive/i);
-  expect(styling.drifted.cls, 'routing-drifted must carry the informational tone class').toContain('tflens-badge-info');
+  // The tone is BadgeVariant.Info now, not a local class layered over Outline (TR-016), so the class
+  // list carries the library's own informational tokens. Asserted as "informational", not as one
+  // exact class name, so the clause survives a rename of the emitted utility.
+  expect(styling.drifted.cls, 'routing-drifted must carry the informational tone').toMatch(/alert-info/);
+  expect(styling.routed.cls, 'routing-routed must carry the success tone').toMatch(/alert-success/);
 
   const destructive = await srgbOf(page, 'var(--destructive)');
   const drifted = await srgbOf(page, styling.drifted.color);
@@ -874,6 +918,62 @@ for (const viewport of [DESKTOP, MOBILE]) {
       await page.setViewportSize(DESKTOP);
       await gotoScreen(page, '/effort').catch(() => {});
       await switchFramework(page, 'TechieFlow').catch(() => {});
+    }
+  });
+}
+
+/* ───────── mockup parity: identifiers hold one line, the phase table fits, the disclosure is inset ─────────
+ * 2026-09-11 [REQ-UI-046/047/048]. `docs/mockups/effort.html` keeps a KPI value and every `.mono` table
+ * token on one line (`.kpi .v` and `.tbl td .mono` are `nowrap`), draws all nine phase columns at 1280,
+ * and pads the per-phase disclosure 14px/16px. The build printed `framework-` / `reset` in the heaviest
+ * tile and the phase table, hid Fan-out behind a scroll once the headers stopped wrapping, and ran the
+ * disclosure onto its card border. None of these is visible to the render or overlap gates. */
+
+for (const viewport of [DESKTOP, MOBILE]) {
+  test(`REQ-UI-046..048 identifiers hold one line and the phase table fits its card @${viewport.width}`, async ({ page }) => {
+    test.setTimeout(120_000);
+    try {
+      await gotoScreen(page, '/effort');
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(1_000);
+
+      const wrapped = await page.evaluate(() => {
+        const lines = (el: Element) => {
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          return new Set(Array.from(r.getClientRects()).filter(c => c.width > 0).map(c => Math.round(c.top))).size;
+        };
+        const sel = '[data-testid="kpi-heaviest-cmd"], [data-testid^="phase-cmd-"], '
+          + '[data-testid="effort-scope-table"] td .font-mono, [data-testid="effort-phase-detail"] .tflens-detail-trigger > .font-mono';
+        return Array.from(document.querySelectorAll(sel))
+          .filter(e => (e.textContent || '').trim().length <= 20 && lines(e) > 1)
+          .map(e => (e.textContent || '').trim());
+      });
+      console.log(`identifiers on more than one line @${viewport.width}: ${JSON.stringify(wrapped)}`);
+      expect(wrapped, `these identifiers break across lines @${viewport.width}`).toEqual([]);
+
+      const inset = await page.evaluate(() => {
+        const t = document.querySelector('[data-testid="effort-phase-detail"] .tflens-detail-trigger');
+        return t ? parseFloat(getComputedStyle(t).paddingLeft) : -1;
+      });
+      expect(inset, 'the per-phase trigger must be inset from its card as the mockup pads it').toBeGreaterThanOrEqual(12);
+
+      if (viewport.width === DESKTOP.width) {
+        const fit = await page.evaluate(() => {
+          const table = document.querySelector('[data-testid="effort-phase-table"]');
+          const tbl = table && (table.tagName === 'TABLE' ? table : table.querySelector('table'));
+          const card = document.querySelector('[data-testid="effort-phases"]');
+          if (!tbl || !card) return null;
+          const heads = Array.from(tbl.querySelectorAll('thead th'));
+          const last = heads[heads.length - 1].getBoundingClientRect();
+          return { columns: heads.length, lastRight: Math.round(last.right), cardRight: Math.round(card.getBoundingClientRect().right) };
+        });
+        console.log(`phase table @1280: ${JSON.stringify(fit)}`);
+        expect(fit, 'the phase table did not render').not.toBeNull();
+        expect(fit!.lastRight, 'the Fan-out column sits behind a horizontal scroll at 1280').toBeLessThanOrEqual(fit!.cardRight);
+      }
+    } finally {
+      await page.setViewportSize(DESKTOP);
     }
   });
 }

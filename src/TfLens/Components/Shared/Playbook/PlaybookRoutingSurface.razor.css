@@ -1,16 +1,7 @@
-/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002).
-   Blazor scoped CSS is scoped to ONE component, so the page's own copies of these rules cannot reach
-   this component's markup. */
-
-.tflens-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.tflens-tab-body {
-    margin-top: 1rem;
-}
+/* `.tflens-stack` and `.tflens-tab-body` are gone from this file: the page rhythm is declared once
+   globally in `wwwroot/app.css` (a global rule reaches scoped markup; only the reverse is untrue), and
+   the tab body's 1rem offset is now the shipped `mt-4` utility in the markup — TR-002 is closed and the
+   base spacing scale ships in full. What is left is the one measurement no utility expresses. */
 
 /* Three tab triggers are wider than a 390px viewport. Without this the page container scrolls sideways
    and drags the rest of the page off-screen with it; here the trigger row scrolls inside its own box.

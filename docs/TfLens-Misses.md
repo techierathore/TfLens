@@ -3,16 +3,54 @@
 | | |
 |---|---|
 | App | TfLens |
-| Count | 88 logged: 39 open, 49 fixed, 0 will not fix |
+| Count | 130 logged: 77 open, 53 fixed, 0 will not fix |
 | Source | `docs/metrics/misses.jsonl`, one row per miss record. Rewritten by `tf-misses-md.sh` on every new record. Never edit it: a wrong row is corrected by a new record. |
-| Updated | 2026-09-09 |
+| Updated | 2026-09-13 |
 
 **Whose gap** answers the four questions of the miss protocol: **the app's spec** did not say it, so the checklist line is fixed; **the framework never said it**, so one requirement line and a check are added; **the check was too weak** (a review, or a script that did not fire), so the check is fixed; **said and ignored**, so the rule becomes a hook or is deleted. **not sorted** means the record predates the sort or nobody has answered yet; `bash .tfcore/utils/tf-emit.sh --amend <miss> sort <spec|unsaid|weak-check|ignored>` completes it.
 
-## Open (39)
+## Open (77)
 
 | Miss | Found | Whose gap | What went wrong |
 |---|---|---|---|
+| MISS-TfLens-20260913-01 (REQ-UI-006) | 2026-09-13 by owner | the check was too weak | The mockups were drawn without the sidebar rail, even though the UI design document names SidebarRail as part of the shell and that shell is standard across all my applications. Every report screen then failed the mockup comparison, and the failure was reported against the app rather than the drawin |
+| MISS-TfLens-20260911-40 (REQ-UI-029) | 2026-09-11 by agent-review | the app's spec | The routing page printed the counterfactual delta as $-305.56 because the specification never said what to show when a mix of models costs more than the all-at-one-model estimate. |
+| MISS-TfLens-20260911-39 (REQ-UI-072) | 2026-09-11 by agent-review | the check was too weak | The sidebar showed the repo count badge on Price providers as well as Repos, which the mockup does not draw. |
+| MISS-TfLens-20260911-38 (REQ-UI-007) | 2026-09-11 by agent-review | the check was too weak | On a phone the header wraps onto three lines, breadcrumb, framework switch and sync row, where the mockup keeps it to one line and hides the breadcrumb and the synced badge. |
+| MISS-TfLens-20260911-37 (REQ-UI-006) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-36 (REQ-UI-072) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-35 (REQ-UI-054) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-34 (REQ-UI-053) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-33 (REQ-UI-052) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-32 (REQ-UI-049) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-31 (REQ-UI-048) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-30 (REQ-UI-047) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-29 (REQ-UI-046) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-28 (REQ-UI-045) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-27 (REQ-UI-038) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-26 (REQ-UI-037) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-25 (REQ-UI-036) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-24 (REQ-UI-035) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-19 (REQ-FN-140) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-18 (REQ-FN-112) | 2026-09-11 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20260911-17 (REQ-FN-103) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-16 (REQ-FN-089) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-15 (REQ-UI-054) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-14 (REQ-UI-053) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-13 (REQ-UI-052) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-12 (REQ-UI-049) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-11 (REQ-UI-048) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-10 (REQ-UI-047) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-09 (REQ-UI-046) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-08 (REQ-UI-045) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-07 (REQ-UI-038) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-06 (REQ-UI-037) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-05 (REQ-UI-036) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-04 (REQ-UI-035) | 2026-09-11 by gate | not sorted | no sentence recorded (regression, src) |
+| MISS-TfLens-20260911-03 | 2026-09-11 by owner | said and ignored | The report said verify was pending but gave the owner no prompt to run, though the status gate prints the next command in both harness forms for exactly that purpose |
+| MISS-TfLens-20260911-02 | 2026-09-11 by owner | the framework never said it | The report told the owner two framework defects were filed but never said which application features depend on them, what breaks, or whether to fix the framework first or work in parallel |
+| MISS-TfLens-20260911-01 | 2026-09-11 by owner | said and ignored | The build report was written in jargon the owner had to decode, after the owner had already asked twice for plain English with examples |
+| MISS-TfLens-20260910-01 (REQ-FN-112) | 2026-09-10 by gate | the framework never said it | TfLens counts a run-void record as a run and never drops the run it voids, so TechieFlow reports 81 live runs where the reference reports 75 |
 | MISS-TfLens-20260909-02 (REQ-UI-039) | 2026-09-09 by gate | not sorted | no sentence recorded (partial-implementation, src) |
 | MISS-TfLens-20260909-01 (REQ-UI-034) | 2026-09-09 by gate | not sorted | no sentence recorded (partial-implementation, src) |
 | MISS-TfLens-20260902-10 | 2026-09-02 by owner | not sorted | no sentence recorded (unspecified-gap, config, why: other) |
@@ -53,10 +91,14 @@
 | MISS-TfLens-20260828-25 (REQ-UI-014) | 2026-08-28 by gate | not sorted | no sentence recorded (standards-violation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260828-21 | 2026-08-28 by owner | not sorted | no sentence recorded (standards-violation, config, why: missing-checklist-item) |
 
-## Fixed (49)
+## Fixed (53)
 
 | Miss | Found | Closed | Whose gap | What went wrong |
 |---|---|---|---|---|
+| MISS-TfLens-20260911-23 (REQ-UI-072) | 2026-09-11 by owner | 2026-09-11 by log-miss | the check was too weak | BRD-200 added a Price providers screen, but no screen row, UI design entry or mockup was written, so the page was built and verified with no design to compare it against. |
+| MISS-TfLens-20260911-22 (REQ-UI-035) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | The approved mockups drew a narrow strip of menu icons on a phone, where the UI library the app uses hides the sidebar and slides it out from the menu button instead. |
+| MISS-TfLens-20260911-21 (REQ-FN-080) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | BRD-128 said every rate-card figure's key must end in _usd_estimate, while BRD-195 and BRD-197, added later, named the list-price figures list_usd and cost_list_usd_per_miss. |
+| MISS-TfLens-20260911-20 (REQ-FN-074) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | The architecture's sketch of the MissReview table gave it a surrogate key, a text user id and a date-typed timestamp, unlike every sibling table and unlike the code built from it. |
 | MISS-TfLens-20260902-06 (REQ-FN-079) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260902-05 (REQ-FN-052) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (unspecified-gap, src, why: missing-checklist-item) |
 | MISS-TfLens-20260902-03 (REQ-UI-038) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |

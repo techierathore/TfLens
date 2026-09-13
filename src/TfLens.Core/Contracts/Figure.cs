@@ -66,9 +66,14 @@ public readonly record struct Figure
     /// Builds a figure that refuses to be a number because too few records support it.
     /// </summary>
     /// <param name="aSupportingRecords">How many records there were.</param>
+    /// <param name="aNoun">
+    /// What those records are, when the reference names them — <c>build-phase runs</c> on the rework
+    /// ratio. Refusals are diffed as strings, so a figure the reference refuses in its own words has to
+    /// be refused in exactly those words. Omit it for the plain <c>(n=…)</c> form.
+    /// </param>
     /// <returns>An <see cref="FigureKind.InsufficientData"/> figure.</returns>
-    public static Figure InsufficientData(int aSupportingRecords) =>
-        new(FigureKind.InsufficientData, 0d, aSupportingRecords, null);
+    public static Figure InsufficientData(int aSupportingRecords, string? aNoun = null) =>
+        new(FigureKind.InsufficientData, 0d, aSupportingRecords, aNoun);
 
     /// <summary>
     /// Builds a figure for a metric that does not apply — a zero denominator, or a measurement that
@@ -95,7 +100,9 @@ public readonly record struct Figure
     public string Display() => Kind switch
     {
         FigureKind.Value => objRendered ?? objValue.ToString(CultureInfo.InvariantCulture),
-        FigureKind.InsufficientData => $"insufficient data (n={SupportingRecords})",
+        FigureKind.InsufficientData => objRendered is null
+            ? $"insufficient data (n={SupportingRecords})"
+            : $"insufficient data (n={SupportingRecords} {objRendered})",
         _ => "—"
     };
 

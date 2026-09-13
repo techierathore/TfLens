@@ -9,20 +9,15 @@
 <Collapsible @bind-Open="objIsOpen">
     <Card>
         <CardContent Class="p-0">
-            <CollapsibleTrigger>
-                <span class="flex w-full items-center gap-2 p-4 text-sm font-medium"
-                      data-testid="playbook-observed-fields-trigger">
+            @* The mockup's `.trg` spans the whole card row (docs/mockups/playbook.html), and
+               CollapsibleTrigger renders a real button that otherwise shrinks to its text. *@
+            <CollapsibleTrigger Class="w-full text-left" data-testid="playbook-observed-fields-trigger">
+                <span class="flex w-full items-center gap-2 p-4 text-sm font-medium">
                     <LucideIcon Name="@(objIsOpen ? "chevron-down" : "chevron-right")" Size="16" />
                     Observed fields (@Fields.Count)
                 </span>
             </CollapsibleTrigger>
             <CollapsibleContent>
-                @* TR-014 — a closed CollapsibleContent keeps its children in normal flow inside a
-                   zero-height, overflow-hidden box, so the panel still reports a full-height bounding
-                   box that lands on top of whatever follows the card. The content is therefore only
-                   rendered while the disclosure is open; there is then no phantom box to collide with. *@
-                @if (objIsOpen)
-                {
                 <div class="flex flex-col gap-3 px-4 pb-4" data-testid="playbook-observed-fields">
                     <p class="text-sm text-muted-foreground">
                         Field names discovered in events.ndjson — the adapter's columns are fixed only
@@ -44,14 +39,20 @@
                         </div>
                     }
                 </div>
-                }
             </CollapsibleContent>
         </CardContent>
     </Card>
 </Collapsible>
 
 @code {
-    /// <summary>Open on arrival: the observed field list is the evidence, not a footnote to it.</summary>
+    /// <summary>
+    /// Open on arrival — which is what <c>docs/mockups/playbook.html</c> draws.
+    /// </summary>
+    /// <remarks>
+    /// The mockup's disclosure carries a <c>chevron-down</c> over a visible body, and the observed
+    /// field list is the REQ-FN-068 evidence rather than a footnote to it. This is a design choice,
+    /// not a workaround: it survived the 2.1.0-ci.10 uptake unchanged.
+    /// </remarks>
     private bool objIsOpen = true;
 
     /// <summary>The field names the probe observed, in probe order.</summary>

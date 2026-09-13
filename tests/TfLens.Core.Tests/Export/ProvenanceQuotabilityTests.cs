@@ -250,7 +250,12 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
         vDocument.RootElement.EnumerateObject().Select(aProperty => aProperty.Name)
             .Should().BeEquivalentTo(
                 [
-                    "per_repo", "tainted_reqs", "live", "backfilled", "pooled", "misses", "phases",
+                    "per_repo", "tainted_reqs",
+                    // The three run-void keys are the ORACLE's own (SCHEMA.md §2.7); like `phases` they
+                    // are not TfLens additions, so they belong on this list rather than in the
+                    // parity-compare allow-list.
+                    "runs_voided_n", "runs_voided", "run_voids_orphaned_n",
+                    "live", "backfilled", "pooled", "misses", "phases",
                     "extras", "parity"
                 ],
                 "the new refusal is a reason, never a key of its own (REQ-FN-058). `phases` is on this "
@@ -287,7 +292,12 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
         vRoot.EnumerateObject().Select(aProperty => aProperty.Name)
             .Should().BeEquivalentTo(
                 [
-                    "per_repo", "tainted_reqs", "live", "backfilled", "pooled", "misses", "phases",
+                    "per_repo", "tainted_reqs",
+                    // The three run-void keys are the ORACLE's own (SCHEMA.md §2.7); like `phases` they
+                    // are not TfLens additions, so they belong on this list rather than in the
+                    // parity-compare allow-list.
+                    "runs_voided_n", "runs_voided", "run_voids_orphaned_n",
+                    "live", "backfilled", "pooled", "misses", "phases",
                     "extras", "parity"
                 ],
                 "extras and parity stay the only additions to the reference's key layout (REQ-FN-058); "

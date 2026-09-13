@@ -1,14 +1,13 @@
-/* The measurements this surface needs that the shipped trblazeui.css does not carry (TR-002: the
-   package ships no responsive variants at all, so every breakpoint is hand-written here).
+/* The measurements this surface needs that nothing else supplies.
+
+   The `.tflens-stack` copy that used to head this file is gone: `wwwroot/app.css` declares that class
+   once, globally (REQ-NFR-015), so a per-component copy of it was only ever redundant.
+
+   What is left is the chart/dollars split: `2fr / 1fr` is an arbitrary grid template, and a pre-built
+   utility sheet carries no arbitrary values at any breakpoint, so the query stays hand-written.
 
    Blazor scoped CSS is scoped to ONE component, so the page-level rules in Harness.razor.css cannot
    reach this component's markup — these are its own copies rather than references to them. */
-
-.tflens-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
 
 .pb-lower {
     display: grid;

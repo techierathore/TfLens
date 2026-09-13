@@ -153,7 +153,10 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         var vDemo = await CountAsync(Fixtures.StoreTestUserId, vRepo);
         var vSecond = await CountAsync(Fixtures.StoreTestSecondUserId, vRepo);
 
-        vDemo.Runs.Should().Be(6);
+        // Seven, not six: the runs fixture holds two byte-identical `build-phase` lines and both are
+        // stored. A run is identified by its line in an append-only file, so re-parsing stays a no-op
+        // while two separate records stay two records — the rule the reference has always applied.
+        vDemo.Runs.Should().Be(7);
         vSecond.Runs.Should().Be(2, "the second user stored the smaller fixture, and only that one");
         vDemo.Commits.Should().Be(5);
         vSecond.Commits.Should().Be(2);
@@ -223,7 +226,10 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         vRebuilt.Should().Be(vLive, "a rebuild reads only data/raw and must land on the same numbers");
         vReport.InvalidLines.Should().Be(
             6, "one malformed line per stream file, plus the misses fixture's unknown `kind` line");
-        vReport.DuplicatesCollapsed.Should().Be(8, "the misses fixture opens one miss twice");
+        vReport.DuplicatesCollapsed.Should().Be(
+            7,
+            "the misses fixture opens one miss twice; the two identical run lines are no longer "
+            + "collapsed, because a run is identified by its line in an append-only file");
     }
 
     /// <summary>
