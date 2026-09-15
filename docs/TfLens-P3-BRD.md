@@ -221,14 +221,14 @@ and each is reported as absence with its denominator beside it.
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-13.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+**Snapshot as of 2026-09-15.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 12 | 5 | 7 | Partial |
+| UI / Pages | 12 | 12 | 0 | Done |
 | Functional requirements | 50 | 50 | 0 | Done |
-| Non-functional | 11 | 6 | 5 | Partial |
-| Other | 44 | 43 | 1 | Partial |
+| Non-functional | 11 | 11 | 0 | Done |
+| Other | 44 | 44 | 0 | Done |
 
 ## 5. Where the rest lives
 

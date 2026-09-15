@@ -583,6 +583,7 @@ public sealed record PlaybookPhaseReport
             AttemptSnapshot = vRecord.AttemptSnapshot,
             GateVerdictSnapshot = vRecord.GateVerdictSnapshot,
             ProjectType = vRecord.ProjectType,
+            Harness = vRecord.SourceHarness,
             DataQualityNote = NoteOf(vRecord)
         };
     }

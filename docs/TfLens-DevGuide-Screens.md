@@ -12,6 +12,8 @@ counts in a shot will not match what you see today; the *structure* is what the 
 
 ---
 
+> **Refreshed 2026-09-14 (Phase 3 handoff).** `/misses` was re-read against the code, and `/effort` and `/prices` were added. All three were runtime-observed at 1280 and 390 as `tflensdemo@techierathore.com`, with screenshots in `docs/screenshots/TfLens/`. TfLens now builds on TrBlazeUI 2.0.6, so gotchas 1, 2, 9, 10, 11 and 12 are fixed and their workarounds are gone. Every other section is as verified on 2026-09-02. Two defects found in the refresh were logged on their rows: REQ-UI-050 (the Playbook harness filter does nothing) and REQ-UI-072 (a single missing OpenRouter price is stored as zero). **Both were fixed and re-verified on 2026-09-15**; their entries below say how.
+
 ## Runtime-verified 2026-09-02 as `tflensdemo@techierathore.com` (userId 2, Manager)
 
 Observed, not inferred. A full `*verify all` pass drove every screen below on a **Release** build at
@@ -134,11 +136,13 @@ Screenshots refreshed by this pass: `docs/devguide-images/misses.png`, `repos.pn
 - [`/reset-password`](#reset-password)
 - [`/profile`](#profile)
 - [`/repos`](#repos)
+- [`/prices`](#prices)
 - [`/` — Coverage / health](#coverage-health)
 - [`/gate-outcomes`](#gate-outcomes)
 - [`/harness`](#harness)
 - [`/routing`](#routing)
 - [`/misses`](#misses)
+- [`/effort`](#effort)
 - [`/export`](#export)
 - [The Playbook axis](#the-playbook-axis)
 - [Route and file index](#route-and-file-index)
@@ -183,63 +187,11 @@ failing build.
 
 ### 1. `DataTable` truncates to `InitialPageSize` even with `ShowPagination="false"`
 
-`ShowPagination="false"` hides the pager. It does **not** stop the paging. A fixed-row table with no
-explicit `InitialPageSize` renders its first **5** rows and drops the rest with no error at all.
-
-Always set `InitialPageSize` above the maximum row count the table can hold:
-
-```razor
-<DataTable TData="StreamRow" Data="@vCard.Streams"
-           ShowToolbar="false" ShowPagination="false" InitialPageSize="16" />
-```
-
-Current values in the codebase — check yours against this list before adding a row:
-
-| File | Table | `InitialPageSize` | Rows it can hold |
-|---|---|---|---|
-| `Coverage.razor` | `repo-streams-{name}` | 16 | 4 (TechieFlow) / 1 (Playbook) |
-| `GateOutcomes.razor` | `gate-dist-{type}` | 32 | 8 (`GateOrder` 7 + `unattributed`) |
-| `Harness.razor` | `harness-table-{harness}` | 50 | 11 |
-| `Harness.razor` | `tokens-table` | 50 | 3 |
-| `Routing.razor` | `drift-table` | 25 | unbounded (pager on) |
-| `Routing.razor` | `model-tokens` | 100 | one per observed model |
-| `Routing.razor` | `edit-prices-table` | 100 | rate card + observed-unpriced |
-| `ExportSurface.razor` | all four | 512 | SHAs, snapshots, 3 + 7 facts |
-| `Repos.razor` | `repos-table` | 10 | unbounded (pager on) |
-| `Repos.razor` | `import-preview-streams` | 16 | 6 (one per stream in the bundle) |
-| `Misses.razor` | `miss-whymissed-table` | 32 | 7 (the closed `why_missed` vocabulary) + any unlisted value |
-| `Misses.razor` | `miss-origin-model-table` | 32 | one per observed model |
-| `Misses.razor` | `miss-origin-agent-table` | 32 | one per observed agent |
-| `Misses.razor` | `miss-detail-table` | 25 | unbounded (pager on) |
-| **`Profile.razor`** | **`profile-values`** | **not set → 5** | **exactly 5** |
-
-`Profile.razor` is the live trap: `BuildRows()` returns exactly five `ProfileRow`s, which is exactly the
-default page size. **Adding a sixth profile field silently drops it** and nothing anywhere reports it.
+**Fixed in TrBlazeUI 2.0.6 (TR-009, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 2. `LucideIcon` resolves canonical names only — aliases render an invisible placeholder
 
-`TrBlazeUI.Icons.Lucide` resolves only the canonical Lucide name. The 212 aliases carried in the
-package's own `lucide.json` render an **empty placeholder** with no error and no console message.
-
-| Do **not** use (alias) | Use (canonical) |
-|---|---|
-| `alert-triangle` | `triangle-alert` |
-| `check-circle` | `circle-check` |
-| `help-circle` | `circle-question-mark` |
-| `alert-circle` | `circle-alert` |
-| `x-circle` | `circle-x` |
-
-A probe over all twelve routes found **0 blank icons** today, so the codebase is currently clean — this
-is the rule that keeps it that way. `ShellNavigation.Items` uses only post-rename names for exactly this reason — `shield-check`
-for Gate outcomes since the 2026-09-01 rename, `circle-question-mark` before it.
-
-**Confirmed again 2026-08-28 as `TR-022`,** and it is worth knowing *why* it bites: `lucide.json`
-carries **two** maps, `icons` and `aliases`, and `LucideIcon` looks the name up in `icons` only. So a
-name that is genuinely in the package's own metadata still resolves to nothing. The measured-USD
-tile's accent chip on `/misses` shipped briefly as `check-circle` and rendered an empty coloured
-square; it is `circle-check` now. Settle any name against
-`~/.nuget/packages/trblazeui.icons.lucide/<version>/content/lucide.json` — if it is under `aliases`,
-it will not render. The 2026-08-28 pass measured **0 blank icons** on `/misses`, `/repos` and `/`.
+**Fixed in TrBlazeUI 2.0.6 (TR-008, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 3. Cookie names must not contain `:`
 
@@ -338,78 +290,19 @@ believe the comments.
 
 ### 9. `TabsTrigger` captures no unmatched attributes
 
-You cannot put `data-testid` on a `TabsTrigger`. Every tab in the app puts it on the `<span>` the
-trigger wraps; a click on the span still activates the trigger:
-
-```razor
-<TabsTrigger Value="drift"><span data-testid="routing-tab-drift">Routing drift</span></TabsTrigger>
-```
+**Fixed in TrBlazeUI 2.0.6 (TR-010, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 10. `trblazeui.css`'s spacing/sizing scale has **holes** — `w-20` renders at zero width
 
-This is the one that will cost you an hour. `<Progress Value="24" Class="w-20" />` renders with a
-**width of exactly 0**: no error, no warning, no console message. It does not look broken — it looks
-like a control somebody deliberately hid.
-
-The cause is that `trblazeui.css` is not a Tailwind build. It carries only the utilities the library's
-own components happen to use, so the scale *reads* as complete while several steps are simply absent:
-
-| Present | **Absent** |
-|---|---|
-| `.w-2 .w-3 .w-4 … .w-14 .w-16 .w-40 .w-64 .w-72` | **`w-20`** |
-| `mt-2`, `mt-4` | **`mt-3`** |
-| `my-2`, `my-6` | **`my-4`** |
-
-Because both neighbours of every hole ship, the gap is invisible until a build lands on the wrong
-step. Found on the failed-practice share bars on `/misses` (`miss-whymissed`), which rendered as a
-zero-width `Progress` beside a perfectly correct percentage, and on the `Separator`s in the cost
-band. Recorded as `TR-021` — sibling of `TR-002`, where the responsive variants were byte-identical
-no-ops rather than absent.
-
-**Before you ship a screen, grep the class names you used against `trblazeui.css`.** Then either use
-a step the file actually ships (`w-16` is what `Misses.razor` settled on) or declare the rule in the
-page's own scoped CSS. A geometry gate only catches this when the collapse happens to cause an
-overlap — most of the time it catches nothing at all.
+**Fixed in TrBlazeUI 2.0.6 (TR-021, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 11. `DialogContent` never scrolls, and the page has to own the scroll itself
 
-`DialogContent` renders a fixed, centred panel with **no height cap and no `overflow` on any of its
-parts**, and exposes only `Class`, `ShowCloseButton` and `ChildContent` — no `MaxHeight`, no
-`ScrollBody`. A dialog taller than the viewport simply grows past it: the overlay does not scroll,
-and `DialogFooter` with its primary action is unreachable below the fold. `TR-019`, found on the
-Add-source dialog on `/repos`, whose import mode carries a mode fork, four fields, a drop zone, a
-preview table and a summary — at 390×844 the **Import** button could not be pressed.
-
-The fix in this codebase is that the page owns the scroll: everything between `DialogHeader` and
-`DialogFooter` sits in a single `.tflens-dialog-body` (`Components/Pages/Repos.razor.css`) with
-`max-height: 68vh; overflow-y: auto` — `56vh` under `@media (max-height: 700px)`. `vh` and `max-h-*`
-are not in the shipped stylesheet either (gotcha 10 / `TR-002`), so the rule has to live in scoped
-CSS rather than in a utility class.
-
-**Know the side effect before you read a gate report.** A control scrolled out of that body still
-reports its **true** bounding rect to `getBoundingClientRect`. A naive overlap check therefore sees
-the clipped control colliding with the footer and reports a visual failure that does not exist on
-screen. Either scroll the body to the control first, or intersect against the body's own rect.
+**Fixed in TrBlazeUI 2.0.6 (TR-019, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 12. `SelectValue` shows the raw bound value until `SelectContent` has rendered once
 
-`SelectItem` registers its `Text` with the parent only when it is **rendered**, and `SelectContent`
-renders nothing until the popover is opened. So at first paint the parent's value→text map is empty
-and `SelectValue` falls back to `Value.ToString()`: the closed trigger shows the internal key. Open
-the popover once and it is correct for the rest of the circuit, which makes it look intermittent
-rather than deterministic. `TR-020`.
-
-The period filter on `/misses` (`misses-period`) has to read **All history (default)** on first view
-(BRD-125) and read `all`. The fix is `DisplayTextSelector` on `Select` — a `Func<TValue, string>` the
-component consults without waiting for the items to render:
-
-```razor
-<Select TValue="string" Value="@objPeriod" ValueChanged="OnPeriodChangedAsync"
-        DisplayTextSelector="@PeriodTextOf">
-```
-
-Keep the `Text` on each `SelectItem` as well; the open popover uses it. Verified 2026-08-28: the
-closed trigger reads `All history (default)`.
+**Fixed in TrBlazeUI 2.0.6 (TR-020, closed 2026-09-13).** The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.
 
 ### 13. `SourceKind` has **two vocabularies** and they must never be collapsed
 
@@ -1125,6 +1018,156 @@ a `<span>` inside. The build will not warn you.
 
 ---
 
+## `/prices`
+
+**File:** `src/TfLens/Components/Pages/Prices.razor` (+ `Prices.razor.css`) · `@page "/prices"` · authenticated
+(no `[Authorize]` on the page; the fallback policy at `Services/Auth/AuthRegistration.cs:92` requires a signed-in
+user, and `/prices` is not in `Services/Auth/AnonymousRoutes.cs:23-31`) · `MainLayout` (`Components/Routes.razor:3`,
+no `@layout` on the page) · Framework switch **not shown** (`Services/Ui/ShellNavigation.cs:65`, last argument
+`HasFrameworkSwitch = false`)
+
+Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error banner.
+REQ-UI-072 Verified the same day, including mockup parity.
+
+![Price providers, desktop](./screenshots/TfLens/manager-prices-1280.png)
+![Price providers, phone width](./screenshots/TfLens/manager-prices-390.png)
+
+**What it is for.** Where every published rate comes from and when it was last checked. Each provider is
+labelled as either read from its own endpoint or typed from its published page. It is an **input** screen, not a
+report: every change here rewrites `prices.json`, the flat rate card that every money figure in TfLens is priced from.
+
+### Control → data path
+
+One load call: `objProviders = [.. await PriceProviders.LoadAsync(objOptions.Value.PriceProvidersPath)]` followed by
+`objClashes = PriceProviders.Clashes(objProviders)` (`Prices.razor:466-467`, `src/TfLens.Core/Metrics/PriceProviders.cs`).
+No database is involved. The page reads and writes two JSON files under `DataRoot`: `price-providers.json`
+(`TfLensOptions.cs:331`) and `prices.json` (`TfLensOptions.cs:317`).
+
+| Region | Component | `data-testid` | Source |
+|---|---|---|---|
+| Header count | `Badge Outline` | `prices-model-count` | `CountLabel` (`Prices.razor:430`): Σ `Models.Count` over `objProviders` |
+| Standing note | `Alert Info` | `prices-standing-note` | constant text plus `objOptions.Value.PricesPath` (`:57`); always shown |
+| Clash reporting | `Alert Warning` | `prices-clashes` | `objClashes` (`:61`) ← `PriceProviders.Clashes` (`PriceProviders.cs:250`); shown only when `Count > 0` |
+| Loading | 3× `Card` of `Skeleton` | — | `objIsLoading` (`:74`) |
+| Provider card | `Card` | `prices-provider-{id}` | one per `objProviders` entry (`:90-94`), in file order |
+| Published-page link | `a.tflens-prices-source` | — | `PriceProvider.SourceUrl` (`:100-107`); "no published page recorded" when blank |
+| Kind badge | `Badge Info` / `Badge Secondary` | `prices-kind-{id}` | `IsEndpoint` (`:751`): `Fetch == PriceFetch.Api` → "read from its endpoint", else "typed from the published page" (`:115-124`) |
+| Last-checked badge | `Badge Outline` | `prices-checked-{id}` | `CheckedLabel` (`:756`): `LastChecked` or "never checked" |
+| Refresh | `Button Outline Small` | `prices-refresh-{id}` | shown only when `IsEndpoint && ApiUrl` is not empty (`:128`); `OnClick` → `RefreshAsync` (`:501`) |
+| Remove | `Button Ghost Small` | `prices-remove-{id}` | `OnClick` → `RemoveAsync` (`:604`); no confirmation step |
+| No rates yet | `TypographyMuted` | — | `Models.Count == 0` (`:150`); the wording depends on `IsEndpoint` |
+| Model filter | `InputGroup` → `InputGroupInput` | `prices-filter-{id}` | shown only when `PriceRatePage.NeedsFilter(count)`, i.e. more than 20 rates (`PriceRatePage.cs:40,80`); `ValueChanged` → `OnFilterChanged` (`:716`), which also resets the page to 0 |
+| No filter match | `TypographyMuted.tflens-prices-nomatch` | — | `vPage.Rows.Count == 0` (`:182`) |
+| Rate table | `DataTable<PriceProviderModel>` `ShowPagination=false` `Density=Compact` | `prices-table-{id}` | `vPage.Rows` ← `PageFor` (`:705`) ← `PriceRatePage.Of` (`PriceRatePage.cs:88`); columns `Model`, `InputPerMillion`, `OutputPerMillion`, `CacheReadPerMillion`, `CacheWritePerMillion` (`:205-238`), figures through `Usd` (`:779`) |
+| Pager | 2× `Button Outline Small` | `prices-page-prev-{id}`, `prices-page-next-{id}` | shown when `HasPager` (more than 5 matches, `PriceRatePage.cs:43`); disabled by `CanGoBack` / `CanGoForward` (`:46,49`); `OnClick` → `GoToPage` (`Prices.razor:725`) |
+| Pager caption | `span.tflens-prices-hint` | — | `FooterNote` (`:731`): the unit + `PriceRatePage.Summary` (`PriceRatePage.cs:55`) + for an endpoint provider "a rate the endpoint declines to publish is skipped, never stored as zero" |
+| Add provider | `Card` + 3× `Input` + `Button` | `prices-add-provider`, `prices-new-name`, `prices-new-source`, `prices-new-api`, `prices-add` | `objNewName` / `objNewSource` / `objNewApi` (`:284-299`); `OnClick` → `AddAsync` (`:551`) |
+| Add or change a rate | `Card` (a form card, **not** a dialog) + `NativeSelect` + 5× `Input` + `Button` | `prices-add-rate`, `prices-rate-provider`, `prices-rate-model`, `prices-rate-in`, `prices-rate-out`, `prices-rate-cr`, `prices-rate-cw`, `prices-save-rate` | the select's options are `objProviders` (`:332-335`), bound to `objRateProvider`; the rates are strings defaulting to `"0"` (`:424-427`); `OnClick` → `SaveRateAsync` (`:630`) |
+| Result message | `Alert Info` / `Alert Warning` | `prices-message` | `objMessage` / `objIsMessageProblem` set by `Say` (`:483`); always in the DOM, hidden by `.tflens-prices-message-idle` (`Prices.razor.css:88`) until there is a message; focused in `OnAfterRenderAsync` (`:451-460`) |
+
+**Call chain — load:** `Prices.razor:444 OnInitializedAsync` → `Prices.razor:464 ReloadAsync` →
+`PriceProviders.cs:53 LoadAsync` → when the file is absent, `PriceProviders.cs:328 Seed` + `:139 SaveAsync`; otherwise
+`:69 File.ReadAllTextAsync` → `:89 Parse` → then `PriceProviders.cs:250 Clashes`. Per card, at render time:
+`Prices.razor:705 PageFor` → `PriceRatePage.cs:88 Of`.
+
+**Call chain — refresh:** `Prices.razor:134 OnClick` → `Prices.razor:501 RefreshAsync` → `:539 FetchAsync` →
+`:541 IHttpClientFactory.CreateClient` (30 s timeout, `:542`) → `:544 HttpClient.GetStringAsync(ApiUrl)` →
+`PriceProviders.cs:275 ReadOpenRouter` (`:383 PerToken` multiplies by 1,000,000; `:304` skips any negative) →
+`Prices.razor:515 Replace` → `:473 PersistAsync` → `PriceProviders.cs:139 SaveAsync` (`:202 File.WriteAllTextAsync`
+`price-providers.json`) → `PriceProviders.cs:221 ApplyAsync` → `RateCard.cs:163 SaveAsync` (`prices.json`) →
+`PriceProviders.cs:250 Clashes`.
+
+**Call chain — add or change a rate:** `Prices.razor:376 OnClick` → `Prices.razor:630 SaveRateAsync` →
+`:667 TypedRate` → `:773 TryRate` → `:677 WithRate` → `:690 Replace` → `:473 PersistAsync` → (same writes as refresh) →
+`:696 ShowModel` → `PriceRatePage.cs:116 PageOf`.
+
+**Call chain — add provider:** `Prices.razor:306 OnClick` → `Prices.razor:551 AddAsync` → `:762 IdOf` →
+`:587 NewProvider` (`Fetch = Api` only when an endpoint was typed, `:596`) → `:473 PersistAsync` → (same writes).
+
+**Call chain — remove provider:** `Prices.razor:143 OnClick` → `Prices.razor:604 RemoveAsync` →
+`List.Remove` (`:610`) → `:473 PersistAsync` → (same writes; the removed provider's models drop out of `prices.json`).
+
+### Where to break
+
+| File:line | Function | Watch | Should hold |
+|---|---|---|---|
+| `src/TfLens.Core/Metrics/PriceProviders.cs:304` | `ReadOpenRouter` | `vIn`, `vOut`, `vCacheRead`, `vCacheWrite` (a `"-1"` arrives as `-1000000`) | the entry hits `continue` and never reaches `vModels` — never stored, never `0` |
+| `src/TfLens/Components/Pages/Prices.razor:509` | `RefreshAsync` | `vModels.Count` | at `0` it returns before `Replace` at `:515`; both files are untouched |
+| `src/TfLens/Components/Pages/Prices.razor:520` | `RefreshAsync` (catch) | `vError.GetType()` | `HttpRequestException` / `TaskCanceledException` / `JsonException` are all thrown inside `FetchAsync`, before `Replace`, so the stored and shown rates are unchanged and the message ends "unchanged" |
+| `src/TfLens.Core/Metrics/PriceProviders.cs:232` | `ApplyAsync` | `vFlat.ContainsKey(vModel.Model)` | the first provider in file order wins; a later duplicate is skipped, never averaged |
+| `src/TfLens.Core/Metrics/PriceProviders.cs:257` | `Clashes` | `aGroup.Count()` | every id priced more than once (compared case-insensitively) is listed in `prices-clashes` |
+| `src/TfLens/Components/Pages/Prices.razor:641` | `SaveRateAsync` | `TypedRate(vModel)` | `null` for any negative or non-numeric rate; returns before `objIsBusy` is set and before `PersistAsync` |
+| `src/TfLens/Services/Ui/PriceRatePage.cs:98` | `Of` | `vIndex`, `vPageCount`, `vMatches.Count` | the index is clamped into range; `Rows.Count` is at most 5 |
+| `src/TfLens.Core/Metrics/PriceProviders.cs:59` | `LoadAsync` | `File.Exists(aPath)` | on a first run the four seeded providers are written to disk and returned |
+
+### States
+
+- **Loading** — three `Card`s of `Skeleton` while `objIsLoading` (`:74-88`). `Routes` render `InteractiveServer`
+  (`App.razor:27`), so `OnInitializedAsync` (and therefore `LoadAsync`) can run once for the prerender pass and once
+  for the circuit.
+- **Error** — there is **no page-level error state**. `LoadAsync` turns a malformed or unreadable file into the seed
+  (`PriceProviders.cs:73-82`) without saying so. Any other exception from load or from a write is not caught here.
+- **Clash** — `Alert Warning` `prices-clashes`, listing the ids.
+- **Provider with no rates** — "No rates yet. Refresh to read them from the endpoint." or "…Add a model below."
+  (`:150-160`). The seeded OpenRouter provider starts this way (`PriceProviders.cs:376`).
+- **Short provider** (5 rates or fewer, unfiltered) — no pager and no count in the caption, because `Summary` is `null`.
+- **Long provider** (more than 20 rates) — the filter appears; a filter that matches nothing shows "No model id contains “…”".
+- **Busy** — `objIsBusy` disables Refresh, Remove, Add provider and Save rate. It does **not** disable the pager,
+  the filter or the form inputs.
+- **Outcome** — `prices-message` shows Info on success and Warning when something needs the reader's attention
+  (`:385-389`).
+- **Empty book** — if every provider is removed, the file stays with an empty `providers` array and is **not**
+  re-seeded (`LoadAsync` seeds only when the file is absent). The page then shows no cards and no empty state, the
+  badge reads "0 rates over 0 providers", and the provider select has no options.
+
+### Gotchas
+
+- **Two files, one of them derived.** `price-providers.json` holds the rates and where they came from.
+  `prices.json` is rebuilt from it on every Add, Remove, Save and successful Refresh (`PersistAsync`, `:473-477`).
+  The Routing page's rate editor writes `prices.json` directly (`Routing.razor:1114`), so the next action on
+  `/prices` **overwrites** that edit. The two writes are not atomic: if the second one fails, the two files disagree.
+- **Refresh assumes the OpenRouter format for every endpoint.** `FetchAsync` always calls `ReadOpenRouter` (`:546`).
+  A provider added with any other endpoint gets "returned no rates this reader could understand".
+- **Refresh replaces the provider's whole model list** (`aProvider with { Models = vModels }`, `:515`). A rate typed
+  by hand onto an endpoint provider is lost on its next refresh.
+- **Saving one rate stamps the whole provider as checked today** (`WithRate`, `:684`). The last-checked badge is
+  per provider, not per rate.
+- **Fixed 2026-09-15:** `ReadOpenRouter` now skips a model when *either* `prompt` or `completion` is unreadable
+  (unit test `PriceProviderTests.AModelWithOnlyOnePricePublishedIsSkippedRatherThanZeroed`). As found:
+- **A missing price on one side is stored as zero.** `ReadOpenRouter` skips a model only when *both* `prompt` and
+  `completion` are unreadable (`:294`), then stores `?? 0m` for any single missing price (`:311-314`). The comment at
+  `:268` says an unreadable price is "skipped rather than stored at zero", so the comment and the code disagree. The
+  `-1` rule itself (`:304`) is correct.
+- **The page changes its in-memory list before writing.** `Replace` (`:515`, `:652`), `Add` (`:572`) and `Remove`
+  (`:610`) all run before `PersistAsync`. If a write throws, the page shows a change the files do not hold.
+- **`ArgumentOutOfRangeException` is only caught on Refresh** (`:524`). It comes from `SaveAsync` (`PriceProviders.cs:152`)
+  when *any* model in the book has a negative rate. `Parse` accepts negatives from a hand-edited file, so the Refresh
+  message can blame the provider being refreshed for another provider's rate. Add, Remove and Save have no handler
+  for it.
+- A malformed `price-providers.json` shows the seed. The next action then **overwrites** the broken file with the seed
+  plus that edit.
+- Model ids are matched case-insensitively when a rate is upserted (`:681`), when the flat card is built and when
+  clashes are found. Provider ids are derived from the name (`IdOf`, `:762`): lower case, with every non-alphanumeric
+  character turned into `-`.
+- Remove has no confirmation. That matches the mockup, where Remove is a single button (`docs/mockups/prices.html:287`).
+- The standing note prints the server-side `PricesPath` (`:57`).
+- The page subscribes to neither `ShellState.Changed` nor `ShellPreferences.Changed`, so Sync now and theme or
+  framework changes never reload it.
+- The design table (`docs/TfLens-P3-UIDesign.md:137`) calls the provider picker a `Select`; the code uses
+  `NativeSelect` (`:329`), on purpose (see the comment at `:326-328`).
+- Whether `InputGroupInput.ValueChanged` fires on every keystroke or only on change: {unresolved — the 2.0.6
+  `TrBlazeUI.Components.xml` documents `ValueChanged` only as "invoked when the input value changes" and names no
+  update-timing parameter}.
+- Tests: `tests/verify/ui-prices.spec.ts`, `tests/verify/ui-prices-openrouter.spec.ts`,
+  `tests/verify/verify-prices.spec.ts`. The failed-refresh test (`verify-prices.spec.ts:335`) adds a probe provider
+  whose endpoint is on the reserved `.invalid` domain.
+
+### Defects found
+
+- **REQ-UI-072 · Low · A single missing OpenRouter price is stored as zero** (logged on the row 2026-09-14; **fixed and re-verified 2026-09-15** — `ReadOpenRouter` now skips a model when either price is unreadable). `ReadOpenRouter` skips a model only when both `prompt` and `completion` are unreadable (`PriceProviders.cs:294`) and stores `?? 0m` for either one alone (`:311-314`). REQ-UI-072 says a rate the endpoint does not publish is never coerced to zero, and the method's own comment (`:268`) says the same. **Not affected:** the `-1` rule (`:304`), typed rates, clash reporting and the pager.
+
+---
+
 ## `/` — Coverage / health
 
 **File:** `src/TfLens/Components/Pages/Coverage.razor` · `@page "/"` · authenticated ·
@@ -1610,249 +1653,379 @@ and matches the screenshot.
 
 ## `/misses`
 
-**Files:** `src/TfLens/Components/Pages/Misses.razor` (1,766 lines) + `Misses.razor.css` ·
-`@page "/misses"` · authenticated · `MainLayout` · breadcrumb `Reports › Misses & rework` ·
-Framework switch **shown** · sidebar item `nav-misses`, between Routing and Snapshot export.
+**File:** `src/TfLens/Components/Pages/Misses.razor` (2,456 lines) + `Misses.razor.css` (286 lines) ·
+`@page "/misses"` (line 24) · authenticated · `MainLayout` · breadcrumb `Reports › Misses & rework` ·
+Framework switch **shown** · sidebar item `nav-misses` (`ShellNavigation.cs:70`), between Routing & economics
+and Phase effort. The Playbook axis renders `Components/Shared/Playbook/PlaybookMissesSurface.razor`
+(1,925 lines) instead of the TechieFlow bands.
 
-![Misses & rework](./devguide-images/misses.png)
+Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error
+banner. REQ-UI-035..038 and REQ-UI-051..054 Verified the same day, including mockup parity.
 
-**What it is for.** What was missed, which practice let it through, and what the repair cost. It is
-the sixth report page and the first one built on the `misses` stream (BRD-118..BRD-126, REQ-UI-035..038).
+![Misses & rework, desktop](./screenshots/TfLens/manager-misses-1280.png)
+![Misses & rework, phone width](./screenshots/TfLens/manager-misses-390.png)
 
-**Read this before you fix anything here.** Six behaviours on this page look like defects and are not.
-Every one of them is a rule with a test behind it, and "correcting" any of them turns a refusal to
-answer into a flattering number:
+**What it is for.** What was missed, whose gap it was, which practice let it through, what the repair cost,
+and what owner reviews cost. It is built on the `misses` stream (BRD-118..BRD-126, BRD-167..BRD-176).
 
-1. **Measured and apportioned rework cost are never blended.** `MissCost` has exactly three members —
-   `Sole`, `Apportioned`, `NoneCount` — so a combined figure has no property to bind to (ADR-019).
-   Reflection tests in **two** projects pin it: `MissInvariantContractTests.MissCostExposesNoPropertyThatCouldHoldABlendedFigure`
-   and `.NoMissResultTypeCarriesATotalOrBlendedFigure` in `tests/TfLens.Guardrails.Tests`, and
-   `MissInvariantTests.MissCostCarriesTheSplitAndNothingElse` in `tests/TfLens.Core.Tests`.
-2. **Per-model, per-agent and per-phase figures count `OriginConfidence == "linked"` records only**,
-   and **the excluded count is rendered, never hidden** (`miss-taint-count`, always, even at zero).
-   An exclusion the reader cannot see is indistinguishable from a bug.
-3. **The `why_missed` distribution's denominator is the records that *carry* the field**, printed on
-   the card's face (`miss-whymissed-denominator`), and bounded by the eligibility floor
-   `MetricsConstants.FieldSince["why_missed"] = 2026-08-28`. Never the miss count.
-4. **`wont-fix` is never folded into open.** It is its own tile. `deferred` *is* open. The
-   producer's collapse check asks a different question and the two are **deliberately not reconciled**.
-5. **The period filter narrows the record set and re-runs `MissFigures.Compute`.** It does not
-   recompute anything in the view. That is why every engine rule still applies under a filter, and
-   why a narrow window degrades to `insufficient data (n=…)` rather than to a wrong number.
-6. **An absent cost renders `—`, never `$0.00`,** and every `Figure` renders through
-   `Components/Shared/FigureText.razor` ([gotcha 7](#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor)).
+**Read this before you fix anything here.** These look like defects and are not. Each is a rule, and
+"correcting" one turns a refusal to answer into a flattering number:
+
+1. **Measured and apportioned rework cost are never blended** (ADR-019). Pinned by
+   `MissCostExposesNoPropertyThatCouldHoldABlendedFigure` and `NoMissResultTypeCarriesATotalOrBlendedFigure`
+   (`tests/TfLens.Core.Tests/Metrics/MissInvariantTests.cs:32`, `:50`) and `MissCostCarriesTheSplitAndNothingElse`
+   (`tests/TfLens.Guardrails.Tests/MissInvariantContractTests.cs:138`).
+2. **Per-phase, per-model and per-agent figures count `origin_confidence == "linked"` only**, and the excluded
+   count is always printed (`miss-taint-count`, `Misses.razor:410`, rendered even at zero).
+3. **Every distribution prints its own denominator on its face**: `n of N misses assessed` for `why_missed`,
+   `n of N sorted` for `sort`. Neither is ever read against the miss count.
+4. **`wont-fix` is its own tile and never open; `deferred` is open.**
+5. **The period filter narrows the record set and re-runs `MissFigures.Compute`.** A narrow window degrades to
+   `insufficient data (n=…)` (`Figure.MinN = 3`, `Figure.cs:137`), never to a wrong number.
+6. **An absent cost renders `—`, an absent review figure renders `not available`, never `0` or `$0.00`**, and
+   every `Figure` goes through `Components/Shared/FigureText.razor` (cross-cutting gotcha 7).
 
 ### Control → data path
 
-The page injects `ITelemetryStore` **directly** — it does not go through `IMetricsEngine`, because it
-has to re-run the computation per period. Four reads, then one engine call:
+`LoadAsync` (`Misses.razor:1688`) reads five streams and the rate card once per user and framework.
+`Recompute` (`:1737`) then filters every list by period and runs `MissAmendFolder.Fold` and
+`MissFigures.Compute`, with no I/O. Reviews are windowed but **never** handed to `Compute` (`:1753-1756`).
 
-```csharp
-objAllMisses = await objStore.ReadMissesAsync(userId, framework);      // "Miss"
-objAllFixes  = await objStore.ReadMissFixesAsync(userId, framework);   // "MissFix"
-objAllAmends = await objStore.ReadMissAmendsAsync(userId, framework);  // "MissAmend"
-objAllRuns   = await objStore.ReadRunsAsync(userId, framework);        // per-phase denominator
-objRateCard  = await RateCard.LoadAsync(objOptions.Value.PricesPath);
-
-// Recompute(), on load and on every period change:
-objFold   = MissAmendFolder.Fold(vMisses, vAmends);      // read-time fold, before any figure
-objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
-```
-
-`MissFigures.Compute` folds amendments **again** internally — that is not redundant. The page keeps
-its own `objFold` because the detail table and the raw-record disclosure render *records*, and they
-must show the same folded values the figures were computed from. **`MissAmendFolder.Fold` runs before
-a single figure is counted**, so a `why_missed` supplied only by a later `miss-amend` reaches the
-distribution (REQ-FN-075) while the stored `"Miss"` row still carries `null` — an amend *completes* a
-record, it never edits one.
-
-| Region | Component | `data-testid` | Source |
+| Region | Component | data-testid | Source |
 |---|---|---|---|
-| Period badge | `Badge Variant=Outline` | `misses-period-label` | `PeriodOption.Badge` — the window is stated even when the select is closed |
-| Period filter | `Select` + `DisplayTextSelector` | `misses-period` | `PeriodOptions` = all history (default) / 7 / 30 / 90 days → `OnPeriodChangedAsync` → `Recompute()` |
-| Standing escape note | `Alert Info AccentBorder` | `miss-escape-note` | constant page copy, never a tooltip (BRD-118) |
-| Type tabs | `Tabs` / `TabsTrigger` | `miss-type`, `miss-type-{type}` | `MissAnalysis.ProjectTypes`; badge is `SegmentOf(type).Misses` |
-| Open misses | `StatTile` | `kpi-open` | `MissSegmentFigures.OpenMisses`; sub-line names the deferred count |
-| Declined | `StatTile` | `kpi-wontfix` | `WontFix` — its own tile, never part of open |
-| Misses this period | `StatTile` | `kpi-period` | `Misses`; sub-line `n closed · n open · n declined` |
-| Median time to close | `StatTile` → `FigureText` | `kpi-median-close`, `kpi-median-close-value` | `MedianTimeToCloseHours` — timed over `Verified` misses only; a `wont-fix` is a decision and a `deferred` has not closed |
-| Design-miss share | `StatTile` → `FigureText` | `kpi-design-share`, `-value` | `DesignMissShare` = `miss_class == "unspecified-gap"` ÷ all misses |
-| Escape share | `StatTile` → `FigureText` | `kpi-escape-share`, `-value` | `EscapeShare` = `found_by ∈ {owner, production}` ÷ all misses |
-| Tokens on rework | `StatTile` → `FigureText` | `kpi-rework-tokens`, `-value` | `Cost.TokensPerMissFixed.**Sole**` — the measured column only |
-| Measured USD | `StatTile` (plain span) | `kpi-rework-usd`, `-value` | `MeasuredUsdDisplay` ← the **OpenCode** row's `MeasuredUsdTotal`, or `—` |
-| Rate-card estimate | `Card Class="tflens-estimate"` | `kpi-rework-usd-estimate`, `-value`, `-label`, `kpi-rework-usd-unpriced` | `EstimateUsd` — non-OpenCode fixes priced through `RateCard`, carrying `RateCard.EstimateLabel` |
-| Origin cross-tab | hand-rolled `<table class="tflens-table">` | `miss-origin`, `miss-origin-{phase}`, `miss-origin-unattributed`, `miss-origin-none` | `SegmentTaint.Linked` grouped by `OriginPhase` × `MissClass`, plus `Attribution.MissRatePerOriginPhase` for Runs / Misses-per-run |
-| Attribution exclusion | `<p>` in `CardFooter` | `miss-taint-count` | `MissAttributionSet.AttributionExcluded` + `ExcludedByConfidence` + `Reason` — **always rendered** |
-| Failed practice | `DataTable … InitialPageSize="32"` | `miss-whymissed`, `miss-whymissed-table`, `miss-whymissed-denominator`, `miss-whymissed-note`, `miss-whymissed-eligibility` | `FailedPracticeDistribution` over the vocabulary of `MissAmendFolder.AmendableFields["why_missed"]` |
-| Observational warning | `Alert Warning AccentBorder` | `miss-observational` | standing copy (BRD-124) — *this band does not show causation* |
-| By origin model | `DataTable … InitialPageSize="32"` | `miss-origin-model`, `-table`, `-none` | `Attribution.ByOriginModel` |
-| By origin agent | `DataTable … InitialPageSize="32"` | `miss-origin-agent`, `-table`, `-none` | `Attribution.ByOriginAgent` + the dominant class read off the same linked records |
-| Cost: measured | `Card` → `FigureText` | `miss-cost-measured`, `miss-cost-sole`, `miss-cost-measured-usd` | `Cost.TokensPerMissFixed.Sole`, `Cost.SoleRecords` |
+| Page root | `div.tflens-stack` | `misses-page` | `:45` |
+| Period badge | `Badge Outline` | `misses-period-label` | `PeriodLabel` (`:1222`), so the window is stated while the select is closed |
+| Period filter | `Select` + `SelectItem Text=` | `misses-period` (on `SelectTrigger`) | `PeriodOptions` (`:1149`): all history (default) / 7 / 30 / 90 → `OnPeriodChangedAsync` (`:1796`) → `Recompute` |
+| Standing escape note (TechieFlow) | `Alert Info AccentBorder` | `miss-escape-note` | constant copy (`:81`), BRD-118 |
+| Axis note (Playbook) | `PlaybookAxisNote` | `playbook-axis-note` | constant copy (`:75`) |
+| Project-type tabs | `Tabs` / `TabsTrigger` | `miss-type`, `miss-type-{type}` | `objResult.ProjectTypes`; badge `SegmentOf(type).Misses` (`:1230`); `OnTypeSelectedAsync` (`:1811`) |
+| KPI band wrapper | `div` | `miss-kpis` | `:163` |
+| Open misses | `StatTile` | `kpi-open` | `MissSegmentFigures.OpenMisses`; sub-line `OpenDetail` (`:1831`) counts `deferred` via `DeferredCount` (`:2126`) |
+| Declined | `StatTile` | `kpi-wontfix` | `WontFix` |
+| Misses in window | `StatTile` | `kpi-period` | `Misses`; title `PeriodTileSuffix` (`:1225`); sub-line `MixDetail` (`:1837`) |
+| Median time to close | `StatTile` → `FigureText` | `kpi-median-close`, `kpi-median-close-value` | `MedianTimeToCloseHours` |
+| Design-miss share | `StatTile` → `FigureText` | `kpi-design-share`, `-value` | `DesignMissShare` (`unspecified-gap` ÷ all misses) |
+| Escape share | `StatTile` → `FigureText` | `kpi-escape-share`, `-value` | `EscapeShare` (`found_by ∈ {owner, production}` ÷ all misses) |
+| Tokens on rework | `StatTile` → `FigureText` | `kpi-rework-tokens`, `-value` | `Grouped(Cost.TokensPerMissFixed.Sole)` (`:2268`), the measured column only |
+| Measured USD | `StatTile Class="tflens-measured"` + `TitleAdornment` | `kpi-rework-usd`, `kpi-rework-usd-measured-badge`, `kpi-rework-usd-value` | `MeasuredUsdDisplay` (`:1868`) ← `OpenCodeRow` (`:1861`) `.MeasuredUsdTotal`, or `—` |
+| Rate-card estimate | `Card Class="tflens-estimate"` | `kpi-rework-usd-estimate`, `-value`, `-label`, `kpi-rework-usd-unpriced` | `EstimateUsd` (`:1579`) over `EstimableFixes` (`:2137`, non-OpenCode, `tokens_scope ≠ none`, has tokens) × `RateCard.Find`; `UnpricedModels` (`:1643`); label `RateCard.EstimateLabel` |
+| Origin cross-tab | hand-rolled `table.tflens-table` | `miss-origin`, `miss-origin-{phase}`, `miss-origin-unattributed`, `miss-origin-none` | `OriginRows` (`:1292`): `SegmentTaint.Linked` by `OriginPhase` × `MissClass`, plus `Attribution.MissRatePerOriginPhase` for Runs and rate |
+| Attribution exclusion | `p` in `CardFooter` | `miss-taint-count` | `SegmentTaint` (`:1281`) `.AttributionExcluded`, `ExcludedBreakdown` (`:2119`), `.Reason` |
+| Which practice failed | `DataTable` (pager off) + `Progress w-20` | `miss-whymissed`, `miss-whymissed-denominator`, `miss-whymissed-table`, `miss-whymissed-note`, `miss-whymissed-eligibility` | `PracticeRows` (`:1330`) over `MissAmendFolder.AmendableFields["why_missed"]`; `AssessedLine` (`:1888`); `FailedPracticeNote`; `WhyMissedFooter` (`:1894`) |
+| Whose gap was it (REQ-UI-052) | `DataTable` (pager off) + `Progress w-20` | `miss-sort`, `miss-sort-denominator`, `miss-sort-table` | `SortRows` (`:1380`): `MissSorts.All` plus any unrecognised value, worded by `SortVocabulary` (`:1122`); `SortedLine` (`:1930`) = `SortN of SortEligibility.Eligible`; header `SortShareHeader` (`:1936`) |
+| Whose-gap footer | three `p` | `miss-sort-predates`, `miss-sort-amended`, `miss-sort-words` | `SortPredatesLine` (`:1949`); `SortAmendedLine` (`:1973`) ← `AmendedValues["sort"]`; constant copy |
+| Observational warning | `Alert Warning AccentBorder` | `miss-observational` | constant copy (BRD-124) + `SegmentTaint.AttributedN of Misses` |
+| By origin model | `DataTable` (pager off) | `miss-origin-model`, `-table`, `-none`, `miss-origin-model-runs`, `miss-origin-model-rate` | `ModelRows` (`:1451`) ← `Attribution.MissRatePerOriginModel` (misses · runs · per 100 runs) |
+| By origin agent | `DataTable` (pager off) | `miss-origin-agent`, `-table`, `-none` | `AgentRows` (`:1457`) ← `Attribution.ByOriginAgent` + dominant class from `SegmentTaint.Linked` |
+| Cost band wrapper | `div.tflens-grid` | `miss-cost` | `:699` |
+| Cost: measured | `Card` → `FigureText` | `miss-cost-measured`, `miss-cost-sole`, `miss-cost-measured-usd` | `Cost.TokensPerMissFixed.Sole`, `Cost.SoleRecords`, `MeasuredUsdDisplay` |
 | Cost: apportioned | `Card` → `FigureText` | `miss-cost-apportioned`, `-value` | `Cost.TokensPerMissFixed.Apportioned`, `Cost.SharedRecords` |
 | Cost: unattributable | `Card` | `miss-cost-unattributable`, `miss-cost-none`, `miss-cost-attribution-missing` | `Cost.TokensPerMissFixed.NoneCount`, `Cost.AttributionMissing` |
-| No-blend note | `<p>` | `miss-cost-no-blend` | states ADR-019 on the page |
-| Detail table | `DataTable ShowToolbar ShowPagination InitialPageSize="25"` | `miss-detail`, `miss-detail-table`, `miss-raw-{missId}` | `DetailRows` over `SegmentMisses` (folded), newest first |
-| Raw record | `Collapsible` → `CodeBlock` | `miss-raw-trigger`, `miss-raw`, `miss-raw-note` | the stored record as JSON, `overflow` reduced to **field names only** (SCHEMA.md §9) |
+| No-blend note | `p` | `miss-cost-no-blend` | constant copy (ADR-019) |
+| Review note (REQ-UI-054) | `Alert Default` | `miss-review-note` | constant copy (BRD-175) |
+| What reviews cost | hand-rolled `table.tflens-table` | `miss-review-cost`, `miss-review-{phase}`, `miss-review-none` | `ReviewRows` (`:1431`) ← `objPeriodReviews` for the segment, ordered by `MissReviewPhases.All`; cells `RenderReviewCost` (`:2052`); `ReviewRow.CorrectionShare` (`:2360`) |
+| Review footer | two `p` | `miss-review-notavailable`, `miss-review-phases` | constant copy; `ReviewPhasesLine` (`:2021`) |
+| Every miss (card) | `Card` | `miss-detail` | description counts `DetailRows` (`:1481`) |
+| Per-miss filter (TR-033) | `InputGroup` + `InputGroupInput Type=Search` | `miss-detail-search` | `objDetailSearch` (`:1202`) → `@bind-SearchText` on the grid (`:962`); searches the `Filterable` columns REQ, Class, Whose gap |
+| Per-miss table | `DataTable ShowPagination InitialPageSize="25"` | `miss-detail-table` | `DetailRows` over `SegmentMisses` (`:1260`, folded, newest first) + `LatestFixByMiss` (`:2147`) |
+| Miss id link | `Button Link` | `miss-raw-{missId}` | `ShowRaw` (`:1824`) |
+| Per-miss sentence (REQ-UI-053) | `div` | `miss-what` | `WhatOf` (`:2081`): the record's `what`, or a statement of its absence |
+| What note | `p` | `miss-what-note` | constant copy + `WhatEligibilityLine` (`:1993`) |
+| Raw record | `Collapsible` → `CodeBlock` | `miss-raw-trigger`, `miss-raw`, `miss-raw-note` | `RawMissId` (`:1514`), `RawJson` (`:1523`), with `overflow` reduced to field names (SCHEMA.md §9) |
+| Playbook axis (REQ-UI-051) | `PlaybookMissesSurface` | `pb-misses-surface` and its own ids (`pb-miss-ingest-note`, `pb-stream-health`, `kpi-closed`, `kpi-reopened`, `kpi-time-to-close*`, `kpi-rework-incidence*`, `miss-found-axes`, `miss-id-axes`, `miss-origin-tier`, `miss-amend-diagnostics`, `pb-miss-detail-search`, …) | the window lists `objPeriodMisses/Fixes/Amends/Runs` (`:120-123`) → `PlaybookMissNormalizer.Read` |
 
-### The four bands, and why each rule is shaped that way
+**Call chain (misses):** `Misses.LoadAsync` (`Misses.razor:1702`) → `ITelemetryStore.ReadMissesAsync`
+(`src/TfLens.Core/Abstractions/Interfaces.cs:333`) → `PostgresStore.ReadMissesAsync`
+(`src/TfLens.Core/Storage/PostgresStore.cs:279`) → `ReadStreamAsync<MissRecord>("Miss")` (`PostgresStore.cs:868`).
 
-**Band 2 — the origin cross-tab is `linked`-only, and says so twice.** `MissAttributionTaint.Partition`
-splits the segment's misses on `OriginConfidence == "linked"`; everything else is counted into
-`ExcludedByConfidence` (an absent value buckets as `not-recorded`, deliberately *not* as `unknown`,
-which is a real value in the producer's vocabulary). The excluded records get an `unattributed` row in
-the table **and** the `miss-taint-count` footer, which names the count, the breakdown and the reason
-verbatim from `MissAttributionTaint.ExclusionReason`. There is no parameter, flag or overload that
-returns those records to a figure — relaxing the rule means editing `MissAttributionTaint.cs`
-(REQ-NFR-013).
+**Call chain (fixes):** `Misses.razor:1703` → `Interfaces.cs:352` → `PostgresStore.cs:284` → `ReadStreamAsync("MissFix")` (`:868`).
 
-`OriginConfidence` is derived by `tf-emit.sh` and never written by an agent, and the emitter forces
-`origin_model` / `origin_harness` to `null` when its lookup fails. That is what makes the guarantee
-real rather than aspirational: the filter is on a value the producer controls.
+**Call chain (amends):** `Misses.razor:1704` → `Interfaces.cs:371` → `PostgresStore.cs:289` → `ReadStreamAsync("MissAmend")` (`:868`).
 
-**Band 2 — the failed-practice denominator.** `MissFigures.CountBy` skips a `null` entirely: a null is
-not a bucket, not an `other`, not a zero. So `WhyMissedN` counts only records that carry the field,
-and every share on the card is read against that. The card's badge prints
-`{Assessed} of {Eligible} misses assessed` and the footer separates the two ways a miss can be absent
-from the numerator:
+**Call chain (reviews):** `Misses.razor:1705` → `Interfaces.cs:393` → `PostgresStore.cs:294` → `ReadStreamAsync("MissReview")` (`:868`).
 
-- **not assessed** — the field was available and nobody filled it in;
-- **predates the field** — the record was written before `FieldSince["why_missed"] = 2026-08-28`, and
-  it leaves the denominator entirely rather than being backfilled with a value nobody assessed.
+**Call chain (runs):** `Misses.razor:1707` → `Interfaces.cs:271` → `PostgresStore.cs:259` → `ReadStreamAsync("Run")` (`:868`),
+then `RunVoid.Apply` (`src/TfLens.Core/Metrics/RunVoid.cs:49`) drops voided runs.
 
-The rows themselves come from the **closed vocabulary** in
-`MissAmendFolder.AmendableFields["why_missed"]`, not from what the data happened to contain, so a
-practice that caught nothing renders a real `0` rather than vanishing. Values the engine reports but
-the vocabulary does not know are appended.
+**Call chain (rate card):** `Misses.razor:1710` → `RateCard.LoadAsync` (`src/TfLens.Core/Metrics/RateCard.cs:93`). This reads a file (`TfLensOptions.PricesPath`), not the database.
 
-**Band 3 is labelled observational on the page.** Miss counts per model and per agent are confounded
-by which model gets the hard work. `miss-observational` says so in an `Alert`, not a tooltip, and the
-`n linked` badge on both cards repeats the attribution basis.
+**Call chain (recompute, no I/O):** `Misses.Recompute` (`Misses.razor:1758`) → `MissAmendFolder.Fold`
+(`src/TfLens.Core/Metrics/MissAmendFolder.cs:133`); `Misses.razor:1759` → `MissFigures.Compute`
+(`src/TfLens.Core/Metrics/MissFigures.cs:103`) → `MissAttributionTaint.Partition` (`MissFigures.cs:327` →
+`src/TfLens.Core/Metrics/MissAttributionTaint.cs:54`).
 
-**Band 4 — three columns and never one.** *Measured* is `cost_attribution: sole` — one fix run, one
-miss, the whole token window is that miss's cost. *Apportioned* is `shared:n`, one window divided
-equally across `n` misses: **arithmetic, not measurement**, and stated as such. *Unattributable* is
-`cost_attribution: none` — a count, never a divisor. `AttributionMissing` (absent or unrecognised) is
-a **fourth** number and is deliberately **not** folded into `NoneCount`: `none` is a value the emitter
-wrote, absent is nobody having said, and those are different facts.
+**Call chain (Playbook):** `Misses.razor:120` → `PlaybookMissesSurface.OnParametersSet` (`PlaybookMissesSurface.razor:1440`)
+→ `PlaybookMissNormalizer.Read` (`src/TfLens.Core/Playbook/PlaybookMissNormalizer.cs:254`). The same five store reads
+feed it. It gets no extra query.
 
-Measured dollars come from OpenCode records only and are never summed across harnesses
-(`MissFigures.HarnessRow` does not even *read* a `cost_usd` on another harness's record). Rate-card
-dollars live on their own dashed card, on their own row, carrying `RateCard.EstimateLabel` and
-exported under a key ending `_usd_estimate` — the measured tile's key does not. Models the card does
-not price are **named** in `kpi-rework-usd-unpriced` and left out, never costed at zero.
+All five reads share one SQL shape: `SELECT s.* FROM "{table}" s INNER JOIN "UserRepo" u … WHERE s."UserId" = @aUserId
+AND u."Framework" = @aFramework ORDER BY s."Ts"` (`PostgresStore.cs:871-877`).
 
-**One known divergence from the reference is deliberate.** `analyse_misses` in `tf-metrics.sh`
-computes `sum(tokens_out or 0) / len(sole)`, averaging a repair whose tokens were never recorded in as
-a zero. `MissFigures.MoneyFor` divides by the records that actually **carry** a count. Recorded as
-`TF-005` / `DECISIONS.md` D-012. The two agree on every dataset where every `sole` record carries
-`tokens_out`, so the divergence is latent rather than live — **do not "fix" it by matching the
-reference**, parity would go green by adopting the weaker number.
+### Where to break
+
+| File:line | Function | Watch | Should hold |
+|---|---|---|---|
+| `Misses.razor:1707` | `LoadAsync` | `objAllMisses.Count`, `objAllFixes.Count`, `objAllReviews.Count`, `objAllRuns.Count` | Counts match the rows for this user and framework; runs already exclude voided ones |
+| `Misses.razor:1759` | `Recompute` | `vMisses.Count`, `objFold.Misses.Count`, `objResult.MissesTotal`, `objResult.ProjectTypes` | The period only removes records; with "all" the counts equal the `objAll*` counts |
+| `Misses.razor:1761` | `Recompute` | `objSelectedType` | Always a key of `objResult.Live`, otherwise every band reads `EmptySegment` (`:1234`) |
+| `MissAttributionTaint.cs:54` | `Partition` | `Linked.Count`, `ExcludedByConfidence` | `AttributedN + AttributionExcluded == segment Misses`; an absent value buckets as `not-recorded`, never `unknown` |
+| `MissFigures.cs:252` | `Compute` (segment) | `SortN`, `SortEligibility.Eligible`, `SortUnrecognised` | `SortN ≤ Eligible`; shares on `miss-sort-table` are over `SortN`, never over `Misses` |
+| `MissFigures.cs:410` | `MoneyFor` | `Sole`, `Apportioned`, `NoneCount`, `AttributionMissing` | Three separate figures plus a fourth count; `AttributionMissing` is never folded into `NoneCount` |
+| `Misses.razor:1431` | `ReviewRows` | `objPeriodReviews.Count` vs rows | One row per stored review; no review ever appears in `objResult` |
+| `PlaybookMissesSurface.razor:1444` | `OnParametersSet` | `objReport.Misses.Count` | `0` shows `PlaybookEmpty`; otherwise the populated surface |
 
 ### States
 
-- **Loading** — `objIsLoaded == false` → one `Card` of three `Skeleton` lines, the same block every
-  report page uses.
-- **Error** — `Alert Danger AccentBorder` `misses-error` with the exception message; `objResult` and
-  `objFold` are both reset to `Empty` first.
-- **Empty (TechieFlow)** — `objResult.MissesTotal == 0` → `Empty` `misses-empty` / `misses-empty-connect`,
-  *"TfLens reads `docs/metrics/misses.jsonl`; it never writes one."*
-- **Empty (Playbook)** — `PlaybookEmpty` **plus** `misses-playbook-plan`, a table describing the four
-  bands, and `misses-playbook-zero-note`. The Framework switch is rendered rather than hidden for a
-  surface one framework has and the other does not (BRD-126); the note says explicitly that a zero
-  here is **absence, not a good score**.
-- **Playbook, non-empty** — `PlaybookAxisNote` replaces the escape note. The layout does not change.
-- **Insufficient data** — any `Figure` below `MinN` = 3 renders `insufficient data (n=…)` through
-  `FigureText`, shrunk by `SmallWhenNoNumber` so a refusal is never at headline size. A distribution
-  below `MinN` renders its own `…-note` line instead.
-- **Absent** — `NotApplicable` renders `—`. So does an absent measured or estimated dollar amount.
-
-### Observed 2026-08-28
-
-Signed in as userId 2 at 1440×900. **74 `data-testid`s**, 0 blank icons, no page-level horizontal
-scroll, no console or page errors. Tables: `miss-origin` 2 rows, `miss-whymissed-table` 7,
-`miss-origin-model-table` 1, `miss-origin-agent-table` 1, `miss-detail-table` 4.
-
-The dataset is **4 misses / 4 fixes / 0 amendments**, all in one segment. `miss-type` rendered a
-single tab, `framework` (badge 4). What actually rendered:
-
-| Control | Rendered | Reading it |
-|---|---|---|
-| `misses-period` | `All history (default)` | the `DisplayTextSelector` fix for TR-020 is working — without it this reads `all` |
-| `kpi-open` | `0` | `3 closed · 0 open · 1 declined` |
-| `kpi-wontfix` | `1` | the declined miss is here and **not** in open |
-| `kpi-median-close` | `0h` | three closed misses, so the figure is above `MinN` |
-| `kpi-design-share` | `0%` | a real zero: no `unspecified-gap` in 4 misses |
-| `kpi-escape-share` | `50%` | 2 of 4 `found_by ∈ {owner, production}` |
-| `kpi-rework-tokens` | `—` | **0 of 4** fixes are `cost_attribution: sole` — an absence, not a zero |
-| `kpi-rework-usd` | `—` | no OpenCode fix record carries `cost_usd` |
-| `kpi-rework-usd-estimate` | `—` | no non-OpenCode fix carries both a token count and a priced model |
-| `miss-origin` | 1 phase row (`log-miss`) + `miss-origin-unattributed` | `1 other + 1 partial-implementation = 2`, over 3 runs → `67%` |
-| `miss-taint-count` | `2 of 4 misses excluded … (inferred: 2)` | the exclusion is on the page, as required |
-| `miss-whymissed` | 7 rows, `instruction-ignored 1 · 100%`, 6 at `0 · —` | the closed vocabulary renders in full |
-| `miss-whymissed-note` | `insufficient data (n=1)` | one assessed record cannot carry a share honestly |
-| `miss-origin-model-table` | `claude-opus-5 · 1 · 100%` | linked records only (2 of 4) |
-| `miss-origin-agent-table` | `flow-master · 2 · 100% · other` | " |
-| `miss-cost-*` | `—` / `—` / `0` | measured, apportioned, unattributable — three columns, no blend |
-| `miss-detail-table` | 4 rows, `miss-raw-MISS-TechieFlow-20260828-01..04` | one row per miss |
-
-**Six of the figures on this page render `—` or `insufficient data`, and that is the correct
-answer for this dataset.** The first instinct on seeing that screen is that the page is broken. It
-is not: 4 records, 0 of them `sole`-attributed, 1 of them carrying `why_missed`.
-
-Not observed in this pass: the Playbook state, the empty state, any period other than *All history*,
-the raw-record disclosure open, and any apportioned or measured-dollar figure (no record supports one).
+- **Loading:** `!objIsLoaded` (`:93`) shows one `Card` of three `Skeleton` lines. The header, the period filter and
+  the escape note or axis note are above that branch, so they render while loading.
+- **Not signed in:** `OnParametersSetAsync` (`:1663-1676`) marks the page loaded without reading anything. The
+  empty result then shows the TechieFlow empty state (or, on Playbook, the surface with empty lists).
+- **Error:** `Alert Danger AccentBorder` `misses-error` (`:107`). It is checked **before** the Playbook branch.
+  The `LoadAsync` catch (`:1715-1720`) resets `objResult` and `objFold` to `Empty`.
+- **Playbook:** `PlaybookMissesSurface`. With no Playbook records (`MissCount == 0`,
+  `PlaybookMissesSurface.razor:54`) it shows `PlaybookEmpty`, `misses-playbook-plan` and
+  `misses-playbook-zero-note`. A zero there means **absence, not a good score**.
+- **Empty (TechieFlow):** `objResult.MissesTotal == 0` (`:125`) shows `Empty` `misses-empty` with
+  `misses-empty-connect` → `/repos`.
+- **Empty inside a band:** `miss-origin-none`, `miss-origin-model-none`, `miss-origin-agent-none`,
+  `miss-review-none`. All are stated as an absence of attribution or records, not a zero.
+- **Insufficient data:** a `Figure` below `MinN` renders `insufficient data (n=…)` through `FigureText`, shrunk by
+  `SmallWhenNoNumber` (`:2253`). The failed-practice distribution adds `miss-whymissed-note`.
+- **Absent:** `Missing = "—"` (`:1101`) for costs and strings; `NotAvailable = "not available"` (`:1110`) for review cells.
 
 ### Gotchas
 
-- **Do not add a blended cost figure, even "just for the export".** `MissCost` cannot hold one, and
-  three reflection tests across two projects assert that no miss result type carries a total or
-  blended member. The page states the rule on itself in `miss-cost-no-blend`.
-- **`miss-taint-count` renders even when nothing was excluded.** Hiding it at zero would make "no
-  exclusions" look identical to "the footer was never built". Same reasoning as `/harness`'s
-  `harness-null-footnote`.
-- **`SegmentTaint` re-partitions on every access.** It is a computed property calling
-  `MissAttributionTaint.Partition(SegmentMisses)`, and `SegmentMisses` re-filters `objFold.Misses`
-  each time. That is deliberate — one rule in one place, not a `Where` clause copied into the view —
-  but it means the origin band does real work per render. If this page ever gets slow with thousands
-  of misses, memoise `SegmentTaint` per `(period, type)`; do **not** inline the predicate.
-- **`LinkKey` is spelled differently in the page and in the engine.** `MissFigures.LinkKey` is
-  `repo + " " + missId`; `Misses.razor`'s private `LinkKey` is `$"{repo}{missId}"`. Both are internally
-  consistent — nothing joins across the two — but they are not interchangeable, so do not "share" one
-  without checking every call site.
-- **A record whose `ts` TfLens cannot parse stays in every period window.** `IsInPeriod` returns
-  `true` on a parse failure. Silently dropping a record because its own clock string is odd would
-  understate every figure with no visible reason.
-- **The period filter is per-circuit and is not persisted.** Reload and you are back on *All history*.
-  So is the type tab (`OnTypeSelectedAsync` sets a field and returns `Task.CompletedTask`).
-- **`Recompute()` resets the raw disclosure** (`objRawMissId = null; objIsRawOpen = false`). A change
-  of period closing the open record is intentional — the record may not be in the new window.
-- **`CollapsibleContent` is guarded by an `@if`, not merely closed.** `TR-018`: a closed
-  `CollapsibleContent` still lays its children out and overlaps what follows. Do not remove the guard.
-- **`Progress Class="w-16"`, not `w-20`.** See
-  [cross-cutting gotcha 10](#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width) —
-  `w-20` is absent from the shipped stylesheet and the share bars rendered at zero width.
-- **The chip icons are `circle-check`, not `check-circle`.** `TR-022`; the alias renders an empty box.
-- **This page reads `ITelemetryStore` directly and so bypasses `MemoryAnalysisCache`.** It is not
-  served by the `CachingMetricsEngine` at all, which means it is *not* subject to
-  [gotcha 5](#memoryanalysiscache-is-keyed-on-the-syncstate-version) — seeded rows show up here
-  immediately while `/gate-outcomes` may still serve a cached analysis. Two pages, two freshnesses.
-- **`FrameworkNames` is the axis, `project_type` is the segment, and they are different things.**
-  There is deliberately no "all types" entry on `MissAnalysis.Live` and no total row anywhere on the
-  page — the same rule as `/gate-outcomes` (ADR-007).
+- **Do not add a blended cost figure, even for the export.** The three reflection tests above fail it, and the page
+  states the rule on itself in `miss-cost-no-blend`.
+- **Reviews are a fourth record kind and are never a miss** (BRD-174). They are windowed by period and filtered by
+  segment, and are read only by the review band. Do not pass them to `MissFigures.Compute`.
+- **Two field floors are hard-coded in page copy.** `FieldSince` (`Figure.cs:242-251`) holds `why_missed = 2026-08-28` and
+  `sort = what = 2026-09-07`, and `IsEligibleForField` (`LateGateCoverageCalculator.cs:158`) reads it. But
+  `WhatEligibilityLine` (`:2001`) and `WhatOf` (`:2090`) repeat the `what` date as literal text. If the floor
+  moves, update both strings.
+- **`SegmentTaint` and `DetailRows` are computed properties.** They re-filter on every access, and one render reads
+  them many times (the cross-tab, the agent card, the header count, the grid, `RawMissId`, `RawJson`). That keeps
+  the rule in one place. If thousands of misses make it slow, memoise per (period, type); do not copy the predicate
+  into the view.
+- **`LinkKey` is spelled differently in the page and the engine.** The page's is `$"{aRepo}{aMissId}"` (`:2169`);
+  the engine's is `aRepo + " " + aMissId` (`MissFigures.cs:745`). Each is consistent internally and nothing joins
+  across them, but they are not interchangeable.
+- **A record whose `ts` cannot be parsed stays in every window** (`IsInPeriod`, `:1776`).
+- **The period and the type tab are not persisted.** A reload returns to *All history*.
+  - `Recompute` closes the raw disclosure (`:1766-1767`).
+  - A type switch (`:1811`) clears only `objRawMissId`. An open disclosure therefore stays open and shows the new
+    segment's first miss.
+- **An exception in `Recompute` from the period select is not caught.** Only `LoadAsync` wraps it in a `try`.
+- **A sync does not refresh an open page.** The page injects no `ShellState` and subscribes only to
+  `ShellPreferences.Changed` (`:1654`, handler `:2274`), which reloads on a framework change. It also reads the store
+  directly, so it bypasses `MemoryAnalysisCache`: `/misses` can be fresher than `/gate-outcomes`.
+- **The TechieFlow and Playbook surfaces reuse the same test ids** (`miss-kpis`, `kpi-open`, `miss-origin`,
+  `miss-cost-*`, `miss-detail-table`, …). Only one renders at a time (`:113`). Assert on `pb-misses-surface` to know
+  which axis you are on. Inside the surface, `pb-stream-health` appears twice (`:99`, `:845`), in exclusive branches.
+- **The two filter boxes differ.**
+  - TechieFlow uses `InputGroupInput` with a search icon and **no debounce**. The comment at `:936-941` accepts that
+    because the filter runs in memory.
+  - Playbook uses a plain `Input` with `DebounceMilliseconds="150"` (`PlaybookMissesSurface.razor:918`).
+  - The page comment cites "TR-039" for the missing debounce, but TR-039 in `docs/TfLens-TrBlazeUI-Feedback.md:1588`
+    is the ApexChart dispose entry. `{unresolved — no feedback entry found for InputGroupInput debounce}`.
+- **Do not pass `Class` to `StatGroup`** (`:164-170`). It replaces its root class instead of merging, which knocks out
+  `trblazeui-grid`.
+- **Scoped CSS does not reach a child component's root element.** That is why the dashed estimate border is written
+  as `.tflens-stack ::deep .tflens-estimate` (`Misses.razor.css:215`), the measured ring as
+  `.tflens-kpi-row ::deep .tflens-measured` (`:233`), and why the accent chips are re-declared locally (`:250-272`).
+- **The origin cross-tab and the review table are hand-rolled `<table>`s** (`:344-346`, `:847-849`). `miss_class` has
+  no closed vocabulary, and review cells must be able to read `not available`. Every other table is a `DataTable`.
+- **`MissFigures.cs` is reported as `data` by `file`,** so a plain `grep` skips it silently. Use `grep -a`.
+- **The rework-token mean divides by the fix records that carry a count.** The reference script counts a missing
+  count as zero. This deliberate divergence is `DECISIONS.md:734` (D-012 / TF-005), so do not "fix" it to match the
+  reference.
+- **Library version:** `TfLens.csproj:18-19` pins TrBlazeUI 2.0.6. Comments on this page and in
+  `Misses.razor.css:3` still say "2.1.0-ci.10", the build the measurements were taken on; `csproj:14-17` records
+  that 2.0.6 closes TR-001..TR-038. The 2.0.0 workarounds are gone:
+  - no `DisplayTextSelector` on the period `Select` (TR-020 closed)
+  - no `@if` guard around `CollapsibleContent` (`:1074`, TR-018 closed)
+  - `Progress` is back to `w-20` (`:456`, `:514`, TR-021 closed)
+  - the display-only `DataTable`s set no inflated `InitialPageSize` (TR-009 closed)
+  - test ids now sit directly on `Tabs` and `TabsTrigger` (TR-010 closed)
 
-### Deviation from `docs/TfLens-UIDesign.md`
+### Defects found
 
-- The design specifies `Progress` bars at `w-20` in the failed-practice card. The code ships `w-16`
-  because `w-20` is not in `trblazeui.css` (TR-021). Restore the design's value only alongside a
-  scoped-CSS rule that actually defines the width.
-- The design's period control is a plain `Select`; the code adds `DisplayTextSelector` and a
-  `misses-period-label` badge beside it, because the closed trigger otherwise shows the raw key
-  (TR-020) and because the window should be legible without opening anything.
-- The design puts the origin cross-tab in a `DataTable`. The code hand-rolls a `<table
-  class="tflens-table">` inside `.tflens-scroll-x`, because `DataTableColumn` needs a compile-time
-  property per column and `miss_class` has no closed vocabulary — the columns are whatever the linked
-  records carry. The `why_missed`, model, agent and detail tables *are* `DataTable`s, all with an
-  explicit `InitialPageSize` ([gotcha 1](#datatable-truncates-to-initialpagesize-even-with-showpagination-false)).
+None.
+
+---
+
+## `/effort`
+
+**File:** `src/TfLens/Components/Pages/Effort.razor` (1,884 lines, plus `Effort.razor.css`, 610 lines) ·
+`@page "/effort"` (`Effort.razor:27`) · authenticated (fallback policy `Services/Auth/AuthRegistration.cs:92`;
+`/effort` is not in `AnonymousRoutes.cs:23-31`) · `MainLayout` (`Routes.razor:3`, `DefaultLayout`) ·
+Framework switch **shown** (`Services/Ui/ShellNavigation.cs:71`, `HasFrameworkSwitch: true`)
+
+Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error banner. All rows REQ-UI-045..049 Verified the same day, including mockup parity.
+
+![Phase effort, desktop](./screenshots/TfLens/manager-effort-1280.png)
+![Phase effort, phone width](./screenshots/TfLens/manager-effort-390.png)
+
+**What it is for.** A budgeting view: how much wall clock and how many tokens each command phase used, on
+which model, and how many subagents it actually started. Every figure carries its own denominator. The
+page is explicitly not a quality scoreboard.
+
+### Control → data path
+
+One store read on the TechieFlow axis:
+`objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework)).Kept`
+(`Effort.razor:1368`). Everything else is computed in memory by `objPhases = PhaseMetrics.Compute(vRuns)`
+(`Effort.razor:1398`). On the Playbook axis the page hands off to `PlaybookEffortSurface`, which makes its
+own two reads (`PlaybookEffortSurface.razor:1618`, `:1622`).
+
+| Region | Component | `data-testid` | Source |
+|---|---|---|---|
+| Page root | `div.tflens-stack.tflens-effort` | `effort-page` | constant (`:43`) |
+| Subtitle | `TypographyMuted` | — | `Subtitle` (`:1013`), changes with the axis |
+| Period badge | `Badge Outline` | `effort-period-label` | `PeriodLabel` → `Period.Badge` (`:1031`) |
+| Period filter | `Select TValue="string"` → `SelectTrigger` | `effort-period` | `PeriodOptions` (`:971`): all / 7 / 30 / 90; `ValueChanged="OnPeriodChangedAsync"` (`:1436`) |
+| Budget note | `Alert Info AccentBorder` | `effort-budget-note` | constant, never conditional (`:74`) |
+| KPI row | page grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-5` | `effort-kpis` | wraps the five tiles (`:142`) |
+| KPI · Runs recorded | `StatTile` | `kpi-runs` | `objPhases.RunsLive` |
+| KPI · Total wall clock | `StatTile` | `kpi-wallclock`, `kpi-wallclock-derived`, `kpi-wallclock-recomputed`, `kpi-wallclock-excluded` | `DurationSecondsTotal`; sub-line `TimedRuns` (`:1040`), `DerivedDurationsNote` (`:1058`), `RecomputedDurationsNote` (`:1067`), `ExcludedDurationsNote` (`:1076`) |
+| KPI · Output tokens | `StatTile` | `kpi-tokens-out`, `kpi-tokens-measured` | `TokensOutTotal`; `measured on {TokensMeasuredRuns} of {RunsLive} runs` (`:1034`, `:1037`) |
+| KPI · Heaviest phase | `StatTile` + `ValueContent` | `kpi-heaviest`, `kpi-heaviest-cmd` | `Heaviest` = `objPhases.Phases[0]` (`:1081`); size class `HeaviestCmdFitClass` (`:1113`); `HeaviestSummary` (`:1124`) |
+| KPI · Fan-out coverage | `StatTile Class="tflens-kpi-accent"` | `kpi-fanout-coverage` | `FanoutObservedN of RunsLive` (`:203`) |
+| Denominator band | grid | `effort-denominators` | wraps the two cards below (`:217`) |
+| Token window card | `Card` → `DataTable<ScopeRow>` | `effort-token-window`, `effort-scope-table`, `scope-{tree\|conversation\|main\|none\|absent}` | `ScopeRows` (`:1151`) ← `objPhases.ScopeCoverage`; unknown scopes appended, not dropped (`:1169`) |
+| Fan-out observation card | `Card` → `Badge Warning` + `DataTable<ExclusionRow> ShowHeader="false"` | `effort-fanout-exclusions`, `effort-observed-badge`, `effort-fanout-table`, `fanout-{observed\|not-tree\|predates-field}` | `ExclusionRows` (`:1186`): `FanoutObservedN`, Σ `UnobservedNotTree`, Σ `UnobservedPredatesField` |
+| Phase table | `Card` → `DataTable<PhaseTableRow>` | `effort-phases`, `effort-phase-table`, `phase-cmd-{key}`, `phase-share-{key}`, `phase-measured-{key}`, `phase-fanout-{key}` | `PhaseTableRows` (`:1224`), engine order (heaviest output first); `{key}` = `KeyOf(cmd)` (`:1461`) |
+| Per-phase detail | `Card` → `Collapsible` → `CollapsibleTrigger` | `effort-phase-detail`, `effort-detail-{key}`, `effort-detail-trigger-{key}` | `objPhases.Phases`; open set `objOpenPhases`, toggled by `OnPhaseToggled` (`:1446`) |
+| Detail · 1 Time | plain `div` quad | `time-total-{key}` | `PhaseTotalText` (`:1661`), `Duration.MedianSeconds`, `Duration.MaxSeconds`, `ShareOfDuration`, `TimedRunsNote` (`:1587`) |
+| Detail · 2 Tokens | `Badge` + raw `table` + `FigureText` | `tokens-measured-{key}`, `tokens-mean-{key}` | `TokensMeasuredN of Runs`; `Tokens.Out/In/CacheRead/CacheWrite` via `TokenTotalText` (`:1483`); mean `Grouped(TokensOutPerRun.Tokens)` (`:1098`) |
+| Detail · 3 By model | raw `table` + `Progress` | `models-none-{key}` (only when `Models.Count == 0`) | `vRow.Models`; `ModelSourceNote` (`:1620`) |
+| Detail · 4 Fan-out | `Alert Warning` + raw `table` | `fanout-alert-{key}`, `spawns-total-{key}`, `fanout-none-{key}` | `vRow.Fanout` (`IsObserved` decides table vs `fanout-none`); `DeclaredVersusMeasured` (`:1524`) |
+| Routing card | `Card` → `DataTable<RoutingRow>` | `effort-routing`, `effort-routing-table`, `routing-{routed\|drifted\|unknown}`, `routing-count-{outcome}` | `RoutingRows` (`:1240`), Σ `Routing.Routed/Drifted/Unknown`; share over `RoutingTotal` (`:1144`) |
+| Routing · By command phase | `Collapsible @bind-Open="objIsRoutingByPhaseOpen"` | `effort-routing-byphase-trigger`, `effort-routing-byphase` | per-phase `Routing.*` (`:827-835`); closed by default (`:999`) |
+| Measured spend card | `Card` → `DataTable<CostRow>` | `effort-cost`, `effort-cost-table`, `cost-{harness}` | `CostRows` (`:1270`) ← Σ `Harnesses` + Σ `CostUsdByHarness` per harness, never pooled |
+| Actor note | `p.tflens-actor-note` | `effort-actor-note` | constant (`:931`) |
+| Playbook axis note | `PlaybookAxisNote` → `Alert Info` | `playbook-axis-note` | constant (`PlaybookAxisNote.razor:10`) |
+| Playbook filters | `Select` × 12 + `Button Ghost` | `pb-effort-filters`, `pb-effort-filter-{key}`, `pb-effort-filter-reset`, `pb-effort-filter-scope` | `Filters` (`PlaybookEffortSurface.razor:1331`); only `repository` re-queries (`:1650`) |
+| Playbook summary tiles | `StatGroup Columns="4"` | `pb-effort-summary`, `pb-effort-tile-*`, `pb-cost-measured` | `objReport` (`PlaybookPhaseReport`) |
+| Playbook estimate / timing | `Card`, `Alert Warning` | `pb-cost-estimate`, `pb-effort-timing-note` | `objReport` (`:234`, `:262`) |
+| Playbook charts | 4 × `Card` | `pb-effort-charts`, `pb-chart-tokens`, `pb-chart-duration`, `pb-chart-fanout`, `pb-chart-cost` | `objReport` (`:293-447`) |
+| Playbook tables | `DataTable` × 3 | `pb-effort-tables`, `pb-effort-command-phases`, `pb-effort-active-table`, `pb-effort-model-mix` | `objReport` (`:463-673`) |
+| Playbook executions | `DataTable<PbExecutionRow>` + `Collapsible` detail | `pb-effort-executions`, `pb-executions-table`, `pb-execution-open-{id}`, `pb-execution-detail`, `pb-detail-models`, `pb-detail-subagents`, `pb-detail-quality` | `FilteredExecutions` (`:1393`) ← `Matches` (`:1708`) |
+| Playbook states card | `Card` → `DataTable<StateRow>` | `pb-effort-states`, `pb-effort-state-active`, `pb-effort-states-table` | `PlaybookEffortSurface.razor:1035` {unresolved — the enclosing branch condition around `:1019-1035` was not read} |
+
+**Call chain (TechieFlow load):** `Effort.razor:1325 OnParametersSetAsync` (user id from
+`Services/Ui/ShellIdentity.cs:22`) → `Effort.razor:1354 LoadAsync` → `ITelemetryStore.ReadRunsAsync`
+(`TfLens.Core/Abstractions/Interfaces.cs:271`) → `TfLens.Core/Storage/PostgresStore.cs:259 ReadRunsAsync` →
+`PostgresStore.cs:868 ReadStreamAsync<RunRecord>("Run", …)` — SQL at `:871-878`:
+`SELECT s.* FROM "Run" s INNER JOIN "UserRepo" u … WHERE s."UserId" = @aUserId AND u."Framework" = @aFramework … ORDER BY s."Ts"`
+→ back in the page, `TfLens.Core/Metrics/RunVoid.cs:49 Apply(...).Kept` → `Effort.razor:1390 Recompute` →
+`TfLens.Core/Metrics/PhaseMetrics.cs:108 Compute(IReadOnlyList<RunRecord>)` → `RunDuration.cs:152 Derive` →
+`PhaseMetrics.cs:133 Compute(DerivedDurations)`.
+
+**Call chain (period filter):** `Effort.razor:1436 OnPeriodChangedAsync` → `:1390 Recompute` → `:1416 IsInPeriod`
+→ `PhaseMetrics.cs:108 Compute`. No database hop.
+
+**Call chain (Playbook report):** `PlaybookEffortSurface.razor:1583 OnParametersSetAsync` → `:1608 ReloadAsync` →
+`:1622 IPlaybookReportBuilder.BuildPhaseReportAsync` (`TfLens.Core/Abstractions/PlaybookAbstractions.cs:73`) →
+`TfLens.Core/Playbook/PlaybookReportBuilder.cs:51` → `TfLens.Core/Playbook/PlaybookPhaseEffort.cs:34 ReadAsync`
+(`aHarness` passed as `null`) → `PostgresStore.cs:191 ReadPhaseExecutionsAsync` (`"PbPhaseExecution"`, `:195`),
+`:205 ReadPhaseModelUsagesAsync` (`"PbPhaseModelUsage"`, `:209`), `:219 ReadPhaseSubagentsAsync`
+(`"PbPhaseSubagent"`, `:223`), each through `:246 ReadPhaseAsync<T>` → `PlaybookPhaseReport.cs:77 Build`.
+
+**Call chain (Playbook repository list):** `PlaybookEffortSurface.razor:1618 IRepoListReader.ListWithCountsAsync`
+(`TfLens.Core/Repos/IRepoListReader.cs:21`) → `TfLens.Core/Repos/RepoRegistry.cs:74` →
+`PostgresStore.cs:403 ReadUserReposAsync` and `PostgresStore.cs:377 ReadSyncStateAsync`.
+
+### Where to break
+
+| File:line | Function | Watch | Should hold |
+|---|---|---|---|
+| `Effort.razor:1344` | `OnParametersSetAsync` | `objLoadedFramework`, `objPreferences.Framework` | The store is re-read only when the two differ; `OnShellChanged` (`:1780`) nulls the first to force a read |
+| `PostgresStore.cs:871` | `ReadStreamAsync<RunRecord>` | `aUserId`, `aFramework`, `aRepo` | `aUserId` is always set; `aFramework` is `techieflow` on this branch; `aRepo` is `null` |
+| `Effort.razor:1368` | `LoadAsync` | `objAllRuns.Count` against the raw read | Voided runs and the `run-void` records themselves are gone (REQ-FN-140) |
+| `Effort.razor:1398` | `Recompute` | `vRuns.Count`, `objPhases.RunsLive`, `objPhases.Phases[0].Cmd` | `RunsLive ≤ vRuns.Count` (backfilled rows are dropped at `PhaseMetrics.cs:141`); `Phases[0]` has the largest measured output |
+| `PhaseMetrics.cs:143` | `Compute(DerivedDurations)` | `vLive.Count` | Zero live runs returns `PhaseEffortAnalysis.Empty`, and the page shows `effort-empty` |
+| `Effort.razor:1483` | `TokenTotalText` | `aRow.TokensMeasuredN` | `0` measured runs prints `—`, never `0` |
+| `Effort.razor:1292` | `CostRows` getter | `vHasCost`, `vCost.Records` | A harness with no `cost_usd` keeps its row and reads `—`, never `$0.00` |
+| `PlaybookEffortSurface.razor:1622` | `ReloadAsync` | `vRepo`, `objReport.Harness.IsSupported`, `objReport.Executions.Count` | `all` becomes `null`; unsupported shows the banner, not zeros |
+
+### States
+
+- **Loading.** A `Card` holding three `Skeleton` lines (`Effort.razor:102-113`). The Playbook surface has its own
+  copy (`PlaybookEffortSurface.razor:42-53`).
+- **Error.** `Alert Danger` `effort-error` shows the exception message (`:116`). `objAllRuns` is reset to empty
+  and `Recompute` still runs (`:1373-1377`). On the Playbook axis the error is `pb-effort-error` (`PlaybookEffortSurface.razor:56`).
+- **Empty.** `Empty` `effort-empty` when `objPhases.RunsLive == 0` (`:122`). With all history selected it says
+  nothing has been imported. With a window selected it names the window and suggests widening it
+  (`EmptyDescription`, `:1020`). A signed-in user with no user-id claim also lands here, because
+  `objIsLoaded` is set with no read (`:1337-1341`). The header, period filter and budget note render in every state.
+- **Playbook axis.** `IsPlaybook` (`:1010`) replaces all five bands with `PlaybookAxisNote` + `PlaybookEffortSurface`
+  (`:88-101`). The surface's own states: `pb-effort-unsupported` when `!Harness.IsSupported` (`:109`), which
+  hides every figure rather than showing zeros; `pb-effort-empty` when `Executions.Count == 0` (`:128`); and
+  `pb-effort-no-eligible` inside the executions card (`:738`). The filters card renders in every loaded state (`:64-67`).
+- **Period narrowing.** Runs are filtered in memory by `Ts` against `UtcNow - days` (`:1392-1396`), and the engine
+  runs again over the smaller set. The database is not queried again. A timestamp that cannot be parsed is
+  **kept**, not dropped (`:1423-1430`). Open phases that leave the window are removed, and if none stay open the
+  new heaviest phase opens (`:1402-1407`).
+
+### Gotchas
+
+- **The denominator sits beside every figure.** Token tiles and bands print `measured on n of N runs` as visible
+  text (`:178`, `:553`), never as a tooltip. The phase table's `Measured` is a column (`:449`). If you add a token
+  figure, add its `n of N` next to it.
+- **Never show 0 for something unmeasured.** Token totals print `—` when `TokensMeasuredN == 0` (`:1483`). Fan-out
+  prints `not observed`, never `0 subagents` (`:1495`, `:1501`). `PercentText` prints `—` when the denominator is
+  0 (`:1771`). Watch out: `Percent` returns `0` for the bar in the same case (`:1759`), so the bar is empty
+  while its label reads `—`.
+- **`DurationText` returns `"0s"` for ≤ 0** (`:1683`). Per-phase calls are guarded by `TimedN == 0 → —`
+  (`:1662`), but the KPI tile calls it directly (`:158`). With no timed runs the tile reads `0s`, and the
+  sub-line beside it says `over 0 timed runs`.
+- **Share strings belong to the engine.** `ShareOfDuration` is rendered exactly as received (BRD-152). `Share of
+  output` goes through `PhaseShare.OfMeasuredOutput` (`:1141`), which shows `—` where the export keeps `"0%"`. Do not
+  reformat either one in Razor.
+- **`drifted` is `BadgeVariant.Info`** (`:1251`), never Destructive. `unknown` gets its own row. No routing policy is enforced.
+- **Dollars are never pooled or estimated.** `PhaseMetrics.Compute` is called with no rate card (`:1398`). The `?`
+  harness keeps its row, labelled `harness not detected` (`:1879-1882`).
+- **Five tiles means no `StatGroup`.** Its 12-column grid splits five tiles 4 + 1, so the row uses the page's own
+  grid (`:136-142`). The heaviest-phase command stays on one line through a size container
+  (`Effort.razor.css:87-89`) and length-based fit classes (`:1113`, css `:92-108`).
+- **TrBlazeUI quirks relied on here:** `CollapsibleTrigger` renders a button that shrinks to its content, so it
+  needs `Class="w-full text-left"` (TR-030, `:494-496`). `DataTable ShowHeader="false"` keeps column metadata but
+  drops the header row (TR-012, `:303-311`). `DataTableColumnAlign.End` applies to the header and every body cell
+  (TR-031, `:249-253`). `CardHeader` accepts a caller display class (TR-015). `Empty` and `Typography` need explicit
+  `@using` lines, otherwise they render as unknown tags with only a warning (`:30-34`).
+- **CSS isolation and `::deep`.** A class passed to a child component's root (`Badge`, `Alert`, `CardFooter`,
+  `StatTile`'s `Card`) carries that component's scope attribute, not this page's, so a plain rule never matches.
+  Reach it through `::deep` from an element this page owns (`Effort.razor.css:130-141`, `:69`). Colours for
+  `Progress` indicators follow the same rule (`.tflens-bar ::deep .tflens-fill-*`, css `:350-367`).
+- **The Playbook surface is not wrapped in `PlaybookState`** (`:90-98`). Phase rows come from the `PbPhase*` tables,
+  not from `PbEvent`, so gating on event count would hide a populated screen and the unsupported banner.
+- **The TechieFlow read also runs on the Playbook axis.** `OnParametersSetAsync` never checks `IsPlaybook`
+  (`:1344-1347`), so a `"Run"` read with framework `playbook` happens and its result is not shown.
+- **After a sync, the Playbook surface is not refreshed (found by reading the code).** `Effort.OnShellChanged`
+  (`:1778`) re-reads runs and calls `StateHasChanged`. The surface's guard `objIsLoaded && objLoadedUserId ==
+  UserId` then returns early (`PlaybookEffortSurface.razor:1591`), so a Sync Now on the Playbook axis leaves the old
+  report on screen until you navigate away or switch frameworks. Not confirmed at runtime.
+- **Only the Playbook `repository` filter queries again.** The other filters narrow the executions table only;
+  the summary tiles keep the engine's cohorts (`FilterScopeNote`, `PlaybookEffortSurface.razor:1143`).
+- **Without an auth state the skeleton never clears.** If `AuthenticationStateTask` is `null`,
+  `OnParametersSetAsync` returns before `objIsLoaded` is set (`:1327-1330`), so the skeleton never clears.
+  `AddCascadingAuthenticationState` supplies it in practice.
+
+### Defects found
+
+- **Fixed 2026-09-15 (`*fix-issues`, re-verified).** Each `PhaseExecutionView` now carries `Harness` (from the
+  record's `SourceHarness`, `PlaybookPhaseReport.ViewOf`), and `Matches` calls `MatchesHarness`, which compares it
+  with `PhaseExecutionView.RanOn` ignoring letter case. Unit test
+  `PlaybookPhaseAdapterTests.EveryExecutionRowCarriesItsHarnessForTheFilter`. The note below is the defect as found.
+- **REQ-UI-050 · Low · The Playbook "harness" filter does nothing** (logged on the row 2026-09-14, `Needs re-verify`). `PlaybookEffortSurface.razor:1358` builds a
+  `harness` select whose options are the real normalized harnesses. The value is never read: `Matches`
+  (`:1708-1715`) checks command-phase, project-type, verdict, completeness, coverage, fan-out and period, and
+  `ReloadAsync` (`:1620-1624`) passes only the repository. Choosing a harness changes no row. The on-screen
+  scope note (`:1143-1147`) admits that tier and tokens scope "select nothing yet", but it does not mention
+  harness. **Not affected:** every TechieFlow band on `/effort`, the Playbook summary tiles and charts (they
+  never followed row filters), and the other Playbook filters. `tier` and `tokens-scope` offer only their "All"
+  option, so they cannot be set to a value that is then ignored.
 
 ---
 
@@ -2051,11 +2224,13 @@ returns a single `events` stream, so the repo card's table renders one row rathe
 | `/reset-password` | `Components/Pages/Auth/ResetPassword.razor` | `AuthLayout` | `[AllowAnonymous]` | — |
 | `/profile` | `Components/Pages/Auth/Profile.razor` | `MainLayout` | `[Authorize]` | no |
 | `/repos` | `Components/Pages/Repos.razor` | `MainLayout` | fallback policy | no |
+| `/prices` | `Components/Pages/Prices.razor` | `MainLayout` | fallback policy | no |
 | `/` | `Components/Pages/Coverage.razor` | `MainLayout` | fallback policy | **yes** |
 | `/gate-outcomes` | `Components/Pages/GateOutcomes.razor` | `MainLayout` | fallback policy | **yes** |
 | `/harness` | `Components/Pages/Harness.razor` | `MainLayout` | fallback policy | **yes** |
 | `/routing` | `Components/Pages/Routing.razor` | `MainLayout` | fallback policy | **yes** |
 | `/misses` | `Components/Pages/Misses.razor` | `MainLayout` | fallback policy | **yes** |
+| `/effort` | `Components/Pages/Effort.razor` + `Shared/Playbook/PlaybookEffortSurface.razor` | `MainLayout` | fallback policy | **yes** |
 | `/export` | `Components/Pages/Export.razor` + `Export/ExportSurface.razor` | `MainLayout` | fallback policy | **yes** |
 | `/not-found` | `Components/Pages/NotFound.razor` | `MainLayout` | fallback policy | no |
 | `/Error` | `Components/Pages/Error.razor` | — | — | — |

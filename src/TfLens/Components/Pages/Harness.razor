@@ -234,32 +234,20 @@
                            container's own card chrome, which would otherwise draw a second bordered
                            panel inside the `Card` that already holds the bars.
 
-                           The series is declared as a nested `ApexPointSeries` — the wrapper's
-                           documented second form — rather than through the `Items`/`XValue`/`YValue`
-                           shorthand, for one reason: `ShowDataLabels` is a PER-SERIES flag underneath,
-                           and the shorthand's own series does not carry it, so `ApexChart.SetDataLabels`
-                           writes `dataLabels.enabled = false` over both the chart-level
-                           `ShowDataLabels="true"` and `Options.DataLabels.Enabled` before the chart
-                           paints, and no bar gets a label. Measured on this page, 2026-09-12. The series
-                           still declares real `XValue`/`YValue`: no property order is inferred from
-                           anything, and `Options` still steers the chart. *@
+                           The series uses the `Items`/`XValue`/`YValue` shorthand. Since TrBlazeUI 2.0.6
+                           the built-in series carries the chart's `ShowDataLabels` (TR-037), so the value
+                           above each bar paints without a nested `ApexPointSeries`. *@
                         <div class="tflens-chart" data-testid="tokens-chart">
                             <ChartContainer Bare="true">
                                 <BarChart TItem="HarnessTokens"
                                           Items="@objTokenRows"
+                                          XValue="@(aRow => aRow.Harness)"
+                                          YValue="@(aRow => (decimal?)aRow.Tokens)"
                                           Height="260px"
                                           ShowLegend="false"
                                           ShowDataLabels="true"
                                           Options="@objChartOptions"
-                                          OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)">
-                                    <ApexPointSeries TItem="HarnessTokens"
-                                                     Items="@objTokenRows"
-                                                     Name="Total tokens"
-                                                     SeriesType="SeriesType.Bar"
-                                                     ShowDataLabels="true"
-                                                     XValue="@(aRow => aRow.Harness)"
-                                                     YValue="@(aRow => (decimal?)aRow.Tokens)" />
-                                </BarChart>
+                                          OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)" />
                             </ChartContainer>
                         </div>
 

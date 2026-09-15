@@ -4,7 +4,7 @@
 |---|---|
 | App | TfLens |
 | Upstream | TechieFlow |
-| Updated | 2026-09-12 |
+| Updated | 2026-09-14 |
 
 Defects found in the **TechieFlow framework itself** (`.tfcore/`) while building TfLens. That directory
 is owned and maintained by the TechieFlow team and is gitignored here — `update-framework.sh` overwrites
@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 45 entries: four open (TF-042, TF-043, TF-044 filed 2026-09-12 and TF-045 filed 2026-09-13), 11 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035), 30 closed. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account of that run is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-036 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11 and TF-037 to TF-041 on 2026-09-12. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in the Resolution status block of 2026-09-11, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 50 entries: none open, 14 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044), 36 closed. TF-049 and TF-050, filed at the handoff and fixed the same day, were re-checked and closed here on 2026-09-15. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-050 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13 and TF-046 to TF-050 on 2026-09-14. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -69,7 +69,7 @@ The bullets below are the history as it was written at the time. The state today
      of the 2026-08-31 block with the one-line fix. **The `sole` recount defect WAS present in TfLens** —
      it reported `cost_sole_n` 10 against the reference's 7, putting three multi-miss windows into the
      measured column — and was fixed on 2026-09-02 (`REQ-FN-079`). The warning was accurate.
-- Last consolidated: **2026-09-02** (handoff); appended 2026-08-30 (`TF-009`–`TF-012`), 2026-09-02 (`TF-015`).
+- Last consolidated: **2026-09-14** (Phase 3 handoff); before that 2026-09-02 (handoff).
 
 **Severity words used in the entries map to those counts as:** `High` = blocker · `Medium` = major ·
 `Low` = minor. Nothing here is filed nice-to-have. Entry bodies keep their original `High`/`Medium`/`Low`
@@ -141,6 +141,79 @@ that grew a legal move as a result.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-14, fourth reply)
+
+**TF-049 and TF-050 are fixed in the framework and deployed to this repository.** Cases `tf_049` and `tf_050` in `tests/regression/run.sh`; misses `MISS-TechieFlow-20260914-12` and `-13`. Close each with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-049** | `tf-build.sh --print` (and `test --print`) resolves the target and prints the command, nothing else, exit 0; it takes no lock. On this repository it prints `dotnet build TfLens.slnx`. | `bash .tfcore/utils/tf-build.sh --print` prints `dotnet build TfLens.slnx`, exit 0. |
+| **TF-050** | The route scan skips the sample and test folders and any `*.spec.*` or `*.test.*` file, so a test's screenshot `path:` is not a route; `@page` and a client route list still are. On this repository the two `.png` lines are gone and 19 routes remain. | `bash .tfcore/utils/tf-devguide-list.sh TfLens`: no `.png` under "Pages in code with no UIDesign screen". |
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-14, third reply)
+
+**TF-048 is fixed in the framework and deployed to this repository.** Case `tf_048` in `tests/regression/run.sh`; requirement FR-73; miss `MISS-TechieFlow-20260914-10`. Close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close TF-048 "<what you ran and what it showed>"`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-048** | The lock `tf-build.sh` takes now lives in `tf-lock.sh`, and `tf-verify-tests.sh`, `tf-verify-screens.sh` and `tf-mockup-parity.sh` take it too, so a second one prints `wait  another build or browser check is running in this repository (…)` and starts when the first finishes. A script the holder starts shares it, so the tests runner's own `tf-build.sh test` does not wait on itself. FR-73 says it in one line. | Start `tf-verify-tests.sh --base <url>` and, while it runs, `tf-mockup-parity.sh --base <url> --screen misses=/misses --cookie …`: the second prints the `wait` line and runs after the first; parity then reports what it reports alone. |
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-14, second reply)
+
+**TF-047 is fixed in the framework and deployed to this repository.** Nothing is blocked. Run the
+row's "Verify from here" step, then close the entry with
+`bash .tfcore/utils/tf-feedback.sh TfLens --close TF-047 "<what you ran and what it showed>"`.
+TechieFlow never closes an entry for you. The fix carries case `tf_047` in `tests/regression/run.sh`,
+which fails against the script you had and passes now; it is logged as `MISS-TechieFlow-20260914-04`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-047** | Three changes, one per finding kind. **(1)** A badge or border is accepted one element away. When one side draws the fill or the ring and the other does not, the plain side is read at the box around it, when that box is the same row and its other children carry no text (an icon, or the box a library wraps one in), or at its only child. So the active link inside its `<li>` and the ring on the `InputGroup` around the filter input count as the same treatment. Two plain elements still agree as before, and a dashed rule against a solid one is still reported. **(2)** An `icon` finding is dropped when the parent or the grandparent is paired and holds the same number of icons on both sides, up to four: the icon is under the same header, in another child. A header that really gains or loses an icon is still reported. **(3)** `wrap` is graded only when the two texts match with digits folded; on different text it is not applicable and not counted as graded. The same text in a narrower box is still reported. Proved on this repository's app, signed in as the demo user from `tests/verify/_helpers.ts`, on `/misses`, `/effort` and `/prices` at 1280 and 390, old and new script run together on the same data: your 15 findings became 0 and all three screens PASS; the comparison counts (242, 248, 222) are unchanged, and `wrap` on `/misses` is graded on 18 pairs instead of 26. | `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen misses=/misses --screen effort=/effort --screen prices=/prices --cookie …`: exit 0, three PASS verdicts, `findings_n` 0. The before-and-after JSON from our run is in `tests/.artifacts/fix-parity/tf047/` (`old-2.json`, `new-2.json`). |
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-14)
+
+**TF-046 is fixed in the framework and deployed to this repository.** Nothing is blocked. Run the
+row's "Verify from here" step, then close the entry with
+`bash .tfcore/utils/tf-feedback.sh TfLens --close TF-046 "<what you ran and what it showed>"`.
+TechieFlow never closes an entry for you. The fix carries case `tf_046` in `tests/regression/run.sh`,
+which fails against the script you had and passes now; it is logged as `MISS-TechieFlow-20260914-03`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-046** | The page probe numbers every icon on the page and records which icons each element holds. An `icon` finding is dropped when every icon it holds is already reported on a deeper element, so one icon gives one finding, on the innermost element that carries it. A container that holds an extra icon of its own is still reported, and the same rule applies the other way round, to an icon the mockup draws and the app lost. Proved on this repository's app, signed in, on `/misses`, `/effort` and `/prices` at 1280 and 390, with the old and the new script run against the same data at the same time: 26 `icon` findings became 12, each of the 14 removed was an element containing one that was kept, and the 16 other findings and the three FAIL verdicts did not change. | `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen misses=/misses --screen effort=/effort --screen prices=/prices --cookie …`: 12 `icon` findings; none keyed `misses-page > div[0]`, `effort-page > div[0]` or `effort-routing`; `misses-period` and `effort-period` reported once per width. |
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-13)
+
+**All four problems filed on 2026-09-12 and 2026-09-13 are fixed in the framework and deployed to
+this repository.** Nothing is blocked. Run each row's "Verify from here" step, then close the entry
+with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`.
+TechieFlow never closes an entry for you. Every fix carries a case in `tests/regression/run.sh` that
+fails against the scripts you have and passes now; they are logged as `MISS-TechieFlow-20260913-01`
+to `-05`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-042** | The clip check now asks whether anything really cuts the content off. An element whose overflow is visible draws what spills past its edge in full, so it is reported only when an ancestor that clips ends first. While fixing it we found a slip of ours from TF-039: a card that really clips, holding screen-reader text, cut its own content before measuring it and read as holding everything. That is fixed too (`MISS-TechieFlow-20260913-02`). | `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen effort=/effort --widths 1280`: no `clip` finding keyed `app-sidebar`. Next `*verify ui`: the 13 rows it held back can reach Verified on this check. |
+| **TF-043** | Three changes. **(1)** `tf-verify-boot.sh start` no longer runs `dotnet run` over the shared `bin/` and `obj/`. It publishes the project in Debug into `tests/.artifacts/verify/run-<port>/` and runs that copy, reading settings, user secrets and files beside the project from the project folder, as `dotnet run` does. The copy sits inside the repository, so your search for `database/001-schema.sql` upward from the binary still finds it. **(2)** `tf-build.sh` runs one build, test or publish at a time per repository: a second one waits and prints `wait  another build is running`, and a lock left by a build that died is taken over. **(3)** `stop --port <n>` also stops an app whose starter died, found by the copy it runs from. Proved on a real Blazor Server app: under the old script a sibling build changed the stylesheet the running app served; under the new one the running app kept serving its own copy byte for byte while the shared build folder carried the change, and every scope stamp on the page matched a rule in its stylesheet. Not exercised here: the Windows-side run of the copy (`cmd.exe`), which is used only when the WSL rungs cannot publish. | Start two apps during a build: `bash .tfcore/utils/tf-verify-boot.sh start --port 5361` and `--port 5371`. Each BOOTED line names `copy=tests/.artifacts/verify/run-<port>`. Run `bash .tfcore/utils/tf-build.sh` in another shell, then `assertScopedCssLoaded` passes on both ports. The hand-published copies are no longer needed. |
+| **TF-044** | Sign-in waits for the page to settle, types, checks that the typed values are still in both fields, and only then presses the button. When the page stays on the sign-in address it types and presses again, up to four times. The user field is chosen by the best-matching rule first, never the first text box in the page, so a search box before the email field is not typed into. Proved on a real Blazor Server sign-in page that becomes interactive after it is drawn: the old sign-in failed one run in three, landing on `/login?`; the new one signed in three runs of three. | `bash .tfcore/utils/tf-verify-screens.sh --list … --base <url> --login-path /login --user <u> --password <p>`: no `LOGIN failed` line, and `screens.json` shows `login.ok: true` with the attempts it took. `--storage-state` is no longer needed. |
+| **TF-045** | Four changes. **(1)** A badge the mockup draws is looked for in the app by its text under the same anchor, at any depth, with numbers allowed to differ, so live "87 of 91 misses assessed" matches the mockup's "39 of 41". Once found it is compared like any paired element: a wrong colour or ring is still reported, and so is a badge turned into plain text. **(2)** A badge found neither by text nor by position is missing only while the app draws fewer badges under that parent than the mockup does, the rule icons have followed since TF-027. **(3)** A reported badge says what was seen: "flattened into plain text" only when the app shows that text, otherwise "could not be located". **(4)** Colours are grouped by hue, so a deep amber and a light amber are both warning. **Not changed:** an icon the app carries and the mockup does not is still reported, because the mockup is the design and should settle it; a wrap caused by longer live data is still reported; and a border drawn on an `InputGroup` rather than its input still compares by position. | Next `*verify` on `/misses`, `/effort` and `/prices`: no `missing` finding on `miss-origin`, `miss-whymissed` or `miss-review-cost`; `coverage.relocated` in the JSON counts the badges found by text; the `bg-alert-warning-bg` tile has no colour finding. |
+
+**One thing on your side of this file.** `bash .tfcore/utils/tf-doc-check.sh docs/TfLens-TechieFlow-Feedback.md`
+fails on your entries TF-043, TF-044 and TF-045: each is longer than the 250-word maximum, and TF-045
+writes `**Repro.**`, `**Expected.**` and `**Actual.**` where the check reads `Repro:`, `Expected:` and
+`Actual:`. The detail is useful; move what goes past the limit into a note of your own and link it
+when you close the entries.
 
 ---
 
@@ -2998,6 +3071,8 @@ app with no sign-in page or on a server-rendered app that hydrates nothing. `--c
 
 ## TF-045 — `tf-mockup-parity` addresses elements by tag-and-index, so a component library that adds one wrapper makes every anchored child "missing" — and buries the real findings
 
+> ✅ **Closed 2026-09-14** — re-checked here: Re-checked in *verify ui TfLens on 2026-09-14: tf-mockup-parity over /misses, /effort and /prices at 1280 and 390 with a signed-in session produced 0 findings of the missing class (the gate compared that clause 10, 10 and 2 times) and re-keyed 9, 1 and 1 relocated elements, where the 2026-09-13 runs failed the same 13 rows on tag-and-index missing findings. The 42 findings left are icon, wrap, badge and stroke findings on elements both sides carry, so the wrapper no longer makes anchored children read as missing.
+
 - **Severity:** major
 - **Blocks:** no. The rows are written `Needs re-verify` carrying the findings, never falsely
   `Verified`, and the run finishes. It is major because the gate reports **correct screens as broken**,
@@ -3070,3 +3145,171 @@ app with no sign-in page or on a server-rendered app that hydrates nothing. `--c
 (TF-008). Findings keyed on an element the tool did locate — the `wrap`, `clip` and `stroke` classes
 compare measurements on a found element and are trustworthy once you have checked the element is the
 one you meant. And `--screen`/`--cookie`/`--widths`, all of which work.
+
+---
+
+## TF-046 — `tf-mockup-parity` reports one extra icon once for every anchored ancestor that contains it
+
+> ✅ **Closed 2026-09-14** — re-checked here: Re-checked 2026-09-14 11:4x against the installed .tfcore/utils/tf-mockup-parity.mjs (byte-identical to tests/.artifacts/verify/tf046/parity-after.mjs). Booted the published app on http://localhost:5014, signed in as the demo user, ran tf-mockup-parity.sh --screen misses=/misses --screen effort=/effort --screen prices=/prices --cookie <session>: 28 findings, 12 of them icon (was 26 of 42 on the 09:45 run), misses-period and effort-period each once per width at 1280 and 390, and no icon finding keyed on an ancestor of another; badge 5, wrap 9 and stroke 2 unchanged. Output tests/.artifacts/verify/parity.json.
+
+- **Severity:** minor
+- **Blocks:** no. No verdict changes: every row it touched also fails on `wrap` or `badge` findings,
+  and a row is never written `Verified` on the strength of it.
+- **Repro:** `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen misses=/misses --cookie …`
+  on a screen where the app draws one icon the mockup does not — here the chevron of a `Select`, where
+  the mockup draws a native `<select>`.
+- **Expected:** one `icon` finding, keyed on the innermost element that carries the icon.
+- **Actual:** one finding per containing element: `misses-page > div[0]`, `misses-page > div[0] > div[1]`
+  and `misses-period`, all *"app carries an icon the mockup does not"*, all for the same chevron. Across
+  `/misses`, `/effort` and `/prices` at 1280 and 390, **14 of the 26 `icon` findings** are an ancestor
+  repeating a finding already made on a descendant.
+- **Encountered in:** TfLens `*verify ui`, 2026-09-14, `tests/.artifacts/verify/parity.json`.
+- **Workaround:** none taken. The duplicates are read past.
+- **Suggested fix:** before emitting an `icon` finding on an element, drop it when a descendant of that
+  element already carries the same icon finding at the same width.
+
+**What is NOT affected.** The `missing` class (TF-045's fix holds: 0 such findings), `wrap`, `badge`,
+`stroke`, the verdict script, and the 12 `icon` findings that are not repeats.
+
+---
+
+## TF-047 — `tf-mockup-parity` grades a treatment one element away from where the app draws it, and grades wrapping on different text
+
+> ✅ **Closed 2026-09-14** — re-checked here: Re-checked 2026-09-14 against the installed .tfcore/utils/tf-mockup-parity.mjs (updated 12:46, carries the TF-047 changes). Booted the published app with tf-verify-boot.sh on http://localhost:5014, signed in through /login as the demo user from tests/verify/_helpers.ts (tflensdemo@techierathore.com), and ran tf-mockup-parity.sh --screen misses=/misses --screen effort=/effort --screen prices=/prices --cookie <session> at 1280 and 390: exit 0, status measured, three PASS verdicts, 0 findings, 0 ungradeable, 0 without a mockup. Not an empty pass: misses compared 127 and 115 elements, effort 130 and 118, prices 117 and 105. The 15 findings this entry recorded (sidebar badge 3, filter badge and stroke 4, header icons 4, wrap on differing text 4) are all gone. Output tests/.artifacts/fix-parity/parity-tf047.json.
+
+- **Severity:** major
+- **Blocks:** no. Rows stay `Needs re-verify`. Major because, with the mockups updated on 2026-09-14,
+  these are the **only** findings left on 13 TfLens rows.
+- **Repro:** `tf-mockup-parity.sh --base <url> --screen misses=/misses --screen effort=/effort --screen prices=/prices --cookie …`
+- **Expected:** a correct screen gives no finding.
+- **Actual:** 15 findings, each checked in the browser against both sides:
+  1. **Sidebar, 3.** "badge on `nav > a[4]`, app plain": the app's active `<a>` has radius 8px and the accent
+     background, as the mockup's does; the tool paired it with the `<li>` around it.
+  2. **Filter, 4** (`badge` + `stroke` on `prices-filter-openrouter`): the app draws the 1px border and 8px
+     radius on the `InputGroup` around the anchored input.
+  3. **Header icons, 4** (`miss-detail > div[0] > div[0] > div[1]`, `prices-provider-openrouter > …`): each
+     side has exactly one icon in that header; one extra wrapper pairs a description with a toolbar.
+  4. **Wrap, 4** (`miss-what`, `miss-taint-count`, `miss-sort-predates`): the wrap clause
+     (`tf-mockup-parity.mjs:436`) compares row counts without checking the texts match; each pair differs.
+- **Encountered in:** TfLens `*fix-issues`, 2026-09-14, `tests/.artifacts/fix-parity/`.
+- **Workaround:** none; copying library wrappers into mockups would defeat the gate.
+- **Suggested fix:** for `badge`/`stroke`, also accept the treatment on the anchor's nearest single-child
+  ancestor or descendant; pair icon containers by content, as TF-045 did for badges; skip `wrap` when
+  the digit-folded texts differ.
+
+**What is NOT affected.** The `missing` class, `clip`, `color`, `token`, the verdict script, and every
+finding on text that matches.
+
+---
+
+## TF-048 — `verify-phase` never says its browser checks must not share a signed-in user while they run
+
+> ✅ **Closed 2026-09-14** — re-checked here: Re-checked 2026-09-14 against the installed tf-lock.sh, tf-verify-tests.sh, tf-verify-screens.sh and tf-mockup-parity.sh (15:06, each takes the shared lock). Booted the app with tf-verify-boot.sh on http://localhost:5014 and signed in as the demo user. At 16:56:19 started tf-verify-tests.sh --base http://localhost:5014 (scoped with TF_VERIFY_GREP to REQ-UI-072, 14 tests, so the pair fits in one run) and, while it ran, tf-mockup-parity.sh --screen misses=/misses --cookie <session>. Parity printed at 16:56:23: 'wait  another build or browser check is running in this repository (148937 LAPTOP-IBNQ33KO verify-tests 2026-09-14T16:56:19Z); this one starts when it finishes'. The tests finished at 17:01:24 (14/14 passed); parity produced its result only after that, at 17:01:38: exit 0, misses PASS, 0 findings, 242 elements compared, the same as parity run alone earlier today. Logs in tests/.artifacts/fix-parity/tf048/.
+
+- **Severity:** minor
+- **Blocks:** no. The false findings were caught and re-run before any verdict was written.
+- **Repro:** in `*verify`, run `tf-verify-tests.sh` and `tf-mockup-parity.sh` (or `tf-verify-screens.sh`)
+  at the same time against one app, signed in as the same test user.
+- **Expected:** each check reads the page the design describes, whatever else is running.
+- **Actual:** the acceptance tests change that user's saved settings (the header's framework switch)
+  and the window size. A parity run beside them on 2026-09-14 reported 11 false `missing` findings at
+  390 on `/misses` and `/effort`, with `/effort` comparing 192 elements instead of 248. The same run
+  alone minutes later: exit 0, 3 PASS, 0 findings. Logged as `MISS-TfLens-20260914-01`.
+- **Encountered in:** TfLens `*verify ui`, 2026-09-14, `tests/.artifacts/fix-parity/parity-concurrent.json`.
+- **Workaround:** run the test groups first, then screens and parity one at a time.
+- **Suggested fix:** one requirement line, "a verify runs its browser checks one at a time", with a
+  check: `tf-verify-tests.sh`, `tf-verify-screens.sh` and `tf-mockup-parity.sh` take the same lock
+  `tf-build.sh` already uses, so a second one waits.
+
+**What is NOT affected.** Each check run on its own, the verdict script, and every verdict written on
+2026-09-14.
+
+---
+
+## TF-049 — `handoff-phase.md` tells the agent to run `tf-build.sh --print`, which `tf-build.sh` does not have
+
+> ✅ **Closed 2026-09-15** — re-checked here: 2026-09-15: ran 'bash .tfcore/utils/tf-build.sh --print' on WSL. It printed exactly 'dotnet build TfLens.slnx' and exited 0, with no lock and no build started.
+
+- **Severity:** minor
+- **Blocks:** no. The build and run commands were taken from the Architecture stack table and the
+  Coding Standards, which the same paragraph also names.
+- **Repro:** `bash .tfcore/utils/tf-build.sh --print`
+- **Expected:** it prints the build command this repository uses, as `handoff-phase.md` §1 says.
+- **Actual:** `--print` is not an option (the script takes `build|test|run|publish|probe`), so it is
+  read as a target: `dirname: unrecognized option '--print'`, then `NOT-RUN no rung could build on wsl`.
+  `probe` prints the platform and the rungs, but no command.
+- **Encountered in:** TfLens `*handoff-phase`, 2026-09-14.
+- **Workaround:** read the commands from the Architecture and Coding Standards documents.
+- **Suggested fix:** add `--print` (resolve the command, print it, exit 0), or name `probe` in the task
+  and make `probe` print the resolved command.
+
+**What is NOT affected.** `tf-build.sh build`, `test`, `run`, `publish` and `probe`.
+
+---
+
+## TF-050 — `tf-devguide-list.py` reads `path:` in a Playwright spec as a page route, so screenshot files are listed as pages
+
+> ✅ **Closed 2026-09-15** — re-checked here: 2026-09-15: ran 'bash .tfcore/utils/tf-devguide-list.sh TfLens' (exit 0). It reports 19 routes in code; 'Pages in code with no UIDesign screen' lists 16 routes, all @page routes from .razor files, and no .png (export-banner.png and export-surface.png are gone).
+
+- **Severity:** minor
+- **Blocks:** no. The two false lines were read past.
+- **Repro:** `bash .tfcore/utils/tf-devguide-list.sh TfLens --update`
+- **Expected:** only pages routed in the application's own code.
+- **Actual:** under "Pages in code with no UIDesign screen" it lists
+  `tests/.artifacts/parity/export-banner.png` and `export-surface.png`, both from
+  `tests/verify/parity-gate-smoke.spec.ts`. The `.ts` route pattern (`tf-devguide-list.py:26`) matches
+  `page.screenshot({ path: '…' })` at lines 52 and 75 of that spec, and `routes_in_code()` (`:89`) calls
+  `walk()` without `skip_samples=True`, so `tests/` is searched although `SAMPLE_DIRS` names it.
+- **Encountered in:** TfLens `*handoff-phase`, 2026-09-14.
+- **Workaround:** none needed.
+- **Suggested fix:** pass `skip_samples=True` in `routes_in_code()`, or skip `*.spec.*` and `*.test.*`.
+
+**What is NOT affected.** The work list (Misses, Effort, Prices) and `@page` detection in `.razor` files.
+
+---
+
+## TF-051 — `tf-triage.sh demote` cannot reach a row in an earlier phase's checklist
+
+- **Severity:** minor
+- **Blocks:** no. The two rows were fixed and re-verified with `tf-verify-list.sh … --phase 1`, which does
+  take a phase; only the demotion step before the fix could not be written.
+- **Repro:** with `appPhase: 3`, run
+  `bash .tfcore/utils/tf-triage.sh TfLens demote REQ-NFR-003 "<symptom>" --kind data-logic`
+- **Expected:** the row in `docs/TfLens-Checklist.md` (Phase 1) moves to `Needs re-verify` with the remark,
+  as it does for a Phase 3 row.
+- **Actual:** `tf-triage: REQ-NFR-003 is not a row of docs/TfLens-P3-Checklist.md`. `checklist(app)`
+  (`tf-triage.py:61-63`) resolves only the `appPhase` checklist and the script has no `--phase` option, while
+  `tf-verify-list.py:204-211` accepts `--phase` and the verdict script follows the checklist `list.json` names.
+- **Encountered in:** TfLens `*fix-issues`, 2026-09-15, for REQ-NFR-003 (secret-hygiene test) and
+  REQ-NFR-015 (stale-cache test), both Phase 1 rows found failing by the Phase 3 verify.
+- **Workaround:** none taken; the rows stay at their old status until the scoped verify rewrites them.
+- **Suggested fix:** give `tf-triage.py` a `--phase N` option like `tf-verify-list.py`, or have `demote`
+  search every `docs/{App}*-Checklist.md` for the id.
+
+**What is NOT affected.** `demote`, `new` and `note` on rows of the current phase; `tf-verify-list.sh
+--phase`, the verdict and the emit scripts.
+
+---
+
+## TF-052 — inside `*fix-issues`, the inline verify's `--started <the step-0 time>` swallows the fix's own run record
+
+- **Severity:** minor
+- **Blocks:** no. The verify's run record covers the window, the miss-fix records were written, and the
+  fix's later segment was recorded separately.
+- **Repro:** follow `fix-issues.md` as written. Step 4 executes `verify-phase.md` inline, whose step 6 runs
+  `tf-verify-emit.sh {App} --started <the step-0 time>`; inside a fix the only step-0 time is the fix's.
+  Step 5 then runs `tf-fix-close.sh {App} --started <the step-0 time>`.
+- **Expected:** one verify-phase run record for the verify and one fix-issues run record for the fix.
+- **Actual:** the verify-phase record covers the fix's whole window (12:41:41 to 13:01:57), and
+  `tf-fix-close.sh` prints `REFUSED — this run … overlaps the verify-phase run`. Neither task file says which
+  start time an inline verify passes. Also: `docs/.last-verify.json` keeps only the last scoped verify, so after
+  a Phase 3 then a `--phase 1` verify the row form read the Phase 3 rows as absent ("Needs re-verify"), and put
+  that verdict on an unrelated open miss of a touched row (MISS-TfLens-20260911-39).
+- **Encountered in:** TfLens `*fix-issues`, 2026-09-15.
+- **Workaround:** the fix's own misses closed by id (`--misses … --verdict Verified`); its post-verify
+  segment recorded as its own run.
+- **Suggested fix:** have the inline verify pass its OWN start time and the fix record its pre-verify segment
+  first; or let `tf-fix-close.sh` read several ledgers or the gate records.
+
+**What is NOT affected.** A standalone `*verify`; the gate records and misses a chained verify writes;
+`tf-fix-close.sh --misses`.

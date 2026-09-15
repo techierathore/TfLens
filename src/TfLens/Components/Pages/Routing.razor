@@ -329,15 +329,10 @@
                                        does not paint a second card inside the Card that already holds it,
                                        and `Options` steering the shape without giving the wrapper up.
 
-                                       The series is a nested `ApexPointSeries` — the wrapper's documented
-                                       second form — rather than the `Items`/`XValue`/`YValue` shorthand,
-                                       for one measured reason (TR-037): `ShowDataLabels` is a PER-SERIES
-                                       flag underneath, and the shorthand's own series does not carry it,
-                                       so `ApexChart.SetDataLabels` writes `dataLabels.enabled = false`
-                                       over both the chart-level `ShowDataLabels="true"` and
-                                       `Options.DataLabels.Enabled` before paint, and no bar gets a label.
-                                       The series still states real `XValue`/`YValue`: nothing is inferred
-                                       from property order, which is what TR-005/TR-011a were about.
+                                       The series uses the `Items`/`XValue`/`YValue` shorthand. Since
+                                       TrBlazeUI 2.0.6 its built-in series carries the chart's
+                                       `ShowDataLabels` (TR-037), so the bar labels paint without a nested
+                                       `ApexPointSeries`.
 
                                        The chart is SUPPLEMENTARY. docs/TfLens-UIDesign.md §Library gaps
                                        requires every charted value to be readable as text as well, and the
@@ -347,19 +342,13 @@
                                         <ChartContainer Bare="true">
                                             <BarChart TItem="ModelTotal"
                                                       Items="@ModelTotals"
+                                                      XValue="@(aPoint => aPoint.Model)"
+                                                      YValue="@(aPoint => (decimal?)aPoint.Total)"
                                                       Height="220px"
                                                       ShowLegend="false"
                                                       ShowDataLabels="true"
                                                       Options="@objTokenChartOptions"
-                                                      OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)">
-                                                <ApexPointSeries TItem="ModelTotal"
-                                                                 Items="@ModelTotals"
-                                                                 Name="Total tokens"
-                                                                 SeriesType="SeriesType.Bar"
-                                                                 ShowDataLabels="true"
-                                                                 XValue="@(aPoint => aPoint.Model)"
-                                                                 YValue="@(aPoint => (decimal?)aPoint.Total)" />
-                                            </BarChart>
+                                                      OptionsConfigurator="@(aOptions => aOptions.DataLabels.Formatter = TokenLabelFormatter)" />
                                         </ChartContainer>
                                     </div>
                                 </CardContent>

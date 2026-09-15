@@ -44,6 +44,29 @@ public sealed class PriceProviderTests
         vModel.OutputPerMillion.Should().Be(25m);
     }
 
+    /// <summary>
+    /// A model with only one of its two prices published is skipped, never stored with the other at zero.
+    /// </summary>
+    /// <remarks>
+    /// REQ-UI-072: a rate the endpoint does not publish is never coerced to zero. Until 2026-09-15 a model
+    /// was skipped only when BOTH prompt and completion were unreadable, so a blank completion price was
+    /// saved as 0 and every output token on that model priced as free (found in the 2026-09-14 DevGuide pass).
+    /// </remarks>
+    [Fact]
+    public void AModelWithOnlyOnePricePublishedIsSkippedRatherThanZeroed()
+    {
+        var vModels = PriceProviders.ReadOpenRouter(
+            """
+            {"data":[
+              {"id":"vendor/priced","pricing":{"prompt":"0.000001","completion":"0.000002"}},
+              {"id":"vendor/no-completion","pricing":{"prompt":"0.000003"}},
+              {"id":"vendor/blank-prompt","pricing":{"prompt":"","completion":"0.000004"}}
+            ]}
+            """);
+
+        vModels.Should().ContainSingle().Which.Model.Should().Be("vendor/priced");
+    }
+
     /// <summary>A model with no readable price at all is skipped.</summary>
     [Fact]
     public void AModelWithNoReadablePriceIsSkipped()

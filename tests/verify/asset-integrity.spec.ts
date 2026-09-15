@@ -56,7 +56,12 @@ async function assertAllArrive(page: import('@playwright/test').Page, label: str
 // the browser must revalidate. This asserts that property, not the symptom — the symptom needs a real
 // browser profile carrying a stale entry across a rebuild, which no headless run has.
 function cacheSafety(url: string, cacheControl: string | undefined) {
-  const fingerprinted = /[?&]v=[A-Za-z0-9_\-]{6,}/.test(url) || /\.[A-Za-z0-9]{8,}\.(css|js)$/.test(url);
+  // A MapStaticAssets fingerprint is a lowercase code of 8+ letters and digits as its own dot-separated
+  // segment. It sits right before the extension (`app.ab12cd34ef.css`) OR before a Blazor suffix
+  // (`TfLens.ttggo5rqsp.styles.css`, `ReconnectModal.abdmv1u4y3.razor.js`, Release build 2026-09-15).
+  // Lowercase only, so a PascalCase component name such as `.ReconnectModal.` is never taken for one.
+  const fingerprinted = /[?&]v=[A-Za-z0-9_\-]{6,}/.test(url)
+    || /\.[a-z0-9]{8,}\.(?:(?:styles|razor|lib\.module|bundle\.scp)\.)?(css|js)(?:[?#]|$)/.test(url);
   const cc = (cacheControl ?? '').toLowerCase();
   const revalidates = cc.includes('no-cache') || cc.includes('no-store') || cc.includes('must-revalidate')
     || /max-age\s*=\s*0\b/.test(cc);

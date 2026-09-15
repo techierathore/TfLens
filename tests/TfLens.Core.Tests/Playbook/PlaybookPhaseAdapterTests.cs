@@ -54,6 +54,32 @@ public sealed class PlaybookPhaseAdapterTests
             .Should().Be(vFirst.PhaseExecutions.Single().PhaseExecutionId);
     }
 
+    /// <summary>
+    /// REQ-UI-050 — every execution row carries the harness its producer detected, so the <c>/effort</c>
+    /// Playbook harness filter has something to match on.
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-09-15 <see cref="PhaseExecutionView"/> had no harness at all, so the filter offered
+    /// harnesses and choosing one changed no row. The match ignores letter case because the filter's options
+    /// are the lowercase vocabulary while a producer may write the name in any case.
+    /// </remarks>
+    [Fact]
+    public void EveryExecutionRowCarriesItsHarnessForTheFilter()
+    {
+        var vReport = Report(Rows(
+            Line(aId: "PE-OC", aHarness: OpenCode),
+            Line(aId: "PE-OTHER", aHarness: "OpenCode-Fork")));
+
+        var vByid = vReport.Executions.ToDictionary(aV => aV.PhaseExecutionId);
+
+        vByid["PE-OC"].Harness.Should().Be(OpenCode);
+        vByid["PE-OC"].RanOn("opencode").Should().BeTrue();
+        vByid["PE-OC"].RanOn("OPENCODE").Should().BeTrue("the filter's options are lowercase");
+        vByid["PE-OTHER"].RanOn("opencode").Should().BeFalse("a different harness must be filtered out");
+        vReport.Executions.Where(aV => aV.RanOn(OpenCode)).Select(aV => aV.PhaseExecutionId)
+            .Should().Equal("PE-OC");
+    }
+
     /// <summary>Invariant 1 — <c>tokens_in</c> that is not the sum of its legs quarantines the row.</summary>
     [Fact]
     public void TokensInMismatchQuarantinesTheRow()

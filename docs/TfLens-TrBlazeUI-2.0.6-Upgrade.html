@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TfLens — Status</title>
+<title>TfLens — TrBlazeUI 2.0.6 upgrade and deploy fix</title>
 <script>
 /* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
    pick by time of day — light 07:00–19:00 local, softened dark at night. */
@@ -105,117 +105,127 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
 <div class="layout">
   <nav class="side">
-    <h1>TfLens — Status</h1>
-    <div class="sub">Last rendered: 2026-09-15</div>
+    <h1>TfLens — TrBlazeUI 2.0.6 upgrade and deploy fix</h1>
+    <div class="sub">Last rendered: 2026-09-14</div>
     <div class="group">Contents</div>
     <ol>
-        <li><a href="#where-i-am">Where I am</a></li>
-        <li><a href="#next-command-to-run">Next command to run</a></li>
-        <li><a href="#open-requirements">Open requirements</a></li>
-        <li><a href="#known-blockers">Known blockers</a></li>
-        <li><a href="#verification-log">Verification log</a></li>
-        <li><a href="#library-feedback-summary">Library feedback summary</a></li>
-        <li><a href="#standards-compliance">Standards compliance</a></li>
-        <li><a href="#deferred-future">Deferred / future</a></li>
+        <li><a href="#in-one-paragraph">In one paragraph</a></li>
+        <li><a href="#the-failing-deploy-run-34754269078">1. The failing deploy (run 34754269078)</a></li>
+        <li><a href="#which-release-is-latest">2. Which release is &quot;latest&quot;</a></li>
+        <li><a href="#the-three-open-library-problems">3. The three open library problems</a></li>
+        <li><a href="#one-new-library-problem-filed">4. One new library problem filed</a></li>
+        <li><a href="#screen-check-notes">5. Screen check notes</a></li>
+        <li><a href="#evidence-on-disk">6. Evidence on disk</a></li>
     </ol>
   </nav>
   <main>
-    <h1>TfLens — Status</h1>
-    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>PROJECT-STATUS.md</code></div>
-    <div class="cta-next" style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
-      <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">(owner) set current_phase to Released after UAT — no agent command</div>
-    </div>
-<table>
-<tbody>
-<tr><th>project</th><td>TfLens</td></tr>
-<tr><th>last_updated</th><td>2026-09-15</td></tr>
-<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · UAT — handoff done, 117 of 117 verified</td></tr>
-<tr><th>last_verified_build</th><td>PASS</td></tr>
-<tr><th>last_verified_date</th><td>2026-09-15</td></tr>
-</tbody>
-</table>
+    <h1>TfLens — TrBlazeUI 2.0.6 upgrade and deploy fix</h1>
+    <div class="subtitle">Rendered 2026-09-14 &middot; source <code>TfLens-TrBlazeUI-2.0.6-Upgrade.md</code></div>
+
     <div class="toc-inline">
       <div>Contents</div>
       <ol>
-        <li><a href="#where-i-am">Where I am</a></li>
-        <li><a href="#next-command-to-run">Next command to run</a></li>
-        <li><a href="#open-requirements">Open requirements</a></li>
-        <li><a href="#known-blockers">Known blockers</a></li>
-        <li><a href="#verification-log">Verification log</a></li>
-        <li><a href="#library-feedback-summary">Library feedback summary</a></li>
-        <li><a href="#standards-compliance">Standards compliance</a></li>
-        <li><a href="#deferred-future">Deferred / future</a></li>
+        <li><a href="#in-one-paragraph">In one paragraph</a></li>
+        <li><a href="#the-failing-deploy-run-34754269078">1. The failing deploy (run 34754269078)</a></li>
+        <li><a href="#which-release-is-latest">2. Which release is &quot;latest&quot;</a></li>
+        <li><a href="#the-three-open-library-problems">3. The three open library problems</a></li>
+        <li><a href="#one-new-library-problem-filed">4. One new library problem filed</a></li>
+        <li><a href="#screen-check-notes">5. Screen check notes</a></li>
+        <li><a href="#evidence-on-disk">6. Evidence on disk</a></li>
       </ol>
     </div>
-<h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-<p>Phase 3 of 3 (Depth), UAT. The four findings from the UI verify are fixed and re-checked: the Playbook
-harness filter on /effort now filters, a single missing OpenRouter price is skipped instead of saved as $0,
-the deploy.yml secret line carries its safe-line note, and the cache test recognises fingerprinted names.
-Build 0 warnings; 977 unit tests pass. Ready for UAT once the live site is redeployed.</p>
-<h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
-<p>Claude Code:</p>
-<pre><code>(owner) set current_phase to Released after UAT — no agent command</code></pre>
-<p>OpenCode:</p>
-<pre><code>(owner) set current_phase to Released after UAT — no agent command</code></pre>
-<p>Redeploy first (the Deployment Checklist §3 secret, then push), so UAT runs on a working live site.</p>
-<h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
 <table>
-<thead><tr><th>Status</th><th>Count</th></tr></thead>
+<thead><tr><th></th><th></th></tr></thead>
 <tbody>
-<tr><td>Not Started</td><td>0</td></tr>
-<tr><td>In Progress</td><td>0</td></tr>
-<tr><td>Implemented</td><td>0</td></tr>
-<tr><td>Needs re-verify</td><td>0</td></tr>
-<tr><td>Blocked</td><td>0</td></tr>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Date</td><td>2026-09-14</td></tr>
+<tr><td>Command</td><td><code>*fix-issues</code></td></tr>
 </tbody>
 </table>
-<ul>
-<li>None
-</li>
-</ul>
-<h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
-<ul>
-<li>Live site: pages load but nothing responds (<code>/_framework/blazor.web.js</code> is 404) until the next deploy ships the fixed Dockerfile (MISS-TfLens-20260915-01).
-</li>
-<li>That deploy needs the repository secret <code>TrBlazeUiPackagesToken</code>; the steps are in docs/TfLens-Deployment-Checklist.md §3 (MISS-TfLens-20260915-02).
-</li>
-<li>REQ-NFR-003 kept its Verified status but was written "not observable": its guardrail test passes, yet no test name carries the row id, so the verify cannot link them.
-</li>
-</ul>
-<h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
-<p>Last five passes; older passes live in <code>docs/metrics/gates.jsonl</code>.</p>
+<h2 id="in-one-paragraph">In one paragraph<a class="anchor-link" href="#in-one-paragraph">#</a></h2>
+<p>TfLens now uses TrBlazeUI <strong>2.0.6</strong>, the newest release, and the deploy workflow's image build works
+again. The deploy broke because TfLens used a test build of TrBlazeUI (<code>2.1.0-ci.10</code>) that exists
+only on the private package feed, and the Docker image downloads packages from nuget.org alone.
+2.0.6 is on nuget.org and is byte-for-byte the same as the private feed's 2.0.6, so pinning it fixed
+the deploy without adding any token to the pipeline. The three library problems TR-036, TR-037 and
+TR-038 are fixed upstream in 2.0.6 and now closed here. The re-check is the smoke script in
+<code>tests/.artifacts/trblazeui-206-smoke/</code> run against the published app, plus the app log it produced.</p>
+<h2 id="the-failing-deploy-run-34754269078">1. The failing deploy (run 34754269078)<a class="anchor-link" href="#the-failing-deploy-run-34754269078">#</a></h2>
+<p><strong>What failed.</strong> The "Build image → GHCR" job, at the step <code>dotnet restore src/TfLens/TfLens.csproj</code>,
+exit code 1.</p>
+<p><strong>Why.</strong> Reproduced locally with the same Dockerfile:</p>
+<pre><code>error NU1102: Unable to find package TrBlazeUI.Components with version (&gt;= 2.1.0-ci.10)
+error NU1102:   - Found 3 version(s) in nuget.org [ Nearest version: 2.0.6 ]</code></pre>
+<p>The Dockerfile does not copy <code>nuget.config</code>, so the restore inside the image only sees nuget.org.
+The commit before the failure moved TfLens to <code>2.1.0-ci.10</code>, which is on the private GitHub feed
+only.</p>
+<p><strong>What changed.</strong></p>
 <table>
-<thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
+<thead><tr><th>File</th><th>Change</th></tr></thead>
 <tbody>
-<tr><td>2026-09-15</td><td>fix-issues</td><td>115/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-15</td><td>log-miss</td><td>115/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-15</td><td>verify-phase</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-15</td><td>fix-issues</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-15</td><td>log-miss</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td><code>src/TfLens/TfLens.csproj</code></td><td>Both TrBlazeUI packages <code>2.1.0-ci.10</code> → <code>2.0.6</code></td></tr>
+<tr><td><code>nuget.config</code></td><td>Private feed removed. Listed without a token it fails restore with a 401 on any machine that has no token, even when every package is on nuget.org. How to add it back for a local trial is in the file.</td></tr>
+<tr><td><code>Dockerfile</code></td><td>A comment only: the image restores from nuget.org, so every package version must be there.</td></tr>
+<tr><td><code>.github/workflows/deploy.yml</code></td><td>No change.</td></tr>
 </tbody>
 </table>
-<h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
+<p><strong>Checked.</strong> <code>docker build</code> of the full image with the fixed files: success. The solution build:
+PASS, 0 warnings. The deploy itself runs on your next push to <code>main</code>. Nothing was pushed from here.</p>
+<p><strong>Not changed, worth knowing.</strong> The run also warns that <code>actions/checkout@v4</code> and the three docker
+actions target Node.js 20, which GitHub is retiring. It is a warning, not the failure, and was left
+alone.</p>
+<h2 id="which-release-is-latest">2. Which release is "latest"<a class="anchor-link" href="#which-release-is-latest">#</a></h2>
+<table>
+<thead><tr><th>Version</th><th>Where</th><th>Published (UTC)</th></tr></thead>
+<tbody>
+<tr><td><strong>2.0.6</strong></td><td>nuget.org and the private feed, identical files</td><td>2026-09-13 18:18</td></tr>
+<tr><td>2.1.0-ci.12</td><td>private feed only</td><td>2026-09-13 15:22</td></tr>
+<tr><td>2.1.0-ci.10</td><td>private feed only (what TfLens used)</td><td>2026-09-12 11:53</td></tr>
+</tbody>
+</table>
+<p>2.0.6 is the newest. Its reference document and XML documentation are identical to 2.1.0-ci.12's.
+The package was read with the credentials in your Windows NuGet config. No credential was copied into
+the repository.</p>
+<h2 id="the-three-open-library-problems">3. The three open library problems<a class="anchor-link" href="#the-three-open-library-problems">#</a></h2>
+<table>
+<thead><tr><th>Entry</th><th>What it was</th><th>Fixed in 2.0.6?</th><th>What TfLens changed</th><th>Measured (1280 and 390)</th></tr></thead>
+<tbody>
+<tr><td><strong>TR-036</strong></td><td>Leaving a page with a Select logged an unhandled error</td><td>Yes, closed</td><td>Nothing to remove</td><td>0 circuit errors and 0 Select errors in the log after leaving <code>/misses</code>, <code>/prices</code>, <code>/effort</code>. On ci.10: 299 and 1,396.</td></tr>
+<tr><td><strong>TR-037</strong></td><td>The short chart form drew no value labels</td><td>Yes, closed</td><td>Three charts went back to the short form (<code>Harness.razor</code>, <code>Routing.razor</code>, <code>PlaybookModelTokens.razor</code>)</td><td>Harness: 3 bars, 3 labels. Routing: 5 bars, 5 labels.</td></tr>
+<tr><td><strong>TR-038</strong></td><td>A truncated Outline badge lost its text colour</td><td>Yes, closed</td><td>Three extra CSS lines removed from <code>ShellHeader.razor.css</code>; stale warnings removed from <code>SyncNowButton.razor</code></td><td>The header badge keeps <code>text-foreground</code> and still truncates with an ellipsis.</td></tr>
+</tbody>
+</table>
+<p>No console errors and no sideways scrolling on any screen checked.</p>
+<p><strong>Not proven on screen:</strong> the Playbook tokens chart. It uses the same chart form as the two proven
+ones, and it builds, but the demo account has 0 Playbook repositories, so it has nothing to draw.</p>
+<h2 id="one-new-library-problem-filed">4. One new library problem filed<a class="anchor-link" href="#one-new-library-problem-filed">#</a></h2>
+<table>
+<thead><tr><th>Entry</th><th>What it affects</th><th>Blocks or breaks anything?</th></tr></thead>
+<tbody>
+<tr><td><strong>TR-039</strong> — the chart library TrBlazeUI uses logs an error when a page with a chart is left</td><td>The server log only: six error lines in this smoke, all from the chart library's own clean-up. It was already happening on ci.10.</td><td>No. Nothing the user sees.</td></tr>
+</tbody>
+</table>
+<p>The prompt that fixes it, for the TrBlazeUI repository:</p>
+<pre><code>Fix TR-039 from docs/TfLens-TrBlazeUI-Feedback.md in the TfLens repo: ApexChart's Dispose
+leaves an unobserved JSDisconnectedException when a Blazor Server circuit ends.</code></pre>
+<h2 id="screen-check-notes">5. Screen check notes<a class="anchor-link" href="#screen-check-notes">#</a></h2>
+<p>The framework's screen check marked <code>/routing</code> and <code>/</code> as failed. Neither failure comes from this
+change:</p>
 <ul>
-<li>AppManager: 0 open · 2 closed — docs/TfLens-AppManager-Feedback.md
+<li><code>/routing</code>: the four missing controls (<code>model-tokens</code>, <code>repricing-actual</code>, <code>repricing-max</code>, <code>edit-prices</code>) are in tabs the check does not open. The chart in the Models tab was measured directly instead, with its labels, as above.
 </li>
-<li>TechieFlow: 2 open · 14 fixed upstream, not yet re-checked (TF-018, TF-021, TF-020 …) · 36 closed — docs/TfLens-TechieFlow-Feedback.md
-</li>
-<li>TrBlazeUI: 0 open · 38 closed — docs/TfLens-TrBlazeUI-Feedback.md
+<li><code>/</code>: the missing <code>repo-streams-blog</code> and <code>repo-streams-AI-First-Playbook</code> are named after repositories that are not in the demo account.
 </li>
 </ul>
-<h2 id="standards-compliance">Standards compliance<a class="anchor-link" href="#standards-compliance">#</a></h2>
+<h2 id="evidence-on-disk">6. Evidence on disk<a class="anchor-link" href="#evidence-on-disk">#</a></h2>
 <ul>
-<li>Last check 2026-09-13: 0 findings, see the checklist Remarks.
+<li>Smoke script and measurements: <code>tests/.artifacts/trblazeui-206-smoke/</code>
 </li>
-</ul>
-<h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
-<ul>
-<li>Phase 1 has 4 and Phase 2 has 5 rows not yet Verified; they are listed in the UsageGuide's Known limitations.
+<li>Screen check: <code>tests/.artifacts/verify/screens.json</code>
 </li>
-<li><code>docs/TfLens-Architecture.md</code> and <code>docs/TfLens-DevGuide.md</code> predate their current templates' section shapes.
+<li>App log of the smoke: <code>tests/.artifacts/verify/app-5014.log</code>
 </li>
-<li>MISS-TfLens-20260911-39 (a repo-count badge beside Price providers in the sidebar) is still open; not part of this fix.
+<li>Closing lines: <code>docs/TfLens-TrBlazeUI-Feedback.md</code>, where TR-036, TR-037 and TR-038 are recorded as closed, each re-checked by the smoke script above
 </li>
 </ul>
   </main>

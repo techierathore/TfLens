@@ -4,7 +4,26 @@
 |---|---|
 | App | TfLens |
 | Upstream | TrBlazeUI |
-| Updated | 2026-09-12 |
+| Updated | 2026-09-15 |
+
+> ## ✅ RESOLVED LIBRARY-SIDE 2026-09-14 — TR-039 and TR-040
+>
+> Both were reproduced on the unchanged library first, then fixed. REQ-UI-008 (TR-039) and
+> REQ-UI-002 (TR-040) are re-verified. Release build **0 warnings / 0 errors**; **20/20**
+> headless-Chromium checks in `tests/verify/req-ui-020.spec.ts`, including the TR-036 to TR-038
+> checks. Both fixes are in the next release after 2.0.6. Evidence: `docs/TrBlazeUI-Checklist.md`,
+> ledger `docs/.last-verify.json`.
+>
+> | Entry | What was actually wrong | What you get |
+> |---|---|---|
+> | **TR-039** | Confirmed. Leaving a page logged one unobserved `JSDisconnectedException` per chart: 5 on `/charts/bar`, 4 on `/charts/pie`, 5 on a page with five charts, 0 on a page with none. The cause is in Blazor-ApexCharts: its `Dispose` starts the module release and never awaits it. **7.0.0 has the same code, so upgrading that package would not have helped.** | All six chart types now draw through an `ApexChart` whose teardown ignores a closed connection. Nothing changes while a chart is on screen. Measured: 0 unobserved exceptions after leaving each of those pages. |
+> | **TR-040** | Confirmed exactly as filed: the 15 parameters you listed, and no debounce. | **`InputGroupInput.DebounceMilliseconds`**, working the same way as `Input`'s. 0, the default, still raises `ValueChanged` on every keystroke. The box itself always shows each keystroke at once. Measured: typing `escaped` raised 1 call with the debounce on; 3 keys without it raised 3. |
+>
+> **What to do after upgrading.** TR-039: nothing; you took no workaround. TR-040: give the
+> `/misses` filter back its debounce (`DebounceMilliseconds="150"`); the `/prices` model filter can
+> take the same.
+>
+> **Please re-test and reopen anything that still bites.**
 
 > ## ✅ RESOLVED LIBRARY-SIDE 2026-09-12 — TR-028 … TR-035, the eight filed after the reply below
 >
@@ -138,8 +157,14 @@ build never stopped for a library issue.
 
 ## Summary
 
-36 entries: **0 blocking, 3 open and not blocking (TR-036, TR-037, TR-038, all filed 2026-09-12 against
-the upgraded library), 32 fixed upstream**, 1 closed (TR-022, merged into TR-008). **Nothing is blocked.**
+38 entries: **0 blocking, 0 open, 37 fixed upstream and closed**, 1 closed (TR-022, merged into TR-008).
+**Nothing is blocked.** TR-039 and TR-040, filed 2026-09-14 against 2.0.6, were fixed in 2.0.7 and
+re-checked and closed here on 2026-09-15.
+
+- Last consolidated: 2026-09-14 (Phase 3 handoff) — 6 blockers, 13 majors, 18 minors, 0 nice-to-haves.
+
+> **2026-09-14 — TfLens is on 2.0.6** (nuget.org), which closed TR-036 to TR-038. Details:
+> `docs/TfLens-TrBlazeUI-2.0.6-Upgrade.md`.
 
 Two library replies cover all 32. The reply of **2026-08-31** answers 24 — TR-001 to TR-005, TR-008
 to TR-021, TR-023 to TR-027. The reply of **2026-09-12**, at the top of this file, answers the eight
@@ -219,16 +244,17 @@ recorded severity was silently reinterpreted.
 | Band | Count | Entries | State |
 |---|---|---|---|
 | **Blocker** (High) | 6 | TR-001 · TR-002 · TR-009 · TR-011 · TR-021 · TR-028 | all six fixed upstream |
-| **Major** (Medium) | 12 | TR-003 · TR-005 · TR-008 · TR-010 · TR-014 · TR-018 · TR-019 · TR-020 · TR-023 · TR-024 · TR-026 · TR-029 | all twelve fixed upstream |
-| **Minor** (Low) | 14 | TR-004 · TR-012 · TR-013 · TR-015 · TR-016 · TR-017 · TR-025 · TR-027 · TR-030 · TR-031 · TR-032 · TR-033 · TR-034 · TR-035 | all fourteen fixed upstream (TR-030 was already fixed in 2.1.0 — upgrade, no library change) |
+| **Major** (Medium) | 13 | TR-003 · TR-005 · TR-008 · TR-010 · TR-014 · TR-018 · TR-019 · TR-020 · TR-023 · TR-024 · TR-026 · TR-029 · TR-037 | all thirteen fixed upstream |
+| **Minor** (Low) | 18 | TR-004 · TR-012 · TR-013 · TR-015 · TR-016 · TR-017 · TR-025 · TR-027 · TR-030 · TR-031 · TR-032 · TR-033 · TR-034 · TR-035 · TR-036 · TR-038 · TR-039 · TR-040 | all eighteen fixed upstream (TR-030 was already fixed in 2.1.0 — upgrade, no library change); TR-039 and TR-040 fixed in 2.0.7 and closed 2026-09-15 |
 | Nice-to-have | 0 | — | — |
 
 The table used to list 19 entries; TR-023 to TR-030 had been added since it was last rebuilt. With
 TR-022 closed as a merge, the 27 rows here and that one make the 28. TR-031 was added on 2026-09-11,
 which makes 29, TR-032 the same day, which makes 30, TR-033 the same day, which makes 31, and TR-034
 and TR-035 the same day — the fix-cycle-1 side-by-side comparisons — which makes 33. `TR-036`, `TR-037` and
-`TR-038` were added on 2026-09-12 by the upgrade pass, which makes 36. **The next free number is
-`TR-039`.**
+`TR-038` were added on 2026-09-12 by the upgrade pass, which makes 36. `TR-039` was added on
+2026-09-14 by the 2.0.6 upgrade, which makes 37, and `TR-040` at the Phase 3 handoff the same day, which makes 38.
+**The next free number is `TR-041`.**
 
 Entries below are ordered **blocker → major → minor**, and by ID within a band. **IDs are unchanged** —
 the order is a reading aid, never a renumbering.
@@ -256,6 +282,7 @@ been written before the 2026-08-27 renumbering:
 | `src/TfLens/Components/Pages/Harness.razor:99` | `TR-006` | **TR-009** (`ShowPagination="false"` still truncates to `InitialPageSize`) |
 | `src/TfLens/Components/Pages/GateOutcomes.razor:92` | `TR-006` | **TR-010** (`TabsTrigger` captures no unmatched attributes) |
 | `src/TfLens/Components/Pages/GateOutcomes.razor:22` | `TR-007` | **TR-013** (the `Typography*` family) |
+| `src/TfLens/Components/Pages/Misses.razor:937` | `TR-039` | **TR-040** (`InputGroupInput` has no `DebounceMilliseconds`). Written 2026-09-12 before any entry was filed; `TR-039` was then allocated to the chart-disposal entry. |
 
 Left as-is deliberately: they are `src/` comments and this pass is documentation-only. Recorded here so
 the next reader is not sent looking for two entries that do not exist. `docs/TfLens-DevGuide-Screens.md`
@@ -1384,6 +1411,8 @@ Only the phone panel's width.
 
 ## TR-036 — `Primitives.Select.SelectContent<T>.DisposeAsync()` awaits two JS references without catching `JSDisconnectedException`, so every navigation away from a page holding a `Select` logs an unhandled circuit exception
 
+> ✅ **Closed 2026-09-14** — re-checked here: Upgraded to TrBlazeUI 2.0.6 (nuget.org, byte-identical to the private feed's 2.0.6). Published smoke on port 5014 opened /misses, /prices and /effort (each holding a Select) and left them, at 1280 and 390, twice: the app log holds 0 'Unhandled exception in circuit' lines and 0 SelectContent frames. The same log on 2.1.0-ci.10 (app-5500, 2026-09-13) held 299 circuit exceptions and 1,396 SelectContent lines. Six unobserved-task JSDisconnectedException lines remain, all from ApexCharts.ApexChart.Dispose, present on ci.10 too; filed separately as TR-039.
+
 - **Severity:** Low (raised 2026-09-12, open against **2.1.0-ci.10**)
 - **Blocks:** no. Log noise on a healthy build: 2 occurrences across a full published smoke of `/repos`,
   `/repos/add` and `/repos/remove/{source}` at 1280 and 390, with `#blazor-error-ui` **hidden
@@ -1426,6 +1455,8 @@ page is gone. No figure, no render, no user-visible behaviour.
 ---
 
 ## TR-037 — `BarChart`'s `Items` / `XValue` / `YValue` shorthand cannot draw data labels, so `ShowDataLabels="true"` is silently ignored — including in the example the library's own reference gives for it
+
+> ✅ **Closed 2026-09-14** — re-checked here: Upgraded to TrBlazeUI 2.0.6, whose built-in series now carries the chart's ShowDataLabels. Harness.razor, Routing.razor and PlaybookModelTokens.razor went back from the nested ApexPointSeries workaround to the Items/XValue/YValue shorthand. Measured on the published app at 1280 and 390: /harness paints 3 bars with 3 labels (12.1B, 1.6M, 37.1M) and /routing's tokens-by-model chart 5 bars with 5 labels (10.4B, 1.6B, 37.1M, 17.3M, 1.6M), 0 console errors, 0 horizontal overflow. The Playbook tokens chart uses the same form but could not be rendered: the demo account has 0 Playbook repositories.
 
 - **Severity:** Medium (raised 2026-09-12, open against **2.1.0-ci.10**)
 - **Blocks:** no. The chart draws its bars; only the value labels are missing, and TfLens prints every
@@ -1503,6 +1534,8 @@ all measured working on `/harness` at 1280 and 390. Only the shorthand's data la
 
 ## TR-038 — `Badge Variant="Outline" Truncate="true"` silently deletes the badge's own text colour, because `text-ellipsis` still falls through TailwindMerge's bare `text-(colour)` pattern
 
+> ✅ **Closed 2026-09-14** — re-checked here: Upgraded to TrBlazeUI 2.0.6; its TailwindMerge now carries a text-overflow group (text-ellipsis, text-clip), absent from ci.10's assembly. Measured on the published app at 1280 and 390: the Outline Truncate last-sync badge's class list contains text-foreground, and it computes text-overflow ellipsis, overflow hidden, white-space nowrap, min-width 0. The three redundant declarations in ShellHeader.razor.css were removed; min-width 0 stays.
+
 - **Severity:** Low (raised 2026-09-12, open against **2.1.0-ci.10**)
 - **Blocks:** no. The badge renders, truncates and reads; it inherits its parent's colour instead of
   declaring `text-foreground`, which in TfLens's header happens to be the same colour. It is filed
@@ -1573,3 +1606,45 @@ survive the merge on every variant, verified above. `Wrap` on every variant, inc
 > The `::deep` rule stays: `min-width: 0` is still load-bearing, because `max-w-full` caps width and
 > does not let a flex item shrink below its content. The other three declarations are now redundant
 > and are labelled belt-and-braces at both call sites.
+
+---
+
+## TR-039 — Leaving a page that holds a chart logs an unobserved `JSDisconnectedException` from `ApexChart.Dispose`
+
+> ✅ **Closed 2026-09-15** — re-checked here: 2026-09-15, TrBlazeUI 2.0.7 (restored from the GitHub feed), Release publish on :5207 with a fresh log. Ran tests/.artifacts/trblazeui-207/tr-039-charts.spec.ts: twice at 1280 and 390, opened /harness (BarChart, 3 bars, labels 13.1B/1.6M/37.1M) and /routing (BarChart, 5 bars with labels), let each draw, forced a redraw by resizing (bars and labels unchanged), then left each by a full navigation to about:blank; 12 chart-page leaves in all, 0 console errors. The Playbook axis holds no chart for the demo user (0 Playbook repos, playbook-empty shown). Then 4 minutes of HTTP load (dotnet-counters showed gen0/gen1 collections) and two forced full collections via dotnet-gcdump. App log after all of it: 96,730 lines, 64 circuit disconnects, 0 'Unobserved task exception', 0 ApexCharts.ApexChart frames, 0 JSDisconnectedException, 0 'Unhandled exception in circuit', 0 ERR, 0 WRN (2.0.6 baseline: 6 unobserved lines).
+
+- **Severity:** Low (raised 2026-09-14, open against **2.0.6**)
+- **Blocks:** no. Server log noise only: six error lines across a published smoke of five screens at
+  1280 and 390, with no console error and nothing the user sees.
+- **Not a 2.0.6 regression.** The same frame is in the ci.10 logs (27 lines on 2026-09-13), hidden
+  under TR-036's louder Select errors until 2.0.6 removed those.
+- **Repro:** open `/harness` (a `BarChart`), navigate away, read the server log.
+- **Expected:** nothing. A circuit ending is the ordinary way a Blazor Server page ends.
+- **Actual:** `ERR Unobserved task exception` → `JSDisconnectedException`, whose only non-framework
+  frame is `ApexCharts.ApexChart`1.<Dispose>b__224_1()` → `JSObjectReference.DisposeAsync()`, fired
+  without being awaited or caught.
+- **Encountered in:** TfLens `*fix-issues` 2026-09-14. The code is in `Blazor-ApexCharts` 6.1.0, the
+  dependency TrBlazeUI 2.0.6 pins for its chart wrapper; a TfLens page cannot reach inside to catch it.
+- **Workaround:** none needed and none taken.
+- **Suggested fix:** take a `Blazor-ApexCharts` release that guards the JS dispose, or have
+  `ChartBase` dispose the chart inside `try { … } catch (JSDisconnectedException) { }`, as TR-036's
+  fix did for `SelectContent`.
+
+**What is NOT affected.** Charts render, label and update as before. Only the server log on teardown.
+
+---
+
+## TR-040 — `InputGroupInput` has no `DebounceMilliseconds`, so a filter box drawn with a leading icon re-filters on every keystroke
+
+> ✅ **Closed 2026-09-15** — re-checked here: 2026-09-15, TrBlazeUI 2.0.7 (restored from the GitHub feed). Set DebounceMilliseconds="150" on the InputGroupInput of the /misses per-miss filter (Misses.razor:948) and the /prices model filter (Prices.razor:173), and rewrote the stale TR-039 citation at Misses.razor:936-939 to name TR-040. Build: tf-build.sh PASS, 0 warnings. Release publish on :5207, ran tests/.artifacts/trblazeui-207/tr-040-filters.spec.ts at 1280 and 390 (passed, 0 console errors). Typing 'zqzq' at 40 ms a key: input events showed z, zq, zqz, zqzq at once on both filters at both widths; the rows changed 0 times while typing and once after it, 153-218 ms after the last key (no row contains 'z', so per-key filtering would have emptied the table on the first key). Correct rows: /misses term 'There was a check and it did not catch it' left 4 of 25 rows, each containing it; /prices OpenRouter 'claude' showed 'filtered from' with every model containing claude; clearing brought back the same 25 and 5 rows and the unfiltered card text. Layout: search icon present, 16 px, inside the group, left of the input, vertically centred (offset 0), group 36 px high; screenshots misses-filter-*.png and prices-filter-*.png show it unchanged in place. No pixel comparison with a 2.0.6 shot of the filter was available.
+
+- **Severity:** Low (raised 2026-09-14, open against **2.0.6**)
+- **Blocks:** no. Both affected filters narrow rows already in memory, so a keystroke costs no request.
+- **Repro:** `<InputGroup><InputGroupAddon Align="InputGroupAlign.InlineStart"><LucideIcon Name="search" Size="16" /></InputGroupAddon><InputGroupInput Value="@objSearch" ValueChanged="…" /></InputGroup>`, then look for a debounce parameter.
+- **Expected:** the debounce `Input` already offers (`Input.DebounceMilliseconds`), because `InputGroup` is how the library draws an input with a leading icon.
+- **Actual:** `InputGroupInput`'s parameters in the 2.0.6 XML documentation are `AdditionalAttributes`, `AriaDescribedBy`, `AriaInvalid`, `AriaLabel`, `Class`, `CssClass`, `Disabled`, `HtmlType`, `Id`, `OnInputRef`, `Placeholder`, `Required`, `Type`, `Value` and `ValueChanged`. None of them is a debounce.
+- **Encountered in:** the per-miss filter on `/misses` (`src/TfLens/Components/Pages/Misses.razor:942-953`), where the trade was recorded on 2026-09-12 under the never-filed number `TR-039`; the model filter on `/prices` has the same shape.
+- **Workaround:** none; the 150 ms debounce the plain `Input` gave the `/misses` filter was given up.
+- **Suggested fix:** add `DebounceMilliseconds` to `InputGroupInput` with the behaviour `Input` has.
+
+**What is NOT affected.** `Input` and its debounce, the `InputGroup` layout and its addon icon, and the filtering itself.

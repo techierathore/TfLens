@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-09-11</div>
+    <div class="sub">Last rendered: 2026-09-15</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -136,7 +136,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-Architecture.md</code></div>
+    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -205,7 +205,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <thead><tr><th>Layer</th><th>Choice</th><th>Version</th><th>Notes</th></tr></thead>
 <tbody>
 <tr><td>Runtime</td><td>.NET</td><td>10 (LTS)</td><td>SDK 10.0.302 present on the dev machine. The brief asks for "current LTS"; .NET 10 is the LTS line as of 2026-08.</td></tr>
-<tr><td>UI</td><td>Blazor Server (Interactive Server render mode) + TrBlazeUI</td><td>TrBlazeUI.Components 1.0.7 / Primitives 1.0.3</td><td>Single web head <code>src/TfLens</code>. Dogfoods TrBlazeUI where it fits (shell, nav, cards, grid, badges, alerts, dialogs).</td></tr>
+<tr><td>UI</td><td>Blazor Server (Interactive Server render mode) + TrBlazeUI</td><td>TrBlazeUI.Components / Icons.Lucide / Primitives 2.0.7 (private GitHub Packages feed; as built 2026-09-15)</td><td>Single web head <code>src/TfLens</code>. Dogfoods TrBlazeUI where it fits (shell, nav, cards, grid, badges, alerts, dialogs).</td></tr>
 <tr><td>Data access</td><td>Dapper + Npgsql</td><td>latest stable</td><td>Owner decision (kickoff: Dapper; round-2 amendment 2026-08-26: PostgreSQL instead of SQLite). Hand-written idempotent DDL script <code>database/001-schema.sql</code> applied at startup; no migration framework — the store is disposable and rebuilt from <code>data/raw/</code>.</td></tr>
 <tr><td>DB</td><td><strong>PostgreSQL 16</strong></td><td>compose service <code>postgres</code></td><td>One table per stream + <code>SyncState</code>, <code>UserRepo</code>, <code>AuthSession</code>, Playbook tables. PascalCase quoted identifiers per Coding Standards. Never the source of truth — raw JSONL is (ADR-015).</td></tr>
 <tr><td>GitHub access</td><td><code>HttpClient</code> against the GitHub REST API (<code>/repos/{owner}/{repo}</code>, <code>/commits</code>, <code>/contents</code>)</td><td>—</td><td><strong>Public repos only</strong> (this release); optional server PAT raises the rate limit. No Octokit dependency (ADR-004).</td></tr>

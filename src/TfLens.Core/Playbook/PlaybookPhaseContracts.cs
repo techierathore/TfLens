@@ -496,6 +496,19 @@ public sealed record PhaseExecutionView
     /// <summary>The declared or inferred project type.</summary>
     public string? ProjectType { get; init; }
 
+    /// <summary>The harness the producer detected for this window; <c>null</c> when none was detected.</summary>
+    /// <remarks>
+    /// What the <c>/effort</c> Playbook "harness" filter matches on (REQ-UI-050). Until 2026-09-15 no row
+    /// carried it, so the filter offered harnesses but could never narrow the table.
+    /// </remarks>
+    public string? Harness { get; init; }
+
+    /// <summary>Tells whether this window ran on a harness, ignoring letter case.</summary>
+    /// <param name="aHarness">The harness to test, as the filter offers it.</param>
+    /// <returns><c>true</c> when the producer detected that harness for this window.</returns>
+    public bool RanOn(string aHarness) =>
+        string.Equals(Harness?.Trim(), aHarness, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The data-quality sentence a reader needs, or <c>null</c> when the row needs none.</summary>
     public string? DataQualityNote { get; init; }
 }

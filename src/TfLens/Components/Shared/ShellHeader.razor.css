@@ -123,34 +123,12 @@
             min-width: 0;
         }
 
-        /* `min-width: 0` is the load-bearing declaration here; the other three are belt-and-braces.
-
-           `Badge.Truncate` WORKS in 2.1.0-ci.10. Re-measured 2026-09-12 on an instance whose scoped
-           CSS was proven live BEFORE anything was read: SyncNowButton's badge renders
-           `… max-w-full overflow-hidden text-ellipsis whitespace-nowrap` and computes to
-           `overflow: hidden`, `text-overflow: ellipsis`, `max-width: 100%`, beside a same-page
-           `Outline` badge in the default mode computing `visible` / `clip` / `none`. An earlier note
-           here claimed the parameter emitted nothing; that reading came from an app whose `TfLens.dll`
-           predated the edit (the TF-043 shared-`obj/` family) and is WITHDRAWN. The class merge was
-           never involved.
-
-           So `overflow`, `text-overflow` and `white-space` below are redundant with the component and
-           are kept on the orchestrator's instruction, not because anything needs them — they are
-           harmless and were load-bearing before the parameter existed. `min-width: 0` is NOT
-           redundant: `max-w-full` caps a flex item's width, it does not let one shrink below its
-           content, and no component parameter says that.
-
-           ⚠ TR-038 lands on this call site. `Outline` is the only variant whose colour class is the
-           bare `text-foreground`, which TailwindMerge groups with `text-ellipsis`, so `Truncate` on an
-           `Outline` badge deletes it — this badge's class list has no `text-foreground` while every
-           other Outline badge in the app does. Harmless HERE only because the header's own ink is
-           `--foreground` and the badge inherits the identical colour; it would not be harmless on a
-           surface with a different foreground. */
+        /* `Badge Truncate="true"` supplies the overflow, ellipsis and nowrap itself, and since
+           TrBlazeUI 2.0.6 it keeps the Outline variant's `text-foreground` (TR-038), so the badge
+           needs only this: `max-w-full` caps a flex item's width but does not let it shrink below
+           its content, and no component parameter says that. */
         .tflens-header-right ::deep [data-testid="last-sync-badge"] {
             min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
     .tflens-header ::deep .tflens-framework-switch [role="tablist"] {

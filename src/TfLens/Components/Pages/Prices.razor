@@ -170,6 +170,7 @@
                                 </InputGroupAddon>
                                 <InputGroupInput Value="@FilterOf(vProvider)"
                                                  ValueChanged="@((string? aText) => OnFilterChanged(vProvider, aText))"
+                                                 DebounceMilliseconds="150"
                                                  Placeholder="Filter models…"
                                                  AriaLabel="@($"Filter {vProvider.Name} models")"
                                                  data-testid="@($"prices-filter-{vProvider.Id}")" />

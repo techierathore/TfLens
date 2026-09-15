@@ -40,10 +40,31 @@ jobs:
     permissions:
       contents: read
       # GHCR push for the BUILD only. This is unrelated to how the server pulls: it has its own
-      # stored login, and no PAT of any kind belongs in this repository's secrets.
+      # stored login. The one PAT this repository's secrets hold is TrBlazeUiPackagesToken
+      # (read:packages), which the image build needs to restore TrBlazeUI from the private feed.
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      # The Dockerfile's restore needs the PRIVATE TrBlazeUI GitHub Packages feed. Without a usable
+      # token it dies inside a docker build layer with NU1301 / 401 / 403 noise that never names the
+      # cause, so the feed is probed first and a bad token fails here with one actionable message.
+      # Same preflight as TechieBlog's deploy workflow.
+      - name: Preflight — TrBlazeUI feed authentication
+        env:
+          PatToken: ${{ secrets.TrBlazeUiPackagesToken }}
+          FallbackToken: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          PackagesToken="${PatToken:-$FallbackToken}"
+          probe="https://nuget.pkg.github.com/techierathore/download/trblazeui.components/index.json"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -u "techierathore:$PackagesToken" "$probe")
+          if [ "$code" = "200" ]; then
+            echo "TrBlazeUI feed reachable and authenticated (HTTP 200)."
+            exit 0
+          fi
+          echo "::error::Cannot read the private TrBlazeUI GitHub Packages feed (HTTP $code). Add a classic PAT with the read:packages scope as the repository secret TrBlazeUiPackagesToken (Settings -> Secrets and variables -> Actions), then re-run. See docs/TfLens-Deployment-Checklist.md §2."
+          exit 1
 
       - uses: docker/setup-buildx-action@v3
 
@@ -59,6 +80,10 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      # The feed token goes in as a BuildKit SECRET, never a build ARG (an ARG is readable with
+      # `docker history`). CONTRACT: the id is exactly `nuget_pat`, the spelling the Dockerfile's
+      # `RUN --mount=type=secret,id=nuget_pat` owns; a different id is accepted silently while the
+      # restore runs unauthenticated and fails with an error that never mentions the secret.
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -69,6 +94,8 @@ jobs:
             ${{ env.IMAGE }}:${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |  # NFR-003-OK: names a GitHub Actions secret; the value is filled in by GitHub at run time and never appears in this file
+            nuget_pat=${{ secrets.TrBlazeUiPackagesToken || secrets.GITHUB_TOKEN }}
 
   deploy:
     name: Deploy to VPS

@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Deployment Checklist</h1>
-    <div class="sub">Last rendered: 2026-09-06</div>
+    <div class="sub">Last rendered: 2026-09-15</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#who-does-what">1. Who does what</a></li>
@@ -122,7 +122,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Deployment Checklist</h1>
-    <div class="subtitle">Rendered 2026-09-06 &middot; source <code>TfLens-Deployment-Checklist.md</code></div>
+    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>TfLens-Deployment-Checklist.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -160,7 +160,7 @@ and Seq, per <code>docs/claude-code-deployment-brief-v3.2.md</code> and the serv
 <tbody>
 <tr><td>Server build and preflight (runbook, one time)</td><td>owner</td></tr>
 <tr><td>DNS A record, Caddy site file, Seq API key (one time per app, §3)</td><td>owner</td></tr>
-<tr><td>Four org-level + four repo-level GitHub secrets (one time, §2)</td><td>owner</td></tr>
+<tr><td>Four org-level + five repo-level GitHub secrets (one time, §2), including <strong><code>TrBlazeUiPackagesToken</code></strong> — the GitHub Packages access token (classic PAT, <code>read:packages</code>) the image build needs to download TrBlazeUI; steps in §3</td><td>owner</td></tr>
 <tr><td>Build the image and push to GHCR</td><td>pipeline (<code>build</code> job)</td></tr>
 <tr><td>Render <code>docker-compose.prod.template.yml</code>, create the database, upload and start the container</td><td>pipeline (<code>deploy</code> job)</td></tr>
 <tr><td>Probe <code>/healthz</code> through the real URL, fail the run if it never answers</td><td>pipeline (<code>verify</code> job)</td></tr>
@@ -177,6 +177,7 @@ and Seq, per <code>docs/claude-code-deployment-brief-v3.2.md</code> and the serv
 <tr><td><code>VPS_SSH_KEY</code></td><td>GitHub Actions secret — full private key incl. <code>-----BEGIN</code>/<code>-----END</code></td><td>SSH steps fail with permission denied</td></tr>
 <tr><td><code>DB_PASSWORD</code></td><td>GitHub Actions secret (<code>appuser</code>'s password, runbook Step 6). Must contain no <code>$</code> or <code>;</code> — the value is substituted into a connection string inside a compose file that <code>docker compose</code> itself then interpolates</td><td>The <code>deploy</code> job's own preflight fails the run before touching the server (empty value); a <code>$</code>/<code>;</code> character corrupts the rendered connection string silently</td></tr>
 <tr><td><code>SEQ_API_KEY</code></td><td>GitHub Actions repo secret — a key titled <code>tflens</code> with applied property <code>App=tflens</code> (§3)</td><td>Deploy still succeeds (warning in the Actions log); TfLens logs to console and file only, nothing reaches Seq</td></tr>
+<tr><td><code>TrBlazeUiPackagesToken</code></td><td>GitHub Actions repo secret — a classic PAT with the <code>read:packages</code> scope, the same token the other techierathore applications use</td><td>The <code>build</code> job's preflight fails with one line naming this secret; without it the image cannot restore TrBlazeUI from the private GitHub Packages feed. (Alternative: grant this repository Read access on each TrBlazeUI package page; the built-in <code>GITHUB_TOKEN</code> then suffices)</td></tr>
 <tr><td><code>TFLENS_GITHUB_TOKEN</code></td><td>GitHub Actions repo secret — fine-grained, Public Repositories (read-only), per <code>docs/TfLens-UsageGuide.md</code> §3 of the guide's token instructions</td><td>Deploy still succeeds (warning); GitHub reads fall back to 60/hour and sync fails on more than one or two connected repositories</td></tr>
 <tr><td><code>TFLENS_APPMANAGER_API_KEY</code></td><td>GitHub Actions repo secret</td><td>Set together with the secret below, or both left empty. A half pair makes AppManager answer <code>401 INVALID_API_KEY</code> on every call; the <code>deploy</code> job's own preflight catches this and fails the render step before it reaches the server (<code>DECISIONS.md</code> D-006)</td></tr>
 <tr><td><code>TFLENS_APPMANAGER_API_SECRET</code></td><td>GitHub Actions repo secret</td><td>As above</td></tr>
@@ -197,6 +198,14 @@ and Seq, per <code>docs/claude-code-deployment-brief-v3.2.md</code> and the serv
 <li>[ ] Create TfLens's own Seq API key: <code>https://seq.techierathore.com</code> → Settings → API Keys → Add API Key, title <code>tflens</code>, applied property <code>App=tflens</code> → save it as the repo secret <code>SEQ_API_KEY</code> — the repo's Actions secrets page lists <code>SEQ_API_KEY</code>
 </li>
 <li>[ ] Create the fine-grained, public-read-only GitHub token per <code>docs/TfLens-UsageGuide.md</code>'s token instructions, verify it with the <code>rate_limit</code> curl (prints <code>limit=5000</code>), then save it as the repo secret <code>TFLENS_GITHUB_TOKEN</code>
+</li>
+<li>[ ] Packages token (the image build restores TrBlazeUI from the private feed <code>https://nuget.pkg.github.com/techierathore/index.json</code>, which refuses anonymous reads; skip this item if you reuse the token your other applications use): GitHub → profile picture → <strong>Settings</strong> → <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong> → <strong>Generate new token (classic)</strong>, note <code>TfLens packages read</code>, tick <strong>only</strong> <code>read:packages</code>, <strong>Generate token</strong> and copy it — GitHub shows the token once and its scope list shows only <code>read:packages</code>
+</li>
+<li>[ ] Test the token: <code>curl -s -o /dev/null -w '%{http_code}\n' -u "techierathore:&lt;token&gt;" https://nuget.pkg.github.com/techierathore/download/trblazeui.components/index.json</code> — prints <code>200</code> (a <code>401</code> means the token or its scope is wrong)
+</li>
+<li>[ ] Save it: GitHub → the <strong>TfLens</strong> repository → <strong>Settings</strong> → <strong>Secrets and variables</strong> → <strong>Actions</strong> → <strong>New repository secret</strong>, name exactly <code>TrBlazeUiPackagesToken</code>, value = the token, <strong>Add secret</strong> — the repo's Actions secrets page lists <code>TrBlazeUiPackagesToken</code>
+</li>
+<li>[ ] On the first <code>deploy</code> run, open the <code>build</code> job's <em>Preflight — TrBlazeUI feed authentication</em> step — it prints <code>TrBlazeUI feed reachable and authenticated (HTTP 200).</code>; without the secret it stops the deploy here, naming the secret
 </li>
 <li>[ ] Add <code>TFLENS_APPMANAGER_API_KEY</code> and <code>TFLENS_APPMANAGER_API_SECRET</code> <strong>together, or leave both unset</strong> — the repo's Actions secrets page shows both present or both absent, never one alone
 </li>
@@ -267,6 +276,9 @@ and Seq, per <code>docs/claude-code-deployment-brief-v3.2.md</code> and the serv
 <tr><td>Container logs: refuses to start, missing DB connection</td><td><code>DB_PASSWORD</code> empty, or a <code>$</code>/<code>;</code> in the password mangled the connection string</td><td>Reset the secret without those characters and re-run <code>deploy</code></td></tr>
 <tr><td>Container logs: <code>INVALID_API_KEY</code> at startup</td><td>A half AppManager pair reached the server</td><td>Set both <code>TFLENS_APPMANAGER_API_KEY</code>/<code>_SECRET</code> or neither (<code>DECISIONS.md</code> D-006) — the <code>deploy</code> job's preflight is meant to catch this before it ever reaches the server</td></tr>
 <tr><td><code>/healthz</code> answers 503</td><td>Database unreachable</td><td>Connection string must use <code>172.17.0.1</code>, never <code>localhost</code> or a container name; confirm <code>ensure-db tflens</code> ran in the <code>deploy</code> job log</td></tr>
+<tr><td><code>build</code> job fails at <em>Preflight — TrBlazeUI feed authentication</em> with <code>Cannot read the private TrBlazeUI GitHub Packages feed (HTTP 401)</code> or <code>403</code></td><td>The repo secret <code>TrBlazeUiPackagesToken</code> is missing, misspelt, expired, or lacks <code>read:packages</code></td><td>Create a new token and save it under that exact name (§3), then re-run <code>deploy</code> via <code>workflow_dispatch</code></td></tr>
+<tr><td><code>build</code> job fails in the image build with <code>NU1301</code> / <code>401 (Unauthorized)</code> although the preflight passed</td><td>The Dockerfile's restore did not receive the token: the <code>secrets:</code> line in <code>deploy.yml</code> no longer passes it as <code>nuget_pat</code></td><td>Restore <code>nuget_pat=…</code> under <code>secrets:</code> in the build step; the id must match the Dockerfile's <code>--mount=type=secret,id=nuget_pat</code></td></tr>
+<tr><td>Site loads but nothing responds; <code>https://tflens.techierathore.com/_framework/blazor.web.js</code> returns <code>404</code></td><td>The image was published without Blazor's framework files (the second restore in the Dockerfile was removed)</td><td>Put back the second restore after <code>COPY src/ src/</code> in the Dockerfile, then re-run <code>deploy</code></td></tr>
 <tr><td>Every repository shows <code>error</code> with a rate-limit message</td><td><code>TFLENS_GITHUB_TOKEN</code> empty or expired</td><td>Recreate the token (§3), update the secret, re-run <code>deploy</code> via <code>workflow_dispatch</code></td></tr>
 <tr><td>Runs fine, no logs in Seq</td><td><code>SEQ_API_KEY</code> missing or revoked</td><td>Recreate the key in Seq (§3), update the secret, re-run <code>deploy</code></td></tr>
 <tr><td>Coverage empty after a restore</td><td>Rows were not replayed after <code>/srv/data/tflens/data</code> was restored</td><td><code>docker exec tflens dotnet TfLens.dll rebuild --user &lt;id&gt;</code></td></tr>

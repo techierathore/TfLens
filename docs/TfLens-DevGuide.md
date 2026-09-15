@@ -5,14 +5,14 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Phase | 1 of 3 |
-| Date | 2026-09-08 |
+| Phase | 3 of 3 |
+| Date | 2026-09-14 |
 
 **Deliberately not split by phase.** TfLens's phases are a delivery order, not three applications:
 the cross-cutting gotchas below are hit whatever phase you are working in, and the setup is the same
 setup. The phase map is [TfLens-Phases.md](./TfLens-Phases.md).
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-14
 **Audience:** a developer who needs to **debug a screen** — find the code behind a control, follow it
 to the service and the SQL, and fix it.
 

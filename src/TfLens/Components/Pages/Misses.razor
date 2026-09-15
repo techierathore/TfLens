@@ -933,12 +933,10 @@
                        border on the group rather than the input. Added 2026-09-12 after the parity gate
                        reported the icon missing — it was, and the report was right.
 
-                       ⚠ `InputGroupInput` has no `DebounceMilliseconds`, which the plain `Input` does
-                       (TR-039), so taking the icon costs the 150ms debounce this box used to have and the
-                       grid now re-filters on each keystroke. Accepted deliberately: the filter runs in
-                       memory over the rows already bound to the grid — 91 on the live data — so there is
-                       no request and no query behind a keystroke. Restore the debounce here if that set
-                       ever grows large enough to feel it. `/prices` already made the same trade. *@
+                       The 150ms debounce the plain `Input` gave this box was given up on 2026-09-12,
+                       because `InputGroupInput` had no `DebounceMilliseconds` (TR-040). TrBlazeUI 2.0.7
+                       added it, so it is back: the box shows each keystroke at once and the grid
+                       re-filters once typing pauses. `/prices` takes the same. *@
                     <div class="tflens-detail-filter shrink-0">
                         <InputGroup>
                             <InputGroupAddon Align="InputGroupAlign.InlineStart">
@@ -947,6 +945,7 @@
                             <InputGroupInput Type="InputType.Search"
                                Value="@objDetailSearch"
                                ValueChanged="@((string? aText) => objDetailSearch = aText ?? string.Empty)"
+                               DebounceMilliseconds="150"
                                Placeholder="Filter by REQ, class or whose gap"
                                AriaLabel="Filter the per-miss table by REQ, class or whose gap"
                                data-testid="miss-detail-search" />

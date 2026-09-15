@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | App | TfLens |
-| Count | 130 logged: 77 open, 53 fixed, 0 will not fix |
+| Count | 136 logged: 77 open, 59 fixed, 0 will not fix |
 | Source | `docs/metrics/misses.jsonl`, one row per miss record. Rewritten by `tf-misses-md.sh` on every new record. Never edit it: a wrong row is corrected by a new record. |
-| Updated | 2026-09-13 |
+| Updated | 2026-09-15 |
 
 **Whose gap** answers the four questions of the miss protocol: **the app's spec** did not say it, so the checklist line is fixed; **the framework never said it**, so one requirement line and a check are added; **the check was too weak** (a review, or a script that did not fire), so the check is fixed; **said and ignored**, so the rule becomes a hook or is deleted. **not sorted** means the record predates the sort or nobody has answered yet; `bash .tfcore/utils/tf-emit.sh --amend <miss> sort <spec|unsaid|weak-check|ignored>` completes it.
 
@@ -91,10 +91,16 @@
 | MISS-TfLens-20260828-25 (REQ-UI-014) | 2026-08-28 by gate | not sorted | no sentence recorded (standards-violation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260828-21 | 2026-08-28 by owner | not sorted | no sentence recorded (standards-violation, config, why: missing-checklist-item) |
 
-## Fixed (53)
+## Fixed (59)
 
 | Miss | Found | Closed | Whose gap | What went wrong |
 |---|---|---|---|---|
+| MISS-TfLens-20260915-05 (REQ-FN-040) | 2026-09-15 by owner | 2026-09-15 by log-miss | said and ignored | After I was reminded, the Deployment Checklist still told the owner in its Who does what table that only four repo-level secrets were needed and never named the GitHub Packages access token for TrBlazeUI. |
+| MISS-TfLens-20260915-04 (REQ-UI-072) | 2026-09-15 by owner | 2026-09-15 by fix-issues | the check was too weak | On /prices, an OpenRouter model with only one of its two prices published is saved with the missing price as zero after Refresh (PriceProviders.ReadOpenRouter). |
+| MISS-TfLens-20260915-03 (REQ-UI-050) | 2026-09-15 by owner | 2026-09-15 by fix-issues | the check was too weak | On /effort in Playbook view, picking a harness in the Harness filter does not change the table; the row filter never reads the harness choice (PlaybookEffortSurface.razor Matches). |
+| MISS-TfLens-20260915-02 (REQ-FN-040) | 2026-09-15 by owner | 2026-09-15 by log-miss | said and ignored | I switched the deploy pipeline to the private GitHub package feed but did not add the steps to create the packages token and save it as a GitHub secret to the Deployment Checklist, so the next deploy would have failed. |
+| MISS-TfLens-20260915-01 (REQ-FN-040) | 2026-09-15 by production | 2026-09-15 by log-miss | the check was too weak | The Docker image never included Blazor's own script, so the live site loads its pages but nothing on them responds; blazor.web.js returns 404 in production. |
+| MISS-TfLens-20260914-01 (REQ-UI-035) | 2026-09-14 by owner | 2026-09-14 by log-miss | the framework never said it | In the verify, the first mockup comparison ran at the same time as the Misses tests; those tests switch the demo user's saved framework and window size, so the comparison caught a page mid-change and reported 11 false findings at 390 wide. It was re-run on its own and only clean results went into th |
 | MISS-TfLens-20260911-23 (REQ-UI-072) | 2026-09-11 by owner | 2026-09-11 by log-miss | the check was too weak | BRD-200 added a Price providers screen, but no screen row, UI design entry or mockup was written, so the page was built and verified with no design to compare it against. |
 | MISS-TfLens-20260911-22 (REQ-UI-035) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | The approved mockups drew a narrow strip of menu icons on a phone, where the UI library the app uses hides the sidebar and slides it out from the menu button instead. |
 | MISS-TfLens-20260911-21 (REQ-FN-080) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | BRD-128 said every rate-card figure's key must end in _usd_estimate, while BRD-195 and BRD-197, added later, named the list-price figures list_usd and cost_list_usd_per_miss. |

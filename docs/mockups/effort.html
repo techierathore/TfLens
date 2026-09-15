@@ -271,19 +271,17 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <nav class="crumb"><span>Reports</span><svg><use href="#i-chevron-right"/></svg><b>Phase effort</b></nav>
   <div class="fw tabs" data-testid="framework-switch" title="Framework switch"><a class="tab active" href="effort.html">TechieFlow<span class="badge secondary">4</span></a><a class="tab" href="effort-playbook.html">Playbook<span class="badge secondary">1</span></a></div>
   <div class="spacer"></div>
-  <button class="btn outline sm" data-testid="sync-now"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
+  <button class="btn outline sm" data-testid="sync-now" onclick="alert('Syncing every connected repository now.')"><svg class="i"><use href="#i-refresh-cw"/></svg>Sync now</button>
   <span class="badge outline">synced 12 min ago</span>
   <button class="switch" onclick="toggleTheme()" title="Toggle theme" data-testid="theme-toggle"><svg class="i sun"><use href="#i-sun"/></svg><svg class="i moon"><use href="#i-moon"/></svg><span class="trk"></span></button>
-  <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
+  <div class="umenu"><button class="btn ghost sm" data-testid="user-menu" onclick="alert('Opens the user menu: Profile, Sign out.')"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
   <main class="content"><div class="page" data-testid="effort-page">
   <div class="row between wrap" style="gap:16px">
    <div><h1>Phase effort</h1><p class="sub">How much time and how many tokens went into each command phase — with which model, and how many subagents it actually spun up</p></div>
    <div class="row" style="gap:8px">
     <span class="badge outline">all history</span>
-    <select class="input" style="width:190px;height:36px" data-testid="effort-period">
-     <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>
-    </select>
+    <button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="effort-period" title="Period: All history (default) · Last 7 days · Last 30 days · Last 90 days" onclick="alert('Opens the period list: All history (default), Last 7 days, Last 30 days, Last 90 days.')"><span>All history (default)</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button>
    </div>
   </div>
 
@@ -416,12 +414,13 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="grid" style="grid-template-columns:1.3fr 1fr;align-items:start">
    <div class="card" data-testid="effort-routing">
     <div class="card-h"><div><div class="card-t">Declared route vs the model that ran</div><div class="card-d">Routing is <b>observed</b>, never enforced</div></div><span class="badge outline">128 runs</span></div>
-    <div class="card-c flush" style="padding-top:8px"><table class="tbl"><thead><tr><th>Outcome</th><th class="r">Runs</th><th>Share</th><th>What it means</th></tr></thead><tbody>
+    <div class="card-c flush" style="padding-top:8px"><div><table class="tbl"><thead><tr><th>Outcome</th><th class="r">Runs</th><th>Share</th><th>What it means</th></tr></thead><tbody>
      <tr><td><span class="badge success">routed</span></td><td class="r">96</td><td><span class="bar"><span class="prog"><i style="width:75%;background:var(--chart-2)"></i></span><span class="r">75%</span></span></td><td class="sm muted">the model that ran is the one the routing table names</td></tr>
      <tr><td><span class="badge info">drifted</span></td><td class="r">24</td><td><span class="bar"><span class="prog"><i style="width:19%"></i></span><span class="r">19%</span></span></td><td class="sm muted">a different model ran — <b>drift made visible, not a failure</b></td></tr>
      <tr><td><span class="badge outline">unknown</span></td><td class="r">8</td><td><span class="bar"><span class="prog"><i style="width:6%;background:var(--muted-foreground)"></i></span><span class="r">6%</span></span></td><td class="sm muted">no declared route on the record</td></tr>
     </tbody></table></div>
-    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><span class="mono">drifted</span> is styled as information, never as an error. TfLens observes which model ran; it does not enforce a routing policy, and a page that painted drift red would be asserting a rule the framework does not have.</p></div>
+     <div style="padding:4px 16px 8px"><button class="btn ghost sm" style="padding:0 8px" data-testid="effort-routing-byphase-trigger" title="Opens the same three counts per command phase" onclick="alert('Opens routed, drifted and unknown per command phase.')"><svg class="i" style="float:none;margin:0"><use href="#i-chevron-right"/></svg>By command phase</button></div></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm"><span class="mono">drifted</span> is styled as information, never as an error. TfLens observes which model ran; it does not enforce a routing policy, and a page that painted drift red would be asserting a rule the framework does not have. <span class="mono">unknown</span> is its own count rather than being folded into either side: a run carrying no <span class="mono">routed</span> flag did not route correctly and did not drift — it said nothing.</p></div>
    </div>
 
    <div class="card" data-testid="effort-cost">
@@ -431,7 +430,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
      <tr><td><span class="mono">claude-code</span></td><td class="r">94</td><td class="r muted">—</td></tr>
      <tr><td><span class="mono">codex</span></td><td class="r">12</td><td class="r muted">—</td></tr>
     </tbody></table></div>
-    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A dash is <b>“no provider cost recorded”</b>, never <span class="mono">$0.00</span> and never “free”. <b>There is no rate-card estimate anywhere on this page</b> — an estimated dollar beside a measured one on a budgeting screen is how a plausible wrong number gets quoted. Estimates live on <a href="routing.html" style="text-decoration:underline;text-underline-offset:3px">Routing &amp; economics</a>, on their own card, labelled as estimates.</p></div>
+    <div class="card-f" style="justify-content:flex-start"><p class="muted sm">A dash is <b>“no provider cost recorded”</b>, never <span class="mono">$0.00</span> and never “free”. <b>There is no rate-card estimate anywhere on this page</b> — an estimated dollar beside a measured one on a budgeting screen is how a plausible wrong number gets quoted. Estimates live on <a href="routing.html" style="text-decoration:underline;text-underline-offset:3px">Routing &amp; economics</a>, on their own card, labelled as estimates. Dollars are never summed across harnesses.</p></div>
    </div>
   </div>
 

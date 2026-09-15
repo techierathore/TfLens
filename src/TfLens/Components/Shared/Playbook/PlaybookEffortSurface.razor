@@ -1709,10 +1709,26 @@
         MatchesText(ValueOf("command-phase"), aView.CommandPhase)
         && MatchesText(ValueOf("project-type"), aView.ProjectType)
         && MatchesText(ValueOf("verdict"), aView.GateVerdictSnapshot)
+        && MatchesHarness(aView)
         && MatchesCompleteness(aView)
         && MatchesCoverage(aView)
         && MatchesFanout(aView)
         && MatchesPeriod(aView);
+
+    /// <summary>Tells whether the harness filter admits a row.</summary>
+    /// <remarks>
+    /// REQ-UI-050: the select was built from the normalized harnesses but never read, so choosing one
+    /// changed no row (found 2026-09-14, fixed 2026-09-15). Each row now carries the harness its producer
+    /// detected, compared without regard to letter case because the options are the lowercase vocabulary.
+    /// </remarks>
+    /// <param name="aView">The execution row.</param>
+    /// <returns><c>true</c> when the filter is "all" or the row ran on the chosen harness.</returns>
+    private bool MatchesHarness(PhaseExecutionView aView)
+    {
+        var vHarness = ValueOf("harness");
+
+        return string.Equals(vHarness, AllKey, StringComparison.Ordinal) || aView.RanOn(vHarness);
+    }
 
     /// <summary>Tells whether a text filter admits a value.</summary>
     /// <param name="aFilter">The chosen option key.</param>

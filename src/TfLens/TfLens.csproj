@@ -11,13 +11,12 @@
     <!-- Central logging on the VPS (runbook v5.2 Part 6). The sink is only registered when Seq__Url is
          set, so this package costs local development nothing but a few KB in the image. -->
     <PackageReference Include="Serilog.Sinks.Seq" Version="9.1.0" />
-    <!-- 2.1.0-ci.10 is the release that closes every entry in docs/TfLens-TrBlazeUI-Feedback.md
-         (TR-001 … TR-035). It comes from the private TrBlazeUI feed named in nuget.config, not
-         from nuget.org, which still stops at 2.0.3. Upgrading from 2.0.0 let TfLens delete the
-         workarounds those entries recorded; the CHANGELOG's "Behaviour changes to review before
-         upgrading" list is what the deletions were checked against. -->
-    <PackageReference Include="TrBlazeUI.Components" Version="2.1.0-ci.10" />
-    <PackageReference Include="TrBlazeUI.Icons.Lucide" Version="2.1.0-ci.10" />
+    <!-- 2.0.7 (2026-09-15) closes TR-039 (chart teardown) and TR-040 (InputGroupInput.DebounceMilliseconds).
+         TrBlazeUI is restored from the owner's private GitHub Packages feed, as in every techierathore
+         application: nuget.config names the feed without credentials, and the Docker image build gets
+         the token as the nuget_pat BuildKit secret from the TrBlazeUiPackagesToken repository secret. -->
+    <PackageReference Include="TrBlazeUI.Components" Version="2.0.7" />
+    <PackageReference Include="TrBlazeUI.Icons.Lucide" Version="2.0.7" />
   </ItemGroup>
 
   <PropertyGroup>

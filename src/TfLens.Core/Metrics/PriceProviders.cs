@@ -291,7 +291,10 @@ public static class PriceProviders
             var vCacheRead = PerToken(vPricing, "input_cache_read");
             var vCacheWrite = PerToken(vPricing, "input_cache_write");
 
-            if (vIn is null && vOut is null)
+            // Both prices are required. Skipping only when BOTH were unreadable stored a single missing
+            // price as 0 below, so every output (or input) token on that model priced as free — the very
+            // thing the summary above rules out (REQ-UI-072; found 2026-09-14, fixed 2026-09-15).
+            if (vIn is null || vOut is null)
             {
                 continue;
             }

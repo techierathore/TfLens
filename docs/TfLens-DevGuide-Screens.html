@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="sub">Last rendered: 2026-09-02</div>
+    <div class="sub">Last rendered: 2026-09-15</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#runtime-verified-2026-09-02-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-09-02 as tflensdemo@techierathore.com (userId 2, Manager)</a></li>
@@ -164,43 +164,54 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#add-source-and-remove-are-their-own-routes-now-req-ui-044">2026-08-28 — Add source and Remove are their own ROUTES now (REQ-UI-044)</a></li>
         <li class="h3"><a href="#known-issues-uat-2026-08-28">Known issues (UAT 2026-08-28)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
-        <li><a href="#coverage-health">/ — Coverage / health</a></li>
+        <li><a href="#prices">/prices</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break">Where to break</a></li>
+        <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
+        <li class="h3"><a href="#defects-found">Defects found</a></li>
+        <li><a href="#coverage-health">/ — Coverage / health</a></li>
+        <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
         <li class="h3"><a href="#the-sql-behind-the-numbers">The SQL behind the numbers</a></li>
         <li class="h3"><a href="#the-miss-data-quality-card">The miss data-quality card</a></li>
-        <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#states-9">States</a></li>
         <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
-        <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
+        <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#gate-outcomes">/gate-outcomes</a></li>
-        <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
-        <li class="h3"><a href="#states-9">States</a></li>
-        <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
-        <li><a href="#harness">/harness</a></li>
         <li class="h3"><a href="#control-data-path-10">Control → data path</a></li>
         <li class="h3"><a href="#states-10">States</a></li>
         <li class="h3"><a href="#gotchas-10">Gotchas</a></li>
+        <li><a href="#harness">/harness</a></li>
+        <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
+        <li class="h3"><a href="#states-11">States</a></li>
+        <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
         <li><a href="#routing">/routing</a></li>
         <li class="h3"><a href="#two-engine-calls">Two engine calls</a></li>
         <li class="h3"><a href="#tab-routing-drift-routing-tab-drift-routing-panel-drift">Tab: Routing drift — routing-tab-drift / routing-panel-drift</a></li>
         <li class="h3"><a href="#tab-tokens-by-model-routing-tab-models-routing-panel-models">Tab: Tokens by model — routing-tab-models / routing-panel-models</a></li>
         <li class="h3"><a href="#tab-repricing-estimate-routing-tab-repricing-routing-panel-repricing">Tab: Repricing (estimate) — routing-tab-repricing / routing-panel-repricing</a></li>
         <li class="h3"><a href="#tab-poolable-metrics-routing-tab-poolable-routing-panel-poolable">Tab: Poolable metrics — routing-tab-poolable / routing-panel-poolable</a></li>
-        <li class="h3"><a href="#states-11">States</a></li>
-        <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
+        <li class="h3"><a href="#states-12">States</a></li>
+        <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-4">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#misses">/misses</a></li>
-        <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
-        <li class="h3"><a href="#the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way</a></li>
-        <li class="h3"><a href="#states-12">States</a></li>
-        <li class="h3"><a href="#observed-2026-08-28-3">Observed 2026-08-28</a></li>
-        <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
-        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#export">/export</a></li>
         <li class="h3"><a href="#control-data-path-12">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break-2">Where to break</a></li>
         <li class="h3"><a href="#states-13">States</a></li>
         <li class="h3"><a href="#gotchas-13">Gotchas</a></li>
-        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-6">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li class="h3"><a href="#defects-found-2">Defects found</a></li>
+        <li><a href="#effort">/effort</a></li>
+        <li class="h3"><a href="#control-data-path-13">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break-3">Where to break</a></li>
+        <li class="h3"><a href="#states-14">States</a></li>
+        <li class="h3"><a href="#gotchas-14">Gotchas</a></li>
+        <li class="h3"><a href="#defects-found-3">Defects found</a></li>
+        <li><a href="#export">/export</a></li>
+        <li class="h3"><a href="#control-data-path-14">Control → data path</a></li>
+        <li class="h3"><a href="#states-15">States</a></li>
+        <li class="h3"><a href="#gotchas-15">Gotchas</a></li>
+        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#the-playbook-axis">The Playbook axis</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
@@ -212,7 +223,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens Developer Guide — Screen-by-screen reference</h1>
-    <div class="subtitle">Rendered 2026-09-02 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
+    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>TfLens-DevGuide-Screens.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -272,43 +283,54 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#add-source-and-remove-are-their-own-routes-now-req-ui-044">2026-08-28 — Add source and Remove are their own ROUTES now (REQ-UI-044)</a></li>
         <li class="h3"><a href="#known-issues-uat-2026-08-28">Known issues (UAT 2026-08-28)</a></li>
         <li class="h3"><a href="#gotchas-7">Gotchas</a></li>
-        <li><a href="#coverage-health">/ — Coverage / health</a></li>
+        <li><a href="#prices">/prices</a></li>
         <li class="h3"><a href="#control-data-path-8">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break">Where to break</a></li>
+        <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
+        <li class="h3"><a href="#defects-found">Defects found</a></li>
+        <li><a href="#coverage-health">/ — Coverage / health</a></li>
+        <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
         <li class="h3"><a href="#the-sql-behind-the-numbers">The SQL behind the numbers</a></li>
         <li class="h3"><a href="#the-miss-data-quality-card">The miss data-quality card</a></li>
-        <li class="h3"><a href="#states-8">States</a></li>
+        <li class="h3"><a href="#states-9">States</a></li>
         <li class="h3"><a href="#observed-2026-08-28-2">Observed 2026-08-28</a></li>
-        <li class="h3"><a href="#gotchas-8">Gotchas</a></li>
+        <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-3">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#gate-outcomes">/gate-outcomes</a></li>
-        <li class="h3"><a href="#control-data-path-9">Control → data path</a></li>
-        <li class="h3"><a href="#states-9">States</a></li>
-        <li class="h3"><a href="#gotchas-9">Gotchas</a></li>
-        <li><a href="#harness">/harness</a></li>
         <li class="h3"><a href="#control-data-path-10">Control → data path</a></li>
         <li class="h3"><a href="#states-10">States</a></li>
         <li class="h3"><a href="#gotchas-10">Gotchas</a></li>
+        <li><a href="#harness">/harness</a></li>
+        <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
+        <li class="h3"><a href="#states-11">States</a></li>
+        <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
         <li><a href="#routing">/routing</a></li>
         <li class="h3"><a href="#two-engine-calls">Two engine calls</a></li>
         <li class="h3"><a href="#tab-routing-drift-routing-tab-drift-routing-panel-drift">Tab: Routing drift — routing-tab-drift / routing-panel-drift</a></li>
         <li class="h3"><a href="#tab-tokens-by-model-routing-tab-models-routing-panel-models">Tab: Tokens by model — routing-tab-models / routing-panel-models</a></li>
         <li class="h3"><a href="#tab-repricing-estimate-routing-tab-repricing-routing-panel-repricing">Tab: Repricing (estimate) — routing-tab-repricing / routing-panel-repricing</a></li>
         <li class="h3"><a href="#tab-poolable-metrics-routing-tab-poolable-routing-panel-poolable">Tab: Poolable metrics — routing-tab-poolable / routing-panel-poolable</a></li>
-        <li class="h3"><a href="#states-11">States</a></li>
-        <li class="h3"><a href="#gotchas-11">Gotchas</a></li>
+        <li class="h3"><a href="#states-12">States</a></li>
+        <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-4">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#misses">/misses</a></li>
-        <li class="h3"><a href="#control-data-path-11">Control → data path</a></li>
-        <li class="h3"><a href="#the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way</a></li>
-        <li class="h3"><a href="#states-12">States</a></li>
-        <li class="h3"><a href="#observed-2026-08-28-3">Observed 2026-08-28</a></li>
-        <li class="h3"><a href="#gotchas-12">Gotchas</a></li>
-        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
-        <li><a href="#export">/export</a></li>
         <li class="h3"><a href="#control-data-path-12">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break-2">Where to break</a></li>
         <li class="h3"><a href="#states-13">States</a></li>
         <li class="h3"><a href="#gotchas-13">Gotchas</a></li>
-        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-6">Deviation from docs/TfLens-UIDesign.md</a></li>
+        <li class="h3"><a href="#defects-found-2">Defects found</a></li>
+        <li><a href="#effort">/effort</a></li>
+        <li class="h3"><a href="#control-data-path-13">Control → data path</a></li>
+        <li class="h3"><a href="#where-to-break-3">Where to break</a></li>
+        <li class="h3"><a href="#states-14">States</a></li>
+        <li class="h3"><a href="#gotchas-14">Gotchas</a></li>
+        <li class="h3"><a href="#defects-found-3">Defects found</a></li>
+        <li><a href="#export">/export</a></li>
+        <li class="h3"><a href="#control-data-path-14">Control → data path</a></li>
+        <li class="h3"><a href="#states-15">States</a></li>
+        <li class="h3"><a href="#gotchas-15">Gotchas</a></li>
+        <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-5">Deviation from docs/TfLens-UIDesign.md</a></li>
         <li><a href="#the-playbook-axis">The Playbook axis</a></li>
         <li class="h3"><a href="#deviation-from-docs-tflens-uidesign-md-the-big-one">Deviation from docs/TfLens-UIDesign.md — the big one</a></li>
         <li><a href="#route-and-file-index">Route and file index</a></li>
@@ -327,6 +349,9 @@ reading twice.</p>
 <p>Screenshots in <code>docs/devguide-images/</code> are a point-in-time capture. The dev database is shared, so row
 counts in a shot will not match what you see today; the <em>structure</em> is what the shot is for.</p>
 <hr>
+<blockquote>
+<p><strong>Refreshed 2026-09-14 (Phase 3 handoff).</strong> <code>/misses</code> was re-read against the code, and <code>/effort</code> and <code>/prices</code> were added. All three were runtime-observed at 1280 and 390 as <code>tflensdemo@techierathore.com</code>, with screenshots in <code>docs/screenshots/TfLens/</code>. TfLens now builds on TrBlazeUI 2.0.6, so gotchas 1, 2, 9, 10, 11 and 12 are fixed and their workarounds are gone. Every other section is as verified on 2026-09-02. Two defects found in the refresh were logged on their rows: REQ-UI-050 (the Playbook harness filter does nothing) and REQ-UI-072 (a single missing OpenRouter price is stored as zero). <strong>Both were fixed and re-verified on 2026-09-15</strong>; their entries below say how.</p>
+</blockquote>
 <h2 id="runtime-verified-2026-09-02-as-tflensdemo-techierathore-com-userid-2-manager">Runtime-verified 2026-09-02 as <code>tflensdemo@techierathore.com</code> (userId 2, Manager)<a class="anchor-link" href="#runtime-verified-2026-09-02-as-tflensdemo-techierathore-com-userid-2-manager">#</a></h2>
 <p>Observed, not inferred. A full <code>*verify all</code> pass drove every screen below on a <strong>Release</strong> build at
 <code>http://localhost:5099</code> with headless Chromium at <strong>1280×800 and 390×844</strong>, applying the data-render
@@ -437,6 +462,8 @@ this page, check the record count behind it.</p>
 </li>
 <li><a href="#repos"><code>/repos</code></a>
 </li>
+<li><a href="#prices"><code>/prices</code></a>
+</li>
 <li><a href="#coverage-health"><code>/</code> — Coverage / health</a>
 </li>
 <li><a href="#gate-outcomes"><code>/gate-outcomes</code></a>
@@ -446,6 +473,8 @@ this page, check the record count behind it.</p>
 <li><a href="#routing"><code>/routing</code></a>
 </li>
 <li><a href="#misses"><code>/misses</code></a>
+</li>
+<li><a href="#effort"><code>/effort</code></a>
 </li>
 <li><a href="#export"><code>/export</code></a>
 </li>
@@ -475,57 +504,9 @@ for (let i = 0; i &lt; 16; i++) { await p.waitForTimeout(1500); if (!p.url().inc
 <p>Every one of these fails <strong>silently</strong>. None of them produces an error, a warning at runtime, or a
 failing build.</p>
 <h3 id="datatable-truncates-to-initialpagesize-even-with-showpagination-false">1. <code>DataTable</code> truncates to <code>InitialPageSize</code> even with <code>ShowPagination="false"</code><a class="anchor-link" href="#datatable-truncates-to-initialpagesize-even-with-showpagination-false">#</a></h3>
-<p><code>ShowPagination="false"</code> hides the pager. It does <strong>not</strong> stop the paging. A fixed-row table with no
-explicit <code>InitialPageSize</code> renders its first <strong>5</strong> rows and drops the rest with no error at all.</p>
-<p>Always set <code>InitialPageSize</code> above the maximum row count the table can hold:</p>
-<pre><code class="language-razor">&lt;DataTable TData="StreamRow" Data="@vCard.Streams"
-           ShowToolbar="false" ShowPagination="false" InitialPageSize="16" /&gt;</code></pre>
-<p>Current values in the codebase — check yours against this list before adding a row:</p>
-<table>
-<thead><tr><th>File</th><th>Table</th><th><code>InitialPageSize</code></th><th>Rows it can hold</th></tr></thead>
-<tbody>
-<tr><td><code>Coverage.razor</code></td><td><code>repo-streams-{name}</code></td><td>16</td><td>4 (TechieFlow) / 1 (Playbook)</td></tr>
-<tr><td><code>GateOutcomes.razor</code></td><td><code>gate-dist-{type}</code></td><td>32</td><td>8 (<code>GateOrder</code> 7 + <code>unattributed</code>)</td></tr>
-<tr><td><code>Harness.razor</code></td><td><code>harness-table-{harness}</code></td><td>50</td><td>11</td></tr>
-<tr><td><code>Harness.razor</code></td><td><code>tokens-table</code></td><td>50</td><td>3</td></tr>
-<tr><td><code>Routing.razor</code></td><td><code>drift-table</code></td><td>25</td><td>unbounded (pager on)</td></tr>
-<tr><td><code>Routing.razor</code></td><td><code>model-tokens</code></td><td>100</td><td>one per observed model</td></tr>
-<tr><td><code>Routing.razor</code></td><td><code>edit-prices-table</code></td><td>100</td><td>rate card + observed-unpriced</td></tr>
-<tr><td><code>ExportSurface.razor</code></td><td>all four</td><td>512</td><td>SHAs, snapshots, 3 + 7 facts</td></tr>
-<tr><td><code>Repos.razor</code></td><td><code>repos-table</code></td><td>10</td><td>unbounded (pager on)</td></tr>
-<tr><td><code>Repos.razor</code></td><td><code>import-preview-streams</code></td><td>16</td><td>6 (one per stream in the bundle)</td></tr>
-<tr><td><code>Misses.razor</code></td><td><code>miss-whymissed-table</code></td><td>32</td><td>7 (the closed <code>why_missed</code> vocabulary) + any unlisted value</td></tr>
-<tr><td><code>Misses.razor</code></td><td><code>miss-origin-model-table</code></td><td>32</td><td>one per observed model</td></tr>
-<tr><td><code>Misses.razor</code></td><td><code>miss-origin-agent-table</code></td><td>32</td><td>one per observed agent</td></tr>
-<tr><td><code>Misses.razor</code></td><td><code>miss-detail-table</code></td><td>25</td><td>unbounded (pager on)</td></tr>
-<tr><td><strong><code>Profile.razor</code></strong></td><td><strong><code>profile-values</code></strong></td><td><strong>not set → 5</strong></td><td><strong>exactly 5</strong></td></tr>
-</tbody>
-</table>
-<p><code>Profile.razor</code> is the live trap: <code>BuildRows()</code> returns exactly five <code>ProfileRow</code>s, which is exactly the
-default page size. <strong>Adding a sixth profile field silently drops it</strong> and nothing anywhere reports it.</p>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-009, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="lucideicon-resolves-canonical-names-only-aliases-render-an-invisible-placeholder">2. <code>LucideIcon</code> resolves canonical names only — aliases render an invisible placeholder<a class="anchor-link" href="#lucideicon-resolves-canonical-names-only-aliases-render-an-invisible-placeholder">#</a></h3>
-<p><code>TrBlazeUI.Icons.Lucide</code> resolves only the canonical Lucide name. The 212 aliases carried in the
-package's own <code>lucide.json</code> render an <strong>empty placeholder</strong> with no error and no console message.</p>
-<table>
-<thead><tr><th>Do <strong>not</strong> use (alias)</th><th>Use (canonical)</th></tr></thead>
-<tbody>
-<tr><td><code>alert-triangle</code></td><td><code>triangle-alert</code></td></tr>
-<tr><td><code>check-circle</code></td><td><code>circle-check</code></td></tr>
-<tr><td><code>help-circle</code></td><td><code>circle-question-mark</code></td></tr>
-<tr><td><code>alert-circle</code></td><td><code>circle-alert</code></td></tr>
-<tr><td><code>x-circle</code></td><td><code>circle-x</code></td></tr>
-</tbody>
-</table>
-<p>A probe over all twelve routes found <strong>0 blank icons</strong> today, so the codebase is currently clean — this
-is the rule that keeps it that way. <code>ShellNavigation.Items</code> uses only post-rename names for exactly this reason — <code>shield-check</code>
-for Gate outcomes since the 2026-09-01 rename, <code>circle-question-mark</code> before it.</p>
-<p><strong>Confirmed again 2026-08-28 as <code>TR-022</code>,</strong> and it is worth knowing <em>why</em> it bites: <code>lucide.json</code>
-carries <strong>two</strong> maps, <code>icons</code> and <code>aliases</code>, and <code>LucideIcon</code> looks the name up in <code>icons</code> only. So a
-name that is genuinely in the package's own metadata still resolves to nothing. The measured-USD
-tile's accent chip on <code>/misses</code> shipped briefly as <code>check-circle</code> and rendered an empty coloured
-square; it is <code>circle-check</code> now. Settle any name against
-<code>~/.nuget/packages/trblazeui.icons.lucide/&lt;version&gt;/content/lucide.json</code> — if it is under <code>aliases</code>,
-it will not render. The 2026-08-28 pass measured <strong>0 blank icons</strong> on <code>/misses</code>, <code>/repos</code> and <code>/</code>.</p>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-008, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="cookie-names-must-not-contain">3. Cookie names must not contain <code>:</code><a class="anchor-link" href="#cookie-names-must-not-contain">#</a></h3>
 <p>A cookie <em>name</em> is an RFC 6265 token, in which <code>:</code> is a separator, so <strong>ASP.NET Core silently drops any
 request cookie containing one</strong>. The browser stores and sends the colon form quite happily, so the
@@ -601,61 +582,13 @@ Components/_Imports.razor") all contradict the current <code>_Imports.razor</cod
 <code>GateOutcomes.razor</code> still hand-roll <code>&lt;h1 class="text-2xl font-semibold"&gt;</code>. Both work — just do not
 believe the comments.</p>
 <h3 id="tabstrigger-captures-no-unmatched-attributes">9. <code>TabsTrigger</code> captures no unmatched attributes<a class="anchor-link" href="#tabstrigger-captures-no-unmatched-attributes">#</a></h3>
-<p>You cannot put <code>data-testid</code> on a <code>TabsTrigger</code>. Every tab in the app puts it on the <code>&lt;span&gt;</code> the
-trigger wraps; a click on the span still activates the trigger:</p>
-<pre><code class="language-razor">&lt;TabsTrigger Value="drift"&gt;&lt;span data-testid="routing-tab-drift"&gt;Routing drift&lt;/span&gt;&lt;/TabsTrigger&gt;</code></pre>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-010, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">10. <code>trblazeui.css</code>'s spacing/sizing scale has <strong>holes</strong> — <code>w-20</code> renders at zero width<a class="anchor-link" href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">#</a></h3>
-<p>This is the one that will cost you an hour. <code>&lt;Progress Value="24" Class="w-20" /&gt;</code> renders with a
-<strong>width of exactly 0</strong>: no error, no warning, no console message. It does not look broken — it looks
-like a control somebody deliberately hid.</p>
-<p>The cause is that <code>trblazeui.css</code> is not a Tailwind build. It carries only the utilities the library's
-own components happen to use, so the scale <em>reads</em> as complete while several steps are simply absent:</p>
-<table>
-<thead><tr><th>Present</th><th><strong>Absent</strong></th></tr></thead>
-<tbody>
-<tr><td><code>.w-2 .w-3 .w-4 … .w-14 .w-16 .w-40 .w-64 .w-72</code></td><td><strong><code>w-20</code></strong></td></tr>
-<tr><td><code>mt-2</code>, <code>mt-4</code></td><td><strong><code>mt-3</code></strong></td></tr>
-<tr><td><code>my-2</code>, <code>my-6</code></td><td><strong><code>my-4</code></strong></td></tr>
-</tbody>
-</table>
-<p>Because both neighbours of every hole ship, the gap is invisible until a build lands on the wrong
-step. Found on the failed-practice share bars on <code>/misses</code> (<code>miss-whymissed</code>), which rendered as a
-zero-width <code>Progress</code> beside a perfectly correct percentage, and on the <code>Separator</code>s in the cost
-band. Recorded as <code>TR-021</code> — sibling of <code>TR-002</code>, where the responsive variants were byte-identical
-no-ops rather than absent.</p>
-<p><strong>Before you ship a screen, grep the class names you used against <code>trblazeui.css</code>.</strong> Then either use
-a step the file actually ships (<code>w-16</code> is what <code>Misses.razor</code> settled on) or declare the rule in the
-page's own scoped CSS. A geometry gate only catches this when the collapse happens to cause an
-overlap — most of the time it catches nothing at all.</p>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-021, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">11. <code>DialogContent</code> never scrolls, and the page has to own the scroll itself<a class="anchor-link" href="#dialogcontent-never-scrolls-and-the-page-has-to-own-the-scroll-itself">#</a></h3>
-<p><code>DialogContent</code> renders a fixed, centred panel with <strong>no height cap and no <code>overflow</code> on any of its
-parts</strong>, and exposes only <code>Class</code>, <code>ShowCloseButton</code> and <code>ChildContent</code> — no <code>MaxHeight</code>, no
-<code>ScrollBody</code>. A dialog taller than the viewport simply grows past it: the overlay does not scroll,
-and <code>DialogFooter</code> with its primary action is unreachable below the fold. <code>TR-019</code>, found on the
-Add-source dialog on <code>/repos</code>, whose import mode carries a mode fork, four fields, a drop zone, a
-preview table and a summary — at 390×844 the <strong>Import</strong> button could not be pressed.</p>
-<p>The fix in this codebase is that the page owns the scroll: everything between <code>DialogHeader</code> and
-<code>DialogFooter</code> sits in a single <code>.tflens-dialog-body</code> (<code>Components/Pages/Repos.razor.css</code>) with
-<code>max-height: 68vh; overflow-y: auto</code> — <code>56vh</code> under <code>@media (max-height: 700px)</code>. <code>vh</code> and <code>max-h-*</code>
-are not in the shipped stylesheet either (gotcha 10 / <code>TR-002</code>), so the rule has to live in scoped
-CSS rather than in a utility class.</p>
-<p><strong>Know the side effect before you read a gate report.</strong> A control scrolled out of that body still
-reports its <strong>true</strong> bounding rect to <code>getBoundingClientRect</code>. A naive overlap check therefore sees
-the clipped control colliding with the footer and reports a visual failure that does not exist on
-screen. Either scroll the body to the control first, or intersect against the body's own rect.</p>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-019, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">12. <code>SelectValue</code> shows the raw bound value until <code>SelectContent</code> has rendered once<a class="anchor-link" href="#selectvalue-shows-the-raw-bound-value-until-selectcontent-has-rendered-once">#</a></h3>
-<p><code>SelectItem</code> registers its <code>Text</code> with the parent only when it is <strong>rendered</strong>, and <code>SelectContent</code>
-renders nothing until the popover is opened. So at first paint the parent's value→text map is empty
-and <code>SelectValue</code> falls back to <code>Value.ToString()</code>: the closed trigger shows the internal key. Open
-the popover once and it is correct for the rest of the circuit, which makes it look intermittent
-rather than deterministic. <code>TR-020</code>.</p>
-<p>The period filter on <code>/misses</code> (<code>misses-period</code>) has to read <strong>All history (default)</strong> on first view
-(BRD-125) and read <code>all</code>. The fix is <code>DisplayTextSelector</code> on <code>Select</code> — a <code>Func&lt;TValue, string&gt;</code> the
-component consults without waiting for the items to render:</p>
-<pre><code class="language-razor">&lt;Select TValue="string" Value="@objPeriod" ValueChanged="OnPeriodChangedAsync"
-        DisplayTextSelector="@PeriodTextOf"&gt;</code></pre>
-<p>Keep the <code>Text</code> on each <code>SelectItem</code> as well; the open popover uses it. Verified 2026-08-28: the
-closed trigger reads <code>All history (default)</code>.</p>
+<p><strong>Fixed in TrBlazeUI 2.0.6 (TR-020, closed 2026-09-13).</strong> The workaround this gotcha described is gone from the code. The heading stays so older links still resolve.</p>
 <h3 id="sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">13. <code>SourceKind</code> has <strong>two vocabularies</strong> and they must never be collapsed<a class="anchor-link" href="#sourcekind-has-two-vocabularies-and-they-must-never-be-collapsed">#</a></h3>
 <p>The <code>"UserRepo"."SourceKind"</code> column stores <code>api</code> | <code>import</code> (BRD-132). The badge on <code>/repos</code> and on
 Coverage says <strong>Synced</strong> | <strong>Imported</strong>. These are two different vocabularies for one fact, and both
@@ -1207,6 +1140,141 @@ a <code>&lt;span&gt;</code> inside. The build will not warn you.</p>
 </li>
 </ul>
 <hr>
+<h2 id="prices"><code>/prices</code><a class="anchor-link" href="#prices">#</a></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Prices.razor</code> (+ <code>Prices.razor.css</code>) · <code>@page "/prices"</code> · authenticated
+(no <code>[Authorize]</code> on the page; the fallback policy at <code>Services/Auth/AuthRegistration.cs:92</code> requires a signed-in
+user, and <code>/prices</code> is not in <code>Services/Auth/AnonymousRoutes.cs:23-31</code>) · <code>MainLayout</code> (<code>Components/Routes.razor:3</code>,
+no <code>@layout</code> on the page) · Framework switch <strong>not shown</strong> (<code>Services/Ui/ShellNavigation.cs:65</code>, last argument
+<code>HasFrameworkSwitch = false</code>)</p>
+<p>Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error banner.
+REQ-UI-072 Verified the same day, including mockup parity.</p>
+<p><img src="./screenshots/TfLens/manager-prices-1280.png" alt="Price providers, desktop" style="max-width:100%">
+<img src="./screenshots/TfLens/manager-prices-390.png" alt="Price providers, phone width" style="max-width:100%"></p>
+<p><strong>What it is for.</strong> Where every published rate comes from and when it was last checked. Each provider is
+labelled as either read from its own endpoint or typed from its published page. It is an <strong>input</strong> screen, not a
+report: every change here rewrites <code>prices.json</code>, the flat rate card that every money figure in TfLens is priced from.</p>
+<h3 id="control-data-path-8">Control → data path<a class="anchor-link" href="#control-data-path-8">#</a></h3>
+<p>One load call: <code>objProviders = [.. await PriceProviders.LoadAsync(objOptions.Value.PriceProvidersPath)]</code> followed by
+<code>objClashes = PriceProviders.Clashes(objProviders)</code> (<code>Prices.razor:466-467</code>, <code>src/TfLens.Core/Metrics/PriceProviders.cs</code>).
+No database is involved. The page reads and writes two JSON files under <code>DataRoot</code>: <code>price-providers.json</code>
+(<code>TfLensOptions.cs:331</code>) and <code>prices.json</code> (<code>TfLensOptions.cs:317</code>).</p>
+<table>
+<thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Header count</td><td><code>Badge Outline</code></td><td><code>prices-model-count</code></td><td><code>CountLabel</code> (<code>Prices.razor:430</code>): Σ <code>Models.Count</code> over <code>objProviders</code></td></tr>
+<tr><td>Standing note</td><td><code>Alert Info</code></td><td><code>prices-standing-note</code></td><td>constant text plus <code>objOptions.Value.PricesPath</code> (<code>:57</code>); always shown</td></tr>
+<tr><td>Clash reporting</td><td><code>Alert Warning</code></td><td><code>prices-clashes</code></td><td><code>objClashes</code> (<code>:61</code>) ← <code>PriceProviders.Clashes</code> (<code>PriceProviders.cs:250</code>); shown only when <code>Count &gt; 0</code></td></tr>
+<tr><td>Loading</td><td>3× <code>Card</code> of <code>Skeleton</code></td><td>—</td><td><code>objIsLoading</code> (<code>:74</code>)</td></tr>
+<tr><td>Provider card</td><td><code>Card</code></td><td><code>prices-provider-{id}</code></td><td>one per <code>objProviders</code> entry (<code>:90-94</code>), in file order</td></tr>
+<tr><td>Published-page link</td><td><code>a.tflens-prices-source</code></td><td>—</td><td><code>PriceProvider.SourceUrl</code> (<code>:100-107</code>); "no published page recorded" when blank</td></tr>
+<tr><td>Kind badge</td><td><code>Badge Info</code> / <code>Badge Secondary</code></td><td><code>prices-kind-{id}</code></td><td><code>IsEndpoint</code> (<code>:751</code>): <code>Fetch == PriceFetch.Api</code> → "read from its endpoint", else "typed from the published page" (<code>:115-124</code>)</td></tr>
+<tr><td>Last-checked badge</td><td><code>Badge Outline</code></td><td><code>prices-checked-{id}</code></td><td><code>CheckedLabel</code> (<code>:756</code>): <code>LastChecked</code> or "never checked"</td></tr>
+<tr><td>Refresh</td><td><code>Button Outline Small</code></td><td><code>prices-refresh-{id}</code></td><td>shown only when <code>IsEndpoint &amp;&amp; ApiUrl</code> is not empty (<code>:128</code>); <code>OnClick</code> → <code>RefreshAsync</code> (<code>:501</code>)</td></tr>
+<tr><td>Remove</td><td><code>Button Ghost Small</code></td><td><code>prices-remove-{id}</code></td><td><code>OnClick</code> → <code>RemoveAsync</code> (<code>:604</code>); no confirmation step</td></tr>
+<tr><td>No rates yet</td><td><code>TypographyMuted</code></td><td>—</td><td><code>Models.Count == 0</code> (<code>:150</code>); the wording depends on <code>IsEndpoint</code></td></tr>
+<tr><td>Model filter</td><td><code>InputGroup</code> → <code>InputGroupInput</code></td><td><code>prices-filter-{id}</code></td><td>shown only when <code>PriceRatePage.NeedsFilter(count)</code>, i.e. more than 20 rates (<code>PriceRatePage.cs:40,80</code>); <code>ValueChanged</code> → <code>OnFilterChanged</code> (<code>:716</code>), which also resets the page to 0</td></tr>
+<tr><td>No filter match</td><td><code>TypographyMuted.tflens-prices-nomatch</code></td><td>—</td><td><code>vPage.Rows.Count == 0</code> (<code>:182</code>)</td></tr>
+<tr><td>Rate table</td><td><code>DataTable&lt;PriceProviderModel&gt;</code> <code>ShowPagination=false</code> <code>Density=Compact</code></td><td><code>prices-table-{id}</code></td><td><code>vPage.Rows</code> ← <code>PageFor</code> (<code>:705</code>) ← <code>PriceRatePage.Of</code> (<code>PriceRatePage.cs:88</code>); columns <code>Model</code>, <code>InputPerMillion</code>, <code>OutputPerMillion</code>, <code>CacheReadPerMillion</code>, <code>CacheWritePerMillion</code> (<code>:205-238</code>), figures through <code>Usd</code> (<code>:779</code>)</td></tr>
+<tr><td>Pager</td><td>2× <code>Button Outline Small</code></td><td><code>prices-page-prev-{id}</code>, <code>prices-page-next-{id}</code></td><td>shown when <code>HasPager</code> (more than 5 matches, <code>PriceRatePage.cs:43</code>); disabled by <code>CanGoBack</code> / <code>CanGoForward</code> (<code>:46,49</code>); <code>OnClick</code> → <code>GoToPage</code> (<code>Prices.razor:725</code>)</td></tr>
+<tr><td>Pager caption</td><td><code>span.tflens-prices-hint</code></td><td>—</td><td><code>FooterNote</code> (<code>:731</code>): the unit + <code>PriceRatePage.Summary</code> (<code>PriceRatePage.cs:55</code>) + for an endpoint provider "a rate the endpoint declines to publish is skipped, never stored as zero"</td></tr>
+<tr><td>Add provider</td><td><code>Card</code> + 3× <code>Input</code> + <code>Button</code></td><td><code>prices-add-provider</code>, <code>prices-new-name</code>, <code>prices-new-source</code>, <code>prices-new-api</code>, <code>prices-add</code></td><td><code>objNewName</code> / <code>objNewSource</code> / <code>objNewApi</code> (<code>:284-299</code>); <code>OnClick</code> → <code>AddAsync</code> (<code>:551</code>)</td></tr>
+<tr><td>Add or change a rate</td><td><code>Card</code> (a form card, <strong>not</strong> a dialog) + <code>NativeSelect</code> + 5× <code>Input</code> + <code>Button</code></td><td><code>prices-add-rate</code>, <code>prices-rate-provider</code>, <code>prices-rate-model</code>, <code>prices-rate-in</code>, <code>prices-rate-out</code>, <code>prices-rate-cr</code>, <code>prices-rate-cw</code>, <code>prices-save-rate</code></td><td>the select's options are <code>objProviders</code> (<code>:332-335</code>), bound to <code>objRateProvider</code>; the rates are strings defaulting to <code>"0"</code> (<code>:424-427</code>); <code>OnClick</code> → <code>SaveRateAsync</code> (<code>:630</code>)</td></tr>
+<tr><td>Result message</td><td><code>Alert Info</code> / <code>Alert Warning</code></td><td><code>prices-message</code></td><td><code>objMessage</code> / <code>objIsMessageProblem</code> set by <code>Say</code> (<code>:483</code>); always in the DOM, hidden by <code>.tflens-prices-message-idle</code> (<code>Prices.razor.css:88</code>) until there is a message; focused in <code>OnAfterRenderAsync</code> (<code>:451-460</code>)</td></tr>
+</tbody>
+</table>
+<p><strong>Call chain — load:</strong> <code>Prices.razor:444 OnInitializedAsync</code> → <code>Prices.razor:464 ReloadAsync</code> →
+<code>PriceProviders.cs:53 LoadAsync</code> → when the file is absent, <code>PriceProviders.cs:328 Seed</code> + <code>:139 SaveAsync</code>; otherwise
+<code>:69 File.ReadAllTextAsync</code> → <code>:89 Parse</code> → then <code>PriceProviders.cs:250 Clashes</code>. Per card, at render time:
+<code>Prices.razor:705 PageFor</code> → <code>PriceRatePage.cs:88 Of</code>.</p>
+<p><strong>Call chain — refresh:</strong> <code>Prices.razor:134 OnClick</code> → <code>Prices.razor:501 RefreshAsync</code> → <code>:539 FetchAsync</code> →
+<code>:541 IHttpClientFactory.CreateClient</code> (30 s timeout, <code>:542</code>) → <code>:544 HttpClient.GetStringAsync(ApiUrl)</code> →
+<code>PriceProviders.cs:275 ReadOpenRouter</code> (<code>:383 PerToken</code> multiplies by 1,000,000; <code>:304</code> skips any negative) →
+<code>Prices.razor:515 Replace</code> → <code>:473 PersistAsync</code> → <code>PriceProviders.cs:139 SaveAsync</code> (<code>:202 File.WriteAllTextAsync</code>
+<code>price-providers.json</code>) → <code>PriceProviders.cs:221 ApplyAsync</code> → <code>RateCard.cs:163 SaveAsync</code> (<code>prices.json</code>) →
+<code>PriceProviders.cs:250 Clashes</code>.</p>
+<p><strong>Call chain — add or change a rate:</strong> <code>Prices.razor:376 OnClick</code> → <code>Prices.razor:630 SaveRateAsync</code> →
+<code>:667 TypedRate</code> → <code>:773 TryRate</code> → <code>:677 WithRate</code> → <code>:690 Replace</code> → <code>:473 PersistAsync</code> → (same writes as refresh) →
+<code>:696 ShowModel</code> → <code>PriceRatePage.cs:116 PageOf</code>.</p>
+<p><strong>Call chain — add provider:</strong> <code>Prices.razor:306 OnClick</code> → <code>Prices.razor:551 AddAsync</code> → <code>:762 IdOf</code> →
+<code>:587 NewProvider</code> (<code>Fetch = Api</code> only when an endpoint was typed, <code>:596</code>) → <code>:473 PersistAsync</code> → (same writes).</p>
+<p><strong>Call chain — remove provider:</strong> <code>Prices.razor:143 OnClick</code> → <code>Prices.razor:604 RemoveAsync</code> →
+<code>List.Remove</code> (<code>:610</code>) → <code>:473 PersistAsync</code> → (same writes; the removed provider's models drop out of <code>prices.json</code>).</p>
+<h3 id="where-to-break">Where to break<a class="anchor-link" href="#where-to-break">#</a></h3>
+<table>
+<thead><tr><th>File:line</th><th>Function</th><th>Watch</th><th>Should hold</th></tr></thead>
+<tbody>
+<tr><td><code>src/TfLens.Core/Metrics/PriceProviders.cs:304</code></td><td><code>ReadOpenRouter</code></td><td><code>vIn</code>, <code>vOut</code>, <code>vCacheRead</code>, <code>vCacheWrite</code> (a <code>"-1"</code> arrives as <code>-1000000</code>)</td><td>the entry hits <code>continue</code> and never reaches <code>vModels</code> — never stored, never <code>0</code></td></tr>
+<tr><td><code>src/TfLens/Components/Pages/Prices.razor:509</code></td><td><code>RefreshAsync</code></td><td><code>vModels.Count</code></td><td>at <code>0</code> it returns before <code>Replace</code> at <code>:515</code>; both files are untouched</td></tr>
+<tr><td><code>src/TfLens/Components/Pages/Prices.razor:520</code></td><td><code>RefreshAsync</code> (catch)</td><td><code>vError.GetType()</code></td><td><code>HttpRequestException</code> / <code>TaskCanceledException</code> / <code>JsonException</code> are all thrown inside <code>FetchAsync</code>, before <code>Replace</code>, so the stored and shown rates are unchanged and the message ends "unchanged"</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics/PriceProviders.cs:232</code></td><td><code>ApplyAsync</code></td><td><code>vFlat.ContainsKey(vModel.Model)</code></td><td>the first provider in file order wins; a later duplicate is skipped, never averaged</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics/PriceProviders.cs:257</code></td><td><code>Clashes</code></td><td><code>aGroup.Count()</code></td><td>every id priced more than once (compared case-insensitively) is listed in <code>prices-clashes</code></td></tr>
+<tr><td><code>src/TfLens/Components/Pages/Prices.razor:641</code></td><td><code>SaveRateAsync</code></td><td><code>TypedRate(vModel)</code></td><td><code>null</code> for any negative or non-numeric rate; returns before <code>objIsBusy</code> is set and before <code>PersistAsync</code></td></tr>
+<tr><td><code>src/TfLens/Services/Ui/PriceRatePage.cs:98</code></td><td><code>Of</code></td><td><code>vIndex</code>, <code>vPageCount</code>, <code>vMatches.Count</code></td><td>the index is clamped into range; <code>Rows.Count</code> is at most 5</td></tr>
+<tr><td><code>src/TfLens.Core/Metrics/PriceProviders.cs:59</code></td><td><code>LoadAsync</code></td><td><code>File.Exists(aPath)</code></td><td>on a first run the four seeded providers are written to disk and returned</td></tr>
+</tbody>
+</table>
+<h3 id="states-8">States<a class="anchor-link" href="#states-8">#</a></h3>
+<ul>
+<li><strong>Loading</strong> — three <code>Card</code>s of <code>Skeleton</code> while <code>objIsLoading</code> (<code>:74-88</code>). <code>Routes</code> render <code>InteractiveServer</code> (<code>App.razor:27</code>), so <code>OnInitializedAsync</code> (and therefore <code>LoadAsync</code>) can run once for the prerender pass and once for the circuit.
+</li>
+<li><strong>Error</strong> — there is <strong>no page-level error state</strong>. <code>LoadAsync</code> turns a malformed or unreadable file into the seed (<code>PriceProviders.cs:73-82</code>) without saying so. Any other exception from load or from a write is not caught here.
+</li>
+<li><strong>Clash</strong> — <code>Alert Warning</code> <code>prices-clashes</code>, listing the ids.
+</li>
+<li><strong>Provider with no rates</strong> — "No rates yet. Refresh to read them from the endpoint." or "…Add a model below." (<code>:150-160</code>). The seeded OpenRouter provider starts this way (<code>PriceProviders.cs:376</code>).
+</li>
+<li><strong>Short provider</strong> (5 rates or fewer, unfiltered) — no pager and no count in the caption, because <code>Summary</code> is <code>null</code>.
+</li>
+<li><strong>Long provider</strong> (more than 20 rates) — the filter appears; a filter that matches nothing shows "No model id contains “…”".
+</li>
+<li><strong>Busy</strong> — <code>objIsBusy</code> disables Refresh, Remove, Add provider and Save rate. It does <strong>not</strong> disable the pager, the filter or the form inputs.
+</li>
+<li><strong>Outcome</strong> — <code>prices-message</code> shows Info on success and Warning when something needs the reader's attention (<code>:385-389</code>).
+</li>
+<li><strong>Empty book</strong> — if every provider is removed, the file stays with an empty <code>providers</code> array and is <strong>not</strong> re-seeded (<code>LoadAsync</code> seeds only when the file is absent). The page then shows no cards and no empty state, the badge reads "0 rates over 0 providers", and the provider select has no options.
+</li>
+</ul>
+<h3 id="gotchas-8">Gotchas<a class="anchor-link" href="#gotchas-8">#</a></h3>
+<ul>
+<li><strong>Two files, one of them derived.</strong> <code>price-providers.json</code> holds the rates and where they came from. <code>prices.json</code> is rebuilt from it on every Add, Remove, Save and successful Refresh (<code>PersistAsync</code>, <code>:473-477</code>). The Routing page's rate editor writes <code>prices.json</code> directly (<code>Routing.razor:1114</code>), so the next action on <code>/prices</code> <strong>overwrites</strong> that edit. The two writes are not atomic: if the second one fails, the two files disagree.
+</li>
+<li><strong>Refresh assumes the OpenRouter format for every endpoint.</strong> <code>FetchAsync</code> always calls <code>ReadOpenRouter</code> (<code>:546</code>). A provider added with any other endpoint gets "returned no rates this reader could understand".
+</li>
+<li><strong>Refresh replaces the provider's whole model list</strong> (<code>aProvider with { Models = vModels }</code>, <code>:515</code>). A rate typed by hand onto an endpoint provider is lost on its next refresh.
+</li>
+<li><strong>Saving one rate stamps the whole provider as checked today</strong> (<code>WithRate</code>, <code>:684</code>). The last-checked badge is per provider, not per rate.
+</li>
+<li><strong>Fixed 2026-09-15:</strong> <code>ReadOpenRouter</code> now skips a model when <em>either</em> <code>prompt</code> or <code>completion</code> is unreadable (unit test <code>PriceProviderTests.AModelWithOnlyOnePricePublishedIsSkippedRatherThanZeroed</code>). As found:
+</li>
+<li><strong>A missing price on one side is stored as zero.</strong> <code>ReadOpenRouter</code> skips a model only when <em>both</em> <code>prompt</code> and <code>completion</code> are unreadable (<code>:294</code>), then stores <code>?? 0m</code> for any single missing price (<code>:311-314</code>). The comment at <code>:268</code> says an unreadable price is "skipped rather than stored at zero", so the comment and the code disagree. The <code>-1</code> rule itself (<code>:304</code>) is correct.
+</li>
+<li><strong>The page changes its in-memory list before writing.</strong> <code>Replace</code> (<code>:515</code>, <code>:652</code>), <code>Add</code> (<code>:572</code>) and <code>Remove</code> (<code>:610</code>) all run before <code>PersistAsync</code>. If a write throws, the page shows a change the files do not hold.
+</li>
+<li><strong><code>ArgumentOutOfRangeException</code> is only caught on Refresh</strong> (<code>:524</code>). It comes from <code>SaveAsync</code> (<code>PriceProviders.cs:152</code>) when <em>any</em> model in the book has a negative rate. <code>Parse</code> accepts negatives from a hand-edited file, so the Refresh message can blame the provider being refreshed for another provider's rate. Add, Remove and Save have no handler for it.
+</li>
+<li>A malformed <code>price-providers.json</code> shows the seed. The next action then <strong>overwrites</strong> the broken file with the seed plus that edit.
+</li>
+<li>Model ids are matched case-insensitively when a rate is upserted (<code>:681</code>), when the flat card is built and when clashes are found. Provider ids are derived from the name (<code>IdOf</code>, <code>:762</code>): lower case, with every non-alphanumeric character turned into <code>-</code>.
+</li>
+<li>Remove has no confirmation. That matches the mockup, where Remove is a single button (<code>docs/mockups/prices.html:287</code>).
+</li>
+<li>The standing note prints the server-side <code>PricesPath</code> (<code>:57</code>).
+</li>
+<li>The page subscribes to neither <code>ShellState.Changed</code> nor <code>ShellPreferences.Changed</code>, so Sync now and theme or framework changes never reload it.
+</li>
+<li>The design table (<code>docs/TfLens-P3-UIDesign.md:137</code>) calls the provider picker a <code>Select</code>; the code uses <code>NativeSelect</code> (<code>:329</code>), on purpose (see the comment at <code>:326-328</code>).
+</li>
+<li>Whether <code>InputGroupInput.ValueChanged</code> fires on every keystroke or only on change: {unresolved — the 2.0.6 <code>TrBlazeUI.Components.xml</code> documents <code>ValueChanged</code> only as "invoked when the input value changes" and names no update-timing parameter}.
+</li>
+<li>Tests: <code>tests/verify/ui-prices.spec.ts</code>, <code>tests/verify/ui-prices-openrouter.spec.ts</code>, <code>tests/verify/verify-prices.spec.ts</code>. The failed-refresh test (<code>verify-prices.spec.ts:335</code>) adds a probe provider whose endpoint is on the reserved <code>.invalid</code> domain.
+</li>
+</ul>
+<h3 id="defects-found">Defects found<a class="anchor-link" href="#defects-found">#</a></h3>
+<ul>
+<li><strong>REQ-UI-072 · Low · A single missing OpenRouter price is stored as zero</strong> (logged on the row 2026-09-14; <strong>fixed and re-verified 2026-09-15</strong> — <code>ReadOpenRouter</code> now skips a model when either price is unreadable). <code>ReadOpenRouter</code> skips a model only when both <code>prompt</code> and <code>completion</code> are unreadable (<code>PriceProviders.cs:294</code>) and stores <code>?? 0m</code> for either one alone (<code>:311-314</code>). REQ-UI-072 says a rate the endpoint does not publish is never coerced to zero, and the method's own comment (<code>:268</code>) says the same. <strong>Not affected:</strong> the <code>-1</code> rule (<code>:304</code>), typed rates, clash reporting and the pager.
+</li>
+</ul>
+<hr>
 <h2 id="coverage-health"><code>/</code> — Coverage / health<a class="anchor-link" href="#coverage-health">#</a></h2>
 <p><strong>File:</strong> <code>src/TfLens/Components/Pages/Coverage.razor</code> · <code>@page "/"</code> · authenticated ·
 <code>MainLayout</code> · breadcrumb <code>Reports › Coverage / health</code> · Framework switch <strong>shown</strong></p>
@@ -1214,7 +1282,7 @@ a <code>&lt;span&gt;</code> inside. The build will not warn you.</p>
 <p><strong>What it is for.</strong> "Every other number is suspect until this page is green." It reads the sync
 bookkeeping <em>and the stored rows themselves</em> — never a cached summary — so what it shows is what the
 store holds.</p>
-<h3 id="control-data-path-8">Control → data path<a class="anchor-link" href="#control-data-path-8">#</a></h3>
+<h3 id="control-data-path-9">Control → data path<a class="anchor-link" href="#control-data-path-9">#</a></h3>
 <table>
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Method</th><th>Behind it</th></tr></thead>
 <tbody>
@@ -1285,7 +1353,7 @@ records nobody can now complete.</p>
 stale streams → misses-without-fixes → escapes-missing-why → orphan records → reclassification →
 undocumented fields → <code>v &gt; 1</code>. <strong>None of them is an error and none reddens a repo's health badge.</strong>
 An incomplete stream is a habit still forming, not a broken system.</p>
-<h3 id="states-8">States<a class="anchor-link" href="#states-8">#</a></h3>
+<h3 id="states-9">States<a class="anchor-link" href="#states-9">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>objIsLoaded == false</code> → one <code>Card</code> with three <code>Skeleton</code> lines.
 </li>
@@ -1311,7 +1379,7 @@ each</strong>, 0 blank icons, no page-level horizontal scroll, no console or pag
 <li><code>stat-sparkline</code> renders on the gate-records KPI (<code>ReadDailySeriesAsync</code>).
 </li>
 </ul>
-<h3 id="gotchas-8">Gotchas<a class="anchor-link" href="#gotchas-8">#</a></h3>
+<h3 id="gotchas-9">Gotchas<a class="anchor-link" href="#gotchas-9">#</a></h3>
 <ul>
 <li><strong><code>ReadCoverageFactsAsync</code> is not framework-filtered.</strong> Its SQL has no <code>"UserRepo"</code> join — it returns facts for every repo of the user. The page narrows them by matching repo name inside <code>BuildRow</code>. If you add a call site, do the filtering yourself.
 </li>
@@ -1363,7 +1431,7 @@ closed).</p>
 </blockquote>
 <p><strong>What it is for.</strong> The page the product exists for: first-pass rate, escape rate and failures scored,
 read <strong>one <code>project_type</code> at a time</strong>. There is deliberately no "all" tab and no total row.</p>
-<h3 id="control-data-path-9">Control → data path<a class="anchor-link" href="#control-data-path-9">#</a></h3>
+<h3 id="control-data-path-10">Control → data path<a class="anchor-link" href="#control-data-path-10">#</a></h3>
 <p>Everything on this page comes from a single call:</p>
 <pre><code class="language-csharp">objResult = await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework);</code></pre>
 <p><code>IMetricsEngine</code> is registered as <code>CachingMetricsEngine</code> wrapping <code>MetricsEngine</code>
@@ -1415,7 +1483,7 @@ distinct REQs into <code>ReqsExcludedBackfillTaint</code>.</p>
 in the live and backfilled distributions independently. The engine <em>omits</em> a gate that caught nothing;
 the screen shows the whole order so the reader can see a gate caught nothing rather than wonder whether
 it ran.</p>
-<h3 id="states-9">States<a class="anchor-link" href="#states-9">#</a></h3>
+<h3 id="states-10">States<a class="anchor-link" href="#states-10">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — single <code>Card</code> of <code>Skeleton</code> lines.
 </li>
@@ -1426,7 +1494,7 @@ it ran.</p>
 <li><strong>Insufficient data</strong> — any <code>Figure</code> below <code>MinN</code> = 3 renders <code>insufficient data (n=…)</code> through <code>FigureText</code>. <code>SmallWhenNoNumber</code> shrinks it to <code>text-base font-normal</code> so a refusal-to-answer is never rendered at headline size.
 </li>
 </ul>
-<h3 id="gotchas-9">Gotchas<a class="anchor-link" href="#gotchas-9">#</a></h3>
+<h3 id="gotchas-10">Gotchas<a class="anchor-link" href="#gotchas-10">#</a></h3>
 <ul>
 <li><strong>Nothing on this page may be added up.</strong> No total row, no combined column, no cross-type figure. <code>AnalysisResult</code> cannot express one (ADR-007) and this page adds nothing that would. If a stakeholder asks for a total, the answer is no.
 </li>
@@ -1450,7 +1518,7 @@ it ran.</p>
 <p><img src="./devguide-images/harness.png" alt="Harness comparison" style="max-width:100%">
 <img src="./devguide-images/harness-tokens-chart.png" alt="The tokens-by-harness chart and the OpenCode dollars card" style="max-width:100%"></p>
 <p><strong>What it is for.</strong> The three harnesses side by side. The integrity rules <em>are</em> the feature.</p>
-<h3 id="control-data-path-10">Control → data path<a class="anchor-link" href="#control-data-path-10">#</a></h3>
+<h3 id="control-data-path-11">Control → data path<a class="anchor-link" href="#control-data-path-11">#</a></h3>
 <p>One call: <code>objComparison = await objExtraMetrics.CompareHarnessesAsync(userId, objPreferences.Framework)</code>
 (<code>src/TfLens.Core/Metrics/ExtraMetrics.cs</code>).</p>
 <table>
@@ -1477,7 +1545,7 @@ it ran.</p>
 <li><strong>Any figure below <code>MinN</code> renders through <code>FigureText</code>.</strong> Only <code>Tokens per Verified REQ</code> carries a <code>Figure</code>; <code>ColumnRow.Value</code> is <code>null</code> for every other row, and the cell falls back to the plain span. <code>TokensPerVerified</code> returns <code>NotApplicable</code> when no tokens were captured at all — because zero would read as a measurement of nothing rather than an absence of measurement.
 </li>
 </ol>
-<h3 id="states-10">States<a class="anchor-link" href="#states-10">#</a></h3>
+<h3 id="states-11">States<a class="anchor-link" href="#states-11">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>Card</code> of <code>Skeleton</code> lines.
 </li>
@@ -1490,7 +1558,7 @@ it ran.</p>
 <li><strong>No page-level empty state.</strong> With zero records the page still renders three <code>—</code> columns. That is intentional.
 </li>
 </ul>
-<h3 id="gotchas-10">Gotchas<a class="anchor-link" href="#gotchas-10">#</a></h3>
+<h3 id="gotchas-11">Gotchas<a class="anchor-link" href="#gotchas-11">#</a></h3>
 <ul>
 <li><strong>The chart works.</strong> Verified live on TechieFlow: <code>[data-testid="tokens-chart"]</code> contains an <code>apexcharts-svg</code> with 3 bar paths and 3 x-axis labels, and <code>window.ApexCharts</code> is a function. See the deviation note under <a href="#routing"><code>/routing</code></a> — <code>Routing.razor</code>'s TR-011 comment claiming the ApexCharts runtime is never loaded is <strong>stale and wrong</strong>.
 </li>
@@ -1578,7 +1646,7 @@ reach; a zero delta takes no sign.</p>
 <p>These count <em>events</em> rather than score <em>requirements</em>, which is why the reference pools them across
 harnesses. <strong><code>PooledMetrics.CostUsd</code> is null by design and is deliberately not rendered anywhere</strong> — do
 not add it.</p>
-<h3 id="states-11">States<a class="anchor-link" href="#states-11">#</a></h3>
+<h3 id="states-12">States<a class="anchor-link" href="#states-12">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>Card</code> of <code>Skeleton</code> lines.
 </li>
@@ -1591,7 +1659,7 @@ not add it.</p>
 <li><strong>Save refusal</strong> — <code>HasRateErrors</code> disables Save and shows <code>edit-prices-invalid</code>.
 </li>
 </ul>
-<h3 id="gotchas-11">Gotchas<a class="anchor-link" href="#gotchas-11">#</a></h3>
+<h3 id="gotchas-12">Gotchas<a class="anchor-link" href="#gotchas-12">#</a></h3>
 <ul>
 <li><strong>A blank rate-card row means "not priced" and is dropped from the file, never saved as zero.</strong> <code>IsRowValid</code> accepts a wholly blank row <em>or</em> four valid rates; a <strong>half-filled row is refused</strong> rather than silently completed with zeros. Saving a zero for an unpriced model is the one thing SCHEMA.md §4 forbids.
 </li>
@@ -1618,208 +1686,335 @@ delta) — the delta got promoted from the separate "Delta" row into the same gr
 and matches the screenshot.</p>
 <hr>
 <h2 id="misses"><code>/misses</code><a class="anchor-link" href="#misses">#</a></h2>
-<p><strong>Files:</strong> <code>src/TfLens/Components/Pages/Misses.razor</code> (1,766 lines) + <code>Misses.razor.css</code> ·
-<code>@page "/misses"</code> · authenticated · <code>MainLayout</code> · breadcrumb <code>Reports › Misses &amp; rework</code> ·
-Framework switch <strong>shown</strong> · sidebar item <code>nav-misses</code>, between Routing and Snapshot export.</p>
-<p><img src="./devguide-images/misses.png" alt="Misses &amp; rework" style="max-width:100%"></p>
-<p><strong>What it is for.</strong> What was missed, which practice let it through, and what the repair cost. It is
-the sixth report page and the first one built on the <code>misses</code> stream (BRD-118..BRD-126, REQ-UI-035..038).</p>
-<p><strong>Read this before you fix anything here.</strong> Six behaviours on this page look like defects and are not.
-Every one of them is a rule with a test behind it, and "correcting" any of them turns a refusal to
-answer into a flattering number:</p>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Misses.razor</code> (2,456 lines) + <code>Misses.razor.css</code> (286 lines) ·
+<code>@page "/misses"</code> (line 24) · authenticated · <code>MainLayout</code> · breadcrumb <code>Reports › Misses &amp; rework</code> ·
+Framework switch <strong>shown</strong> · sidebar item <code>nav-misses</code> (<code>ShellNavigation.cs:70</code>), between Routing &amp; economics
+and Phase effort. The Playbook axis renders <code>Components/Shared/Playbook/PlaybookMissesSurface.razor</code>
+(1,925 lines) instead of the TechieFlow bands.</p>
+<p>Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error
+banner. REQ-UI-035..038 and REQ-UI-051..054 Verified the same day, including mockup parity.</p>
+<p><img src="./screenshots/TfLens/manager-misses-1280.png" alt="Misses &amp; rework, desktop" style="max-width:100%">
+<img src="./screenshots/TfLens/manager-misses-390.png" alt="Misses &amp; rework, phone width" style="max-width:100%"></p>
+<p><strong>What it is for.</strong> What was missed, whose gap it was, which practice let it through, what the repair cost,
+and what owner reviews cost. It is built on the <code>misses</code> stream (BRD-118..BRD-126, BRD-167..BRD-176).</p>
+<p><strong>Read this before you fix anything here.</strong> These look like defects and are not. Each is a rule, and
+"correcting" one turns a refusal to answer into a flattering number:</p>
 <ol>
-<li><strong>Measured and apportioned rework cost are never blended.</strong> <code>MissCost</code> has exactly three members — <code>Sole</code>, <code>Apportioned</code>, <code>NoneCount</code> — so a combined figure has no property to bind to (ADR-019). Reflection tests in <strong>two</strong> projects pin it: <code>MissInvariantContractTests.MissCostExposesNoPropertyThatCouldHoldABlendedFigure</code> and <code>.NoMissResultTypeCarriesATotalOrBlendedFigure</code> in <code>tests/TfLens.Guardrails.Tests</code>, and <code>MissInvariantTests.MissCostCarriesTheSplitAndNothingElse</code> in <code>tests/TfLens.Core.Tests</code>.
+<li><strong>Measured and apportioned rework cost are never blended</strong> (ADR-019). Pinned by <code>MissCostExposesNoPropertyThatCouldHoldABlendedFigure</code> and <code>NoMissResultTypeCarriesATotalOrBlendedFigure</code> (<code>tests/TfLens.Core.Tests/Metrics/MissInvariantTests.cs:32</code>, <code>:50</code>) and <code>MissCostCarriesTheSplitAndNothingElse</code> (<code>tests/TfLens.Guardrails.Tests/MissInvariantContractTests.cs:138</code>).
 </li>
-<li><strong>Per-model, per-agent and per-phase figures count <code>OriginConfidence == "linked"</code> records only</strong>, and <strong>the excluded count is rendered, never hidden</strong> (<code>miss-taint-count</code>, always, even at zero). An exclusion the reader cannot see is indistinguishable from a bug.
+<li><strong>Per-phase, per-model and per-agent figures count <code>origin_confidence == "linked"</code> only</strong>, and the excluded count is always printed (<code>miss-taint-count</code>, <code>Misses.razor:410</code>, rendered even at zero).
 </li>
-<li><strong>The <code>why_missed</code> distribution's denominator is the records that <em>carry</em> the field</strong>, printed on the card's face (<code>miss-whymissed-denominator</code>), and bounded by the eligibility floor <code>MetricsConstants.FieldSince["why_missed"] = 2026-08-28</code>. Never the miss count.
+<li><strong>Every distribution prints its own denominator on its face</strong>: <code>n of N misses assessed</code> for <code>why_missed</code>, <code>n of N sorted</code> for <code>sort</code>. Neither is ever read against the miss count.
 </li>
-<li><strong><code>wont-fix</code> is never folded into open.</strong> It is its own tile. <code>deferred</code> <em>is</em> open. The producer's collapse check asks a different question and the two are <strong>deliberately not reconciled</strong>.
+<li><strong><code>wont-fix</code> is its own tile and never open; <code>deferred</code> is open.</strong>
 </li>
-<li><strong>The period filter narrows the record set and re-runs <code>MissFigures.Compute</code>.</strong> It does not recompute anything in the view. That is why every engine rule still applies under a filter, and why a narrow window degrades to <code>insufficient data (n=…)</code> rather than to a wrong number.
+<li><strong>The period filter narrows the record set and re-runs <code>MissFigures.Compute</code>.</strong> A narrow window degrades to <code>insufficient data (n=…)</code> (<code>Figure.MinN = 3</code>, <code>Figure.cs:137</code>), never to a wrong number.
 </li>
-<li><strong>An absent cost renders <code>—</code>, never <code>$0.00</code>,</strong> and every <code>Figure</code> renders through <code>Components/Shared/FigureText.razor</code> (<a href="#a-figure-may-only-ever-be-rendered-through-components-shared-figuretext-razor">gotcha 7</a>).
+<li><strong>An absent cost renders <code>—</code>, an absent review figure renders <code>not available</code>, never <code>0</code> or <code>$0.00</code></strong>, and every <code>Figure</code> goes through <code>Components/Shared/FigureText.razor</code> (cross-cutting gotcha 7).
 </li>
 </ol>
-<h3 id="control-data-path-11">Control → data path<a class="anchor-link" href="#control-data-path-11">#</a></h3>
-<p>The page injects <code>ITelemetryStore</code> <strong>directly</strong> — it does not go through <code>IMetricsEngine</code>, because it
-has to re-run the computation per period. Four reads, then one engine call:</p>
-<pre><code class="language-csharp">objAllMisses = await objStore.ReadMissesAsync(userId, framework);      // "Miss"
-objAllFixes  = await objStore.ReadMissFixesAsync(userId, framework);   // "MissFix"
-objAllAmends = await objStore.ReadMissAmendsAsync(userId, framework);  // "MissAmend"
-objAllRuns   = await objStore.ReadRunsAsync(userId, framework);        // per-phase denominator
-objRateCard  = await RateCard.LoadAsync(objOptions.Value.PricesPath);
-
-// Recompute(), on load and on every period change:
-objFold   = MissAmendFolder.Fold(vMisses, vAmends);      // read-time fold, before any figure
-objResult = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);</code></pre>
-<p><code>MissFigures.Compute</code> folds amendments <strong>again</strong> internally — that is not redundant. The page keeps
-its own <code>objFold</code> because the detail table and the raw-record disclosure render <em>records</em>, and they
-must show the same folded values the figures were computed from. <strong><code>MissAmendFolder.Fold</code> runs before
-a single figure is counted</strong>, so a <code>why_missed</code> supplied only by a later <code>miss-amend</code> reaches the
-distribution (REQ-FN-075) while the stored <code>"Miss"</code> row still carries <code>null</code> — an amend <em>completes</em> a
-record, it never edits one.</p>
+<h3 id="control-data-path-12">Control → data path<a class="anchor-link" href="#control-data-path-12">#</a></h3>
+<p><code>LoadAsync</code> (<code>Misses.razor:1688</code>) reads five streams and the rate card once per user and framework.
+<code>Recompute</code> (<code>:1737</code>) then filters every list by period and runs <code>MissAmendFolder.Fold</code> and
+<code>MissFigures.Compute</code>, with no I/O. Reviews are windowed but <strong>never</strong> handed to <code>Compute</code> (<code>:1753-1756</code>).</p>
+<table>
+<thead><tr><th>Region</th><th>Component</th><th>data-testid</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Page root</td><td><code>div.tflens-stack</code></td><td><code>misses-page</code></td><td><code>:45</code></td></tr>
+<tr><td>Period badge</td><td><code>Badge Outline</code></td><td><code>misses-period-label</code></td><td><code>PeriodLabel</code> (<code>:1222</code>), so the window is stated while the select is closed</td></tr>
+<tr><td>Period filter</td><td><code>Select</code> + <code>SelectItem Text=</code></td><td><code>misses-period</code> (on <code>SelectTrigger</code>)</td><td><code>PeriodOptions</code> (<code>:1149</code>): all history (default) / 7 / 30 / 90 → <code>OnPeriodChangedAsync</code> (<code>:1796</code>) → <code>Recompute</code></td></tr>
+<tr><td>Standing escape note (TechieFlow)</td><td><code>Alert Info AccentBorder</code></td><td><code>miss-escape-note</code></td><td>constant copy (<code>:81</code>), BRD-118</td></tr>
+<tr><td>Axis note (Playbook)</td><td><code>PlaybookAxisNote</code></td><td><code>playbook-axis-note</code></td><td>constant copy (<code>:75</code>)</td></tr>
+<tr><td>Project-type tabs</td><td><code>Tabs</code> / <code>TabsTrigger</code></td><td><code>miss-type</code>, <code>miss-type-{type}</code></td><td><code>objResult.ProjectTypes</code>; badge <code>SegmentOf(type).Misses</code> (<code>:1230</code>); <code>OnTypeSelectedAsync</code> (<code>:1811</code>)</td></tr>
+<tr><td>KPI band wrapper</td><td><code>div</code></td><td><code>miss-kpis</code></td><td><code>:163</code></td></tr>
+<tr><td>Open misses</td><td><code>StatTile</code></td><td><code>kpi-open</code></td><td><code>MissSegmentFigures.OpenMisses</code>; sub-line <code>OpenDetail</code> (<code>:1831</code>) counts <code>deferred</code> via <code>DeferredCount</code> (<code>:2126</code>)</td></tr>
+<tr><td>Declined</td><td><code>StatTile</code></td><td><code>kpi-wontfix</code></td><td><code>WontFix</code></td></tr>
+<tr><td>Misses in window</td><td><code>StatTile</code></td><td><code>kpi-period</code></td><td><code>Misses</code>; title <code>PeriodTileSuffix</code> (<code>:1225</code>); sub-line <code>MixDetail</code> (<code>:1837</code>)</td></tr>
+<tr><td>Median time to close</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-median-close</code>, <code>kpi-median-close-value</code></td><td><code>MedianTimeToCloseHours</code></td></tr>
+<tr><td>Design-miss share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-design-share</code>, <code>-value</code></td><td><code>DesignMissShare</code> (<code>unspecified-gap</code> ÷ all misses)</td></tr>
+<tr><td>Escape share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-escape-share</code>, <code>-value</code></td><td><code>EscapeShare</code> (<code>found_by ∈ {owner, production}</code> ÷ all misses)</td></tr>
+<tr><td>Tokens on rework</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-rework-tokens</code>, <code>-value</code></td><td><code>Grouped(Cost.TokensPerMissFixed.Sole)</code> (<code>:2268</code>), the measured column only</td></tr>
+<tr><td>Measured USD</td><td><code>StatTile Class="tflens-measured"</code> + <code>TitleAdornment</code></td><td><code>kpi-rework-usd</code>, <code>kpi-rework-usd-measured-badge</code>, <code>kpi-rework-usd-value</code></td><td><code>MeasuredUsdDisplay</code> (<code>:1868</code>) ← <code>OpenCodeRow</code> (<code>:1861</code>) <code>.MeasuredUsdTotal</code>, or <code>—</code></td></tr>
+<tr><td>Rate-card estimate</td><td><code>Card Class="tflens-estimate"</code></td><td><code>kpi-rework-usd-estimate</code>, <code>-value</code>, <code>-label</code>, <code>kpi-rework-usd-unpriced</code></td><td><code>EstimateUsd</code> (<code>:1579</code>) over <code>EstimableFixes</code> (<code>:2137</code>, non-OpenCode, <code>tokens_scope ≠ none</code>, has tokens) × <code>RateCard.Find</code>; <code>UnpricedModels</code> (<code>:1643</code>); label <code>RateCard.EstimateLabel</code></td></tr>
+<tr><td>Origin cross-tab</td><td>hand-rolled <code>table.tflens-table</code></td><td><code>miss-origin</code>, <code>miss-origin-{phase}</code>, <code>miss-origin-unattributed</code>, <code>miss-origin-none</code></td><td><code>OriginRows</code> (<code>:1292</code>): <code>SegmentTaint.Linked</code> by <code>OriginPhase</code> × <code>MissClass</code>, plus <code>Attribution.MissRatePerOriginPhase</code> for Runs and rate</td></tr>
+<tr><td>Attribution exclusion</td><td><code>p</code> in <code>CardFooter</code></td><td><code>miss-taint-count</code></td><td><code>SegmentTaint</code> (<code>:1281</code>) <code>.AttributionExcluded</code>, <code>ExcludedBreakdown</code> (<code>:2119</code>), <code>.Reason</code></td></tr>
+<tr><td>Which practice failed</td><td><code>DataTable</code> (pager off) + <code>Progress w-20</code></td><td><code>miss-whymissed</code>, <code>miss-whymissed-denominator</code>, <code>miss-whymissed-table</code>, <code>miss-whymissed-note</code>, <code>miss-whymissed-eligibility</code></td><td><code>PracticeRows</code> (<code>:1330</code>) over <code>MissAmendFolder.AmendableFields["why_missed"]</code>; <code>AssessedLine</code> (<code>:1888</code>); <code>FailedPracticeNote</code>; <code>WhyMissedFooter</code> (<code>:1894</code>)</td></tr>
+<tr><td>Whose gap was it (REQ-UI-052)</td><td><code>DataTable</code> (pager off) + <code>Progress w-20</code></td><td><code>miss-sort</code>, <code>miss-sort-denominator</code>, <code>miss-sort-table</code></td><td><code>SortRows</code> (<code>:1380</code>): <code>MissSorts.All</code> plus any unrecognised value, worded by <code>SortVocabulary</code> (<code>:1122</code>); <code>SortedLine</code> (<code>:1930</code>) = <code>SortN of SortEligibility.Eligible</code>; header <code>SortShareHeader</code> (<code>:1936</code>)</td></tr>
+<tr><td>Whose-gap footer</td><td>three <code>p</code></td><td><code>miss-sort-predates</code>, <code>miss-sort-amended</code>, <code>miss-sort-words</code></td><td><code>SortPredatesLine</code> (<code>:1949</code>); <code>SortAmendedLine</code> (<code>:1973</code>) ← <code>AmendedValues["sort"]</code>; constant copy</td></tr>
+<tr><td>Observational warning</td><td><code>Alert Warning AccentBorder</code></td><td><code>miss-observational</code></td><td>constant copy (BRD-124) + <code>SegmentTaint.AttributedN of Misses</code></td></tr>
+<tr><td>By origin model</td><td><code>DataTable</code> (pager off)</td><td><code>miss-origin-model</code>, <code>-table</code>, <code>-none</code>, <code>miss-origin-model-runs</code>, <code>miss-origin-model-rate</code></td><td><code>ModelRows</code> (<code>:1451</code>) ← <code>Attribution.MissRatePerOriginModel</code> (misses · runs · per 100 runs)</td></tr>
+<tr><td>By origin agent</td><td><code>DataTable</code> (pager off)</td><td><code>miss-origin-agent</code>, <code>-table</code>, <code>-none</code></td><td><code>AgentRows</code> (<code>:1457</code>) ← <code>Attribution.ByOriginAgent</code> + dominant class from <code>SegmentTaint.Linked</code></td></tr>
+<tr><td>Cost band wrapper</td><td><code>div.tflens-grid</code></td><td><code>miss-cost</code></td><td><code>:699</code></td></tr>
+<tr><td>Cost: measured</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-measured</code>, <code>miss-cost-sole</code>, <code>miss-cost-measured-usd</code></td><td><code>Cost.TokensPerMissFixed.Sole</code>, <code>Cost.SoleRecords</code>, <code>MeasuredUsdDisplay</code></td></tr>
+<tr><td>Cost: apportioned</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-apportioned</code>, <code>-value</code></td><td><code>Cost.TokensPerMissFixed.Apportioned</code>, <code>Cost.SharedRecords</code></td></tr>
+<tr><td>Cost: unattributable</td><td><code>Card</code></td><td><code>miss-cost-unattributable</code>, <code>miss-cost-none</code>, <code>miss-cost-attribution-missing</code></td><td><code>Cost.TokensPerMissFixed.NoneCount</code>, <code>Cost.AttributionMissing</code></td></tr>
+<tr><td>No-blend note</td><td><code>p</code></td><td><code>miss-cost-no-blend</code></td><td>constant copy (ADR-019)</td></tr>
+<tr><td>Review note (REQ-UI-054)</td><td><code>Alert Default</code></td><td><code>miss-review-note</code></td><td>constant copy (BRD-175)</td></tr>
+<tr><td>What reviews cost</td><td>hand-rolled <code>table.tflens-table</code></td><td><code>miss-review-cost</code>, <code>miss-review-{phase}</code>, <code>miss-review-none</code></td><td><code>ReviewRows</code> (<code>:1431</code>) ← <code>objPeriodReviews</code> for the segment, ordered by <code>MissReviewPhases.All</code>; cells <code>RenderReviewCost</code> (<code>:2052</code>); <code>ReviewRow.CorrectionShare</code> (<code>:2360</code>)</td></tr>
+<tr><td>Review footer</td><td>two <code>p</code></td><td><code>miss-review-notavailable</code>, <code>miss-review-phases</code></td><td>constant copy; <code>ReviewPhasesLine</code> (<code>:2021</code>)</td></tr>
+<tr><td>Every miss (card)</td><td><code>Card</code></td><td><code>miss-detail</code></td><td>description counts <code>DetailRows</code> (<code>:1481</code>)</td></tr>
+<tr><td>Per-miss filter (TR-033)</td><td><code>InputGroup</code> + <code>InputGroupInput Type=Search</code></td><td><code>miss-detail-search</code></td><td><code>objDetailSearch</code> (<code>:1202</code>) → <code>@bind-SearchText</code> on the grid (<code>:962</code>); searches the <code>Filterable</code> columns REQ, Class, Whose gap</td></tr>
+<tr><td>Per-miss table</td><td><code>DataTable ShowPagination InitialPageSize="25"</code></td><td><code>miss-detail-table</code></td><td><code>DetailRows</code> over <code>SegmentMisses</code> (<code>:1260</code>, folded, newest first) + <code>LatestFixByMiss</code> (<code>:2147</code>)</td></tr>
+<tr><td>Miss id link</td><td><code>Button Link</code></td><td><code>miss-raw-{missId}</code></td><td><code>ShowRaw</code> (<code>:1824</code>)</td></tr>
+<tr><td>Per-miss sentence (REQ-UI-053)</td><td><code>div</code></td><td><code>miss-what</code></td><td><code>WhatOf</code> (<code>:2081</code>): the record's <code>what</code>, or a statement of its absence</td></tr>
+<tr><td>What note</td><td><code>p</code></td><td><code>miss-what-note</code></td><td>constant copy + <code>WhatEligibilityLine</code> (<code>:1993</code>)</td></tr>
+<tr><td>Raw record</td><td><code>Collapsible</code> → <code>CodeBlock</code></td><td><code>miss-raw-trigger</code>, <code>miss-raw</code>, <code>miss-raw-note</code></td><td><code>RawMissId</code> (<code>:1514</code>), <code>RawJson</code> (<code>:1523</code>), with <code>overflow</code> reduced to field names (SCHEMA.md §9)</td></tr>
+<tr><td>Playbook axis (REQ-UI-051)</td><td><code>PlaybookMissesSurface</code></td><td><code>pb-misses-surface</code> and its own ids (<code>pb-miss-ingest-note</code>, <code>pb-stream-health</code>, <code>kpi-closed</code>, <code>kpi-reopened</code>, <code>kpi-time-to-close*</code>, <code>kpi-rework-incidence*</code>, <code>miss-found-axes</code>, <code>miss-id-axes</code>, <code>miss-origin-tier</code>, <code>miss-amend-diagnostics</code>, <code>pb-miss-detail-search</code>, …)</td><td>the window lists <code>objPeriodMisses/Fixes/Amends/Runs</code> (<code>:120-123</code>) → <code>PlaybookMissNormalizer.Read</code></td></tr>
+</tbody>
+</table>
+<p><strong>Call chain (misses):</strong> <code>Misses.LoadAsync</code> (<code>Misses.razor:1702</code>) → <code>ITelemetryStore.ReadMissesAsync</code>
+(<code>src/TfLens.Core/Abstractions/Interfaces.cs:333</code>) → <code>PostgresStore.ReadMissesAsync</code>
+(<code>src/TfLens.Core/Storage/PostgresStore.cs:279</code>) → <code>ReadStreamAsync&lt;MissRecord&gt;("Miss")</code> (<code>PostgresStore.cs:868</code>).</p>
+<p><strong>Call chain (fixes):</strong> <code>Misses.razor:1703</code> → <code>Interfaces.cs:352</code> → <code>PostgresStore.cs:284</code> → <code>ReadStreamAsync("MissFix")</code> (<code>:868</code>).</p>
+<p><strong>Call chain (amends):</strong> <code>Misses.razor:1704</code> → <code>Interfaces.cs:371</code> → <code>PostgresStore.cs:289</code> → <code>ReadStreamAsync("MissAmend")</code> (<code>:868</code>).</p>
+<p><strong>Call chain (reviews):</strong> <code>Misses.razor:1705</code> → <code>Interfaces.cs:393</code> → <code>PostgresStore.cs:294</code> → <code>ReadStreamAsync("MissReview")</code> (<code>:868</code>).</p>
+<p><strong>Call chain (runs):</strong> <code>Misses.razor:1707</code> → <code>Interfaces.cs:271</code> → <code>PostgresStore.cs:259</code> → <code>ReadStreamAsync("Run")</code> (<code>:868</code>),
+then <code>RunVoid.Apply</code> (<code>src/TfLens.Core/Metrics/RunVoid.cs:49</code>) drops voided runs.</p>
+<p><strong>Call chain (rate card):</strong> <code>Misses.razor:1710</code> → <code>RateCard.LoadAsync</code> (<code>src/TfLens.Core/Metrics/RateCard.cs:93</code>). This reads a file (<code>TfLensOptions.PricesPath</code>), not the database.</p>
+<p><strong>Call chain (recompute, no I/O):</strong> <code>Misses.Recompute</code> (<code>Misses.razor:1758</code>) → <code>MissAmendFolder.Fold</code>
+(<code>src/TfLens.Core/Metrics/MissAmendFolder.cs:133</code>); <code>Misses.razor:1759</code> → <code>MissFigures.Compute</code>
+(<code>src/TfLens.Core/Metrics/MissFigures.cs:103</code>) → <code>MissAttributionTaint.Partition</code> (<code>MissFigures.cs:327</code> →
+<code>src/TfLens.Core/Metrics/MissAttributionTaint.cs:54</code>).</p>
+<p><strong>Call chain (Playbook):</strong> <code>Misses.razor:120</code> → <code>PlaybookMissesSurface.OnParametersSet</code> (<code>PlaybookMissesSurface.razor:1440</code>)
+→ <code>PlaybookMissNormalizer.Read</code> (<code>src/TfLens.Core/Playbook/PlaybookMissNormalizer.cs:254</code>). The same five store reads
+feed it. It gets no extra query.</p>
+<p>All five reads share one SQL shape: <code>SELECT s.* FROM "{table}" s INNER JOIN "UserRepo" u … WHERE s."UserId" = @aUserId
+AND u."Framework" = @aFramework ORDER BY s."Ts"</code> (<code>PostgresStore.cs:871-877</code>).</p>
+<h3 id="where-to-break-2">Where to break<a class="anchor-link" href="#where-to-break-2">#</a></h3>
+<table>
+<thead><tr><th>File:line</th><th>Function</th><th>Watch</th><th>Should hold</th></tr></thead>
+<tbody>
+<tr><td><code>Misses.razor:1707</code></td><td><code>LoadAsync</code></td><td><code>objAllMisses.Count</code>, <code>objAllFixes.Count</code>, <code>objAllReviews.Count</code>, <code>objAllRuns.Count</code></td><td>Counts match the rows for this user and framework; runs already exclude voided ones</td></tr>
+<tr><td><code>Misses.razor:1759</code></td><td><code>Recompute</code></td><td><code>vMisses.Count</code>, <code>objFold.Misses.Count</code>, <code>objResult.MissesTotal</code>, <code>objResult.ProjectTypes</code></td><td>The period only removes records; with "all" the counts equal the <code>objAll*</code> counts</td></tr>
+<tr><td><code>Misses.razor:1761</code></td><td><code>Recompute</code></td><td><code>objSelectedType</code></td><td>Always a key of <code>objResult.Live</code>, otherwise every band reads <code>EmptySegment</code> (<code>:1234</code>)</td></tr>
+<tr><td><code>MissAttributionTaint.cs:54</code></td><td><code>Partition</code></td><td><code>Linked.Count</code>, <code>ExcludedByConfidence</code></td><td><code>AttributedN + AttributionExcluded == segment Misses</code>; an absent value buckets as <code>not-recorded</code>, never <code>unknown</code></td></tr>
+<tr><td><code>MissFigures.cs:252</code></td><td><code>Compute</code> (segment)</td><td><code>SortN</code>, <code>SortEligibility.Eligible</code>, <code>SortUnrecognised</code></td><td><code>SortN ≤ Eligible</code>; shares on <code>miss-sort-table</code> are over <code>SortN</code>, never over <code>Misses</code></td></tr>
+<tr><td><code>MissFigures.cs:410</code></td><td><code>MoneyFor</code></td><td><code>Sole</code>, <code>Apportioned</code>, <code>NoneCount</code>, <code>AttributionMissing</code></td><td>Three separate figures plus a fourth count; <code>AttributionMissing</code> is never folded into <code>NoneCount</code></td></tr>
+<tr><td><code>Misses.razor:1431</code></td><td><code>ReviewRows</code></td><td><code>objPeriodReviews.Count</code> vs rows</td><td>One row per stored review; no review ever appears in <code>objResult</code></td></tr>
+<tr><td><code>PlaybookMissesSurface.razor:1444</code></td><td><code>OnParametersSet</code></td><td><code>objReport.Misses.Count</code></td><td><code>0</code> shows <code>PlaybookEmpty</code>; otherwise the populated surface</td></tr>
+</tbody>
+</table>
+<h3 id="states-13">States<a class="anchor-link" href="#states-13">#</a></h3>
+<ul>
+<li><strong>Loading:</strong> <code>!objIsLoaded</code> (<code>:93</code>) shows one <code>Card</code> of three <code>Skeleton</code> lines. The header, the period filter and the escape note or axis note are above that branch, so they render while loading.
+</li>
+<li><strong>Not signed in:</strong> <code>OnParametersSetAsync</code> (<code>:1663-1676</code>) marks the page loaded without reading anything. The empty result then shows the TechieFlow empty state (or, on Playbook, the surface with empty lists).
+</li>
+<li><strong>Error:</strong> <code>Alert Danger AccentBorder</code> <code>misses-error</code> (<code>:107</code>). It is checked <strong>before</strong> the Playbook branch. The <code>LoadAsync</code> catch (<code>:1715-1720</code>) resets <code>objResult</code> and <code>objFold</code> to <code>Empty</code>.
+</li>
+<li><strong>Playbook:</strong> <code>PlaybookMissesSurface</code>. With no Playbook records (<code>MissCount == 0</code>, <code>PlaybookMissesSurface.razor:54</code>) it shows <code>PlaybookEmpty</code>, <code>misses-playbook-plan</code> and <code>misses-playbook-zero-note</code>. A zero there means <strong>absence, not a good score</strong>.
+</li>
+<li><strong>Empty (TechieFlow):</strong> <code>objResult.MissesTotal == 0</code> (<code>:125</code>) shows <code>Empty</code> <code>misses-empty</code> with <code>misses-empty-connect</code> → <code>/repos</code>.
+</li>
+<li><strong>Empty inside a band:</strong> <code>miss-origin-none</code>, <code>miss-origin-model-none</code>, <code>miss-origin-agent-none</code>, <code>miss-review-none</code>. All are stated as an absence of attribution or records, not a zero.
+</li>
+<li><strong>Insufficient data:</strong> a <code>Figure</code> below <code>MinN</code> renders <code>insufficient data (n=…)</code> through <code>FigureText</code>, shrunk by <code>SmallWhenNoNumber</code> (<code>:2253</code>). The failed-practice distribution adds <code>miss-whymissed-note</code>.
+</li>
+<li><strong>Absent:</strong> <code>Missing = "—"</code> (<code>:1101</code>) for costs and strings; <code>NotAvailable = "not available"</code> (<code>:1110</code>) for review cells.
+</li>
+</ul>
+<h3 id="gotchas-13">Gotchas<a class="anchor-link" href="#gotchas-13">#</a></h3>
+<ul>
+<li><strong>Do not add a blended cost figure, even for the export.</strong> The three reflection tests above fail it, and the page states the rule on itself in <code>miss-cost-no-blend</code>.
+</li>
+<li><strong>Reviews are a fourth record kind and are never a miss</strong> (BRD-174). They are windowed by period and filtered by segment, and are read only by the review band. Do not pass them to <code>MissFigures.Compute</code>.
+</li>
+<li><strong>Two field floors are hard-coded in page copy.</strong> <code>FieldSince</code> (<code>Figure.cs:242-251</code>) holds <code>why_missed = 2026-08-28</code> and <code>sort = what = 2026-09-07</code>, and <code>IsEligibleForField</code> (<code>LateGateCoverageCalculator.cs:158</code>) reads it. But <code>WhatEligibilityLine</code> (<code>:2001</code>) and <code>WhatOf</code> (<code>:2090</code>) repeat the <code>what</code> date as literal text. If the floor moves, update both strings.
+</li>
+<li><strong><code>SegmentTaint</code> and <code>DetailRows</code> are computed properties.</strong> They re-filter on every access, and one render reads them many times (the cross-tab, the agent card, the header count, the grid, <code>RawMissId</code>, <code>RawJson</code>). That keeps the rule in one place. If thousands of misses make it slow, memoise per (period, type); do not copy the predicate into the view.
+</li>
+<li><strong><code>LinkKey</code> is spelled differently in the page and the engine.</strong> The page's is <code>$"{aRepo}{aMissId}"</code> (<code>:2169</code>); the engine's is <code>aRepo + " " + aMissId</code> (<code>MissFigures.cs:745</code>). Each is consistent internally and nothing joins across them, but they are not interchangeable.
+</li>
+<li><strong>A record whose <code>ts</code> cannot be parsed stays in every window</strong> (<code>IsInPeriod</code>, <code>:1776</code>).
+</li>
+<li><strong>The period and the type tab are not persisted.</strong> A reload returns to <em>All history</em>.
+<ul>
+<li><code>Recompute</code> closes the raw disclosure (<code>:1766-1767</code>).
+</li>
+<li>A type switch (<code>:1811</code>) clears only <code>objRawMissId</code>. An open disclosure therefore stays open and shows the new segment's first miss.
+</li>
+</ul>
+</li>
+<li><strong>An exception in <code>Recompute</code> from the period select is not caught.</strong> Only <code>LoadAsync</code> wraps it in a <code>try</code>.
+</li>
+<li><strong>A sync does not refresh an open page.</strong> The page injects no <code>ShellState</code> and subscribes only to <code>ShellPreferences.Changed</code> (<code>:1654</code>, handler <code>:2274</code>), which reloads on a framework change. It also reads the store directly, so it bypasses <code>MemoryAnalysisCache</code>: <code>/misses</code> can be fresher than <code>/gate-outcomes</code>.
+</li>
+<li><strong>The TechieFlow and Playbook surfaces reuse the same test ids</strong> (<code>miss-kpis</code>, <code>kpi-open</code>, <code>miss-origin</code>, <code>miss-cost-*</code>, <code>miss-detail-table</code>, …). Only one renders at a time (<code>:113</code>). Assert on <code>pb-misses-surface</code> to know which axis you are on. Inside the surface, <code>pb-stream-health</code> appears twice (<code>:99</code>, <code>:845</code>), in exclusive branches.
+</li>
+<li><strong>The two filter boxes differ.</strong>
+<ul>
+<li>TechieFlow uses <code>InputGroupInput</code> with a search icon and <strong>no debounce</strong>. The comment at <code>:936-941</code> accepts that because the filter runs in memory.
+</li>
+<li>Playbook uses a plain <code>Input</code> with <code>DebounceMilliseconds="150"</code> (<code>PlaybookMissesSurface.razor:918</code>).
+</li>
+<li>The page comment cites "TR-039" for the missing debounce, but TR-039 in <code>docs/TfLens-TrBlazeUI-Feedback.md:1588</code> is the ApexChart dispose entry. <code>{unresolved — no feedback entry found for InputGroupInput debounce}</code>.
+</li>
+</ul>
+</li>
+<li><strong>Do not pass <code>Class</code> to <code>StatGroup</code></strong> (<code>:164-170</code>). It replaces its root class instead of merging, which knocks out <code>trblazeui-grid</code>.
+</li>
+<li><strong>Scoped CSS does not reach a child component's root element.</strong> That is why the dashed estimate border is written as <code>.tflens-stack ::deep .tflens-estimate</code> (<code>Misses.razor.css:215</code>), the measured ring as <code>.tflens-kpi-row ::deep .tflens-measured</code> (<code>:233</code>), and why the accent chips are re-declared locally (<code>:250-272</code>).
+</li>
+<li><strong>The origin cross-tab and the review table are hand-rolled <code>&lt;table&gt;</code>s</strong> (<code>:344-346</code>, <code>:847-849</code>). <code>miss_class</code> has no closed vocabulary, and review cells must be able to read <code>not available</code>. Every other table is a <code>DataTable</code>.
+</li>
+<li><strong><code>MissFigures.cs</code> is reported as <code>data</code> by <code>file</code>,</strong> so a plain <code>grep</code> skips it silently. Use <code>grep -a</code>.
+</li>
+<li><strong>The rework-token mean divides by the fix records that carry a count.</strong> The reference script counts a missing count as zero. This deliberate divergence is <code>DECISIONS.md:734</code> (D-012 / TF-005), so do not "fix" it to match the reference.
+</li>
+<li><strong>Library version:</strong> <code>TfLens.csproj:18-19</code> pins TrBlazeUI 2.0.6. Comments on this page and in <code>Misses.razor.css:3</code> still say "2.1.0-ci.10", the build the measurements were taken on; <code>csproj:14-17</code> records that 2.0.6 closes TR-001..TR-038. The 2.0.0 workarounds are gone:
+<ul>
+<li>no <code>DisplayTextSelector</code> on the period <code>Select</code> (TR-020 closed)
+</li>
+<li>no <code>@if</code> guard around <code>CollapsibleContent</code> (<code>:1074</code>, TR-018 closed)
+</li>
+<li><code>Progress</code> is back to <code>w-20</code> (<code>:456</code>, <code>:514</code>, TR-021 closed)
+</li>
+<li>the display-only <code>DataTable</code>s set no inflated <code>InitialPageSize</code> (TR-009 closed)
+</li>
+<li>test ids now sit directly on <code>Tabs</code> and <code>TabsTrigger</code> (TR-010 closed)
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="defects-found-2">Defects found<a class="anchor-link" href="#defects-found-2">#</a></h3>
+<p>None.</p>
+<hr>
+<h2 id="effort"><code>/effort</code><a class="anchor-link" href="#effort">#</a></h2>
+<p><strong>File:</strong> <code>src/TfLens/Components/Pages/Effort.razor</code> (1,884 lines, plus <code>Effort.razor.css</code>, 610 lines) ·
+<code>@page "/effort"</code> (<code>Effort.razor:27</code>) · authenticated (fallback policy <code>Services/Auth/AuthRegistration.cs:92</code>;
+<code>/effort</code> is not in <code>AnonymousRoutes.cs:23-31</code>) · <code>MainLayout</code> (<code>Routes.razor:3</code>, <code>DefaultLayout</code>) ·
+Framework switch <strong>shown</strong> (<code>Services/Ui/ShellNavigation.cs:71</code>, <code>HasFrameworkSwitch: true</code>)</p>
+<p>Runtime-observed 2026-09-14 at 1280 and 390, signed in as tflensdemo@techierathore.com: renders, no error banner. All rows REQ-UI-045..049 Verified the same day, including mockup parity.</p>
+<p><img src="./screenshots/TfLens/manager-effort-1280.png" alt="Phase effort, desktop" style="max-width:100%">
+<img src="./screenshots/TfLens/manager-effort-390.png" alt="Phase effort, phone width" style="max-width:100%"></p>
+<p><strong>What it is for.</strong> A budgeting view: how much wall clock and how many tokens each command phase used, on
+which model, and how many subagents it actually started. Every figure carries its own denominator. The
+page is explicitly not a quality scoreboard.</p>
+<h3 id="control-data-path-13">Control → data path<a class="anchor-link" href="#control-data-path-13">#</a></h3>
+<p>One store read on the TechieFlow axis:
+<code>objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework)).Kept</code>
+(<code>Effort.razor:1368</code>). Everything else is computed in memory by <code>objPhases = PhaseMetrics.Compute(vRuns)</code>
+(<code>Effort.razor:1398</code>). On the Playbook axis the page hands off to <code>PlaybookEffortSurface</code>, which makes its
+own two reads (<code>PlaybookEffortSurface.razor:1618</code>, <code>:1622</code>).</p>
 <table>
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead>
 <tbody>
-<tr><td>Period badge</td><td><code>Badge Variant=Outline</code></td><td><code>misses-period-label</code></td><td><code>PeriodOption.Badge</code> — the window is stated even when the select is closed</td></tr>
-<tr><td>Period filter</td><td><code>Select</code> + <code>DisplayTextSelector</code></td><td><code>misses-period</code></td><td><code>PeriodOptions</code> = all history (default) / 7 / 30 / 90 days → <code>OnPeriodChangedAsync</code> → <code>Recompute()</code></td></tr>
-<tr><td>Standing escape note</td><td><code>Alert Info AccentBorder</code></td><td><code>miss-escape-note</code></td><td>constant page copy, never a tooltip (BRD-118)</td></tr>
-<tr><td>Type tabs</td><td><code>Tabs</code> / <code>TabsTrigger</code></td><td><code>miss-type</code>, <code>miss-type-{type}</code></td><td><code>MissAnalysis.ProjectTypes</code>; badge is <code>SegmentOf(type).Misses</code></td></tr>
-<tr><td>Open misses</td><td><code>StatTile</code></td><td><code>kpi-open</code></td><td><code>MissSegmentFigures.OpenMisses</code>; sub-line names the deferred count</td></tr>
-<tr><td>Declined</td><td><code>StatTile</code></td><td><code>kpi-wontfix</code></td><td><code>WontFix</code> — its own tile, never part of open</td></tr>
-<tr><td>Misses this period</td><td><code>StatTile</code></td><td><code>kpi-period</code></td><td><code>Misses</code>; sub-line <code>n closed · n open · n declined</code></td></tr>
-<tr><td>Median time to close</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-median-close</code>, <code>kpi-median-close-value</code></td><td><code>MedianTimeToCloseHours</code> — timed over <code>Verified</code> misses only; a <code>wont-fix</code> is a decision and a <code>deferred</code> has not closed</td></tr>
-<tr><td>Design-miss share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-design-share</code>, <code>-value</code></td><td><code>DesignMissShare</code> = <code>miss_class == "unspecified-gap"</code> ÷ all misses</td></tr>
-<tr><td>Escape share</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-escape-share</code>, <code>-value</code></td><td><code>EscapeShare</code> = <code>found_by ∈ {owner, production}</code> ÷ all misses</td></tr>
-<tr><td>Tokens on rework</td><td><code>StatTile</code> → <code>FigureText</code></td><td><code>kpi-rework-tokens</code>, <code>-value</code></td><td><code>Cost.TokensPerMissFixed.**Sole**</code> — the measured column only</td></tr>
-<tr><td>Measured USD</td><td><code>StatTile</code> (plain span)</td><td><code>kpi-rework-usd</code>, <code>-value</code></td><td><code>MeasuredUsdDisplay</code> ← the <strong>OpenCode</strong> row's <code>MeasuredUsdTotal</code>, or <code>—</code></td></tr>
-<tr><td>Rate-card estimate</td><td><code>Card Class="tflens-estimate"</code></td><td><code>kpi-rework-usd-estimate</code>, <code>-value</code>, <code>-label</code>, <code>kpi-rework-usd-unpriced</code></td><td><code>EstimateUsd</code> — non-OpenCode fixes priced through <code>RateCard</code>, carrying <code>RateCard.EstimateLabel</code></td></tr>
-<tr><td>Origin cross-tab</td><td>hand-rolled <code>&lt;table class="tflens-table"&gt;</code></td><td><code>miss-origin</code>, <code>miss-origin-{phase}</code>, <code>miss-origin-unattributed</code>, <code>miss-origin-none</code></td><td><code>SegmentTaint.Linked</code> grouped by <code>OriginPhase</code> × <code>MissClass</code>, plus <code>Attribution.MissRatePerOriginPhase</code> for Runs / Misses-per-run</td></tr>
-<tr><td>Attribution exclusion</td><td><code>&lt;p&gt;</code> in <code>CardFooter</code></td><td><code>miss-taint-count</code></td><td><code>MissAttributionSet.AttributionExcluded</code> + <code>ExcludedByConfidence</code> + <code>Reason</code> — <strong>always rendered</strong></td></tr>
-<tr><td>Failed practice</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-whymissed</code>, <code>miss-whymissed-table</code>, <code>miss-whymissed-denominator</code>, <code>miss-whymissed-note</code>, <code>miss-whymissed-eligibility</code></td><td><code>FailedPracticeDistribution</code> over the vocabulary of <code>MissAmendFolder.AmendableFields["why_missed"]</code></td></tr>
-<tr><td>Observational warning</td><td><code>Alert Warning AccentBorder</code></td><td><code>miss-observational</code></td><td>standing copy (BRD-124) — <em>this band does not show causation</em></td></tr>
-<tr><td>By origin model</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-origin-model</code>, <code>-table</code>, <code>-none</code></td><td><code>Attribution.ByOriginModel</code></td></tr>
-<tr><td>By origin agent</td><td><code>DataTable … InitialPageSize="32"</code></td><td><code>miss-origin-agent</code>, <code>-table</code>, <code>-none</code></td><td><code>Attribution.ByOriginAgent</code> + the dominant class read off the same linked records</td></tr>
-<tr><td>Cost: measured</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-measured</code>, <code>miss-cost-sole</code>, <code>miss-cost-measured-usd</code></td><td><code>Cost.TokensPerMissFixed.Sole</code>, <code>Cost.SoleRecords</code></td></tr>
-<tr><td>Cost: apportioned</td><td><code>Card</code> → <code>FigureText</code></td><td><code>miss-cost-apportioned</code>, <code>-value</code></td><td><code>Cost.TokensPerMissFixed.Apportioned</code>, <code>Cost.SharedRecords</code></td></tr>
-<tr><td>Cost: unattributable</td><td><code>Card</code></td><td><code>miss-cost-unattributable</code>, <code>miss-cost-none</code>, <code>miss-cost-attribution-missing</code></td><td><code>Cost.TokensPerMissFixed.NoneCount</code>, <code>Cost.AttributionMissing</code></td></tr>
-<tr><td>No-blend note</td><td><code>&lt;p&gt;</code></td><td><code>miss-cost-no-blend</code></td><td>states ADR-019 on the page</td></tr>
-<tr><td>Detail table</td><td><code>DataTable ShowToolbar ShowPagination InitialPageSize="25"</code></td><td><code>miss-detail</code>, <code>miss-detail-table</code>, <code>miss-raw-{missId}</code></td><td><code>DetailRows</code> over <code>SegmentMisses</code> (folded), newest first</td></tr>
-<tr><td>Raw record</td><td><code>Collapsible</code> → <code>CodeBlock</code></td><td><code>miss-raw-trigger</code>, <code>miss-raw</code>, <code>miss-raw-note</code></td><td>the stored record as JSON, <code>overflow</code> reduced to <strong>field names only</strong> (SCHEMA.md §9)</td></tr>
+<tr><td>Page root</td><td><code>div.tflens-stack.tflens-effort</code></td><td><code>effort-page</code></td><td>constant (<code>:43</code>)</td></tr>
+<tr><td>Subtitle</td><td><code>TypographyMuted</code></td><td>—</td><td><code>Subtitle</code> (<code>:1013</code>), changes with the axis</td></tr>
+<tr><td>Period badge</td><td><code>Badge Outline</code></td><td><code>effort-period-label</code></td><td><code>PeriodLabel</code> → <code>Period.Badge</code> (<code>:1031</code>)</td></tr>
+<tr><td>Period filter</td><td><code>Select TValue="string"</code> → <code>SelectTrigger</code></td><td><code>effort-period</code></td><td><code>PeriodOptions</code> (<code>:971</code>): all / 7 / 30 / 90; <code>ValueChanged="OnPeriodChangedAsync"</code> (<code>:1436</code>)</td></tr>
+<tr><td>Budget note</td><td><code>Alert Info AccentBorder</code></td><td><code>effort-budget-note</code></td><td>constant, never conditional (<code>:74</code>)</td></tr>
+<tr><td>KPI row</td><td>page grid <code>grid-cols-1 md:grid-cols-2 lg:grid-cols-5</code></td><td><code>effort-kpis</code></td><td>wraps the five tiles (<code>:142</code>)</td></tr>
+<tr><td>KPI · Runs recorded</td><td><code>StatTile</code></td><td><code>kpi-runs</code></td><td><code>objPhases.RunsLive</code></td></tr>
+<tr><td>KPI · Total wall clock</td><td><code>StatTile</code></td><td><code>kpi-wallclock</code>, <code>kpi-wallclock-derived</code>, <code>kpi-wallclock-recomputed</code>, <code>kpi-wallclock-excluded</code></td><td><code>DurationSecondsTotal</code>; sub-line <code>TimedRuns</code> (<code>:1040</code>), <code>DerivedDurationsNote</code> (<code>:1058</code>), <code>RecomputedDurationsNote</code> (<code>:1067</code>), <code>ExcludedDurationsNote</code> (<code>:1076</code>)</td></tr>
+<tr><td>KPI · Output tokens</td><td><code>StatTile</code></td><td><code>kpi-tokens-out</code>, <code>kpi-tokens-measured</code></td><td><code>TokensOutTotal</code>; <code>measured on {TokensMeasuredRuns} of {RunsLive} runs</code> (<code>:1034</code>, <code>:1037</code>)</td></tr>
+<tr><td>KPI · Heaviest phase</td><td><code>StatTile</code> + <code>ValueContent</code></td><td><code>kpi-heaviest</code>, <code>kpi-heaviest-cmd</code></td><td><code>Heaviest</code> = <code>objPhases.Phases[0]</code> (<code>:1081</code>); size class <code>HeaviestCmdFitClass</code> (<code>:1113</code>); <code>HeaviestSummary</code> (<code>:1124</code>)</td></tr>
+<tr><td>KPI · Fan-out coverage</td><td><code>StatTile Class="tflens-kpi-accent"</code></td><td><code>kpi-fanout-coverage</code></td><td><code>FanoutObservedN of RunsLive</code> (<code>:203</code>)</td></tr>
+<tr><td>Denominator band</td><td>grid</td><td><code>effort-denominators</code></td><td>wraps the two cards below (<code>:217</code>)</td></tr>
+<tr><td>Token window card</td><td><code>Card</code> → <code>DataTable&lt;ScopeRow&gt;</code></td><td><code>effort-token-window</code>, <code>effort-scope-table</code>, <code>scope-{tree|conversation|main|none|absent}</code></td><td><code>ScopeRows</code> (<code>:1151</code>) ← <code>objPhases.ScopeCoverage</code>; unknown scopes appended, not dropped (<code>:1169</code>)</td></tr>
+<tr><td>Fan-out observation card</td><td><code>Card</code> → <code>Badge Warning</code> + <code>DataTable&lt;ExclusionRow&gt; ShowHeader="false"</code></td><td><code>effort-fanout-exclusions</code>, <code>effort-observed-badge</code>, <code>effort-fanout-table</code>, <code>fanout-{observed|not-tree|predates-field}</code></td><td><code>ExclusionRows</code> (<code>:1186</code>): <code>FanoutObservedN</code>, Σ <code>UnobservedNotTree</code>, Σ <code>UnobservedPredatesField</code></td></tr>
+<tr><td>Phase table</td><td><code>Card</code> → <code>DataTable&lt;PhaseTableRow&gt;</code></td><td><code>effort-phases</code>, <code>effort-phase-table</code>, <code>phase-cmd-{key}</code>, <code>phase-share-{key}</code>, <code>phase-measured-{key}</code>, <code>phase-fanout-{key}</code></td><td><code>PhaseTableRows</code> (<code>:1224</code>), engine order (heaviest output first); <code>{key}</code> = <code>KeyOf(cmd)</code> (<code>:1461</code>)</td></tr>
+<tr><td>Per-phase detail</td><td><code>Card</code> → <code>Collapsible</code> → <code>CollapsibleTrigger</code></td><td><code>effort-phase-detail</code>, <code>effort-detail-{key}</code>, <code>effort-detail-trigger-{key}</code></td><td><code>objPhases.Phases</code>; open set <code>objOpenPhases</code>, toggled by <code>OnPhaseToggled</code> (<code>:1446</code>)</td></tr>
+<tr><td>Detail · 1 Time</td><td>plain <code>div</code> quad</td><td><code>time-total-{key}</code></td><td><code>PhaseTotalText</code> (<code>:1661</code>), <code>Duration.MedianSeconds</code>, <code>Duration.MaxSeconds</code>, <code>ShareOfDuration</code>, <code>TimedRunsNote</code> (<code>:1587</code>)</td></tr>
+<tr><td>Detail · 2 Tokens</td><td><code>Badge</code> + raw <code>table</code> + <code>FigureText</code></td><td><code>tokens-measured-{key}</code>, <code>tokens-mean-{key}</code></td><td><code>TokensMeasuredN of Runs</code>; <code>Tokens.Out/In/CacheRead/CacheWrite</code> via <code>TokenTotalText</code> (<code>:1483</code>); mean <code>Grouped(TokensOutPerRun.Tokens)</code> (<code>:1098</code>)</td></tr>
+<tr><td>Detail · 3 By model</td><td>raw <code>table</code> + <code>Progress</code></td><td><code>models-none-{key}</code> (only when <code>Models.Count == 0</code>)</td><td><code>vRow.Models</code>; <code>ModelSourceNote</code> (<code>:1620</code>)</td></tr>
+<tr><td>Detail · 4 Fan-out</td><td><code>Alert Warning</code> + raw <code>table</code></td><td><code>fanout-alert-{key}</code>, <code>spawns-total-{key}</code>, <code>fanout-none-{key}</code></td><td><code>vRow.Fanout</code> (<code>IsObserved</code> decides table vs <code>fanout-none</code>); <code>DeclaredVersusMeasured</code> (<code>:1524</code>)</td></tr>
+<tr><td>Routing card</td><td><code>Card</code> → <code>DataTable&lt;RoutingRow&gt;</code></td><td><code>effort-routing</code>, <code>effort-routing-table</code>, <code>routing-{routed|drifted|unknown}</code>, <code>routing-count-{outcome}</code></td><td><code>RoutingRows</code> (<code>:1240</code>), Σ <code>Routing.Routed/Drifted/Unknown</code>; share over <code>RoutingTotal</code> (<code>:1144</code>)</td></tr>
+<tr><td>Routing · By command phase</td><td><code>Collapsible @bind-Open="objIsRoutingByPhaseOpen"</code></td><td><code>effort-routing-byphase-trigger</code>, <code>effort-routing-byphase</code></td><td>per-phase <code>Routing.*</code> (<code>:827-835</code>); closed by default (<code>:999</code>)</td></tr>
+<tr><td>Measured spend card</td><td><code>Card</code> → <code>DataTable&lt;CostRow&gt;</code></td><td><code>effort-cost</code>, <code>effort-cost-table</code>, <code>cost-{harness}</code></td><td><code>CostRows</code> (<code>:1270</code>) ← Σ <code>Harnesses</code> + Σ <code>CostUsdByHarness</code> per harness, never pooled</td></tr>
+<tr><td>Actor note</td><td><code>p.tflens-actor-note</code></td><td><code>effort-actor-note</code></td><td>constant (<code>:931</code>)</td></tr>
+<tr><td>Playbook axis note</td><td><code>PlaybookAxisNote</code> → <code>Alert Info</code></td><td><code>playbook-axis-note</code></td><td>constant (<code>PlaybookAxisNote.razor:10</code>)</td></tr>
+<tr><td>Playbook filters</td><td><code>Select</code> × 12 + <code>Button Ghost</code></td><td><code>pb-effort-filters</code>, <code>pb-effort-filter-{key}</code>, <code>pb-effort-filter-reset</code>, <code>pb-effort-filter-scope</code></td><td><code>Filters</code> (<code>PlaybookEffortSurface.razor:1331</code>); only <code>repository</code> re-queries (<code>:1650</code>)</td></tr>
+<tr><td>Playbook summary tiles</td><td><code>StatGroup Columns="4"</code></td><td><code>pb-effort-summary</code>, <code>pb-effort-tile-*</code>, <code>pb-cost-measured</code></td><td><code>objReport</code> (<code>PlaybookPhaseReport</code>)</td></tr>
+<tr><td>Playbook estimate / timing</td><td><code>Card</code>, <code>Alert Warning</code></td><td><code>pb-cost-estimate</code>, <code>pb-effort-timing-note</code></td><td><code>objReport</code> (<code>:234</code>, <code>:262</code>)</td></tr>
+<tr><td>Playbook charts</td><td>4 × <code>Card</code></td><td><code>pb-effort-charts</code>, <code>pb-chart-tokens</code>, <code>pb-chart-duration</code>, <code>pb-chart-fanout</code>, <code>pb-chart-cost</code></td><td><code>objReport</code> (<code>:293-447</code>)</td></tr>
+<tr><td>Playbook tables</td><td><code>DataTable</code> × 3</td><td><code>pb-effort-tables</code>, <code>pb-effort-command-phases</code>, <code>pb-effort-active-table</code>, <code>pb-effort-model-mix</code></td><td><code>objReport</code> (<code>:463-673</code>)</td></tr>
+<tr><td>Playbook executions</td><td><code>DataTable&lt;PbExecutionRow&gt;</code> + <code>Collapsible</code> detail</td><td><code>pb-effort-executions</code>, <code>pb-executions-table</code>, <code>pb-execution-open-{id}</code>, <code>pb-execution-detail</code>, <code>pb-detail-models</code>, <code>pb-detail-subagents</code>, <code>pb-detail-quality</code></td><td><code>FilteredExecutions</code> (<code>:1393</code>) ← <code>Matches</code> (<code>:1708</code>)</td></tr>
+<tr><td>Playbook states card</td><td><code>Card</code> → <code>DataTable&lt;StateRow&gt;</code></td><td><code>pb-effort-states</code>, <code>pb-effort-state-active</code>, <code>pb-effort-states-table</code></td><td><code>PlaybookEffortSurface.razor:1035</code> {unresolved — the enclosing branch condition around <code>:1019-1035</code> was not read}</td></tr>
 </tbody>
 </table>
-<h3 id="the-four-bands-and-why-each-rule-is-shaped-that-way">The four bands, and why each rule is shaped that way<a class="anchor-link" href="#the-four-bands-and-why-each-rule-is-shaped-that-way">#</a></h3>
-<p><strong>Band 2 — the origin cross-tab is <code>linked</code>-only, and says so twice.</strong> <code>MissAttributionTaint.Partition</code>
-splits the segment's misses on <code>OriginConfidence == "linked"</code>; everything else is counted into
-<code>ExcludedByConfidence</code> (an absent value buckets as <code>not-recorded</code>, deliberately <em>not</em> as <code>unknown</code>,
-which is a real value in the producer's vocabulary). The excluded records get an <code>unattributed</code> row in
-the table <strong>and</strong> the <code>miss-taint-count</code> footer, which names the count, the breakdown and the reason
-verbatim from <code>MissAttributionTaint.ExclusionReason</code>. There is no parameter, flag or overload that
-returns those records to a figure — relaxing the rule means editing <code>MissAttributionTaint.cs</code>
-(REQ-NFR-013).</p>
-<p><code>OriginConfidence</code> is derived by <code>tf-emit.sh</code> and never written by an agent, and the emitter forces
-<code>origin_model</code> / <code>origin_harness</code> to <code>null</code> when its lookup fails. That is what makes the guarantee
-real rather than aspirational: the filter is on a value the producer controls.</p>
-<p><strong>Band 2 — the failed-practice denominator.</strong> <code>MissFigures.CountBy</code> skips a <code>null</code> entirely: a null is
-not a bucket, not an <code>other</code>, not a zero. So <code>WhyMissedN</code> counts only records that carry the field,
-and every share on the card is read against that. The card's badge prints
-<code>{Assessed} of {Eligible} misses assessed</code> and the footer separates the two ways a miss can be absent
-from the numerator:</p>
-<ul>
-<li><strong>not assessed</strong> — the field was available and nobody filled it in;
-</li>
-<li><strong>predates the field</strong> — the record was written before <code>FieldSince["why_missed"] = 2026-08-28</code>, and it leaves the denominator entirely rather than being backfilled with a value nobody assessed.
-</li>
-</ul>
-<p>The rows themselves come from the <strong>closed vocabulary</strong> in
-<code>MissAmendFolder.AmendableFields["why_missed"]</code>, not from what the data happened to contain, so a
-practice that caught nothing renders a real <code>0</code> rather than vanishing. Values the engine reports but
-the vocabulary does not know are appended.</p>
-<p><strong>Band 3 is labelled observational on the page.</strong> Miss counts per model and per agent are confounded
-by which model gets the hard work. <code>miss-observational</code> says so in an <code>Alert</code>, not a tooltip, and the
-<code>n linked</code> badge on both cards repeats the attribution basis.</p>
-<p><strong>Band 4 — three columns and never one.</strong> <em>Measured</em> is <code>cost_attribution: sole</code> — one fix run, one
-miss, the whole token window is that miss's cost. <em>Apportioned</em> is <code>shared:n</code>, one window divided
-equally across <code>n</code> misses: <strong>arithmetic, not measurement</strong>, and stated as such. <em>Unattributable</em> is
-<code>cost_attribution: none</code> — a count, never a divisor. <code>AttributionMissing</code> (absent or unrecognised) is
-a <strong>fourth</strong> number and is deliberately <strong>not</strong> folded into <code>NoneCount</code>: <code>none</code> is a value the emitter
-wrote, absent is nobody having said, and those are different facts.</p>
-<p>Measured dollars come from OpenCode records only and are never summed across harnesses
-(<code>MissFigures.HarnessRow</code> does not even <em>read</em> a <code>cost_usd</code> on another harness's record). Rate-card
-dollars live on their own dashed card, on their own row, carrying <code>RateCard.EstimateLabel</code> and
-exported under a key ending <code>_usd_estimate</code> — the measured tile's key does not. Models the card does
-not price are <strong>named</strong> in <code>kpi-rework-usd-unpriced</code> and left out, never costed at zero.</p>
-<p><strong>One known divergence from the reference is deliberate.</strong> <code>analyse_misses</code> in <code>tf-metrics.sh</code>
-computes <code>sum(tokens_out or 0) / len(sole)</code>, averaging a repair whose tokens were never recorded in as
-a zero. <code>MissFigures.MoneyFor</code> divides by the records that actually <strong>carry</strong> a count. Recorded as
-<code>TF-005</code> / <code>DECISIONS.md</code> D-012. The two agree on every dataset where every <code>sole</code> record carries
-<code>tokens_out</code>, so the divergence is latent rather than live — <strong>do not "fix" it by matching the
-reference</strong>, parity would go green by adopting the weaker number.</p>
-<h3 id="states-12">States<a class="anchor-link" href="#states-12">#</a></h3>
-<ul>
-<li><strong>Loading</strong> — <code>objIsLoaded == false</code> → one <code>Card</code> of three <code>Skeleton</code> lines, the same block every report page uses.
-</li>
-<li><strong>Error</strong> — <code>Alert Danger AccentBorder</code> <code>misses-error</code> with the exception message; <code>objResult</code> and <code>objFold</code> are both reset to <code>Empty</code> first.
-</li>
-<li><strong>Empty (TechieFlow)</strong> — <code>objResult.MissesTotal == 0</code> → <code>Empty</code> <code>misses-empty</code> / <code>misses-empty-connect</code>, <em>"TfLens reads <code>docs/metrics/misses.jsonl</code>; it never writes one."</em>
-</li>
-<li><strong>Empty (Playbook)</strong> — <code>PlaybookEmpty</code> <strong>plus</strong> <code>misses-playbook-plan</code>, a table describing the four bands, and <code>misses-playbook-zero-note</code>. The Framework switch is rendered rather than hidden for a surface one framework has and the other does not (BRD-126); the note says explicitly that a zero here is <strong>absence, not a good score</strong>.
-</li>
-<li><strong>Playbook, non-empty</strong> — <code>PlaybookAxisNote</code> replaces the escape note. The layout does not change.
-</li>
-<li><strong>Insufficient data</strong> — any <code>Figure</code> below <code>MinN</code> = 3 renders <code>insufficient data (n=…)</code> through <code>FigureText</code>, shrunk by <code>SmallWhenNoNumber</code> so a refusal is never at headline size. A distribution below <code>MinN</code> renders its own <code>…-note</code> line instead.
-</li>
-<li><strong>Absent</strong> — <code>NotApplicable</code> renders <code>—</code>. So does an absent measured or estimated dollar amount.
-</li>
-</ul>
-<h3 id="observed-2026-08-28-3">Observed 2026-08-28<a class="anchor-link" href="#observed-2026-08-28-3">#</a></h3>
-<p>Signed in as userId 2 at 1440×900. <strong>74 <code>data-testid</code>s</strong>, 0 blank icons, no page-level horizontal
-scroll, no console or page errors. Tables: <code>miss-origin</code> 2 rows, <code>miss-whymissed-table</code> 7,
-<code>miss-origin-model-table</code> 1, <code>miss-origin-agent-table</code> 1, <code>miss-detail-table</code> 4.</p>
-<p>The dataset is <strong>4 misses / 4 fixes / 0 amendments</strong>, all in one segment. <code>miss-type</code> rendered a
-single tab, <code>framework</code> (badge 4). What actually rendered:</p>
+<p><strong>Call chain (TechieFlow load):</strong> <code>Effort.razor:1325 OnParametersSetAsync</code> (user id from
+<code>Services/Ui/ShellIdentity.cs:22</code>) → <code>Effort.razor:1354 LoadAsync</code> → <code>ITelemetryStore.ReadRunsAsync</code>
+(<code>TfLens.Core/Abstractions/Interfaces.cs:271</code>) → <code>TfLens.Core/Storage/PostgresStore.cs:259 ReadRunsAsync</code> →
+<code>PostgresStore.cs:868 ReadStreamAsync&lt;RunRecord&gt;("Run", …)</code> — SQL at <code>:871-878</code>:
+<code>SELECT s.* FROM "Run" s INNER JOIN "UserRepo" u … WHERE s."UserId" = @aUserId AND u."Framework" = @aFramework … ORDER BY s."Ts"</code>
+→ back in the page, <code>TfLens.Core/Metrics/RunVoid.cs:49 Apply(...).Kept</code> → <code>Effort.razor:1390 Recompute</code> →
+<code>TfLens.Core/Metrics/PhaseMetrics.cs:108 Compute(IReadOnlyList&lt;RunRecord&gt;)</code> → <code>RunDuration.cs:152 Derive</code> →
+<code>PhaseMetrics.cs:133 Compute(DerivedDurations)</code>.</p>
+<p><strong>Call chain (period filter):</strong> <code>Effort.razor:1436 OnPeriodChangedAsync</code> → <code>:1390 Recompute</code> → <code>:1416 IsInPeriod</code>
+→ <code>PhaseMetrics.cs:108 Compute</code>. No database hop.</p>
+<p><strong>Call chain (Playbook report):</strong> <code>PlaybookEffortSurface.razor:1583 OnParametersSetAsync</code> → <code>:1608 ReloadAsync</code> →
+<code>:1622 IPlaybookReportBuilder.BuildPhaseReportAsync</code> (<code>TfLens.Core/Abstractions/PlaybookAbstractions.cs:73</code>) →
+<code>TfLens.Core/Playbook/PlaybookReportBuilder.cs:51</code> → <code>TfLens.Core/Playbook/PlaybookPhaseEffort.cs:34 ReadAsync</code>
+(<code>aHarness</code> passed as <code>null</code>) → <code>PostgresStore.cs:191 ReadPhaseExecutionsAsync</code> (<code>"PbPhaseExecution"</code>, <code>:195</code>),
+<code>:205 ReadPhaseModelUsagesAsync</code> (<code>"PbPhaseModelUsage"</code>, <code>:209</code>), <code>:219 ReadPhaseSubagentsAsync</code>
+(<code>"PbPhaseSubagent"</code>, <code>:223</code>), each through <code>:246 ReadPhaseAsync&lt;T&gt;</code> → <code>PlaybookPhaseReport.cs:77 Build</code>.</p>
+<p><strong>Call chain (Playbook repository list):</strong> <code>PlaybookEffortSurface.razor:1618 IRepoListReader.ListWithCountsAsync</code>
+(<code>TfLens.Core/Repos/IRepoListReader.cs:21</code>) → <code>TfLens.Core/Repos/RepoRegistry.cs:74</code> →
+<code>PostgresStore.cs:403 ReadUserReposAsync</code> and <code>PostgresStore.cs:377 ReadSyncStateAsync</code>.</p>
+<h3 id="where-to-break-3">Where to break<a class="anchor-link" href="#where-to-break-3">#</a></h3>
 <table>
-<thead><tr><th>Control</th><th>Rendered</th><th>Reading it</th></tr></thead>
+<thead><tr><th>File:line</th><th>Function</th><th>Watch</th><th>Should hold</th></tr></thead>
 <tbody>
-<tr><td><code>misses-period</code></td><td><code>All history (default)</code></td><td>the <code>DisplayTextSelector</code> fix for TR-020 is working — without it this reads <code>all</code></td></tr>
-<tr><td><code>kpi-open</code></td><td><code>0</code></td><td><code>3 closed · 0 open · 1 declined</code></td></tr>
-<tr><td><code>kpi-wontfix</code></td><td><code>1</code></td><td>the declined miss is here and <strong>not</strong> in open</td></tr>
-<tr><td><code>kpi-median-close</code></td><td><code>0h</code></td><td>three closed misses, so the figure is above <code>MinN</code></td></tr>
-<tr><td><code>kpi-design-share</code></td><td><code>0%</code></td><td>a real zero: no <code>unspecified-gap</code> in 4 misses</td></tr>
-<tr><td><code>kpi-escape-share</code></td><td><code>50%</code></td><td>2 of 4 <code>found_by ∈ {owner, production}</code></td></tr>
-<tr><td><code>kpi-rework-tokens</code></td><td><code>—</code></td><td><strong>0 of 4</strong> fixes are <code>cost_attribution: sole</code> — an absence, not a zero</td></tr>
-<tr><td><code>kpi-rework-usd</code></td><td><code>—</code></td><td>no OpenCode fix record carries <code>cost_usd</code></td></tr>
-<tr><td><code>kpi-rework-usd-estimate</code></td><td><code>—</code></td><td>no non-OpenCode fix carries both a token count and a priced model</td></tr>
-<tr><td><code>miss-origin</code></td><td>1 phase row (<code>log-miss</code>) + <code>miss-origin-unattributed</code></td><td><code>1 other + 1 partial-implementation = 2</code>, over 3 runs → <code>67%</code></td></tr>
-<tr><td><code>miss-taint-count</code></td><td><code>2 of 4 misses excluded … (inferred: 2)</code></td><td>the exclusion is on the page, as required</td></tr>
-<tr><td><code>miss-whymissed</code></td><td>7 rows, <code>instruction-ignored 1 · 100%</code>, 6 at <code>0 · —</code></td><td>the closed vocabulary renders in full</td></tr>
-<tr><td><code>miss-whymissed-note</code></td><td><code>insufficient data (n=1)</code></td><td>one assessed record cannot carry a share honestly</td></tr>
-<tr><td><code>miss-origin-model-table</code></td><td><code>claude-opus-5 · 1 · 100%</code></td><td>linked records only (2 of 4)</td></tr>
-<tr><td><code>miss-origin-agent-table</code></td><td><code>flow-master · 2 · 100% · other</code></td><td>"</td></tr>
-<tr><td><code>miss-cost-*</code></td><td><code>—</code> / <code>—</code> / <code>0</code></td><td>measured, apportioned, unattributable — three columns, no blend</td></tr>
-<tr><td><code>miss-detail-table</code></td><td>4 rows, <code>miss-raw-MISS-TechieFlow-20260828-01..04</code></td><td>one row per miss</td></tr>
+<tr><td><code>Effort.razor:1344</code></td><td><code>OnParametersSetAsync</code></td><td><code>objLoadedFramework</code>, <code>objPreferences.Framework</code></td><td>The store is re-read only when the two differ; <code>OnShellChanged</code> (<code>:1780</code>) nulls the first to force a read</td></tr>
+<tr><td><code>PostgresStore.cs:871</code></td><td><code>ReadStreamAsync&lt;RunRecord&gt;</code></td><td><code>aUserId</code>, <code>aFramework</code>, <code>aRepo</code></td><td><code>aUserId</code> is always set; <code>aFramework</code> is <code>techieflow</code> on this branch; <code>aRepo</code> is <code>null</code></td></tr>
+<tr><td><code>Effort.razor:1368</code></td><td><code>LoadAsync</code></td><td><code>objAllRuns.Count</code> against the raw read</td><td>Voided runs and the <code>run-void</code> records themselves are gone (REQ-FN-140)</td></tr>
+<tr><td><code>Effort.razor:1398</code></td><td><code>Recompute</code></td><td><code>vRuns.Count</code>, <code>objPhases.RunsLive</code>, <code>objPhases.Phases[0].Cmd</code></td><td><code>RunsLive ≤ vRuns.Count</code> (backfilled rows are dropped at <code>PhaseMetrics.cs:141</code>); <code>Phases[0]</code> has the largest measured output</td></tr>
+<tr><td><code>PhaseMetrics.cs:143</code></td><td><code>Compute(DerivedDurations)</code></td><td><code>vLive.Count</code></td><td>Zero live runs returns <code>PhaseEffortAnalysis.Empty</code>, and the page shows <code>effort-empty</code></td></tr>
+<tr><td><code>Effort.razor:1483</code></td><td><code>TokenTotalText</code></td><td><code>aRow.TokensMeasuredN</code></td><td><code>0</code> measured runs prints <code>—</code>, never <code>0</code></td></tr>
+<tr><td><code>Effort.razor:1292</code></td><td><code>CostRows</code> getter</td><td><code>vHasCost</code>, <code>vCost.Records</code></td><td>A harness with no <code>cost_usd</code> keeps its row and reads <code>—</code>, never <code>$0.00</code></td></tr>
+<tr><td><code>PlaybookEffortSurface.razor:1622</code></td><td><code>ReloadAsync</code></td><td><code>vRepo</code>, <code>objReport.Harness.IsSupported</code>, <code>objReport.Executions.Count</code></td><td><code>all</code> becomes <code>null</code>; unsupported shows the banner, not zeros</td></tr>
 </tbody>
 </table>
-<p><strong>Six of the figures on this page render <code>—</code> or <code>insufficient data</code>, and that is the correct
-answer for this dataset.</strong> The first instinct on seeing that screen is that the page is broken. It
-is not: 4 records, 0 of them <code>sole</code>-attributed, 1 of them carrying <code>why_missed</code>.</p>
-<p>Not observed in this pass: the Playbook state, the empty state, any period other than <em>All history</em>,
-the raw-record disclosure open, and any apportioned or measured-dollar figure (no record supports one).</p>
-<h3 id="gotchas-12">Gotchas<a class="anchor-link" href="#gotchas-12">#</a></h3>
+<h3 id="states-14">States<a class="anchor-link" href="#states-14">#</a></h3>
 <ul>
-<li><strong>Do not add a blended cost figure, even "just for the export".</strong> <code>MissCost</code> cannot hold one, and three reflection tests across two projects assert that no miss result type carries a total or blended member. The page states the rule on itself in <code>miss-cost-no-blend</code>.
+<li><strong>Loading.</strong> A <code>Card</code> holding three <code>Skeleton</code> lines (<code>Effort.razor:102-113</code>). The Playbook surface has its own copy (<code>PlaybookEffortSurface.razor:42-53</code>).
 </li>
-<li><strong><code>miss-taint-count</code> renders even when nothing was excluded.</strong> Hiding it at zero would make "no exclusions" look identical to "the footer was never built". Same reasoning as <code>/harness</code>'s <code>harness-null-footnote</code>.
+<li><strong>Error.</strong> <code>Alert Danger</code> <code>effort-error</code> shows the exception message (<code>:116</code>). <code>objAllRuns</code> is reset to empty and <code>Recompute</code> still runs (<code>:1373-1377</code>). On the Playbook axis the error is <code>pb-effort-error</code> (<code>PlaybookEffortSurface.razor:56</code>).
 </li>
-<li><strong><code>SegmentTaint</code> re-partitions on every access.</strong> It is a computed property calling <code>MissAttributionTaint.Partition(SegmentMisses)</code>, and <code>SegmentMisses</code> re-filters <code>objFold.Misses</code> each time. That is deliberate — one rule in one place, not a <code>Where</code> clause copied into the view — but it means the origin band does real work per render. If this page ever gets slow with thousands of misses, memoise <code>SegmentTaint</code> per <code>(period, type)</code>; do <strong>not</strong> inline the predicate.
+<li><strong>Empty.</strong> <code>Empty</code> <code>effort-empty</code> when <code>objPhases.RunsLive == 0</code> (<code>:122</code>). With all history selected it says nothing has been imported. With a window selected it names the window and suggests widening it (<code>EmptyDescription</code>, <code>:1020</code>). A signed-in user with no user-id claim also lands here, because <code>objIsLoaded</code> is set with no read (<code>:1337-1341</code>). The header, period filter and budget note render in every state.
 </li>
-<li><strong><code>LinkKey</code> is spelled differently in the page and in the engine.</strong> <code>MissFigures.LinkKey</code> is <code>repo + " " + missId</code>; <code>Misses.razor</code>'s private <code>LinkKey</code> is <code>$"{repo}{missId}"</code>. Both are internally consistent — nothing joins across the two — but they are not interchangeable, so do not "share" one without checking every call site.
+<li><strong>Playbook axis.</strong> <code>IsPlaybook</code> (<code>:1010</code>) replaces all five bands with <code>PlaybookAxisNote</code> + <code>PlaybookEffortSurface</code> (<code>:88-101</code>). The surface's own states: <code>pb-effort-unsupported</code> when <code>!Harness.IsSupported</code> (<code>:109</code>), which hides every figure rather than showing zeros; <code>pb-effort-empty</code> when <code>Executions.Count == 0</code> (<code>:128</code>); and <code>pb-effort-no-eligible</code> inside the executions card (<code>:738</code>). The filters card renders in every loaded state (<code>:64-67</code>).
 </li>
-<li><strong>A record whose <code>ts</code> TfLens cannot parse stays in every period window.</strong> <code>IsInPeriod</code> returns <code>true</code> on a parse failure. Silently dropping a record because its own clock string is odd would understate every figure with no visible reason.
-</li>
-<li><strong>The period filter is per-circuit and is not persisted.</strong> Reload and you are back on <em>All history</em>. So is the type tab (<code>OnTypeSelectedAsync</code> sets a field and returns <code>Task.CompletedTask</code>).
-</li>
-<li><strong><code>Recompute()</code> resets the raw disclosure</strong> (<code>objRawMissId = null; objIsRawOpen = false</code>). A change of period closing the open record is intentional — the record may not be in the new window.
-</li>
-<li><strong><code>CollapsibleContent</code> is guarded by an <code>@if</code>, not merely closed.</strong> <code>TR-018</code>: a closed <code>CollapsibleContent</code> still lays its children out and overlaps what follows. Do not remove the guard.
-</li>
-<li><strong><code>Progress Class="w-16"</code>, not <code>w-20</code>.</strong> See <a href="#trblazeui-css-s-spacing-sizing-scale-has-holes-w-20-renders-at-zero-width">cross-cutting gotcha 10</a> — <code>w-20</code> is absent from the shipped stylesheet and the share bars rendered at zero width.
-</li>
-<li><strong>The chip icons are <code>circle-check</code>, not <code>check-circle</code>.</strong> <code>TR-022</code>; the alias renders an empty box.
-</li>
-<li><strong>This page reads <code>ITelemetryStore</code> directly and so bypasses <code>MemoryAnalysisCache</code>.</strong> It is not served by the <code>CachingMetricsEngine</code> at all, which means it is <em>not</em> subject to <a href="#memoryanalysiscache-is-keyed-on-the-syncstate-version">gotcha 5</a> — seeded rows show up here immediately while <code>/gate-outcomes</code> may still serve a cached analysis. Two pages, two freshnesses.
-</li>
-<li><strong><code>FrameworkNames</code> is the axis, <code>project_type</code> is the segment, and they are different things.</strong> There is deliberately no "all types" entry on <code>MissAnalysis.Live</code> and no total row anywhere on the page — the same rule as <code>/gate-outcomes</code> (ADR-007).
+<li><strong>Period narrowing.</strong> Runs are filtered in memory by <code>Ts</code> against <code>UtcNow - days</code> (<code>:1392-1396</code>), and the engine runs again over the smaller set. The database is not queried again. A timestamp that cannot be parsed is <strong>kept</strong>, not dropped (<code>:1423-1430</code>). Open phases that leave the window are removed, and if none stay open the new heaviest phase opens (<code>:1402-1407</code>).
 </li>
 </ul>
-<h3 id="deviation-from-docs-tflens-uidesign-md-5">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-5">#</a></h3>
+<h3 id="gotchas-14">Gotchas<a class="anchor-link" href="#gotchas-14">#</a></h3>
 <ul>
-<li>The design specifies <code>Progress</code> bars at <code>w-20</code> in the failed-practice card. The code ships <code>w-16</code> because <code>w-20</code> is not in <code>trblazeui.css</code> (TR-021). Restore the design's value only alongside a scoped-CSS rule that actually defines the width.
+<li><strong>The denominator sits beside every figure.</strong> Token tiles and bands print <code>measured on n of N runs</code> as visible text (<code>:178</code>, <code>:553</code>), never as a tooltip. The phase table's <code>Measured</code> is a column (<code>:449</code>). If you add a token figure, add its <code>n of N</code> next to it.
 </li>
-<li>The design's period control is a plain <code>Select</code>; the code adds <code>DisplayTextSelector</code> and a <code>misses-period-label</code> badge beside it, because the closed trigger otherwise shows the raw key (TR-020) and because the window should be legible without opening anything.
+<li><strong>Never show 0 for something unmeasured.</strong> Token totals print <code>—</code> when <code>TokensMeasuredN == 0</code> (<code>:1483</code>). Fan-out prints <code>not observed</code>, never <code>0 subagents</code> (<code>:1495</code>, <code>:1501</code>). <code>PercentText</code> prints <code>—</code> when the denominator is 0 (<code>:1771</code>). Watch out: <code>Percent</code> returns <code>0</code> for the bar in the same case (<code>:1759</code>), so the bar is empty while its label reads <code>—</code>.
 </li>
-<li>The design puts the origin cross-tab in a <code>DataTable</code>. The code hand-rolls a <code>&lt;table class="tflens-table"&gt;</code> inside <code>.tflens-scroll-x</code>, because <code>DataTableColumn</code> needs a compile-time property per column and <code>miss_class</code> has no closed vocabulary — the columns are whatever the linked records carry. The <code>why_missed</code>, model, agent and detail tables <em>are</em> <code>DataTable</code>s, all with an explicit <code>InitialPageSize</code> (<a href="#datatable-truncates-to-initialpagesize-even-with-showpagination-false">gotcha 1</a>).
+<li><strong><code>DurationText</code> returns <code>"0s"</code> for ≤ 0</strong> (<code>:1683</code>). Per-phase calls are guarded by <code>TimedN == 0 → —</code> (<code>:1662</code>), but the KPI tile calls it directly (<code>:158</code>). With no timed runs the tile reads <code>0s</code>, and the sub-line beside it says <code>over 0 timed runs</code>.
+</li>
+<li><strong>Share strings belong to the engine.</strong> <code>ShareOfDuration</code> is rendered exactly as received (BRD-152). <code>Share of output</code> goes through <code>PhaseShare.OfMeasuredOutput</code> (<code>:1141</code>), which shows <code>—</code> where the export keeps <code>"0%"</code>. Do not reformat either one in Razor.
+</li>
+<li><strong><code>drifted</code> is <code>BadgeVariant.Info</code></strong> (<code>:1251</code>), never Destructive. <code>unknown</code> gets its own row. No routing policy is enforced.
+</li>
+<li><strong>Dollars are never pooled or estimated.</strong> <code>PhaseMetrics.Compute</code> is called with no rate card (<code>:1398</code>). The <code>?</code> harness keeps its row, labelled <code>harness not detected</code> (<code>:1879-1882</code>).
+</li>
+<li><strong>Five tiles means no <code>StatGroup</code>.</strong> Its 12-column grid splits five tiles 4 + 1, so the row uses the page's own grid (<code>:136-142</code>). The heaviest-phase command stays on one line through a size container (<code>Effort.razor.css:87-89</code>) and length-based fit classes (<code>:1113</code>, css <code>:92-108</code>).
+</li>
+<li><strong>TrBlazeUI quirks relied on here:</strong> <code>CollapsibleTrigger</code> renders a button that shrinks to its content, so it needs <code>Class="w-full text-left"</code> (TR-030, <code>:494-496</code>). <code>DataTable ShowHeader="false"</code> keeps column metadata but drops the header row (TR-012, <code>:303-311</code>). <code>DataTableColumnAlign.End</code> applies to the header and every body cell (TR-031, <code>:249-253</code>). <code>CardHeader</code> accepts a caller display class (TR-015). <code>Empty</code> and <code>Typography</code> need explicit <code>@using</code> lines, otherwise they render as unknown tags with only a warning (<code>:30-34</code>).
+</li>
+<li><strong>CSS isolation and <code>::deep</code>.</strong> A class passed to a child component's root (<code>Badge</code>, <code>Alert</code>, <code>CardFooter</code>, <code>StatTile</code>'s <code>Card</code>) carries that component's scope attribute, not this page's, so a plain rule never matches. Reach it through <code>::deep</code> from an element this page owns (<code>Effort.razor.css:130-141</code>, <code>:69</code>). Colours for <code>Progress</code> indicators follow the same rule (<code>.tflens-bar ::deep .tflens-fill-*</code>, css <code>:350-367</code>).
+</li>
+<li><strong>The Playbook surface is not wrapped in <code>PlaybookState</code></strong> (<code>:90-98</code>). Phase rows come from the <code>PbPhase*</code> tables, not from <code>PbEvent</code>, so gating on event count would hide a populated screen and the unsupported banner.
+</li>
+<li><strong>The TechieFlow read also runs on the Playbook axis.</strong> <code>OnParametersSetAsync</code> never checks <code>IsPlaybook</code> (<code>:1344-1347</code>), so a <code>"Run"</code> read with framework <code>playbook</code> happens and its result is not shown.
+</li>
+<li><strong>After a sync, the Playbook surface is not refreshed (found by reading the code).</strong> <code>Effort.OnShellChanged</code> (<code>:1778</code>) re-reads runs and calls <code>StateHasChanged</code>. The surface's guard <code>objIsLoaded &amp;&amp; objLoadedUserId == UserId</code> then returns early (<code>PlaybookEffortSurface.razor:1591</code>), so a Sync Now on the Playbook axis leaves the old report on screen until you navigate away or switch frameworks. Not confirmed at runtime.
+</li>
+<li><strong>Only the Playbook <code>repository</code> filter queries again.</strong> The other filters narrow the executions table only; the summary tiles keep the engine's cohorts (<code>FilterScopeNote</code>, <code>PlaybookEffortSurface.razor:1143</code>).
+</li>
+<li><strong>Without an auth state the skeleton never clears.</strong> If <code>AuthenticationStateTask</code> is <code>null</code>, <code>OnParametersSetAsync</code> returns before <code>objIsLoaded</code> is set (<code>:1327-1330</code>), so the skeleton never clears. <code>AddCascadingAuthenticationState</code> supplies it in practice.
+</li>
+</ul>
+<h3 id="defects-found-3">Defects found<a class="anchor-link" href="#defects-found-3">#</a></h3>
+<ul>
+<li><strong>Fixed 2026-09-15 (<code>*fix-issues</code>, re-verified).</strong> Each <code>PhaseExecutionView</code> now carries <code>Harness</code> (from the record's <code>SourceHarness</code>, <code>PlaybookPhaseReport.ViewOf</code>), and <code>Matches</code> calls <code>MatchesHarness</code>, which compares it with <code>PhaseExecutionView.RanOn</code> ignoring letter case. Unit test <code>PlaybookPhaseAdapterTests.EveryExecutionRowCarriesItsHarnessForTheFilter</code>. The note below is the defect as found.
+</li>
+<li><strong>REQ-UI-050 · Low · The Playbook "harness" filter does nothing</strong> (logged on the row 2026-09-14, <code>Needs re-verify</code>). <code>PlaybookEffortSurface.razor:1358</code> builds a <code>harness</code> select whose options are the real normalized harnesses. The value is never read: <code>Matches</code> (<code>:1708-1715</code>) checks command-phase, project-type, verdict, completeness, coverage, fan-out and period, and <code>ReloadAsync</code> (<code>:1620-1624</code>) passes only the repository. Choosing a harness changes no row. The on-screen scope note (<code>:1143-1147</code>) admits that tier and tokens scope "select nothing yet", but it does not mention harness. <strong>Not affected:</strong> every TechieFlow band on <code>/effort</code>, the Playbook summary tiles and charts (they never followed row filters), and the other Playbook filters. <code>tier</code> and <code>tokens-scope</code> offer only their "All" option, so they cannot be set to a value that is then ignored.
 </li>
 </ul>
 <hr>
@@ -1834,7 +2029,7 @@ quote — so it is also the page that says whether quoting it is honest.</p>
 <p><code>Export.razor</code> renders <code>&lt;ExportSurface UserId Framework /&gt;</code> for TechieFlow, and the same component
 wrapped in <code>&lt;PlaybookState&gt;</code> for Playbook. The surface is byte-identical between the two states, which
 is the point: they cannot drift apart into two slightly different export screens.</p>
-<h3 id="control-data-path-12">Control → data path<a class="anchor-link" href="#control-data-path-12">#</a></h3>
+<h3 id="control-data-path-14">Control → data path<a class="anchor-link" href="#control-data-path-14">#</a></h3>
 <table>
 <thead><tr><th>Region</th><th>Component</th><th><code>data-testid</code></th><th>Source</th></tr></thead>
 <tbody>
@@ -1870,7 +2065,7 @@ evidence. <code>NoParityMessage</code> draws the same distinction for the card b
 recorded run as exactly equal to no run at all.</p>
 <p><code>BannerLiteral</code> (<code>"{status} — {reason}"</code>) is set as the alert's <code>title</code> attribute so the exact wording
 is one searchable string in the DOM.</p>
-<h3 id="states-13">States<a class="anchor-link" href="#states-13">#</a></h3>
+<h3 id="states-15">States<a class="anchor-link" href="#states-15">#</a></h3>
 <ul>
 <li><strong>Loading</strong> — <code>objIsLoaded</code> is guarded by <code>objLoadedKey == $"{UserId}|{Framework}"</code>, so a change of either re-reads. There is no skeleton on this surface; it renders with empty tables first.
 </li>
@@ -1881,7 +2076,7 @@ is one searchable string in the DOM.</p>
 <li><strong>Exporting</strong> — <code>objIsExporting</code> disables the button and swaps in a <code>Spinner</code>; success and failure both toast, and <code>ReloadAsync</code> runs in <code>finally</code>.
 </li>
 </ul>
-<h3 id="gotchas-13">Gotchas<a class="anchor-link" href="#gotchas-13">#</a></h3>
+<h3 id="gotchas-15">Gotchas<a class="anchor-link" href="#gotchas-15">#</a></h3>
 <ul>
 <li><strong><code>objShaRows</code> and <code>objSnapshots</code> are rebuilt as fresh instances on every reload, never cleared in place.</strong> <code>DataTable</code> takes its rows as a parameter, and a parameter whose reference has not changed is not re-processed — mutating these lists would leave a just-written snapshot invisible until the page was navigated away from.
 </li>
@@ -1900,7 +2095,7 @@ is one searchable string in the DOM.</p>
 <li>Download links go through an authorized minimal-API endpoint that <strong>derives the reports root from the auth cookie</strong> and takes no user id, so one user cannot fetch another's snapshot by editing a query string.
 </li>
 </ul>
-<h3 id="deviation-from-docs-tflens-uidesign-md-6">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-6">#</a></h3>
+<h3 id="deviation-from-docs-tflens-uidesign-md-5">Deviation from <code>docs/TfLens-UIDesign.md</code><a class="anchor-link" href="#deviation-from-docs-tflens-uidesign-md-5">#</a></h3>
 <ul>
 <li>The design's past-snapshots table is <code>date · parser version · parity status · links</code>; the code adds a <strong>framework</strong> column between date and parser version. Correct — snapshots are per framework.
 </li>
@@ -1994,11 +2189,13 @@ returns a single <code>events</code> stream, so the repo card's table renders on
 <tr><td><code>/reset-password</code></td><td><code>Components/Pages/Auth/ResetPassword.razor</code></td><td><code>AuthLayout</code></td><td><code>[AllowAnonymous]</code></td><td>—</td></tr>
 <tr><td><code>/profile</code></td><td><code>Components/Pages/Auth/Profile.razor</code></td><td><code>MainLayout</code></td><td><code>[Authorize]</code></td><td>no</td></tr>
 <tr><td><code>/repos</code></td><td><code>Components/Pages/Repos.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr>
+<tr><td><code>/prices</code></td><td><code>Components/Pages/Prices.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr>
 <tr><td><code>/</code></td><td><code>Components/Pages/Coverage.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/gate-outcomes</code></td><td><code>Components/Pages/GateOutcomes.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/harness</code></td><td><code>Components/Pages/Harness.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/routing</code></td><td><code>Components/Pages/Routing.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/misses</code></td><td><code>Components/Pages/Misses.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
+<tr><td><code>/effort</code></td><td><code>Components/Pages/Effort.razor</code> + <code>Shared/Playbook/PlaybookEffortSurface.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/export</code></td><td><code>Components/Pages/Export.razor</code> + <code>Export/ExportSurface.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td><strong>yes</strong></td></tr>
 <tr><td><code>/not-found</code></td><td><code>Components/Pages/NotFound.razor</code></td><td><code>MainLayout</code></td><td>fallback policy</td><td>no</td></tr>
 <tr><td><code>/Error</code></td><td><code>Components/Pages/Error.razor</code></td><td>—</td><td>—</td><td>—</td></tr>
