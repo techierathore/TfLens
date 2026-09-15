@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | App | TfLens |
-| Count | 136 logged: 77 open, 59 fixed, 0 will not fix |
+| Count | 138 logged: 77 open, 61 fixed, 0 will not fix |
 | Source | `docs/metrics/misses.jsonl`, one row per miss record. Rewritten by `tf-misses-md.sh` on every new record. Never edit it: a wrong row is corrected by a new record. |
 | Updated | 2026-09-15 |
 
@@ -91,10 +91,12 @@
 | MISS-TfLens-20260828-25 (REQ-UI-014) | 2026-08-28 by gate | not sorted | no sentence recorded (standards-violation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260828-21 | 2026-08-28 by owner | not sorted | no sentence recorded (standards-violation, config, why: missing-checklist-item) |
 
-## Fixed (59)
+## Fixed (61)
 
 | Miss | Found | Closed | Whose gap | What went wrong |
 |---|---|---|---|---|
+| MISS-TfLens-20260915-07 | 2026-09-15 by owner | 2026-09-15 by log-miss | the check was too weak | inside *fix-issues the inline verify took the fix's start so its run record swallowed the fix's, and tf-fix-close read one ledger so rows of an earlier scoped verify got Needs re-verify (TfLens TF-052) |
+| MISS-TfLens-20260915-06 | 2026-09-15 by owner | 2026-09-15 by log-miss | the check was too weak | tf-triage.py resolved only the appPhase checklist and had no --phase, so with appPhase 3 a Phase 1 row the Phase 3 verify found failing could not be demoted (TfLens TF-051) |
 | MISS-TfLens-20260915-05 (REQ-FN-040) | 2026-09-15 by owner | 2026-09-15 by log-miss | said and ignored | After I was reminded, the Deployment Checklist still told the owner in its Who does what table that only four repo-level secrets were needed and never named the GitHub Packages access token for TrBlazeUI. |
 | MISS-TfLens-20260915-04 (REQ-UI-072) | 2026-09-15 by owner | 2026-09-15 by fix-issues | the check was too weak | On /prices, an OpenRouter model with only one of its two prices published is saved with the missing price as zero after Refresh (PriceProviders.ReadOpenRouter). |
 | MISS-TfLens-20260915-03 (REQ-UI-050) | 2026-09-15 by owner | 2026-09-15 by fix-issues | the check was too weak | On /effort in Playbook view, picking a harness in the Harness filter does not change the table; the row filter never reads the harness choice (PlaybookEffortSurface.razor Matches). |

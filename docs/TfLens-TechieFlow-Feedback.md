@@ -4,7 +4,7 @@
 |---|---|
 | App | TfLens |
 | Upstream | TechieFlow |
-| Updated | 2026-09-14 |
+| Updated | 2026-09-15 |
 
 Defects found in the **TechieFlow framework itself** (`.tfcore/`) while building TfLens. That directory
 is owned and maintained by the TechieFlow team and is gitignored here — `update-framework.sh` overwrites
@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 50 entries: none open, 14 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044), 36 closed. TF-049 and TF-050, filed at the handoff and fixed the same day, were re-checked and closed here on 2026-09-15. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-050 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13 and TF-046 to TF-050 on 2026-09-14. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 52 entries: none open, 16 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051, TF-052), 36 closed. TF-051 and TF-052, filed from the 2026-09-15 fix, are fixed the same day. TF-049 and TF-050, filed at the handoff and fixed the same day, were re-checked and closed here on 2026-09-15. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-052 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14 and TF-051 and TF-052 on 2026-09-15. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -141,6 +141,17 @@ that grew a legal move as a result.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-09-15)
+
+**TF-051 and TF-052 are fixed in the framework and deployed to this repository.** Nothing is blocked. Cases `tf_051` and `tf_052` in `tests/regression/run.sh`, each failing against the scripts you had; misses `MISS-TechieFlow-20260915-01` and `-02`. Close each with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-051** | `tf-triage.sh` `demote`, `new` and `note` take `--phase N`, as `tf-verify-list.sh` does. Without it, `demote` and `note` look for the row in `docs/TfLens-Checklist.md` and every `docs/TfLens-P<N>-Checklist.md`, write it where it is and say so; a row in two checklists asks for `--phase`, and an id in none is refused, naming every checklist searched. Proved on a copy of this repository's checklists: REQ-NFR-003 went from `Verified` to `Needs re-verify` in `docs/TfLens-Checklist.md` and the P3 checklist did not change; the old script printed your error. | `d=tests/.artifacts/tf051 && rm -rf $d && mkdir -p $d/docs $d/.tfcore && cp .tfcore/core-config.yaml $d/.tfcore/ && cp docs/TfLens*-Checklist.md $d/docs/ && ( cd $d && bash ../../../.tfcore/utils/tf-triage.sh TfLens demote REQ-NFR-003 "re-check TF-051" --kind data-logic )`: prints `note: REQ-NFR-003 is a row of docs/TfLens-Checklist.md, not of docs/TfLens-P3-Checklist.md; written there` and `REQ-NFR-003: Verified → Needs re-verify — re-check TF-051`, exit 0. It works on a copy, so your checklist is not touched. |
+| **TF-052** | Three script changes. **(1)** `tf-phase.sh start` run inside another command keeps that command in the marker as `outer`; the new command's own start is still what every reader takes. **(2)** `tf-verify-emit.sh`, handed the caller's start, records the verify from its own start (its marker, or when its list was written if its step 0 was skipped) and prints which. **(3)** `tf-fix-close.sh` records the fix only in the time around any run it chained, with the rows on the first part, and takes each row's verdict from the gate records of every verify since the fix started, then from `docs/.last-verify.json` only when that ledger belongs to this fix. A row no verify graded gets no miss-fix and is named. `fix-issues.md` step 4 now says the inline verify runs its own step 0, and rows of another phase are a second verify with `--phase N`. Replayed on a copy of this repository's stream with your fix's start, 2026-09-15T12:41:41Z: the run record is written, and MISS-TfLens-20260911-39 (REQ-UI-072) gets `Verified` from the Phase 3 verify's gate record; the old script refused the record and wrote `Needs re-verify`. Your 2026-09-15 records stay as they are: the verify record holds 20 minutes that were partly the fix's, but no minute is counted twice. | `TF_REGRESSION_UTILS="$PWD/.tfcore/utils" bash /mnt/c/3AIGenCode/TechieFlow/tests/regression/run.sh tf_052` (on the Mac the suite is under `/Users/MyCode/TechieFlow`): four `ok` lines, `tf_052a` to `tf_052d`, run against this repository's own copy of the scripts. |
 
 ---
 
