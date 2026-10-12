@@ -255,6 +255,8 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
                     // are not TfLens additions, so they belong on this list rather than in the
                     // parity-compare allow-list.
                     "runs_voided_n", "runs_voided", "run_voids_orphaned_n",
+                    // REQ-FN-145 — the two malformed-gate keys are the ORACLE's own too (SCHEMA.md §3).
+                    "gates_malformed_n", "gates_malformed",
                     "live", "backfilled", "pooled", "misses", "phases",
                     "extras", "parity"
                 ],
@@ -297,6 +299,8 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
                     // are not TfLens additions, so they belong on this list rather than in the
                     // parity-compare allow-list.
                     "runs_voided_n", "runs_voided", "run_voids_orphaned_n",
+                    // REQ-FN-145 — the two malformed-gate keys are the ORACLE's own too (SCHEMA.md §3).
+                    "gates_malformed_n", "gates_malformed",
                     "live", "backfilled", "pooled", "misses", "phases",
                     "extras", "parity"
                 ],

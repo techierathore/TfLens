@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-09-15</div>
+    <div class="sub">Last rendered: 2026-10-12</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -136,7 +136,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>TfLens-Architecture.md</code></div>
+    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -200,7 +200,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><a href="#sources-harvested">Sources harvested</a>
 </li>
 </ol>
-<h2 id="tech-stack">1. Tech stack<a class="anchor-link" href="#tech-stack">#</a></h2>
+<h2 id="tech-stack"><a id="1-tech-stack"></a>1. Tech stack<a class="anchor-link" href="#tech-stack">#</a></h2>
 <table>
 <thead><tr><th>Layer</th><th>Choice</th><th>Version</th><th>Notes</th></tr></thead>
 <tbody>
@@ -219,7 +219,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Vector store / RAG</td><td>none</td><td>—</td><td>No AI features in TfLens.</td></tr>
 </tbody>
 </table>
-<h2 id="component-map">2. Component map<a class="anchor-link" href="#component-map">#</a></h2>
+<h2 id="component-map"><a id="2-component-map"></a>2. Component map<a class="anchor-link" href="#component-map">#</a></h2>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -319,7 +319,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   Auth --&gt; Pages</pre>
 </div>
 <p>Two projects, one head. <code>TfLens.Core</code> holds everything that must be testable and parity-checked without a browser: the AppManager client, the repo registry, fetching, parsing, dedupe, storage, the metrics engine, and the exporter. <code>TfLens</code> is the only executable: it hosts Blazor Server, the background sync, the AppManager-backed cookie auth, and the three command verbs (<code>rebuild</code>, <code>sync</code>, <code>export</code>) so that a Docker <code>exec</code> or a parity run never needs a second image (ADR-005). Every store read and every engine call takes a <code>UserId</code> — isolation is a parameter, not a filter someone remembers to add (ADR-013).</p>
-<h2 id="data-flow-primary-path">3. Data flow — primary path<a class="anchor-link" href="#data-flow-primary-path">#</a></h2>
+<h2 id="data-flow-primary-path"><a id="3-data-flow--primary-path"></a>3. Data flow — primary path<a class="anchor-link" href="#data-flow-primary-path">#</a></h2>
 <p>The primary path is "owner opens a report page". Every figure on every page is computed at request time from the stream tables; nothing derived is stored.</p>
 <div class="diagram">
   <div class="dt">
@@ -351,7 +351,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   B--&gt;&gt;O: render cards / grid / labelled columns</pre>
 </div>
 <p>The engine never receives a "pool everything" option: <code>Analyse</code> returns a structure keyed <code>live[project_type]</code>, <code>backfilled[project_type]</code>, <code>pooled</code> — the same shape as <code>tf-metrics.sh --rollup --json</code> — so a page cannot even ask for a merged first-pass rate (§7).</p>
-<h2 id="module-responsibilities">4. Module responsibilities<a class="anchor-link" href="#module-responsibilities">#</a></h2>
+<h2 id="module-responsibilities"><a id="4-module-responsibilities"></a>4. Module responsibilities<a class="anchor-link" href="#module-responsibilities">#</a></h2>
 <table>
 <thead><tr><th>Module</th><th>Responsibility</th><th>Depends on</th></tr></thead>
 <tbody>
@@ -405,8 +405,8 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p><strong><code>PlaybookMissNormalizer</code> (added 2026-09-01).</strong> The Playbook's miss export lands in the <strong>existing</strong> <code>Miss</code> / <code>MissFix</code> / <code>MissAmend</code> tables (ADR-024) rather than a parallel set, because the two editions record the same lifecycle and the contract asks for normalization. What differs is carried as difference: <code>ItemId</code> sits beside <code>ReqId</code> and <code>FoundPhaseGate</code> beside <code>FoundGate</code> as their own nullable columns — the first pair is one axis under two names, the second is two genuinely different measurements and never shares a column or a chart (BRD-165) — and Playbook rows key on an immutable <strong>source-line hash</strong> rather than the TechieFlow natural keys, preserving stream order. <code>UserRepo.Framework</code> already guarantees no read pools across editions (ADR-016), so no new wall is needed. The Playbook's reporting guards are <strong>stricter</strong> and are enforced as its own: attribution needs <code>linked</code> plus a complete valid source window plus a non-null observed model; headline cost needs <code>sole</code> plus a complete valid window plus <code>cost_status:"complete"</code>. They are deliberately not unified with the TechieFlow guards — unifying downward would weaken a claim the producer refuses to make.</p>
 <p><strong><code>SnapshotExporter</code>.</strong> Writes <code>data/reports/&lt;yyyy-MM-dd&gt;/snapshot.md</code> (human) and <code>tflens.json</code> (machine, same key layout as <code>tf-metrics.sh --rollup --json</code> plus an <code>extras</code> object) — the diffable numbers for the plan's Numbers table and B3, with the parity stamp (last passing run date + dataset SHAs) embedded.</p>
 <p><strong><code>PlaybookAdapter</code> (Phase 3).</strong> Separate tables (<code>PbEvent</code>, <code>PbSyncState</code>), separate page. Phase-gates (<code>phase_gate</code>) and TechieFlow assertion-gates (<code>gate</code>) never share a column or chart (SCHEMA.md §11). Built as schema-discovery: the first task is to parse the real <code>events.ndjson</code> and record the observed field names in DECISIONS.md before any chart exists.</p>
-<h2 id="runtime-flows-beyond-the-primary-path">5. Runtime flows beyond the primary path<a class="anchor-link" href="#runtime-flows-beyond-the-primary-path">#</a></h2>
-<h3 id="repo-sync-background-sync-now">5.1 Repo sync (background + Sync now)<a class="anchor-link" href="#repo-sync-background-sync-now">#</a></h3>
+<h2 id="runtime-flows-beyond-the-primary-path"><a id="5-runtime-flows-beyond-the-primary-path"></a>5. Runtime flows beyond the primary path<a class="anchor-link" href="#runtime-flows-beyond-the-primary-path">#</a></h2>
+<h3 id="repo-sync-background-sync-now"><a id="51-repo-sync-background--sync-now"></a>5.1 Repo sync (background + Sync now)<a class="anchor-link" href="#repo-sync-background-sync-now">#</a></h3>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -446,7 +446,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   SS--&gt;&gt;T: SyncReport (per repo: skipped / updated / error)</pre>
 </div>
 <p>Errors are per-repo and non-fatal: a 401/403/404/network failure is written to that repo's <code>sync_state.LastError</code> and surfaced on the Coverage page; the other repos still sync. Nothing is ever written back to any repository.</p>
-<h3 id="rebuild-from-raw">5.2 Rebuild from raw<a class="anchor-link" href="#rebuild-from-raw">#</a></h3>
+<h3 id="rebuild-from-raw"><a id="52-rebuild-from-raw"></a>5.2 Rebuild from raw<a class="anchor-link" href="#rebuild-from-raw">#</a></h3>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -466,7 +466,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   F --&gt; G["Recompute sync_state counts"]
   G --&gt; H["Report: files replayed, records, duplicates collapsed"]</pre>
 </div>
-<h3 id="login-via-appmanager-amended-2026-08-26">5.3 Login via AppManager (amended 2026-08-26)<a class="anchor-link" href="#login-via-appmanager-amended-2026-08-26">#</a></h3>
+<h3 id="login-via-appmanager-amended-2026-08-26"><a id="53-login-via-appmanager-amended-2026-08-26"></a>5.3 Login via AppManager (amended 2026-08-26)<a class="anchor-link" href="#login-via-appmanager-amended-2026-08-26">#</a></h3>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -506,7 +506,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   Note over A,AM: Register: POST /AuthSvc/register with applicationRoleCode Manager, then the same session/cookie path
   Note over A,AM: Refresh via POST /AuthSvc/refresh before expiry, Validate via POST /AuthSvc/validate on resume, Logout via POST /AuthSvc/logout</pre>
 </div>
-<h3 id="connect-a-repo-added-2026-08-26">5.5 Connect a repo (added 2026-08-26)<a class="anchor-link" href="#connect-a-repo-added-2026-08-26">#</a></h3>
+<h3 id="connect-a-repo-added-2026-08-26"><a id="55-connect-a-repo-added-2026-08-26"></a>5.5 Connect a repo (added 2026-08-26)<a class="anchor-link" href="#connect-a-repo-added-2026-08-26">#</a></h3>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -544,7 +544,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
     end
   end</pre>
 </div>
-<h3 id="miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)<a class="anchor-link" href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">#</a></h3>
+<h3 id="miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28"><a id="56-miss-amendments--folded-at-read-time-never-at-ingest-added-2026-08-28"></a>5.6 Miss amendments — folded at read time, never at ingest (added 2026-08-28)<a class="anchor-link" href="#miss-amendments-folded-at-read-time-never-at-ingest-added-2026-08-28">#</a></h3>
 <p><code>miss-amend</code> records are <strong>stored, not collapsed</strong>. Folding is a read-time operation over the stored rows, so <code>RebuildAsync</code> replays and re-derives them exactly like every other figure, and a reader that ignores amend records entirely still sees nothing false — only less.</p>
 <div class="diagram">
   <div class="dt">
@@ -572,7 +572,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   I --&gt; J["Figures over the folded records"]</pre>
 </div>
 <p>The null-check is re-applied here rather than assumed: TfLens ingests archived files from many machines, and a merged stream can carry an amend and a later-written value in either order. Trusting the producer to have enforced it would make the invariant depend on arrival order, which is precisely the class of bug this product exists to avoid.</p>
-<h3 id="import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)<a class="anchor-link" href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">#</a></h3>
+<h3 id="import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28"><a id="57-import-metric-files--the-second-mode-of-the-add-source-dialog-added-2026-08-28"></a>5.7 Import metric files — the second mode of the Add-source dialog (added 2026-08-28)<a class="anchor-link" href="#import-metric-files-the-second-mode-of-the-add-source-dialog-added-2026-08-28">#</a></h3>
 <p>The path a private or corporate repo's telemetry takes. Note where it <strong>joins</strong> the existing pipeline: at the archive, exactly where the fetcher hands off — everything downstream is shared.</p>
 <div class="diagram">
   <div class="dt">
@@ -610,7 +610,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   end</pre>
 </div>
 <p>The source row carries <code>SourceKind = "import"</code>, so the poller skips it, its row action is <strong>Re-import</strong> rather than Sync, and Coverage reads its staleness as days-since-import. Nothing else in the system branches on it.</p>
-<h3 id="phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">5.8 Phase effort — two producers, one page, three denominators (added 2026-09-01)<a class="anchor-link" href="#phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">#</a></h3>
+<h3 id="phase-effort-two-producers-one-page-three-denominators-added-2026-09-01"><a id="58-phase-effort--two-producers-one-page-three-denominators-added-2026-09-01"></a>5.8 Phase effort — two producers, one page, three denominators (added 2026-09-01)<a class="anchor-link" href="#phase-effort-two-producers-one-page-three-denominators-added-2026-09-01">#</a></h3>
 <p>The two axes of <code>/effort</code> reach the page by different routes and are bounded by different predicates, but they obey one rule: <strong>a figure never leaves the engine without the count it rests on.</strong></p>
 <div class="diagram">
   <div class="dt">
@@ -662,7 +662,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li><strong>The two axes have different evidentiary standing.</strong> The TechieFlow axis has an oracle (<code>tf-metrics.sh --phases</code>) and is diffed key-for-key; the Playbook axis has none and is hand-checked once, like <code>extras</code>. The page says which is which rather than letting a reader assume the stronger one (BRD §13, third standing rule).
 </li>
 </ol>
-<h3 id="weekly-snapshot-export">5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
+<h3 id="weekly-snapshot-export"><a id="54-weekly-snapshot-export"></a>5.4 Weekly snapshot export<a class="anchor-link" href="#weekly-snapshot-export">#</a></h3>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -682,7 +682,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   E --&gt; G["Show download links + quotable / not-quotable banner"]
   F --&gt; G</pre>
 </div>
-<h2 id="data-model">6. Data model<a class="anchor-link" href="#data-model">#</a></h2>
+<h2 id="data-model"><a id="6-data-model"></a>6. Data model<a class="anchor-link" href="#data-model">#</a></h2>
 <p>PostgreSQL 16 (amended 2026-08-26; three miss tables added 2026-08-28; three Playbook phase tables and five new columns added 2026-09-01; <strong>a fourth miss table and two <code>Miss</code> columns added 2026-09-08</strong>). One table per stream — except <code>misses</code>, whose <strong>four</strong> record kinds get four tables, and the Playbook's schema-2 phase metrics, whose execution / per-model / per-subagent shapes get three more — columns named exactly as SCHEMA.md fields (PascalCase per Coding Standards maps 1:1 — <code>req_id</code> → <code>ReqId</code>, etc., always double-quoted in SQL; the JSON→column mapping table lives in <code>StreamParser</code>). <code>Overflow</code> is a <code>jsonb</code> column. Every stream table carries <code>UserId</code> (amended 2026-08-26 — the AppManager user who connected the repo), <code>Repo</code> (owner/name), <code>SourceSha</code>, and <code>Overflow</code> (JSON text of unknown fields). Identity tables: <code>UserRepo</code> (the per-user source list) and <code>AuthSession</code> (server-side AppManager tokens per cookie session). <code>UserRepo.SourceKind</code> (<code>api</code> | <code>import</code>, added 2026-08-28) is the <strong>only</strong> structural trace of how a source's data arrives; <code>BundleSha</code> and <code>LastImportTs</code> are populated for imported sources and <code>null</code> for fetched ones, and <code>LastSha</code> is the reverse. No stream table carries the distinction, because no figure segments on it (ADR-021). TfLens stores <strong>no user profile and no password</strong> — the AppManager <code>userId</code> is the only user key.</p>
 <div class="diagram">
   <div class="dt">
@@ -1011,7 +1011,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <p>Every stream table also carries <code>UserId</code> (omitted from the boxes above for brevity). Unique indexes implement the dedupe keys per user: <code>UcCommitUserRepoSha (UserId, Repo, Sha)</code>, <code>UcRunIdentity (UserId, Repo, Ts, App, Cmd)</code>, <code>UcGateIdentity (UserId, Repo, Ts, App, ReqId, RunId)</code>; sessions are collapsed in the parser (keep max <code>OutputTokens</code>, tie → latest <code>Ts</code>) and stored with <code>UcSessionUserRepoId (UserId, Repo, SessionId)</code>. The miss tables (added 2026-08-28) follow the same house style — every identifier double-quoted, <code>UserId</code> a real column and part of every unique index (ADR-013), <code>CREATE TABLE IF NOT EXISTS</code> so <code>database/001-schema.sql</code> stays idempotent at every startup with no migration framework:</p>
 <pre><code class="language-sql">-- unique keys (the dedupe rules, encoded)
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"            ON "Miss"      ("UserId","Repo","MissId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId" ON "MissFix"   ("UserId","Repo","MissId",COALESCE("FixRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunIdAttempt" ON "MissFix" ("UserId","Repo","MissId",COALESCE("FixRunId",''),COALESCE("FixAttempt",-1)) WHERE "SourceLineHash" IS NULL; -- REQ-FN-144
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
 -- read paths
 CREATE INDEX IF NOT EXISTS "IxMissUserRepo"      ON "Miss"      ("UserId","Repo");
@@ -1051,8 +1051,8 @@ CREATE TABLE IF NOT EXISTS "MissReview" (
   "ModelCorrect"        text    NULL,
   "Overflow"            jsonb   NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunId"
-  ON "MissReview" ("UserId","Repo","ReviewPhase",COALESCE("ProducedRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunIdCorrection"  -- REQ-FN-144
+  ON "MissReview" ("UserId","Repo","ReviewPhase",COALESCE("ProducedRunId",''),COALESCE("CorrectionRunId",''));
 CREATE INDEX IF NOT EXISTS "IxMissReviewUserRepo" ON "MissReview" ("UserId","Repo");
 CREATE INDEX IF NOT EXISTS "IxMissReviewPhase"    ON "MissReview" ("UserId","ReviewPhase");</code></pre>
 <p>Two things in that block are deliberate. The unique key <strong>coalesces <code>ProducedRunId</code></strong>, for exactly the reason the <code>MissFix</code> correction of 2026-08-28 records: a nullable column in a PostgreSQL unique index never collides with itself, so without the <code>COALESCE</code> the dedupe rule would permit unlimited duplicates of the records it exists to collapse — the lesson applied before it bites rather than after. And the cost columns — tokens and dollars for the run that produced the reviewed output and for the run that corrected it — are <strong>nullable with no default</strong>: a review whose cost the emitter could not copy is <em>not available</em>, and a <code>NOT NULL DEFAULT 0</code> would manufacture the free-documents figure BRD-175 exists to prevent.</p>
@@ -1101,7 +1101,7 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
 </li>
 </ol>
 <p><code>ITelemetryStore</code> gains <code>ReadPhaseExecutionsAsync</code>, <code>ReadPhaseModelUsageAsync</code> and <code>ReadPhaseSubagentsAsync</code>; <code>UpsertAsync</code> handles the three new collections; and <strong><code>DeleteRepoDataAsync</code> must purge all three</strong> — the same rule, and the same failure if missed, as the miss tables.</p>
-<h2 id="metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
+<h2 id="metrics-engine-parity-with-tf-metrics-sh"><a id="7-metrics-engine--parity-with-tf-metricssh"></a>7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
 <p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>
 <table>
 <thead><tr><th>tf-metrics.sh</th><th>TfLens.Core</th><th>Rule carried</th></tr></thead>
@@ -1142,7 +1142,7 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
 </table>
 <p>Four guarantees are enforced by type, not by discipline: (1) <code>AnalysisResult</code> has no member that could hold a cross-<code>project_type</code> or cross-provenance rate; (2) <code>Figure</code> is a discriminated union of <code>Value</code> / <code>InsufficientData(n)</code> / <code>NotApplicable</code> — a page binding a <code>Figure</code> cannot print a number for an <code>InsufficientData</code> case; (3) <em>(2026-08-28)</em> <code>MissCost</code> exposes <code>Sole</code>, <code>Apportioned</code> and <code>NoneCount</code> and nothing else, so a page cannot render a blended measured-plus-apportioned cost — there is no property to bind; and (4) <em>(2026-09-01)</em> every phase-effort figure is returned <strong>wrapped in the count it rests on</strong> — a token total arrives as <code>TokenWindow(Figure Tokens, int MeasuredN, int UnmeasuredN)</code> and a fan-out figure as <code>FanoutObservation(double? Spawns, int ObservedN, int UnobservedNotTree, int UnobservedPredatesField)</code> — so a page cannot render a spawn count without also holding the number of runs that could have been observed. <em>(Corrected 2026-09-01: <code>Spawns</code> is <code>double?</code>, not <code>Figure</code>. The wrapper is what makes the denominator inescapable; the <code>MIN_N</code> refusal belongs to <code>TokenWindow.Tokens</code>, which the script does floor, and not here, which it does not.)</em> <em>(5) — 2026-09-08</em> — the same technique reaches the requirement key and the two derivations: <code>ReqKey</code> is a record type, not a string, so a rollup <strong>cannot</strong> be keyed on the id alone by forgetting to include the project (ADR-030); and <code>RunDuration</code> and <code>GateAttempt</code> each return their value <strong>wrapped in the count that was derived</strong> — <code>DerivedFigure(T Value, int DerivedN)</code> — so a page or an export cannot render a time total or a first-pass rate without also holding how much of it TfLens worked out rather than read (ADR-031). <code>ReviewCost(int Corrections, Figure ProducedCost, Figure CorrectionCost)</code> is the fourth application of the <code>MissCost</code> shape and the reason a review cost cannot silently become a zero: its members are <code>Figure</code>, and <code>Figure.NotApplicable</code> has no numeric value to print.</p>
 <p>The technique is the same each time: <strong>make the wrong number unrepresentable rather than forbidden</strong> (ADR-007, ADR-019, ADR-026, ADR-030, ADR-031). A unit test asserts the engine output on the fixture set equals a checked-in <code>reference.json</code> produced by the script.</p>
-<h2 id="cross-cutting-concerns">8. Cross-cutting concerns<a class="anchor-link" href="#cross-cutting-concerns">#</a></h2>
+<h2 id="cross-cutting-concerns"><a id="8-cross-cutting-concerns"></a>8. Cross-cutting concerns<a class="anchor-link" href="#cross-cutting-concerns">#</a></h2>
 <ul>
 <li><strong>Logging</strong> — Serilog, <code>WriteTo.File("logs/tflens-.log", rollingInterval: Day, retainedFileCountLimit: 14)</code> + console, wired before the host builds; <code>ILogger&lt;T&gt;</code> in app code; sync outcomes logged per repo (IDs and counts only — never file contents).
 </li>
@@ -1167,7 +1167,7 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
 <li><strong>Telemetry</strong> — none outbound. TfLens itself is a TechieFlow-managed repo, so its own <code>docs/metrics/</code> streams are emitted by the framework as usual (and it may read them like any other repo).
 </li>
 </ul>
-<h2 id="deployment-architecture">9. Deployment architecture<a class="anchor-link" href="#deployment-architecture">#</a></h2>
+<h2 id="deployment-architecture"><a id="9-deployment-architecture"></a>9. Deployment architecture<a class="anchor-link" href="#deployment-architecture">#</a></h2>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -1187,7 +1187,7 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
   Users(["Users' browsers"]) -- "HTTPS + cookie" --&gt; VPS</pre>
 </div>
 <p>Two containers via <code>docker-compose.yml</code> (amended 2026-08-26): <code>tflens</code> (single process) and <code>postgres</code> (PostgreSQL 16, its data directory on a named volume, not exposed outside the compose network). TfLens's own persistent state is <code>data/</code> (<code>raw/&lt;userId&gt;/</code>, <code>reports/&lt;userId&gt;/</code>, <code>prices.json</code>) and <code>logs/</code>. The image never contains the AppManager secret, the connection string or the PAT; they arrive as environment variables (<code>TfLensDbConnection</code> points at the <code>postgres</code> service). No inbound endpoint exists other than the authenticated UI, the anonymous auth pages and <code>/healthz</code>.</p>
-<h2 id="a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">9a. Stack decisions — hosting and production secrets (added 2026-09-06)<a class="anchor-link" href="#a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">#</a></h2>
+<h2 id="a-stack-decisions-hosting-and-production-secrets-added-2026-09-06"><a id="9a-stack-decisions--hosting-and-production-secrets-added-2026-09-06"></a>9a. Stack decisions — hosting and production secrets (added 2026-09-06)<a class="anchor-link" href="#a-stack-decisions-hosting-and-production-secrets-added-2026-09-06">#</a></h2>
 <p>This document predates the current Architecture template's "Stack decisions" table (Q1–Q11) and never
 carried one. <code>*deploy-checklist</code> requires Q9 (hosting) and Q10 (production secrets and pipeline)
 specifically, so only those two rows are added here — the other stack questions are not retrofitted
@@ -1199,7 +1199,7 @@ onto a document whose Tech stack (§1) and ADR log (§10) already answer them in
 <tr><td>Q10</td><td>Production secrets and pipeline</td><td>GitHub Actions (<code>.github/workflows/deploy.yml</code>) is the only deploy path — push to <code>main</code> builds the image to GHCR, then over SSH as the dedicated <code>ciuser</code> account (docker group + <code>webops</code> group, sudo limited to <code>/usr/local/bin/ensure-db</code>) renders <code>docker-compose.prod.template.yml</code> via <code>envsubst</code> and starts it. Secrets live only as GitHub Actions secrets, never in the repo: four org-level (<code>VPS_HOST</code>, <code>VPS_USER</code>, <code>VPS_SSH_KEY</code>, <code>DB_PASSWORD</code>) and four repo-level (<code>SEQ_API_KEY</code>, <code>TFLENS_GITHUB_TOKEN</code>, <code>TFLENS_APPMANAGER_API_KEY</code>, <code>TFLENS_APPMANAGER_API_SECRET</code>); real values reach only the rendered file on the server. DNS and the Caddy site file are one-time manual steps — the pipeline holds no DNS credentials and, by TfLens's own deliberate deviation from the brief's optional automation, never touches Caddy either.</td><td><code>docs/claude-code-deployment-brief-v3.2.md</code> §§2, 4–5 (environment contract, secrets, pipeline contract); <code>.github/workflows/deploy.yml</code>; <code>docker-compose.prod.template.yml</code></td></tr>
 </tbody>
 </table>
-<h2 id="architectural-decisions-adr-style-log">10. Architectural decisions (ADR-style log)<a class="anchor-link" href="#architectural-decisions-adr-style-log">#</a></h2>
+<h2 id="architectural-decisions-adr-style-log"><a id="10-architectural-decisions-adr-style-log"></a>10. Architectural decisions (ADR-style log)<a class="anchor-link" href="#architectural-decisions-adr-style-log">#</a></h2>
 <ul>
 <li><strong>ADR-001 — Blazor Server with TrBlazeUI as the only UI head.</strong> Reason: the brief fixes Blazor Server; dogfooding TrBlazeUI is an explicit goal; a single-user dashboard has no WASM/offline need.
 </li>
@@ -1266,9 +1266,9 @@ onto a document whose Tech stack (§1) and ADR log (§10) already answer them in
 <li><strong>ADR-032 — An unrecognised value in an open vocabulary is rendered and counted, never filtered away (2026-09-08).</strong> Reason: <code>cmd</code>, gate <code>verdict</code> and <code>harness</code> are open at the producer and demonstrably grow — <code>cmd</code> gained five values on 2026-09-07 alone, and a whitelist built from the previous list would silently hide <strong>27 records that already exist</strong>. TfLens's own data carries a <code>rename-page</code> run and <strong>37 off-list verdicts</strong> (33 <code>PASS</code>, 2 <code>NOT-OBSERVABLE</code>, 2 <code>In Progress</code>). The asymmetry is the whole argument: showing an unknown value produces a <strong>visible data-quality finding</strong> that someone investigates, while dropping it produces a <strong>wrong total that looks right</strong> — and the same reasoning already governs <code>Overflow</code> for unknown <em>fields</em> (an unrecognised field goes to <code>Overflow</code>, never to <code>InvalidLines</code>). This ADR extends that settled rule from field names to field values. The one place a closed vocabulary is genuinely closed — <code>sort</code>'s four values — is handled the same way rather than differently: an out-of-vocabulary <code>sort</code> is stored, counted and surfaced as unrecognised, never rounded to the nearest legal value, because a miscategorised diagnosis is worse than an unknown one.
 </li>
 </ul>
-<h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure">11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>
+<h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure"><a id="11-target-architecture-brownfield-only--if-enhancement-changes-structure"></a>11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>
 <p>Not applicable — greenfield; §2 is the target.</p>
-<h2 id="open-questions-risks">12. Open questions / risks<a class="anchor-link" href="#open-questions-risks">#</a></h2>
+<h2 id="open-questions-risks"><a id="12-open-questions--risks"></a>12. Open questions / risks<a class="anchor-link" href="#open-questions-risks">#</a></h2>
 <ul>
 <li><strong>Schema v=2 arrival.</strong> Unknown fields land in <code>Overflow</code> and are listed on the Coverage page ("fields observed that SCHEMA.md doesn't document"), but a <em>renamed</em> or <em>re-typed</em> known field would silently fall into the overflow and drop out of the metrics. First thing that breaks: any figure depending on the renamed field, with no error. Mitigation: a per-sync "unknown fields" report + a hard warning when <code>v &gt; 1</code> is seen.
 </li>
@@ -1317,7 +1317,7 @@ onto a document whose Tech stack (§1) and ADR log (§10) already answer them in
 <li><strong>No cross-phase task identity exists on either side.</strong> A whole-task figure needs a cohort supplied explicitly by ingestion; a reused <code>session_id</code> may span several tasks. The temptation to group by it will recur every time someone asks "what did this feature cost end to end", and the honest answer is that the frameworks do not measure it (BRD-157, BRD-169).
 </li>
 </ul>
-<h2 id="sources-harvested">13. Sources harvested<a class="anchor-link" href="#sources-harvested">#</a></h2>
+<h2 id="sources-harvested"><a id="13-sources-harvested"></a>13. Sources harvested<a class="anchor-link" href="#sources-harvested">#</a></h2>
 <ul>
 <li><code>docs/TfLens-Project-Brief.md</code> (v2) — concept, phases, constraints, parity procedure, definition of done. Superseded by this document + the BRD; archived to <code>docs/OldDocs/</code>.
 </li>

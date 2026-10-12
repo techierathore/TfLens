@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Status</h1>
-    <div class="sub">Last rendered: 2026-09-15</div>
+    <div class="sub">Last rendered: 2026-10-12</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#where-i-am">Where I am</a></li>
@@ -121,18 +121,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Status</h1>
-    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>PROJECT-STATUS.md</code></div>
+    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>PROJECT-STATUS.md</code></div>
     <div class="cta-next" style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
       <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">(owner) set current_phase to Released after UAT — no agent command</div>
+      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *handoff-phase TfLens</div>
     </div>
 <table>
 <tbody>
 <tr><th>project</th><td>TfLens</td></tr>
-<tr><th>last_updated</th><td>2026-09-15</td></tr>
-<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · UAT — handoff done, 117 of 117 verified</td></tr>
+<tr><th>last_updated</th><td>2026-10-12</td></tr>
+<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Handoff — 90 of 90 verified, 31 not applicable</td></tr>
 <tr><th>last_verified_build</th><td>PASS</td></tr>
-<tr><th>last_verified_date</th><td>2026-09-15</td></tr>
+<tr><th>last_verified_date</th><td>2026-10-12</td></tr>
 </tbody>
 </table>
     <div class="toc-inline">
@@ -149,16 +149,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       </ol>
     </div>
 <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-<p>Phase 3 of 3 (Depth), UAT. The four findings from the UI verify are fixed and re-checked: the Playbook
-harness filter on /effort now filters, a single missing OpenRouter price is skipped instead of saved as $0,
-the deploy.yml secret line carries its safe-line note, and the cache test recognises fingerprinted names.
-Build 0 warnings; 977 unit tests pass. Ready for UAT once the live site is redeployed.</p>
+<p>Phase 3 of 3 (Depth), ready for the owner's UAT on 2026-10-17. Four imported public repositories match their files on runs, misses and gate outcomes. The full export agrees with tf-metrics.sh (parity P-004, parser 1.3.0), so /export reads QUOTABLE. Eight defects were fixed and verified: REQ-FN-143..146, plus REQ-UI-001 and REQ-FN-021. 1,010 unit tests pass. TfLens runs on http://localhost:5099 with six sources for user 1.</p>
 <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
 <p>Claude Code:</p>
-<pre><code>(owner) set current_phase to Released after UAT — no agent command</code></pre>
+<pre><code>/TechieFlow:agents:flow-master *handoff-phase TfLens</code></pre>
 <p>OpenCode:</p>
-<pre><code>(owner) set current_phase to Released after UAT — no agent command</code></pre>
-<p>Redeploy first (the Deployment Checklist §3 secret, then push), so UAT runs on a working live site.</p>
+<pre><code>/flow-master *handoff-phase TfLens</code></pre>
+<p>Before that, the owner runs the smoke checklist in docs/TfLens-UsageGuide.md and takes the five decisions in docs/TfLens-UAT-Readiness-2026-10-12.md.</p>
 <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
 <table>
 <thead><tr><th>Status</th><th>Count</th></tr></thead>
@@ -176,11 +173,15 @@ Build 0 warnings; 977 unit tests pass. Ready for UAT once the live site is redep
 </ul>
 <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
 <ul>
-<li>Live site: pages load but nothing responds (<code>/_framework/blazor.web.js</code> is 404) until the next deploy ships the fixed Dockerfile (MISS-TfLens-20260915-01).
+<li>Phase 2: REQ-UI-023, REQ-UI-027, REQ-UI-029, REQ-UI-032, REQ-UI-033 are Needs re-verify on mockup parity only; every test passes.
 </li>
-<li>That deploy needs the repository secret <code>TrBlazeUiPackagesToken</code>; the steps are in docs/TfLens-Deployment-Checklist.md §3 (MISS-TfLens-20260915-02).
+<li>REQ-UI-023 and REQ-UI-033 are held partly by two parity-tool false positives, TF-053 and TF-054 (filed).
 </li>
-<li>REQ-NFR-003 kept its Verified status but was written "not observable": its guardrail test passes, yet no test name carries the row id, so the verify cannot link them.
+<li>REQ-UI-027/029: the drift table pages 566 rows and the mockup draws no pager — owner decision.
+</li>
+<li>Chatur, created by an import, is badged <code>private</code> on Repos although it is public — owner decision.
+</li>
+<li>Sevak is not public on GitHub, so it was not imported (owner chose to skip it).
 </li>
 </ul>
 <h2 id="verification-log">Verification log<a class="anchor-link" href="#verification-log">#</a></h2>
@@ -188,34 +189,34 @@ Build 0 warnings; 977 unit tests pass. Ready for UAT once the live site is redep
 <table>
 <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
 <tbody>
-<tr><td>2026-09-15</td><td>fix-issues</td><td>115/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>log-miss</td><td>115/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>verify-phase</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>fix-issues</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>log-miss</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-10-12</td><td>fix-issues</td><td>90/90 Verified, 31 N/A</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 </tbody>
 </table>
 <h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
 <ul>
 <li>AppManager: 0 open · 2 closed — docs/TfLens-AppManager-Feedback.md
 </li>
-<li>TechieFlow: 2 open · 14 fixed upstream, not yet re-checked (TF-018, TF-021, TF-020 …) · 36 closed — docs/TfLens-TechieFlow-Feedback.md
+<li>TechieFlow: 2 open · 16 fixed upstream, not yet re-checked (TF-018, TF-021, TF-020 …) · 36 closed — docs/TfLens-TechieFlow-Feedback.md
 </li>
 <li>TrBlazeUI: 0 open · 38 closed — docs/TfLens-TrBlazeUI-Feedback.md
 </li>
 </ul>
 <h2 id="standards-compliance">Standards compliance<a class="anchor-link" href="#standards-compliance">#</a></h2>
 <ul>
-<li>Last check 2026-09-13: 0 findings, see the checklist Remarks.
+<li>Last check 2026-10-12: 0 findings, see the checklist Remarks.
 </li>
 </ul>
-<h2 id="deferred-future">Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
+<h2 id="deferred-future"><a id="deferred--future"></a>Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
 <ul>
-<li>Phase 1 has 4 and Phase 2 has 5 rows not yet Verified; they are listed in the UsageGuide's Known limitations.
+<li>Phase 1: REQ-NFR-024 stays In Progress; its remaining clause is upstream (TF-014).
 </li>
-<li><code>docs/TfLens-Architecture.md</code> and <code>docs/TfLens-DevGuide.md</code> predate their current templates' section shapes.
+<li>Show an imported source as public when GitHub says it is public (Chatur).
 </li>
-<li>MISS-TfLens-20260911-39 (a repo-count badge beside Price providers in the sidebar) is still open; not part of this fix.
+<li>Draw the drift-table pager in docs/mockups/routing.html, or decide it should not page.
 </li>
 </ul>
   </main>

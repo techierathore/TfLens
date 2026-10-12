@@ -138,7 +138,10 @@ public sealed class ExtraMetrics : IExtraMetrics
         CancellationToken aCancellationToken = default)
     {
         var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
-        var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        // REQ-FN-145 — a gate record with no req_id or no verdict is scored in no figure (SCHEMA.md §3).
+        var vGates = GateMalformed.Apply(
+                await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false))
+            .Kept;
         var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
 

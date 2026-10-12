@@ -97,6 +97,7 @@ public sealed class EstateParityHarness
             vMisses.SelectMany(aR => aR.MissAmends));
 
         vStore.SeedMissReviews(HarnessUserId, vRepo, HarnessFramework, vMisses.SelectMany(aR => aR.MissReviews));
+        vStore.SeedMissVoids(HarnessUserId, vRepo, HarnessFramework, vMisses.SelectMany(aR => aR.MissVoids));
 
         var vDataRoot = ExportFixture.TemporaryDataRoot();
 

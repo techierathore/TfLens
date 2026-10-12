@@ -159,7 +159,7 @@
                                                which raises the column's min-content to the whole token; the table
                                                then scrolls inside the wrapper below rather than breaking the id. *@
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Cmd ?? Missing)" Header="cmd" Sortable
+                                                             Property="@(aRow => aRow.Cmd ?? Missing)" Header="cmd"
                                                              CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.Cmd ?? Missing)</span>
@@ -167,14 +167,14 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Tier ?? Missing)" Header="tier" Sortable>
+                                                             Property="@(aRow => aRow.Tier ?? Missing)" Header="tier">
                                                 <CellTemplate Context="vRow">
                                                     <span>@(vRow.Tier ?? Missing)</span>
                                                 </CellTemplate>
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.TierModel ?? Missing)" Header="tier_model" Sortable
+                                                             Property="@(aRow => aRow.TierModel ?? Missing)" Header="tier_model"
                                                              CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.TierModel ?? Missing)</span>
@@ -182,7 +182,7 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Model ?? Missing)" Header="observed model" Sortable
+                                                             Property="@(aRow => aRow.Model ?? Missing)" Header="observed model"
                                                              CellClass="whitespace-nowrap" HeaderClass="whitespace-nowrap">
                                                 <CellTemplate Context="vRow">
                                                     <span class="font-mono text-xs">@(vRow.Model ?? Missing)</span>
@@ -190,7 +190,7 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="int"
-                                                             Property="@(aRow => ModelCount(aRow))" Header="models" Sortable>
+                                                             Property="@(aRow => ModelCount(aRow))" Header="models">
                                                 <CellTemplate Context="vRow">
                                                     <span class="flex flex-col">
                                                         <span class="tabular-nums">@ModelCount(vRow)</span>
@@ -203,7 +203,7 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => RoutedText(aRow))" Header="routed" Sortable>
+                                                             Property="@(aRow => RoutedText(aRow))" Header="routed">
                                                 <CellTemplate Context="vRow">
                                                     @if (vRow.Routed == false)
                                                     {
@@ -224,7 +224,7 @@
                                             </DataTableColumn>
 
                                             <DataTableColumn TData="DriftRow" TValue="string"
-                                                             Property="@(aRow => aRow.Ts)" Header="ts" Sortable>
+                                                             Property="@(aRow => aRow.Ts)" Header="ts">
                                                 <CellTemplate Context="vRow">
                                                     <span class="whitespace-nowrap text-muted-foreground">@vRow.Ts</span>
                                                 </CellTemplate>
@@ -275,37 +275,37 @@
                                                    data-testid="model-tokens">
                                             <Columns>
                                                 <DataTableColumn TData="ModelTokens" TValue="string"
-                                                                 Property="@(aRow => aRow.Model)" Header="model" Sortable>
+                                                                 Property="@(aRow => aRow.Model)" Header="model">
                                                     <CellTemplate Context="vRow">
                                                         <span class="font-mono text-xs">@vRow.Model</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ModelTokens" TValue="long"
-                                                                 Property="@(aRow => aRow.TokensIn)" Header="in" Sortable>
+                                                                 Property="@(aRow => aRow.TokensIn)" Header="in">
                                                     <CellTemplate Context="vRow">
                                                         <span class="tabular-nums">@Tokens(vRow.TokensIn)</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ModelTokens" TValue="long"
-                                                                 Property="@(aRow => aRow.TokensOut)" Header="out" Sortable>
+                                                                 Property="@(aRow => aRow.TokensOut)" Header="out">
                                                     <CellTemplate Context="vRow">
                                                         <span class="tabular-nums">@Tokens(vRow.TokensOut)</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ModelTokens" TValue="long"
-                                                                 Property="@(aRow => aRow.TokensCacheRead)" Header="cache read" Sortable>
+                                                                 Property="@(aRow => aRow.TokensCacheRead)" Header="cache read">
                                                     <CellTemplate Context="vRow">
                                                         <span class="tabular-nums">@Tokens(vRow.TokensCacheRead)</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ModelTokens" TValue="long"
-                                                                 Property="@(aRow => aRow.TokensCacheWrite)" Header="cache write" Sortable>
+                                                                 Property="@(aRow => aRow.TokensCacheWrite)" Header="cache write">
                                                     <CellTemplate Context="vRow">
                                                         <span class="tabular-nums">@Tokens(vRow.TokensCacheWrite)</span>
                                                     </CellTemplate>
                                                 </DataTableColumn>
                                                 <DataTableColumn TData="ModelTokens" TValue="long"
-                                                                 Property="@(aRow => aRow.Total)" Header="total" Sortable>
+                                                                 Property="@(aRow => aRow.Total)" Header="total">
                                                     <CellTemplate Context="vRow">
                                                         <span class="font-semibold tabular-nums">@Tokens(vRow.Total)</span>
                                                     </CellTemplate>

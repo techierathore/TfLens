@@ -3,17 +3,22 @@
 | | |
 |---|---|
 | App | TfLens |
-| Count | 138 logged: 77 open, 61 fixed, 0 will not fix |
+| Count | 150 logged: 79 open, 71 fixed, 0 will not fix |
 | Source | `docs/metrics/misses.jsonl`, one row per miss record. Rewritten by `tf-misses-md.sh` on every new record. Never edit it: a wrong row is corrected by a new record. |
-| Updated | 2026-09-15 |
+| Updated | 2026-10-12 |
 
 **Whose gap** answers the four questions of the miss protocol: **the app's spec** did not say it, so the checklist line is fixed; **the framework never said it**, so one requirement line and a check are added; **the check was too weak** (a review, or a script that did not fire), so the check is fixed; **said and ignored**, so the rule becomes a hook or is deleted. **not sorted** means the record predates the sort or nobody has answered yet; `bash .tfcore/utils/tf-emit.sh --amend <miss> sort <spec|unsaid|weak-check|ignored>` completes it.
 
-## Open (77)
+## Open (79)
 
 | Miss | Found | Whose gap | What went wrong |
 |---|---|---|---|
-| MISS-TfLens-20260913-01 (REQ-UI-006) | 2026-09-13 by owner | the check was too weak | The mockups were drawn without the sidebar rail, even though the UI design document names SidebarRail as part of the shell and that shell is standard across all my applications. Every report screen then failed the mockup comparison, and the failure was reported against the app rather than the drawin |
+| MISS-TfLens-20261012-11 (REQ-UI-027) | 2026-10-12 by owner | the check was too weak | The /routing tables draw sort arrows on every column header that the approved routing mockup does not draw; mockup parity reports 'app carries an icon the mockup does not' on drift-table at 1280 and 390 |
+| MISS-TfLens-20261012-10 (REQ-UI-032) | 2026-10-12 by owner | the check was too weak | On /export the Dataset SHAs table shows '—' as the SHA of every imported source (Chatur, TechieFlow, TechieRag, TrBlazeUI) and a stale branch 'main' for sources converted from a fetch, although each import's sha256 is its dataset identity and the parity record pins it |
+| MISS-TfLens-20261012-04 (REQ-UI-033) | 2026-10-12 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20261012-03 (REQ-UI-029) | 2026-10-12 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20261012-02 (REQ-UI-027) | 2026-10-12 by gate | not sorted | no sentence recorded (partial-implementation, src) |
+| MISS-TfLens-20261012-01 (REQ-UI-023) | 2026-10-12 by gate | not sorted | no sentence recorded (partial-implementation, src) |
 | MISS-TfLens-20260911-40 (REQ-UI-029) | 2026-09-11 by agent-review | the app's spec | The routing page printed the counterfactual delta as $-305.56 because the specification never said what to show when a mix of models costs more than the all-at-one-model estimate. |
 | MISS-TfLens-20260911-39 (REQ-UI-072) | 2026-09-11 by agent-review | the check was too weak | The sidebar showed the repo count badge on Price providers as well as Repos, which the mockup does not draw. |
 | MISS-TfLens-20260911-38 (REQ-UI-007) | 2026-09-11 by agent-review | the check was too weak | On a phone the header wraps onto three lines, breadcrumb, framework switch and sync row, where the mockup keeps it to one line and hides the breadcrumb and the synced badge. |
@@ -56,7 +61,6 @@
 | MISS-TfLens-20260902-10 | 2026-09-02 by owner | not sorted | no sentence recorded (unspecified-gap, config, why: other) |
 | MISS-TfLens-20260902-09 | 2026-09-02 by owner | not sorted | no sentence recorded (wrong-behaviour, checklist, why: other) |
 | MISS-TfLens-20260902-08 | 2026-09-02 by owner | not sorted | no sentence recorded (partial-implementation, checklist, why: instruction-ignored) |
-| MISS-TfLens-20260902-07 (REQ-FN-063) | 2026-09-02 by gate | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260902-04 (REQ-FN-063) | 2026-09-02 by gate | not sorted | no sentence recorded (unspecified-gap, config, why: missing-checklist-item) |
 | MISS-TfLens-20260902-01 | 2026-09-02 by owner | not sorted | no sentence recorded (unspecified-gap, config, why: missing-checklist-item) |
 | MISS-TfLens-20260901-12 (REQ-FN-105) | 2026-09-01 by agent-review | not sorted | no sentence recorded (unspecified-gap, brd, why: ambiguous-acceptance) |
@@ -68,10 +72,8 @@
 | MISS-TfLens-20260901-06 (REQ-FN-093) | 2026-09-01 by agent-review | not sorted | no sentence recorded (spec-contradiction, architecture, why: ambiguous-acceptance) |
 | MISS-TfLens-20260901-02 | 2026-09-01 by owner | not sorted | no sentence recorded (wrong-behaviour, tests, why: instruction-ignored) |
 | MISS-TfLens-20260830-07 | 2026-08-30 by agent-review | not sorted | no sentence recorded (unspecified-gap, architecture, why: missing-checklist-item) |
-| MISS-TfLens-20260830-05 (REQ-NFR-020) | 2026-08-30 by owner | not sorted | no sentence recorded (partial-implementation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260830-04 (REQ-NFR-011) | 2026-08-30 by owner | not sorted | no sentence recorded (partial-implementation, config, why: insufficient-verify-method) |
 | MISS-TfLens-20260830-03 (REQ-NFR-020) | 2026-08-30 by agent-review | not sorted | no sentence recorded (unspecified-gap, brd, why: insufficient-verify-method) |
-| MISS-TfLens-20260830-02 (REQ-NFR-019) | 2026-08-30 by agent-review | not sorted | no sentence recorded (wrong-behaviour, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260830-01 (REQ-UI-027) | 2026-08-30 by agent-review | not sorted | no sentence recorded (unspecified-gap, checklist, why: missing-checklist-item) |
 | MISS-TfLens-20260829-29 | 2026-08-29 by agent-review | not sorted | no sentence recorded (unspecified-gap, brd, why: ambiguous-acceptance) |
 | MISS-TfLens-20260829-25 (REQ-NFR-020) | 2026-08-29 by gate | not sorted | no sentence recorded (missed-requirement, src) |
@@ -91,10 +93,16 @@
 | MISS-TfLens-20260828-25 (REQ-UI-014) | 2026-08-28 by gate | not sorted | no sentence recorded (standards-violation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260828-21 | 2026-08-28 by owner | not sorted | no sentence recorded (standards-violation, config, why: missing-checklist-item) |
 
-## Fixed (61)
+## Fixed (71)
 
 | Miss | Found | Closed | Whose gap | What went wrong |
 |---|---|---|---|---|
+| MISS-TfLens-20261012-12 (REQ-UI-001) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the check was too weak | On the first sign-in after the app starts, an email and password typed before the page turns interactive are blanked by the first interactive render, so Sign in posts empty fields and the browser says 'Please fill out this field' (4 times on 2026-10-12) |
+| MISS-TfLens-20261012-09 (REQ-FN-146) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | An import records the session duplicates it collapsed |
+| MISS-TfLens-20261012-08 (REQ-FN-145) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | Malformed gate records are listed, never scored |
+| MISS-TfLens-20261012-07 (REQ-FN-144) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | A second fix attempt and a second review correction are separate records |
+| MISS-TfLens-20261012-06 (REQ-FN-021) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the check was too weak | A sync that finds the telemetry SHA unchanged keeps the previous attempt's LastError, so /repos shows TechieBlog as error with 'Network error reaching GitHub.' although the 09:53 check reached GitHub and skipped |
+| MISS-TfLens-20261012-05 (REQ-FN-143) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | Withdrawn misses (kind miss-void, SCHEMA 5.5.11) leave every figure |
 | MISS-TfLens-20260915-07 | 2026-09-15 by owner | 2026-09-15 by log-miss | the check was too weak | inside *fix-issues the inline verify took the fix's start so its run record swallowed the fix's, and tf-fix-close read one ledger so rows of an earlier scoped verify got Needs re-verify (TfLens TF-052) |
 | MISS-TfLens-20260915-06 | 2026-09-15 by owner | 2026-09-15 by log-miss | the check was too weak | tf-triage.py resolved only the appPhase checklist and had no --phase, so with appPhase 3 a Phase 1 row the Phase 3 verify found failing could not be demoted (TfLens TF-051) |
 | MISS-TfLens-20260915-05 (REQ-FN-040) | 2026-09-15 by owner | 2026-09-15 by log-miss | said and ignored | After I was reminded, the Deployment Checklist still told the owner in its Who does what table that only four repo-level secrets were needed and never named the GitHub Packages access token for TrBlazeUI. |
@@ -103,10 +111,12 @@
 | MISS-TfLens-20260915-02 (REQ-FN-040) | 2026-09-15 by owner | 2026-09-15 by log-miss | said and ignored | I switched the deploy pipeline to the private GitHub package feed but did not add the steps to create the packages token and save it as a GitHub secret to the Deployment Checklist, so the next deploy would have failed. |
 | MISS-TfLens-20260915-01 (REQ-FN-040) | 2026-09-15 by production | 2026-09-15 by log-miss | the check was too weak | The Docker image never included Blazor's own script, so the live site loads its pages but nothing on them responds; blazor.web.js returns 404 in production. |
 | MISS-TfLens-20260914-01 (REQ-UI-035) | 2026-09-14 by owner | 2026-09-14 by log-miss | the framework never said it | In the verify, the first mockup comparison ran at the same time as the Misses tests; those tests switch the demo user's saved framework and window size, so the comparison caught a page mid-change and reported 11 false findings at 390 wide. It was re-run on its own and only clean results went into th |
+| MISS-TfLens-20260913-01 (REQ-UI-006) | 2026-09-13 by owner | 2026-10-12 by fix-issues | the check was too weak | The mockups were drawn without the sidebar rail, even though the UI design document names SidebarRail as part of the shell and that shell is standard across all my applications. Every report screen then failed the mockup comparison, and the failure was reported against the app rather than the drawin |
 | MISS-TfLens-20260911-23 (REQ-UI-072) | 2026-09-11 by owner | 2026-09-11 by log-miss | the check was too weak | BRD-200 added a Price providers screen, but no screen row, UI design entry or mockup was written, so the page was built and verified with no design to compare it against. |
 | MISS-TfLens-20260911-22 (REQ-UI-035) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | The approved mockups drew a narrow strip of menu icons on a phone, where the UI library the app uses hides the sidebar and slides it out from the menu button instead. |
 | MISS-TfLens-20260911-21 (REQ-FN-080) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | BRD-128 said every rate-card figure's key must end in _usd_estimate, while BRD-195 and BRD-197, added later, named the list-price figures list_usd and cost_list_usd_per_miss. |
 | MISS-TfLens-20260911-20 (REQ-FN-074) | 2026-09-11 by owner | 2026-09-11 by log-miss | the app's spec | The architecture's sketch of the MissReview table gave it a surrogate key, a text user id and a date-typed timestamp, unlike every sibling table and unlike the code built from it. |
+| MISS-TfLens-20260902-07 (REQ-FN-063) | 2026-09-02 by gate | 2026-10-12 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260902-06 (REQ-FN-079) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260902-05 (REQ-FN-052) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (unspecified-gap, src, why: missing-checklist-item) |
 | MISS-TfLens-20260902-03 (REQ-UI-038) | 2026-09-02 by gate | 2026-09-02 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
@@ -119,6 +129,8 @@
 | MISS-TfLens-20260830-09 (REQ-UI-022) | 2026-08-30 by gate | 2026-09-01 by fix-issues | not sorted | no sentence recorded (partial-implementation, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260830-08 (REQ-UI-032) | 2026-08-30 by gate | 2026-09-01 by fix-issues | not sorted | no sentence recorded (wrong-behaviour, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260830-06 (REQ-UI-024) | 2026-08-30 by owner | 2026-09-01 by fix-issues | not sorted | no sentence recorded (wrong-behaviour, src, why: insufficient-verify-method) |
+| MISS-TfLens-20260830-05 (REQ-NFR-020) | 2026-08-30 by owner | 2026-10-12 by fix-issues | not sorted | no sentence recorded (partial-implementation, tests, why: insufficient-verify-method) |
+| MISS-TfLens-20260830-02 (REQ-NFR-019) | 2026-08-30 by agent-review | 2026-10-12 by fix-issues | not sorted | no sentence recorded (wrong-behaviour, src, why: insufficient-verify-method) |
 | MISS-TfLens-20260829-28 (REQ-UI-037) | 2026-08-29 by agent-review | 2026-08-30 by build-phase | not sorted | no sentence recorded (partial-implementation, code, why: insufficient-verify-method) |
 | MISS-TfLens-20260829-27 (REQ-UI-027) | 2026-08-29 by agent-review | 2026-08-30 by build-phase | not sorted | no sentence recorded (partial-implementation, code, why: insufficient-verify-method) |
 | MISS-TfLens-20260829-26 (REQ-FN-058) | 2026-08-29 by gate | 2026-08-29 by build-phase | not sorted | no sentence recorded (wrong-behaviour, src, why: insufficient-verify-method) |

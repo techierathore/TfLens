@@ -1698,9 +1698,16 @@
         {
             objFramework = objPreferences.Framework;
 
-            objAllMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
-            objAllFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
-            objAllAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
+            // REQ-FN-143 — a withdrawn miss leaves every figure with its fixes and amends. Applied here,
+            // before the period filter, so no window can bring one back (SCHEMA.md §5.5.11).
+            var vWithdrawn = MissVoid.Apply(
+                await objStore.ReadMissesAsync(objUserId.Value, objFramework),
+                await objStore.ReadMissFixesAsync(objUserId.Value, objFramework),
+                await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework),
+                await objStore.ReadMissVoidsAsync(objUserId.Value, objFramework));
+            objAllMisses = vWithdrawn.Misses;
+            objAllFixes = vWithdrawn.Fixes;
+            objAllAmends = vWithdrawn.Amends;
             objAllReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework);
             // REQ-FN-140 — voided runs and the void records leave every figure (SCHEMA.md §2.7).
             objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework)).Kept;

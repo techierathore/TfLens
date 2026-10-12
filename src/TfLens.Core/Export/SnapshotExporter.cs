@@ -263,8 +263,21 @@ public sealed class SnapshotExporter : ISnapshotExporter
             .ConfigureAwait(false);
         var vAmends = await objStore.ReadMissAmendsAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
-        var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken)
-            .ConfigureAwait(false);
+        // REQ-FN-143 — the same miss set the engine counts: a withdrawn miss and its fixes and amends
+        // leave every figure, the per-repository origin rows included (SCHEMA.md §5.5.11).
+        var vWithdrawn = MissVoid.Apply(
+            vMisses,
+            vFixes,
+            vAmends,
+            await objStore.ReadMissVoidsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false));
+        vMisses = vWithdrawn.Misses;
+        vFixes = vWithdrawn.Fixes;
+        vAmends = vWithdrawn.Amends;
+        // REQ-FN-145 — the same gate set the engine scores: a record with no req_id or no verdict is
+        // listed under gates_malformed and counted nowhere else (SCHEMA.md §3).
+        var vGates = GateMalformed.Apply(
+                await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false))
+            .Kept;
         // REQ-FN-140 — the same run set the engine counts: a `run-void` and the run it names leave every
         // figure, so the miss blocks below must not see them either (SCHEMA.md §2.7).
         var vRuns = RunVoid.Apply(

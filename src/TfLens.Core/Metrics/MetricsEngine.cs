@@ -61,6 +61,7 @@ public sealed class MetricsEngine : IMetricsEngine
         var vMisses = await objStore.ReadMissesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vMissFixes = await objStore.ReadMissFixesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vMissAmends = await objStore.ReadMissAmendsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vMissVoids = await objStore.ReadMissVoidsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
         var vRepos = await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false);
         var vEvents = await objStore.ReadPbEventsAsync(aUserId, null, aCancellationToken).ConfigureAwait(false);
         var vSyncStates = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
@@ -69,6 +70,11 @@ public sealed class MetricsEngine : IMetricsEngine
         // Neither writes to a stream, a table or a raw archive (§3): each is re-derived on every read
         // and each returns the count it took, which is published beside every figure built on it
         // (REQ-FN-112 / BRD-179, REQ-FN-113 / BRD-180).
+        // REQ-FN-145 — a gate record with no req_id or no verdict is not one REQ's verdict (SCHEMA.md §3):
+        // it leaves every figure before anything is derived or scored, and is listed beside them.
+        var vMalformedGates = GateMalformed.Apply(vGates);
+        vGates = vMalformedGates.Kept;
+
         var vAttempts = GateAttempt.Derive(vGates);
         vGates = vAttempts.Records;
 
@@ -90,7 +96,7 @@ public sealed class MetricsEngine : IMetricsEngine
         var vSessionDuplicates = SessionDuplicatesFor(vRepos, aFramework, vSyncStates);
 
         // ---- stage 2: per-repo facts
-        var vPerRepo = PerRepoFactsFor(vRepos, aFramework, vGates, vRuns, vSessions, vCommits, vEvents);
+        var vPerRepo = PerRepoFactsFor(vRepos, aFramework, vGates, vMalformedGates, vRuns, vSessions, vCommits, vEvents);
 
         // ---- stage 3: split by provenance, then compute the taint set over the backfilled half
         var vLive = vGates.Where(aGate => aGate.Backfilled != true).ToList();
@@ -115,7 +121,11 @@ public sealed class MetricsEngine : IMetricsEngine
         // ---- stage 6: the miss block — live-only, segmented per project type, amendments folded at read
         // time. It is computed beside the gate figures and never inside them: the miss escape share is a
         // second, adjacent figure and the gates-derived escape rate above is untouched (REQ-FN-077).
-        var vMissFigures = MissFigures.Compute(vMisses, vMissFixes, vMissAmends, vRuns);
+        // REQ-FN-143 — a `miss-void` withdraws a miss: it leaves every figure here with its fixes and
+        // amends, and the count of what left is published beside them (SCHEMA.md §5.5.11).
+        var vWithdrawn = MissVoid.Apply(vMisses, vMissFixes, vMissAmends, vMissVoids);
+        var vMissFigures = vWithdrawn.Stamp(
+            MissFigures.Compute(vWithdrawn.Misses, vWithdrawn.Fixes, vWithdrawn.Amends, vRuns));
 
         // ---- stage 7: the phase-effort block — live runs grouped by cmd, every figure returned wrapped
         // in the count it rests on (REQ-FN-089..REQ-FN-093). It reads the same run records the pooled
@@ -151,6 +161,7 @@ public sealed class MetricsEngine : IMetricsEngine
             RunsVoidedN = vVoids.VoidedN,
             RunsVoided = vVoids.Reasons,
             RunVoidsOrphanedN = vVoids.OrphanedN,
+            GatesMalformed = vMalformedGates.Malformed,
             ParserVersion = ParserVersion.Current
         };
     }
@@ -206,6 +217,7 @@ public sealed class MetricsEngine : IMetricsEngine
         IReadOnlyList<UserRepo> aRepos,
         string aFramework,
         IReadOnlyList<GateRecord> aGates,
+        MalformedGates aMalformed,
         IReadOnlyList<RunRecord> aRuns,
         IReadOnlyList<SessionRecord> aSessions,
         IReadOnlyList<CommitRecord> aCommits,
@@ -236,7 +248,8 @@ public sealed class MetricsEngine : IMetricsEngine
                 vRunsHere.Count,
                 vSessionsHere.Count,
                 vCommitsHere.Count,
-                aEvents.Count(aEvent => aEvent.Repo == vRepo.Repo)));
+                aEvents.Count(aEvent => aEvent.Repo == vRepo.Repo),
+                aMalformed.CountFor(vRepo.Repo)));
         }
 
         return vFacts;

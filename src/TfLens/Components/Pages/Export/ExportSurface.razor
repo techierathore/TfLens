@@ -185,7 +185,7 @@
                                data-testid="dataset-shas-table">
                         <Columns>
                             <DataTableColumn TData="ShaRow" TValue="string"
-                                             Property="@(aRow => aRow.Repo)" Header="repo" Sortable>
+                                             Property="@(aRow => aRow.Repo)" Header="repo">
                                 <CellTemplate Context="vRow">
                                     <span class="font-medium">@vRow.Repo</span>
                                 </CellTemplate>
@@ -257,7 +257,7 @@
                            data-testid="snapshots-table">
                     <Columns>
                         <DataTableColumn TData="SnapshotRow" TValue="string"
-                                         Property="@(aRow => aRow.DateText)" Header="date" Sortable />
+                                         Property="@(aRow => aRow.DateText)" Header="date" />
                         <DataTableColumn TData="SnapshotRow" TValue="string"
                                          Property="@(aRow => aRow.Framework)" Header="framework">
                             <CellTemplate Context="vRow">
@@ -313,6 +313,17 @@
         <CardDescription>
             data/parity-last.json — written only when the independent script agreed with the engine
         </CardDescription>
+        @* REQ-UI-033 — the mockup's verdict chip. A record is written only on an empty diff, so a passed
+           record is by construction "0 differences"; no record shows no chip rather than a guess. *@
+        @if (objParity is { Passed: true })
+        {
+            <CardAction>
+                <Badge Variant="BadgeVariant.Success" data-testid="parity-differences">
+                    <LucideIcon Name="check" Size="12" />
+                    0 differences
+                </Badge>
+            </CardAction>
+        }
     </CardHeader>
     <CardContent Class="pt-0">
         @if (objParity is null || !objParity.Passed)
@@ -535,14 +546,28 @@
 
         var vNow = DateTimeOffset.UtcNow;
 
+        // REQ-UI-032 / ADR-022 — an imported source has no commit: its dataset identity is the bundle's
+        // sha256, which lives on "UserRepo" while an import deliberately clears "SyncState".LastSha. Read
+        // from SyncState alone the table showed "—" for every imported source, and the branch a source
+        // had while it was still fetched — beside a parity record that pins exactly that sha256.
+        var vRepos = (await objStore.ReadUserReposAsync(UserId.Value))
+            .ToDictionary(aRepo => aRepo.Repo, StringComparer.OrdinalIgnoreCase);
+
         objShaRows = (await objStore.ReadSyncStateAsync(UserId.Value))
-            .Select(aState => new ShaRow(
-                aState.Repo,
-                aState.Branch ?? "—",
-                aState.LastSha ?? "—",
-                RelativeTime.Describe(RelativeTime.Parse(aState.LastSyncTs), vNow),
-                aState.RunsCount + aState.GatesCount + aState.SessionsCount
-                    + aState.CommitsCount + aState.EventsCount))
+            .Select(aState =>
+            {
+                var vRepo = vRepos.GetValueOrDefault(aState.Repo);
+                var vIsImport = SourceKinds.IsImport(vRepo?.SourceKind) && !string.IsNullOrEmpty(vRepo?.BundleSha);
+
+                return new ShaRow(
+                    aState.Repo,
+                    vIsImport ? "—" : aState.Branch ?? "—",
+                    vIsImport ? vRepo!.BundleSha! : aState.LastSha ?? "—",
+                    RelativeTime.Describe(RelativeTime.Parse(aState.LastSyncTs), vNow),
+                    aState.RunsCount + aState.GatesCount + aState.SessionsCount
+                        + aState.CommitsCount + aState.EventsCount,
+                    vIsImport);
+            })
             .ToList();
 
         objSnapshots = (await objExporter.ListAsync(UserId.Value))
@@ -645,10 +670,15 @@
     /// <param name="Sha">The commit SHA of the last successful sync.</param>
     /// <param name="Synced">How long ago that sync completed.</param>
     /// <param name="Records">Rows stored across every stream for this repository.</param>
-    private sealed record ShaRow(string Repo, string Branch, string Sha, string Synced, int Records)
+    /// <param name="IsImport">True when <paramref name="Sha"/> is an imported bundle's sha256, not a commit.</param>
+    private sealed record ShaRow(string Repo, string Branch, string Sha, string Synced, int Records, bool IsImport)
     {
-        /// <summary>The SHA as a commit is usually named.</summary>
-        public string ShortSha => Shorten(Sha);
+        /// <summary>
+        /// The SHA as a commit is usually named, or <c>sha256 &lt;8 chars&gt;</c> for an imported bundle —
+        /// the same form Coverage and Repos use, so the two kinds of identity are never mistaken for
+        /// each other.
+        /// </summary>
+        public string ShortSha => IsImport ? $"sha256 {Sha[..Math.Min(8, Sha.Length)]}" : Shorten(Sha);
 
         /// <summary>A test-id-safe form of the repository name.</summary>
         public string Slug => Slugify(Repo);

@@ -217,18 +217,27 @@ and each is reported as absence with its denominator beside it.
 - <a id="brd-200"></a>**BRD-200** — User can see, on a **Price providers** screen, every provider a rate comes from — starting with Anthropic, OpenAI, OpenCode Go and OpenRouter — with each model's published rate, the page a person can check it against, and **when it was last checked**. User can add a provider and its endpoint, add or change a rate, and remove a provider. A provider that publishes rates as data shall be **refreshed from its own endpoint**; one that does not shall be marked as typed from its published page, and the two shall be **visibly different claims**. A rate the endpoint declines to publish (OpenRouter's `-1`) shall be **skipped, never stored and never coerced to zero**. A refresh that fails shall leave the stored rates unchanged and say so. Where two providers price the same model the first shall win and the clash shall be **reported, never averaged** — the mean of two published rates is a number nobody publishes. *(F-UI, F-ENGINE)*
 - <a id="brd-201"></a>**BRD-201** — A superseded model shall **keep its rate**. A record naming an older model is history and still has to report what it cost; dropping the rate would move those runs into `list_usd_unpriced_n` and make a past phase read as cheaper than it was. *(F-ENGINE)*
 
+**Records the reference reads that TfLens must read the same way** *(amendment 2026-10-12, found by the UAT parity run, DECISIONS.md P-004)*.
+- <a id="brd-202"></a>**BRD-202** — System shall honour **`kind: "miss-void"`** (SCHEMA §5.5.11): the named miss leaves every figure with its fixes and amends, the void line is never counted invalid, and the export publishes `misses_voided_n`, `misses_voided` and `miss_voids_orphaned_n`. *(F-MISSES)*
+- <a id="brd-203"></a>**BRD-203** — System shall keep **every fix attempt and every review correction** as its own record: two `miss-fix` records differing in `fix_attempt`, or two `review` records differing in `correction_run_id`, both count. *(F-MISSES)*
+- <a id="brd-204"></a>**BRD-204** — A gate record with no `req_id` or no `verdict` shall be **listed as malformed and scored nowhere**, published as `gates_malformed_n`, `gates_malformed` and `per_repo[].gates_malformed`. *(F-ENGINE)*
+- <a id="brd-205"></a>**BRD-205** — An **import** shall record the session duplicates it collapsed, exactly as a fetched source's sync does, so `session_duplicates_collapsed` does not depend on how data arrived. *(F-IMPORT)*
+
 ## 4. Development status
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-15.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+**Snapshot as of 2026-10-12.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
 | UI / Pages | 12 | 12 | 0 | Done |
 | Functional requirements | 50 | 50 | 0 | Done |
 | Non-functional | 11 | 11 | 0 | Done |
-| Other | 44 | 44 | 0 | Done |
+| Other | 13 | 13 | 0 | Done |
+| Misses & rework | 2 | 2 | 0 | Done |
+| Gate outcomes | 1 | 1 | 0 | Done |
+| Repos | 1 | 1 | 0 | Done |
 
 ## 5. Where the rest lives
 

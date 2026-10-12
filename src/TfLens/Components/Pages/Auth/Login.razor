@@ -56,6 +56,7 @@
                            name="Email"
                            @bind-Value="objEmail"
                            Required="true"
+                           Disabled="@(!objIsInteractive)"
                            Placeholder="you@example.com"
                            data-testid="login-email" />
                 </FieldContent>
@@ -82,6 +83,7 @@
                                name="Password"
                                @bind-Value="objPassword"
                                Required="true"
+                               Disabled="@(!objIsInteractive)"
                                Placeholder="Your AppManager password"
                                data-testid="login-pass" />
                         <Button Type="ButtonType.Button"
@@ -108,7 +110,7 @@
 
             <Button Type="ButtonType.Submit"
                     Class="w-full"
-                    Disabled="@objIsSubmitting"
+                    Disabled="@(objIsSubmitting || !objIsInteractive)"
                     data-testid="login-submit">
                 @if (objIsSubmitting)
                 {
@@ -161,6 +163,12 @@
     private bool objShowPassword;
     private bool objIsSubmitting;
 
+    // REQ-UI-001 (2026-10-12) — false while the page is only pre-rendered. Text typed into the static
+    // copy was overwritten by the first interactive render, which writes the still-empty bound values
+    // back into both boxes, so the first sign-in after a start posted nothing. The fields and the
+    // button open only once the circuit owns them; nothing can be typed that a render could erase.
+    private bool objIsInteractive;
+
     /// <summary>Where to land after a successful sign-in, when the user was bounced here from a protected page.</summary>
     [Parameter]
     [SupplyParameterFromQuery(Name = "returnUrl")]
@@ -190,6 +198,16 @@
         if (objErrorMessage is null && !string.IsNullOrEmpty(ErrorReason))
         {
             ApplyFailure(ErrorReason == "locked");
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !objIsInteractive)
+        {
+            objIsInteractive = true;
+            StateHasChanged();
         }
     }
 

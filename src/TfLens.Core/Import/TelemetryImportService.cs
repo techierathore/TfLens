@@ -200,6 +200,11 @@ public sealed class TelemetryImportService : ITelemetryImportService
         var vRoot = Path.GetFullPath(objOptions.RawPath(aUserId));
         var vStreams = new List<ImportStreamCommit>();
 
+        // REQ-FN-146 — the sessions stream's own duplicate count, captured from the parse because the
+        // collapsed records are never written and no later COUNT(*) can recover them. Null when the
+        // bundle carries no sessions stream, so the stored figure is left as it was.
+        int? vSessionCollapsed = null;
+
         // REQ-NFR-019 clause 1 / BRD-143 — an imported source's dataset identity is the bundle's sha256
         // (BRD-134), and it is recorded as obtained BEFORE any row carrying it is written. This is what
         // stops an imported source from being reported as unaccounted merely for having no commit SHA:
@@ -252,6 +257,11 @@ public sealed class TelemetryImportService : ITelemetryImportService
 
             var vAdded = await objStore.UpsertAsync(vParsed, aCancellationToken).ConfigureAwait(false);
 
+            if (vKind == StreamKind.Sessions)
+            {
+                vSessionCollapsed = vParsed.SessionDuplicatesCollapsed;
+            }
+
             vStreams.Add(new ImportStreamCommit(
                 vEntry.Stream!,
                 vArchivePath,
@@ -263,7 +273,8 @@ public sealed class TelemetryImportService : ITelemetryImportService
 
         var vImportedTs = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
-        await StampSourceRowAsync(aUserId, aSource, vBundle.BundleSha, vBundle.Framework, vImportedTs, aCancellationToken)
+        await StampSourceRowAsync(
+                aUserId, aSource, vBundle.BundleSha, vBundle.Framework, vImportedTs, vSessionCollapsed, aCancellationToken)
             .ConfigureAwait(false);
 
         objLogger.LogInformation(
@@ -307,12 +318,23 @@ public sealed class TelemetryImportService : ITelemetryImportService
     /// added up from what this bundle presented, so a re-import of an identical bundle — which
     /// legitimately adds zero records — still leaves the row showing its true totals instead of zero.
     /// </para>
+    /// <para>
+    /// <b><c>"SessionDuplicatesCollapsed"</c> is set, never added</b> (REQ-FN-146). It is the bundle's
+    /// own sessions-stream duplicate count — records sharing a <c>session_id</c> beyond the first, the
+    /// reference's <c>dedupe_sessions</c> rule — which is exactly what <c>rebuild</c> sets from the same
+    /// archived file. Setting it makes an identical re-import leave the same number rather than
+    /// accumulate; a bundle with no sessions stream leaves the stored figure untouched.
+    /// </para>
     /// </remarks>
     /// <param name="aUserId">Owner of the source.</param>
     /// <param name="aSource">The source the bundle was imported into.</param>
     /// <param name="aBundleSha">sha256 of the bundle.</param>
     /// <param name="aFramework">Framework the bundle's streams belong to, when it could be told.</param>
     /// <param name="aImportedTs">When the import completed.</param>
+    /// <param name="aSessionCollapsed">
+    /// The sessions stream's own duplicate count from this bundle's parse, or <c>null</c> when the bundle
+    /// carries no sessions stream.
+    /// </param>
     /// <param name="aCancellationToken">Cancels the write.</param>
     private async Task StampSourceRowAsync(
         int aUserId,
@@ -320,6 +342,7 @@ public sealed class TelemetryImportService : ITelemetryImportService
         string aBundleSha,
         string? aFramework,
         string aImportedTs,
+        int? aSessionCollapsed,
         CancellationToken aCancellationToken)
     {
         var vRepos = await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false);
@@ -391,7 +414,8 @@ public sealed class TelemetryImportService : ITelemetryImportService
                     SessionsCount = StoredCount(vMine, StreamNames.Sessions),
                     CommitsCount = StoredCount(vMine, StreamNames.Commits),
                     MissesCount = StoredCount(vMine, StreamNames.Misses),
-                    EventsCount = StoredCount(vMine, StreamNames.Events)
+                    EventsCount = StoredCount(vMine, StreamNames.Events),
+                    SessionDuplicatesCollapsed = aSessionCollapsed ?? vState.SessionDuplicatesCollapsed
                 },
                 aCancellationToken)
             .ConfigureAwait(false);

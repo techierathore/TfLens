@@ -273,7 +273,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
  </header>
  <main class="content"><div class="page">
   <div class="row between"><div><h1>Snapshot export</h1><p class="sub">Freeze the figures you're about to quote, with the dataset SHAs they came from</p></div><span class="badge outline" data-testid="export-parser-version">parser v3</span></div>
-  <div class="alert warning" data-testid="quotable-banner"><svg><use href="#i-alert-triangle"/></svg><div><b>NOT QUOTABLE</b><p>parser v3 changed after the last parity run (2026-08-30, parser v2); re-run the parity procedure</p></div></div>
+  <div class="alert warning" data-testid="quotable-banner" data-tf-state="not-quotable"><svg><use href="#i-alert-triangle"/></svg><div><b>NOT QUOTABLE</b><p>parser v3 changed after the last parity run (2026-08-30, parser v2); re-run the parity procedure</p></div></div>
   <div class="grid" style="grid-template-columns:1fr 2fr;align-items:start">
    <div class="card" data-testid="export-card"><div class="card-h"><div><div class="card-t">Export</div><div class="card-d">Markdown for humans, JSON for machines</div></div><span class="chip c1" data-testid="export-now-icon"><svg><use href="#i-download"/></svg></span></div>
     <div class="card-c stack"><button class="btn block" data-testid="export-now"><svg class="i"><use href="#i-download"/></svg>Export snapshot</button><p class="muted xs" data-testid="export-framework-note">one snapshot per framework — currently: <b>TechieFlow</b></p><p class="muted xs" data-testid="export-target">writes <span class="mono">data/reports/&lt;you&gt;/&lt;date&gt;/snapshot.md</span> + <span class="mono">tflens.json</span></p>

@@ -741,6 +741,17 @@
                                 </span>
                             </div>
 
+                            @* REQ-FN-143 — what a miss-void withdrew is shown, never silently subtracted. *@
+                            <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="withdrawn-misses">
+                                <span class="font-medium">Withdrawn misses:</span>
+                                <span class="tabular-nums font-semibold whitespace-nowrap">@objMisses.MissesVoidedN.ToString("N0") misses</span>
+                                <span class="text-muted-foreground">
+                                    named by a miss-void and left out of every figure, with their fixes and
+                                    amends · @objMisses.MissVoidsOrphanedN.ToString("N0") miss-void naming
+                                    no miss on its repository's stream.
+                                </span>
+                            </div>
+
                             @* BRD-176 — the fold already happens; this clause requires it to be visible. *@
                             <div class="flex flex-wrap items-baseline gap-2 text-sm" data-testid="amendments-folded">
                                 <span class="font-medium">Amendments folded at read time:</span>
@@ -1249,14 +1260,22 @@
             return;
         }
 
-        var vMisses = await objStore.ReadMissesAsync(objUserId.Value, objFramework);
-        var vFixes = await objStore.ReadMissFixesAsync(objUserId.Value, objFramework);
-        var vAmends = await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework);
+        // REQ-FN-143 — a withdrawn miss leaves every figure on this page with its fixes and amends,
+        // applied before anything is counted, exactly as /misses and the export apply it (§5.5.11).
+        var vWithdrawn = MissVoid.Apply(
+            await objStore.ReadMissesAsync(objUserId.Value, objFramework),
+            await objStore.ReadMissFixesAsync(objUserId.Value, objFramework),
+            await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework),
+            await objStore.ReadMissVoidsAsync(objUserId.Value, objFramework));
+        var vMisses = vWithdrawn.Misses;
+        var vFixes = vWithdrawn.Fixes;
+        var vAmends = vWithdrawn.Amends;
         // REQ-FN-140 — voided runs and the void records leave every figure (SCHEMA.md §2.7).
         var vRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework)).Kept;
-        var vGates = await objStore.ReadGatesAsync(objUserId.Value, objFramework);
+        // REQ-FN-145 — a gate record with no req_id or no verdict is scored in no figure (SCHEMA.md §3).
+        var vGates = GateMalformed.Apply(await objStore.ReadGatesAsync(objUserId.Value, objFramework)).Kept;
 
-        objMisses = MissFigures.Compute(vMisses, vFixes, vAmends, vRuns);
+        objMisses = vWithdrawn.Stamp(MissFigures.Compute(vMisses, vFixes, vAmends, vRuns));
 
         // REQ-UI-039 / BRD-127 amended — the Data quality band. Counted from the same stored records the
         // miss engine reads, so this page cannot report a different number from /misses; only a different

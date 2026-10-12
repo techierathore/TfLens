@@ -286,7 +286,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
     <tr><td class="mono">*plan</td><td>balanced</td><td class="mono">claude-sonnet-4-5</td><td class="mono">claude-sonnet-4-5</td><td class="r">1</td><td><span class="badge success">routed:true</span></td><td class="muted">2026-08-26 08:47</td></tr>
    </tbody></table></div></div>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Tokens by model</div>
+  <div class="panel" data-tf-state="tab-models"><div class="panel-lbl">Tab panel · Tokens by model</div>
    <div class="grid" style="grid-template-columns:3fr 2fr;align-items:start">
     <div class="card"><div class="card-c flush"><table class="tbl" data-testid="model-tokens"><thead><tr><th>model</th><th class="r">in</th><th class="r">out</th><th class="r">cache read</th><th class="r">cache write</th><th class="r">total</th></tr></thead><tbody>
      <tr><td class="mono">claude-opus-4-6</td><td class="r">6.1M</td><td class="r">1.4M</td><td class="r">14.8M</td><td class="r">2.2M</td><td class="r"><b>24.5M</b></td></tr>
@@ -298,7 +298,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
     </div></div></div>
    </div>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Repricing (estimate)</div>
+  <div class="panel" data-tf-state="tab-repricing"><div class="panel-lbl">Tab panel · Repricing (estimate)</div>
    <div class="grid g3" style="align-items:stretch">
     <div class="card" data-testid="repricing-actual"><div class="card-h"><div><div class="card-t">Actual mix</div><div class="card-d">tokens per model × prices.json</div></div><span class="chip c1"><svg><use href="#i-route"/></svg></span></div>
      <div class="card-c"><div class="kpi" style="padding:0"><div class="v" style="margin-top:0;font-size:36px">$212.40</div></div><div style="margin-top:12px"><span class="badge outline">estimate — tokens × rate card, not measured spend</span></div><p class="muted xs" style="margin-top:10px">3 runs excluded (tokens_scope none)</p></div></div>
@@ -316,7 +316,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
       <tr><td class="mono">claude-haiku-4-5</td><td class="r"><input class="input" type="number" value="1.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="5.00" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="0.10" style="width:90px;text-align:right"></td><td class="r"><input class="input" type="number" value="1.25" style="width:90px;text-align:right"></td></tr>
      </tbody></table></div><div class="card-f"><button class="btn outline">Cancel</button><button class="btn">Save</button></div></div></div>
   </div>
-  <div class="panel"><div class="panel-lbl">Tab panel · Poolable metrics</div>
+  <div class="panel" data-tf-state="tab-poolable"><div class="panel-lbl">Tab panel · Poolable metrics</div>
    <div class="grid g5">
     <div class="card kpi"><div class="row"><span class="t">Rework ratio</span><span class="chip c3"><svg><use href="#i-refresh-cw"/></svg></span></div><div class="v">33%</div><div class="n">REQs verified more than once</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,8 25,12 50,10 75,16 100,14"/></svg></div>
     <div class="card kpi"><div class="row"><span class="t">Batch size (median)</span><span class="chip c1"><svg><use href="#i-database"/></svg></span></div><div class="v">4</div><div class="n">REQs per *build run</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,18 25,14 50,16 75,10 100,12"/></svg></div>

@@ -103,13 +103,13 @@ Both clauses below were already being *enforced by hand* — the first by the pa
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-11.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P2-Checklist.md`.
+**Snapshot as of 2026-10-12.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P2-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 20 | 17 | 3 | Partial |
-| Functional requirements | 20 | 19 | 1 | Partial |
-| Non-functional | 4 | 3 | 1 | Partial |
+| UI / Pages | 20 | 15 | 5 | Partial |
+| Functional requirements | 19 | 19 | 0 | Done |
+| Non-functional | 4 | 4 | 0 | Done |
 
 ## 5. Where the rest lives
 

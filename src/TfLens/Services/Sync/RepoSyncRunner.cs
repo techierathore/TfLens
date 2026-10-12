@@ -212,10 +212,18 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
         // BRD-13: an unchanged repository costs exactly one API call and fetches no file bytes.
         if (vSha is null || string.Equals(vSha, aPrevious.LastSha, StringComparison.Ordinal))
         {
+            // REQ-FN-021 — GitHub answered with the SHA the store already holds, so this check succeeded
+            // and the stored data is current: an error left by an earlier failed attempt no longer
+            // describes the source and must not keep it badged `error`. A null SHA proves nothing, so
+            // whatever was recorded before stays.
             await WriteStateAsync(
                     aWork,
                     aRepo,
-                    aPrevious with { LastSyncTs = Timestamp() },
+                    aPrevious with
+                    {
+                        LastSyncTs = Timestamp(),
+                        LastError = vSha is null ? aPrevious.LastError : null
+                    },
                     aCancellationToken)
                 .ConfigureAwait(false);
 

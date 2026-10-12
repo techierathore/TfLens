@@ -398,6 +398,28 @@ public interface ITelemetryStore
         Task.FromResult<IReadOnlyList<MissReviewRecord>>([]);
 
     /// <summary>
+    /// Reads every <c>miss-void</c> record for a user, optionally narrowed to one repository
+    /// (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// Returned exactly as stored. Applying them is a read-time operation (<c>MissVoid.Apply</c>) that
+    /// every caller of <see cref="ReadMissesAsync"/>, <see cref="ReadMissFixesAsync"/> and
+    /// <see cref="ReadMissAmendsAsync"/> performs before any figure or period filter, so the withdrawn
+    /// miss and its fixes and amends leave every figure while the rows stay in the store.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id.</param>
+    /// <param name="aFramework">The provenance axis to read.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching void records, ordered by timestamp.</returns>
+    Task<IReadOnlyList<MissVoidRecord>> ReadMissVoidsAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissVoidRecord>>([]);
+
+    /// <summary>
     /// Reads every Playbook event record for a user, optionally narrowed to one repository.
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
@@ -509,7 +531,7 @@ public interface ITelemetryStore
     /// <remarks>
     /// <b>This removes all three layers</b>, scoped to <c>(aUserId, aRepo)</c>: every stream table row
     /// (<c>"Run"</c>, <c>"Gate"</c>, <c>"Session"</c>, <c>"Commit"</c>, <c>"Miss"</c>,
-    /// <c>"MissFix"</c>, <c>"MissAmend"</c>, <c>"MissReview"</c>, <c>"PbEvent"</c> — <b>all four miss
+    /// <c>"MissFix"</c>, <c>"MissAmend"</c>, <c>"MissReview"</c>, <c>"MissVoid"</c>, <c>"PbEvent"</c> — <b>all four miss
     /// tables</b> since BRD-115 was amended on 2026-09-08, because a
     /// removal that leaves rows behind puts them back into every figure, which is the worst class of bug
     /// in a product whose promise is correct numbers, REQ-FN-074), the

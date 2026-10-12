@@ -59,6 +59,7 @@ it is operated. Architectural decisions with an `ADR-nnn` id live in
 | P-002 | Parity runs | 2026-08-27 | Parity re-run and re-recorded at parser 1.1.0 after the metric addition |
 | P-003 | Parity runs | 2026-08-28 | Parity re-run and re-recorded at parser 1.2.0 after the oracle learned the `misses` stream |
 | D-012 | Provenance | 2026-08-28 | An unrecorded token count stays unmeasured, even though the reference averages it as zero (TF-005) |
+| P-004 | Parity runs | 2026-10-12 | Parity re-run and re-recorded at parser 1.3.0 on the UAT dataset (four imported, two fetched sources) |
 
 ---
 
@@ -146,6 +147,16 @@ collapse another user's record.
 Nullable key components are coalesced to `''` inside the index so PostgreSQL's "NULLs are distinct"
 rule cannot let a duplicate through the back door.
 
+**Amended 2026-10-12 (REQ-FN-144, parser 1.3.0, P-004) — two miss-stream keys widened.** SCHEMA.md defines
+`fix_attempt` as `1 +` the prior `miss-fix` records for the miss, so each attempt is its own fact, and the
+reference counts every `miss-fix` and every `review` record. TfLens's keys merged real records: TechieRag's
+second attempts in one fix run and Chatur's second correction of one reviewed run. The keys are now
+`miss-fix` → `(UserId, Repo, MissId, COALESCE(FixRunId,''), COALESCE(FixAttempt,-1))`
+(`UcMissFixUserRepoMissIdFixRunIdAttempt`) and `review` → `(UserId, Repo, ReviewPhase,
+COALESCE(ProducedRunId,''), COALESCE(CorrectionRunId,''))` (`UcMissReviewUserRepoPhaseRunIdCorrection`). The old
+indexes are dropped at startup; re-importing the same file still adds nothing. `miss-void` (REQ-FN-143) keys on
+`(UserId, Repo, MissId)`, earliest `ts` kept.
+
 ### D-011 — The Playbook `events.ndjson` dedupe key, superseding the provisional row in D-004
 
 **Date:** 2026-08-26 · **See:** REQ-FN-065, REQ-FN-068, ADR-010 · **Evidence:** S-001 (§7)
@@ -188,13 +199,14 @@ stamped into the build and into **every** export.
 | **Minor** | A field is newly recognised (moves out of `"Overflow"` into a column), or a metric is added. Old exports stay comparable for the metrics they carry. |
 | **Patch** | A defect fix that changes no correct output — or changes an output that was wrong. |
 
-**Current:** `1.2.0`.
+**Current:** `1.3.0`.
 
 | Version | Date | Why |
 |---------|------|-----|
 | `1.0.0` | 2026-08-26 | The first shipping parser. |
 | `1.1.0` | 2026-08-27 | **Minor — a metric was added:** `pooled.session_duplicates_collapsed`. The reference gained the same figure when `tf-metrics.sh` learned to de-duplicate the sessions stream (SCHEMA.md §4), and TfLens must emit every key the reference emits or the compare fails on a MISSING key. Nothing stored changed meaning and no dedupe key moved, so this is not a major bump; old exports stay comparable for the metrics they carry. Per the rule below the bump un-quoted every export until parity was re-run — see §6 P-002. |
 | `1.2.0` | 2026-08-28 | **Minor — metrics were added:** the whole `misses` block (29 figures), plus `per_repo.misses` and `per_repo.stale_types`. The reference gained them when `tf-metrics.sh` learned to read the fifth stream (`STREAMS` gained `misses`, and with it `analyse_misses()`), and TfLens must emit every key the reference emits or the compare fails on a MISSING key. Nothing stored changed meaning and no dedupe key moved, so this is not a major bump. The changed oracle had already un-quoted every export on its own — see §6 P-003. |
+| `1.3.0` | 2026-10-12 | **Minor — a kind is newly recognised and metrics were added:** `kind: "miss-void"` is parsed and stored (REQ-FN-143) instead of counted invalid, and the export gained `misses_voided_n`, `misses_voided`, `miss_voids_orphaned_n`, `gates_malformed_n`, `gates_malformed` and `per_repo[].gates_malformed` (REQ-FN-145), as the reference emits them. The miss-fix and review dedupe keys were also widened (REQ-FN-144); by the table above a moved dedupe key is major, but only records the old key wrongly merged are affected — no stored column changed meaning and every figure of an earlier export that was right stays right — so it is recorded as minor with this note. See §6 P-004. |
 
 **The rule that makes the version worth stamping:** the weekly snapshot export is quotable only if
 the last parity run on record (§6) postdates the last parser-version bump. The `/export` page renders
@@ -701,6 +713,59 @@ DEFAULT before `database/001-schema.sql` was corrected to `api`. BRD-132 fixes t
 source, the same rule `SourceKinds.DisplayName` degrades by) rather than echoing a third spelling onto
 the wire. The column itself belongs to the import cluster and is untouched here; the rows want a
 one-line `UPDATE` and the column a corrected default.
+
+### P-004 — Parity run 2026-10-12 (re-run at parser 1.3.0, UAT dataset)
+
+Record line: parity pass 2026-10-12 — parser 1.3.0
+
+- **Date (UTC):**                2026-10-12
+- **Framework:**                 techieflow
+- **User id:**                   2 (TfLensDemo, the UsageGuide's user 1)
+- **Dataset (repo → SHA):**      `techierathore/Chatur` → `6a04e69395146070f95054ee3b188df32dbcac31605337c352ee5c978244fa05` (imported bundle sha256)
+- **Dataset (repo → SHA):**      `techierathore/TechieRag` → `b6709aff7691cbb8cea4b12a62966742be2523d53f3878c695bf21f443da128a` (imported bundle sha256)
+- **Dataset (repo → SHA):**      `techierathore/TrBlazeUI` → `ae10d5a6402e8c5c9ef582fa15c113290b9302b9b5b1ce7240e67eb760c4003d` (imported bundle sha256)
+- **Dataset (repo → SHA):**      `techierathore/TechieFlow` → `d19d77f9908c66d7b8b98b1cb3babc98bcb20069f2c4c69a0e7f1c0012413924` (imported bundle sha256)
+- **Dataset (repo → SHA):**      `techierathore/TechieBlog` → `30e66161343661d94b8bd4b01e97c63a30b1c579` (fetched commit)
+- **Dataset (repo → SHA):**      `techierathore/TfLens` → `2d261df4fe0aceefef40296bb14dc1b599ea291a` (fetched commit)
+- **tf-metrics.sh sha256:**      `sha256:bcde756d1496a62db41b4900a1f2a00b74b5dc03271d383b5880df82c7e40dd2`
+                                 (was `sha256:203c73c2…6599` on the 2026-09-11 record)
+- **TfLens parser version:**     **1.3.0** (bumped from 1.2.0 — §3)
+- **Reference file:**            `tests/.artifacts/uat-2026-10-12/parity-reference.json`, from
+                                 `TF_METRICS_DIR=…/TechieFlow/.tfcore/telemetry tf-metrics.sh --rollup` over the four
+                                 imported repositories' own working trees (the bytes the bundles were zipped from) and
+                                 two folders rebuilt from the REQ-FN-027 archive at the fetched SHAs
+- **TfLens export:**             `src/TfLens/data/reports/2/2026-10-12/techieflow/tflens.json` (copy:
+                                 `tests/.artifacts/uat-2026-10-12/parity-tflens.json`)
+- **Compare output:**            `tests/.artifacts/uat-2026-10-12/parity-compare-recorded.txt`; summary:
+
+```
+  (47 INFO lines: 30 × ADDED-OK, 10 × ENV-OK, 3 × UNORDERED runs_voided / misses.misses_voided /
+   gates_malformed, 1 × KEYED per_repo, 1 × PROSE-OK phases.note, 2 × COVERED misses / phases)
+parity-compare: 0 finding(s), 47 allowed difference(s).
+parity-compare: PASS -- the two implementations agree key for key.
+```
+
+- **Extras spot-checked:**       no — `extras` carries no oracle, as on every run.
+- **Verdict:**                   PASS (empty diff). `src/TfLens/data/parity-last.json` re-written at parser 1.3.0
+                                 with all six dataset identities; `/export` reads **QUOTABLE**.
+
+**Why this run exists.** The oracle had moved on since the 2026-09-11 record (its hash no longer
+matched, so `/export` read NOT QUOTABLE) and the owner shows these figures live on 2026-10-17. The
+first compare on the UAT dataset gave **86 findings**; every one was traced and none was allow-listed:
+
+- `miss-void` (SCHEMA §5.5.11, 2026-09-22) was read as an invalid line, so 7 withdrawn TrBlazeUI misses
+  stayed in every figure — **REQ-FN-143**, implemented.
+- A second fix attempt in one fix run and a second correction of one reviewed run collapsed under keys
+  that were too coarse — **REQ-FN-144**; the keys moved (§2 D-004 note below).
+- Gate records with no `req_id` or `verdict` are listed and never scored by the oracle (Lekhak TF-020) —
+  **REQ-FN-145**, implemented.
+- An import never recorded the session duplicates it collapsed (Chatur 5) — **REQ-FN-146**.
+- `claude-opus-5-5` was missing from `data/prices.json` while every repository's rate card prices it at
+  4 / 20 / 0.2 / 5 USD per million (models.dev/anthropic); the rate was added to the Anthropic provider.
+- `runs_voided`, `misses.misses_voided` and `gates_malformed` were compared by position, although their
+  order is only the order each tool walked its repositories. `tools/parity-compare.py` now compares them
+  as multisets (`UNORDERED_LISTS`): every entry must appear on both sides exactly as often, so content
+  is held as strictly as before.
 
 ## §7 Playbook schema discovery
 

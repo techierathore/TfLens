@@ -42,9 +42,11 @@ public sealed class PostgresStore : ITelemetryStore
     /// rows to every figure (REQ-FN-074, BRD-115). The <b>four</b> miss tables are here for that
     /// reason and a guardrail test asserts it — three from 2026-08-28 and <c>"MissReview"</c> from
     /// 2026-09-08, when BRD-115 was amended to make the misses stream four tables rather than three.
+    /// <c>"MissVoid"</c> joined on 2026-10-12 (REQ-FN-143): a removed repository's withdrawals must
+    /// leave with it, and a rebuild must replay them like every other record on the stream.
     /// </remarks>
     private static readonly string[] StreamTables =
-        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "PbEvent"];
+        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "MissVoid", "PbEvent"];
 
     /// <summary>
     /// The three schema-2 Playbook phase tables, purged with the stream tables when a repository is
@@ -156,6 +158,9 @@ public sealed class PostgresStore : ITelemetryStore
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(
             vConnection, InsertMissReviewSql, aParsed.MissReviews, aCancellationToken)
+            .ConfigureAwait(false);
+        vWritten += await ExecuteBatchAsync(
+            vConnection, InsertMissVoidSql, aParsed.MissVoids, aCancellationToken)
             .ConfigureAwait(false);
         // Playbook events split by record kind: a turn is a cumulative snapshot keyed on its messageID
         // and must overwrite a smaller one, a marker is keyed on kind+ts+session and never changes.
@@ -294,6 +299,11 @@ public sealed class PostgresStore : ITelemetryStore
     public Task<IReadOnlyList<MissReviewRecord>> ReadMissReviewsAsync(
         int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
         ReadStreamAsync<MissReviewRecord>("MissReview", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissVoidRecord>> ReadMissVoidsAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<MissVoidRecord>("MissVoid", aUserId, aFramework, aRepo, aCancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<PbEventRecord>> ReadPbEventsAsync(
@@ -614,6 +624,7 @@ public sealed class PostgresStore : ITelemetryStore
                                 + (SELECT COUNT(*) FROM "MissFix"    f WHERE f."UserId" = t."UserId" AND f."Repo" = t."Repo")
                                 + (SELECT COUNT(*) FROM "MissAmend"  a WHERE a."UserId" = t."UserId" AND a."Repo" = t."Repo")
                                 + (SELECT COUNT(*) FROM "MissReview" v WHERE v."UserId" = t."UserId" AND v."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissVoid"   w WHERE w."UserId" = t."UserId" AND w."Repo" = t."Repo")
             WHERE @aUserId IS NULL OR t."UserId" = @aUserId
             """;
 
@@ -1018,6 +1029,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "Ts", "Backfilled" FROM "MissAmend" WHERE "UserId" = @aUserId
             UNION ALL
             SELECT "Repo", "Ts", "Backfilled" FROM "MissReview" WHERE "UserId" = @aUserId
+            UNION ALL
+            SELECT "Repo", "Ts", "Backfilled" FROM "MissVoid" WHERE "UserId" = @aUserId
         ) misses GROUP BY "Repo"
         UNION ALL
         SELECT "Repo", 'events', COUNT(*)::int, 0, MAX("Ts")
@@ -1059,6 +1072,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "Overflow" FROM "MissAmend" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
             UNION ALL
             SELECT "Repo", "Overflow" FROM "MissReview" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
+            UNION ALL
+            SELECT "Repo", "Overflow" FROM "MissVoid" WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL
         ) misses, LATERAL jsonb_object_keys("Overflow") AS k
         GROUP BY "Repo", k
         UNION ALL
@@ -1096,6 +1111,8 @@ public sealed class PostgresStore : ITelemetryStore
             SELECT "Repo", "V" FROM "MissAmend" WHERE "UserId" = @aUserId AND "V" > 1
             UNION ALL
             SELECT "Repo", "V" FROM "MissReview" WHERE "UserId" = @aUserId AND "V" > 1
+            UNION ALL
+            SELECT "Repo", "V" FROM "MissVoid" WHERE "UserId" = @aUserId AND "V" > 1
         ) misses GROUP BY "Repo"
         """;
 
@@ -1189,7 +1206,7 @@ public sealed class PostgresStore : ITelemetryStore
         """;
 
     /// <summary>
-    /// Idempotent insert for a <c>miss-fix</c>; conflicts on <c>UcMissFixUserRepoMissIdFixRunId</c> are no-ops.
+    /// Idempotent insert for a <c>miss-fix</c>; conflicts on <c>UcMissFixUserRepoMissIdFixRunIdAttempt</c> (miss, fix run and fix attempt — REQ-FN-144) are no-ops.
     /// </summary>
     /// <remarks>
     /// <c>DO NOTHING</c> rather than keep-the-latest: within a file the parser already applied the
@@ -1231,12 +1248,12 @@ public sealed class PostgresStore : ITelemetryStore
 
     /// <summary>
     /// Idempotent insert for a <c>review</c>; conflicts on
-    /// <c>UcMissReviewUserRepoPhaseRunId</c> are no-ops (BRD-114, BRD-115).
+    /// <c>UcMissReviewUserRepoPhaseRunIdCorrection</c> (phase, reviewed run and correction run — REQ-FN-144) are no-ops (BRD-114, BRD-115).
     /// </summary>
     /// <remarks>
     /// <c>DO NOTHING</c> is earliest-wins across files, matching the parser's within-file rule: a review
     /// is written once, when the corrections are applied, so a re-fetched archived file has nothing newer
-    /// to offer. The index it conflicts on <c>COALESCE</c>s <c>"ProducedRunId"</c>, which is what makes a
+    /// to offer. The index it conflicts on <c>COALESCE</c>s <c>"ProducedRunId"</c> and <c>"CorrectionRunId"</c>, which is what makes a
     /// review naming no produce run idempotent at all.
     /// </remarks>
     private const string InsertMissReviewSql = """
@@ -1250,6 +1267,24 @@ public sealed class PostgresStore : ITelemetryStore
             @Harness,@ReviewPhase,@ProducedRunId,@CorrectionRunId,@Corrections,@What,
             @TokensProduce,@CostProduceUsd,@ModelProduce,@TokensCorrect,@CostCorrectUsd,
             @ModelCorrect,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Idempotent insert for a <c>miss-void</c>; conflicts on <c>UcMissVoidUserRepoMissId</c> are
+    /// no-ops (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// <c>DO NOTHING</c> is earliest-wins across files, matching the parser's within-file rule: the
+    /// producer refuses a second void of one miss, so a re-fetched archived file has nothing newer.
+    /// </remarks>
+    private const string InsertMissVoidSql = """
+        INSERT INTO "MissVoid" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","ProjectTypeInferred","Backfilled",
+            "Harness","MissId","Reason","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@ProjectTypeInferred,@Backfilled,
+            @Harness,@MissId,@Reason,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1413,11 +1448,11 @@ public sealed class PostgresStore : ITelemetryStore
         """;
 
     /// <summary>
-    /// Every distinct <c>(user, repo, source SHA)</c> the nine stream tables hold rows under.
+    /// Every distinct <c>(user, repo, source SHA)</c> the ten stream tables hold rows under.
     /// </summary>
     /// <remarks>
     /// One <c>UNION ALL</c> arm per table so a finding names the table it sits in — the fact the
-    /// 2026-08-29 cleanup had to reconstruct by hand. The list is the same nine tables
+    /// 2026-08-29 cleanup had to reconstruct by hand. The list is the same ten tables
     /// <see cref="StreamTables"/> names, and a guardrail test asserts the two do not drift: a stream
     /// table this query forgot is a table pollution could hide in.
     /// </remarks>
@@ -1445,6 +1480,9 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "UserId", "Repo", "SourceSha", 'MissReview', COUNT(*)::int
         FROM "MissReview" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'MissVoid', COUNT(*)::int
+        FROM "MissVoid" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
         UNION ALL
         SELECT "UserId", "Repo", "SourceSha", 'PbEvent', COUNT(*)::int
         FROM "PbEvent" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3

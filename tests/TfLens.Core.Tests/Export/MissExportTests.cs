@@ -33,6 +33,7 @@ public sealed class MissExportTests : IDisposable
         "misses_total", "miss_fixes_total", "orphan_fixes", "open_misses", "wont_fix",
         "resolved_misses", "why_missed_n", "why_missed", "escapes_missing_why", "why_missed_eligible",
         "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
+        "misses_voided_n", "misses_voided", "miss_voids_orphaned_n",
         "sort_n", "sort_eligible", "sort_predates_field", "sort",
         "found_by", "design_miss_share", "escape_share", "attributed_n", "attribution_excluded",
         "by_origin_phase", "by_origin_model", "by_origin_agent", "cost_sole_n", "cost_shared_n",

@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — UAT readiness and numbers proof, 2026-10-12</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout">
+  <nav class="side">
+    <h1>TfLens — UAT readiness and numbers proof, 2026-10-12</h1>
+    <div class="sub">Last rendered: 2026-10-12</div>
+    <div class="group">Contents</div>
+    <ol>
+        <li><a href="#the-short-version">The short version</a></li>
+        <li><a href="#starting-it-as-the-usage-guide-says">1. Starting it as the Usage Guide says</a></li>
+        <li><a href="#lekhak-and-the-public-only-rule">Lekhak and the public-only rule</a></li>
+        <li><a href="#the-rows-you-asked-to-re-verify">2. The rows you asked to re-verify</a></li>
+        <li><a href="#numbers-check">3. Numbers check</a></li>
+        <li class="h3"><a href="#what-counted-from-the-files-means">What &quot;counted from the files&quot; means</a></li>
+        <li class="h3"><a href="#why-each-repository-was-checked-in-its-own-account">Why each repository was checked in its own account</a></li>
+        <li class="h3"><a href="#per-repository-on-the-final-build-read-2026-10-12-11-47-11-50-utc">Per repository, on the final build (read 2026-10-12 11:47–11:50 UTC)</a></li>
+        <li class="h3"><a href="#user-1-pooled-six-sources-the-four-above-plus-techieblog-and-tflens-fetched">User 1, pooled (six sources: the four above plus TechieBlog and TfLens, fetched)</a></li>
+        <li class="h3"><a href="#the-full-parity-compare-and-what-it-found">The full parity compare, and what it found</a></li>
+        <li><a href="#left-running">4. Left running</a></li>
+        <li><a href="#decisions-for-you">Decisions for you</a></li>
+        <li><a href="#evidence">Evidence</a></li>
+    </ol>
+  </nav>
+  <main>
+    <h1>TfLens — UAT readiness and numbers proof, 2026-10-12</h1>
+    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-UAT-Readiness-2026-10-12.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#the-short-version">The short version</a></li>
+        <li><a href="#starting-it-as-the-usage-guide-says">1. Starting it as the Usage Guide says</a></li>
+        <li><a href="#lekhak-and-the-public-only-rule">Lekhak and the public-only rule</a></li>
+        <li><a href="#the-rows-you-asked-to-re-verify">2. The rows you asked to re-verify</a></li>
+        <li><a href="#numbers-check">3. Numbers check</a></li>
+        <li class="h3"><a href="#what-counted-from-the-files-means">What &quot;counted from the files&quot; means</a></li>
+        <li class="h3"><a href="#why-each-repository-was-checked-in-its-own-account">Why each repository was checked in its own account</a></li>
+        <li class="h3"><a href="#per-repository-on-the-final-build-read-2026-10-12-11-47-11-50-utc">Per repository, on the final build (read 2026-10-12 11:47–11:50 UTC)</a></li>
+        <li class="h3"><a href="#user-1-pooled-six-sources-the-four-above-plus-techieblog-and-tflens-fetched">User 1, pooled (six sources: the four above plus TechieBlog and TfLens, fetched)</a></li>
+        <li class="h3"><a href="#the-full-parity-compare-and-what-it-found">The full parity compare, and what it found</a></li>
+        <li><a href="#left-running">4. Left running</a></li>
+        <li><a href="#decisions-for-you">Decisions for you</a></li>
+        <li><a href="#evidence">Evidence</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Date</td><td>2026-10-12</td></tr>
+<tr><td>For</td><td>the owner's live UAT on 2026-10-17</td></tr>
+<tr><td>Running at</td><td>http://localhost:5099 (left running)</td></tr>
+</tbody>
+</table>
+<h2 id="the-short-version">The short version<a class="anchor-link" href="#the-short-version">#</a></h2>
+<ul>
+<li><strong>The numbers you asked about hold.</strong> For each of the four imported public repositories, TfLens shows the same runs in the last 7 days, misses in the last 7 days and gate outcomes by gate as a straight count of the jsonl files: 16 of 16 figures match. User 1's pooled pages match on all 18 figures. Before today's fixes TrBlazeUI's misses read 23 against 22 in the files: a withdrawn miss was still being counted.
+</li>
+<li><strong>The whole export now agrees with <code>tf-metrics.sh</code> key for key.</strong> The first compare gave 86 differences; all were traced and fixed in TfLens, none was allow-listed. The pass is recorded (DECISIONS.md P-004), and <code>/export</code> reads <strong>QUOTABLE</strong> at parser 1.3.0.
+</li>
+<li><strong>Lekhak is not a source anywhere I can see, locally or on the deployed site.</strong> Two public repositories <em>mention</em> its name in their own records (details below).
+</li>
+<li><strong>Sevak was not imported.</strong> GitHub reports it as not found, which is how a private repository answers. You chose to skip it.
+</li>
+<li><strong>Five of the eight rows you named are Verified.</strong> REQ-UI-006, REQ-NFR-020, REQ-NFR-025, REQ-FN-063 and REQ-NFR-019 are Verified. REQ-UI-023, REQ-UI-029 and REQ-UI-033 pass every functional test but fail the check that compares each screen with its approved mockup. Two of the causes are mistakes in that check, which I reported to TechieFlow:
+</li>
+</ul>
+<table>
+<thead><tr><th>Problem</th><th>What it affects</th><th>Does it block or break anything</th></tr></thead>
+<tbody>
+<tr><td>TF-053 — the mockup check calls a box that scrolls its own long text "cut off"</td><td>the compare-output box on <code>/export</code>, so REQ-UI-032 and REQ-UI-033</td><td>No. The page is correct; those two rows stay below Verified on that one check</td></tr>
+<tr><td>TF-054 — the mockup check counts a whole chart as an "icon"</td><td>the token chart on <code>/harness</code>, so REQ-UI-023</td><td>No. The page is correct; the row stays below Verified on that one check</td></tr>
+</tbody>
+</table>
+<p>To get both fixed, open a session in the TechieFlow repository and paste:</p>
+<pre><code>Fix TF-053 and TF-054 filed by TfLens in /mnt/c/1MyCode/TfLens/docs/TfLens-TechieFlow-Feedback.md, then reply in that file's Resolution status.</code></pre>
+<h2 id="starting-it-as-the-usage-guide-says"><a id="1-starting-it-as-the-usage-guide-says"></a>1. Starting it as the Usage Guide says<a class="anchor-link" href="#starting-it-as-the-usage-guide-says">#</a></h2>
+<p><code>docker compose up -d postgres</code>, then <code>dotnet run --project src/TfLens -c Release --urls http://localhost:5099</code>. <code>/healthz</code> answers <code>200 {"status":"ok","database":"up"}</code>.</p>
+<p>What failed or misled on today's machine:</p>
+<ol>
+<li><strong><code>dotnet</code> is not on the WSL PATH.</strong> The SDK is installed in the <code>.dotnet</code> folder of your Linux home (version 10.0.302), so <code>dotnet run</code> fails in a fresh shell. It works once that folder is added to the PATH, as the Usage Guide now shows. Windows also has <code>dotnet.exe</code> (10.0.401).
+</li>
+<li><strong>The guide starts a database the app does not use.</strong> <code>docker compose up -d postgres</code> starts the <code>tflens-postgres</code> container on port 5433. The app's user secrets point at the <code>WinPostgre</code> container on port 5550, which holds all the real data. <code>Program.cs</code> itself records that a second Postgres container was once an agent's mistake. The compose container started cleanly and was left running, unused.
+</li>
+<li><strong>The guide says <code>TfLens:DbConnection</code> "falls back to the local Development connection".</strong> That fallback was removed on 2026-08-29. Without the secret the app refuses to start.
+</li>
+<li><strong>The first sign-in after a start could fail.</strong> Typing into the sign-in form before the page became interactive was wiped, and Sign in then posted empty fields. This happened four times today. <strong>Fixed</strong> (REQ-UI-001): the fields stay disabled for the fraction of a second before the page is interactive.
+</li>
+<li><strong>One live test failed against AppManager today.</strong> After a sign-out, AppManager now says the session token was <em>cancelled</em>; the test expected it to say the token had <em>run out</em>. AppManager's own API guide lists the new answer, so the test was corrected. TfLens itself behaves the same either way.
+</li>
+<li>Your path <code>C:\1MyCode\TrBlazeUI</code> does not exist; the repository is at <code>C:\3AIGenCode\TrBlazeUI</code> (remote <code>techierathore/TrBlazeUI</code>). That copy was used.
+</li>
+</ol>
+<h2 id="lekhak-and-the-public-only-rule">Lekhak and the public-only rule<a class="anchor-link" href="#lekhak-and-the-public-only-rule">#</a></h2>
+<ul>
+<li><strong>Local database:</strong> no row in any of the 16 tables mentions Lekhak, and neither do the raw archives under <code>src/TfLens/data</code>. Nothing to remove.
+</li>
+<li><strong>Deployed site (https://tflens.techierathore.com):</strong> both accounts I can sign in with (<code>tflensdemo@…</code> and <code>tflenstest2@…</code>) have <strong>no sources at all</strong>, and no page mentions Lekhak. I cannot see any other account on that site; if you use a third one there, check its Repos page yourself.
+</li>
+<li><strong>Mentions inside public repositories.</strong> TechieFlow's own records name Lekhak 45 times: 33 miss descriptions that quote Lekhak feedback items by number and 12 run <code>mode</code> labels. TrBlazeUI's records name it 4 times, in miss descriptions. All 49 are those repositories' own records (<code>app</code> is TechieFlow or TrBlazeUI), so they are not Lekhak's numbers and none was removed. But the word "Lekhak" <strong>will be visible as text</strong> if you open the raw miss or run detail for those records on stage. The same text is already public in those repositories' <code>docs/metrics</code>.
+</li>
+<li><strong>Sevak:</strong> <code>api.github.com/repos/techierathore/Sevak</code> answers 404 both anonymously and with the TfLens token, as Lekhak does. Not imported.
+</li>
+<li><strong>Chatur shows a <code>private</code> badge on Repos, though it is public.</strong> TfLens marks every source <em>created</em> by an import as not public, because an imported source is not fetched from GitHub. TechieFlow, TechieRag and TrBlazeUI kept <code>public</code> because they existed as fetched sources first. Nothing was changed; this is your call (see "Decisions for you").
+</li>
+</ul>
+<h2 id="the-rows-you-asked-to-re-verify"><a id="2-the-rows-you-asked-to-re-verify"></a>2. The rows you asked to re-verify<a class="anchor-link" href="#the-rows-you-asked-to-re-verify">#</a></h2>
+<table>
+<thead><tr><th>Row</th><th>Before</th><th>Now</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>REQ-UI-006 sidebar</td><td>Implemented</td><td><strong>Verified</strong></td><td>all three shell tests pass</td></tr>
+<tr><td>REQ-NFR-020 graded against the mockup</td><td>Implemented</td><td><strong>Verified</strong></td><td>new test: a badge planted in a copy of the harness mockup fails the parity gate at 1280 and 390. A whole missing section is caught by the render check instead (proved by hand: "anchored control … is not on the page")</td></tr>
+<tr><td>REQ-NFR-025 deploy pipeline</td><td>Implemented</td><td><strong>Verified</strong></td><td>new guardrail tests read <code>deploy.yml</code>: push to main → build → deploy → <code>/healthz</code> probe that exits 1. The live site answers 200 and serves <code>blazor.web.js</code></td></tr>
+<tr><td>REQ-FN-063 parity record</td><td>Needs re-verify</td><td><strong>Verified</strong></td><td>parity run recorded with date, script hash, parser 1.3.0 and all six dataset identities, and P-004 is in DECISIONS.md. The 2026-09-11 record named no dataset at all</td></tr>
+<tr><td>REQ-NFR-019 every stored row traces to a real sync or import</td><td>Implemented</td><td><strong>Verified</strong></td><td>the check of where each stored number came from: 31 sources, 6,706 rows, none unaccounted for</td></tr>
+<tr><td>REQ-UI-023 harness columns</td><td>Needs re-verify</td><td>Needs re-verify</td><td>tests pass; parity reports the chart's <code>&lt;svg&gt;</code> as "an icon" — a tool false positive, <strong>TF-054</strong></td></tr>
+<tr><td>REQ-UI-029 repricing cards</td><td>Implemented</td><td>Needs re-verify</td><td>tests pass; parity flags the drift table's <strong>pager</strong> (566 rows → paged; the mockup draws 3 rows and no pager). Needs your decision</td></tr>
+<tr><td>REQ-UI-033 quotable banner</td><td>Needs re-verify</td><td>Needs re-verify</td><td>tests pass and the banner reads QUOTABLE. Parity still reports (a) the new green "0 differences" badge as neutral in dark mode (computed colour hue 155, low chroma) and (b) the compare-output box as "clipped" because it scrolls — <strong>TF-053</strong></td></tr>
+</tbody>
+</table>
+<p>Rows touched along the way:</p>
+<ul>
+<li><strong>REQ-UI-001 (login)</strong> was reopened and fixed. Verified.
+</li>
+<li><strong>REQ-FN-021 (skip-when-unchanged)</strong> was reopened and fixed. TechieBlog showed <code>error</code> on Repos from an old failed attempt that a successful check never cleared. Verified.
+</li>
+<li><strong>REQ-UI-027 and REQ-UI-032</strong> were reopened. The <code>/export</code> dataset table showed "—" for every imported source; it now shows <code>sha256 &lt;8 chars&gt;</code>. The sort arrows the mockups don't draw were removed. Both now pass their tests but fail parity on the pager and the badge colour above.
+</li>
+</ul>
+<h2 id="numbers-check"><a id="3-numbers-check"></a>3. Numbers check<a class="anchor-link" href="#numbers-check">#</a></h2>
+<h3 id="what-counted-from-the-files-means">What "counted from the files" means<a class="anchor-link" href="#what-counted-from-the-files-means">#</a></h3>
+<p>A Python script reads each repository's <code>docs/metrics/*.jsonl</code> directly and shares no code with TfLens (<code>tests/.artifacts/uat-2026-10-12/count.py</code>). It applies the SCHEMA rules TfLens claims to apply:</p>
+<ul>
+<li>A record's time is its <code>ts</code>. Last 7 days means <code>ts ≥ now − 7 days</code>, the same rolling window the pages use.
+</li>
+<li>Live records only; <code>backfilled: true</code> never pools.
+</li>
+<li>A <code>run-void</code> removes the run it names, and a <code>miss-void</code> removes the miss it names.
+</li>
+<li>Misses are split by the kind of project (app, library, framework), as the page tabs are.
+</li>
+<li>A gate failure is any verdict other than <code>Verified</code>, and it is credited to its <code>gate</code> (<code>unattributed</code> when none is named).
+</li>
+</ul>
+<p>TechieFlow's new fields (<code>v</code>, <code>ts</code> beside <code>ended</code>) and new run commands (<code>amend-docs</code>, <code>framework-reset</code>, <code>log-miss</code>, <code>fix-issues</code>, <code>triage-and-fix</code>) are read correctly. <code>ts</code> and <code>ended</code> differ on about half the runs in every repository, and TfLens dates a run by <code>ts</code>, as SCHEMA defines.</p>
+<h3 id="why-each-repository-was-checked-in-its-own-account">Why each repository was checked in its own account<a class="anchor-link" href="#why-each-repository-was-checked-in-its-own-account">#</a></h3>
+<p>TfLens's pages pool all of a user's repositories within each project-kind tab (app, library, framework), and no page shows a 7-day figure for one repository. So each repository's <code>docs/metrics</code> folder was imported <strong>alone</strong> into test user 2 and its pages read in the browser, then removed. User 2 is empty again. Then all four were imported into user 1 and the pooled pages checked against the sum of the files.</p>
+<h3 id="per-repository-on-the-final-build-read-2026-10-12-11-47-11-50-utc"><a id="per-repository-on-the-final-build-read-2026-10-12-11471150-utc"></a>Per repository, on the final build (read 2026-10-12 11:47–11:50 UTC)<a class="anchor-link" href="#per-repository-on-the-final-build-read-2026-10-12-11-47-11-50-utc">#</a></h3>
+<table>
+<thead><tr><th>Repo</th><th>Figure</th><th>TfLens</th><th>Counted from files</th><th>Match</th></tr></thead>
+<tbody>
+<tr><td>Chatur</td><td>Runs, last 7 days</td><td>28</td><td>28</td><td>yes</td></tr>
+<tr><td>Chatur</td><td>Misses, last 7 days — app tab</td><td>71</td><td>71</td><td>yes</td></tr>
+<tr><td>Chatur</td><td>Gate failures caught by <code>acceptance</code> — app</td><td>2</td><td>2</td><td>yes</td></tr>
+<tr><td>Chatur</td><td>Gate failures caught by <code>render</code> — app</td><td>210</td><td>210</td><td>yes</td></tr>
+<tr><td>Chatur</td><td>Gate failures caught by <code>mockup-parity</code> — app</td><td>622</td><td>622</td><td>yes</td></tr>
+<tr><td>TechieRag</td><td>Runs, last 7 days</td><td>41</td><td>41</td><td>yes</td></tr>
+<tr><td>TechieRag</td><td>Misses, last 7 days — library tab</td><td>18</td><td>18</td><td>yes</td></tr>
+<tr><td>TechieRag</td><td>Gate failures caught by <code>escaped</code> — app</td><td>2</td><td>2</td><td>yes</td></tr>
+<tr><td>TechieRag</td><td>Gate failures caught by <code>escaped</code> — library</td><td>20</td><td>20</td><td>yes</td></tr>
+<tr><td>TrBlazeUI</td><td>Runs, last 7 days</td><td>30</td><td>30</td><td>yes</td></tr>
+<tr><td>TrBlazeUI</td><td>Misses, last 7 days — library tab</td><td>22</td><td>22</td><td>yes (was <strong>23</strong>, fixed: REQ-FN-143)</td></tr>
+<tr><td>TrBlazeUI</td><td>Gate failures caught by <code>acceptance</code> — library</td><td>1</td><td>1</td><td>yes</td></tr>
+<tr><td>TrBlazeUI</td><td>Gate failures caught by <code>escaped</code> — library</td><td>102</td><td>102</td><td>yes</td></tr>
+<tr><td>TechieFlow</td><td>Runs, last 7 days</td><td>40</td><td>40</td><td>yes</td></tr>
+<tr><td>TechieFlow</td><td>Misses, last 7 days — framework tab</td><td>24</td><td>24</td><td>yes</td></tr>
+<tr><td>TechieFlow</td><td>Gate failures caught by <code>acceptance</code> — framework-requirement</td><td>2</td><td>2</td><td>yes</td></tr>
+<tr><td>Sevak</td><td>—</td><td>not imported</td><td>—</td><td>not public on GitHub</td></tr>
+</tbody>
+</table>
+<p>Every other gate reads 0 in TfLens and 0 in the files; those rows are left out. No figure sat within an hour of the 7-day edge, and the file counts were identical at the start and end of the read.</p>
+<h3 id="user-1-pooled-six-sources-the-four-above-plus-techieblog-and-tflens-fetched">User 1, pooled (six sources: the four above plus TechieBlog and TfLens, fetched)<a class="anchor-link" href="#user-1-pooled-six-sources-the-four-above-plus-techieblog-and-tflens-fetched">#</a></h3>
+<p>18 of 18 figures match: 139 runs in the last 7 days; misses 71 (app), 40 (library) and 24 (framework); and all 14 gate rows (<code>tests/.artifacts/uat-2026-10-12/pooled-final.md</code>).</p>
+<h3 id="the-full-parity-compare-and-what-it-found">The full parity compare, and what it found<a class="anchor-link" href="#the-full-parity-compare-and-what-it-found">#</a></h3>
+<p>The figures above are three of several hundred. The parity compare covers every figure the framework's own script (<code>tf-metrics.sh</code>) produces, and the first run gave <strong>86 differences</strong>. Each one was a TfLens bug or a stale input:</p>
+<table>
+<thead><tr><th>Cause</th><th>Fix</th><th>Row</th></tr></thead>
+<tbody>
+<tr><td><code>miss-void</code> records (TechieFlow, from 22 September) were read as invalid lines, so withdrawn misses stayed in every figure</td><td>parsed, stored, and removed with their fixes and amends on every page and in the export</td><td>REQ-FN-143</td></tr>
+<tr><td>A second fix attempt in one fix run, and a second correction of one reviewed run, were merged into one record</td><td>each attempt and each correction is now kept as its own record</td><td>REQ-FN-144</td></tr>
+<tr><td>Gate records naming no requirement or no verdict were scored; the reference lists them as malformed</td><td>scored nowhere, and listed as malformed in the export</td><td>REQ-FN-145</td></tr>
+<tr><td>An import never recorded how many duplicate sessions it collapsed (Chatur: 5)</td><td>recorded</td><td>REQ-FN-146</td></tr>
+<tr><td><code>claude-opus-5-5</code> had no price in TfLens; every repository's rate card prices it at 4 / 20 / 0.2 / 5 USD per million</td><td>rate added to the Anthropic provider</td><td>—</td></tr>
+<tr><td>Three reason lists were compared by position, although their order is only the order each tool walked the repositories</td><td>compared as exact multisets in <code>tools/parity-compare.py</code></td><td>—</td></tr>
+</tbody>
+</table>
+<p>After the fixes: <strong>0 differences, 47 allowed</strong> (environment and documented additions). Parser version 1.2.0 → <strong>1.3.0</strong>.</p>
+<h2 id="left-running"><a id="4-left-running"></a>4. Left running<a class="anchor-link" href="#left-running">#</a></h2>
+<p>TfLens runs at <strong>http://localhost:5099</strong>, started with <code>bash .tfcore/utils/tf-verify-boot.sh start --project src/TfLens/TfLens.csproj --port 5099 --config Release --environment Development</code>. The YOLO guard refuses a backgrounded <code>dotnet run</code>, and this script is the framework's own way to keep it up. It runs the published copy in <code>tests/.artifacts/verify/run-5099</code> against the same <code>src/TfLens</code> data and the same database. Stop it with <code>bash .tfcore/utils/tf-verify-boot.sh stop --port 5099</code>.</p>
+<p>User 1 (<code>tflensdemo@techierathore.com</code>) holds six sources:</p>
+<ul>
+<li><strong>Imported:</strong> Chatur, TechieRag, TrBlazeUI, TechieFlow.
+</li>
+<li><strong>Fetched:</strong> TechieBlog, TfLens.
+</li>
+</ul>
+<p><strong>The smoke checklist in <code>docs/TfLens-UsageGuide.md</code> is ready to run.</strong></p>
+<h2 id="decisions-for-you">Decisions for you<a class="anchor-link" href="#decisions-for-you">#</a></h2>
+<ol>
+<li><strong>Chatur's <code>private</code> badge.</strong> I recommend showing an imported source as public when GitHub says it is public. The risk in leaving it: on stage, a public repository reads <code>private</code>, which contradicts the 12 Oct public-only rule you will be stating. Quick alternative for the demo: remove Chatur and connect it with <strong>Fetch via API</strong>. GitHub may hold different bytes from your local folder, though.
+</li>
+<li><strong>The <code>/routing</code> drift table pages its 566 rows; the mockup draws no pager.</strong> I recommend drawing the pager in the mockup. Removing it would put 566 rows on one page.
+</li>
+<li><strong>Sort arrows were removed</strong> from the <code>/routing</code> and <code>/export</code> tables, because the approved mockups don't draw them (REQ-UI-027, REQ-UI-032). If you want sorting back, the mockups need it drawn.
+</li>
+<li><strong>Four attribute-only annotations were added to mockups</strong>, with the original files backed up in <code>tests/.artifacts/uat-2026-10-12/</code>:
+<ul>
+<li><code>routing.html</code>: <code>data-tf-state</code> on the three non-default tab panels.
+</li>
+<li><code>harness.html</code>: <code>data-tf-sample</code> on the OpenCode verdict bar, which is sample data. User 1 has no OpenCode verdicts.
+</li>
+<li><code>export.html</code>: <code>data-tf-state="not-quotable"</code> on the banner, which the mockup draws in its NOT QUOTABLE state.
+</li>
+</ul>
+</li>
+</ol>
+<p>Nothing drawn changed. Revert them if you would rather the gate grade those boxes.</p>
+<ol>
+<li><strong>"Lekhak" text inside TechieFlow and TrBlazeUI records</strong> stays visible in raw record views. Removing it would mean editing those repositories, which you ruled out.
+</li>
+</ol>
+<h2 id="evidence">Evidence<a class="anchor-link" href="#evidence">#</a></h2>
+<p>All under <code>tests/.artifacts/uat-2026-10-12/</code>:</p>
+<ul>
+<li>Per-repo page reads before and after the fixes: <code>perrepo-before.json</code>, <code>perrepo-final.json</code>.
+</li>
+<li>File counts and tables: <code>files-final.json</code>, <code>table-final.md</code>, <code>pooled-final.md</code>.
+</li>
+<li>The parity run: <code>parity-reference.json</code>, <code>parity-tflens.json</code>, <code>parity-compare-recorded.txt</code>, plus the first failing compare <code>parity-compare-dry.txt</code>.
+</li>
+<li>The mockup and price-file backups.
+</li>
+</ul>
+<p>The verify ledger is <code>docs/.last-verify.json</code>, and screenshots are under <code>tests/.artifacts/verify/screens/</code>.</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

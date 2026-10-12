@@ -39,7 +39,7 @@ public sealed class MissStreamContractTests
 
     /// <summary>The DDL declares the fourth table, its COALESCE key and the two 2026-09-07 columns.</summary>
     /// <remarks>
-    /// The <c>COALESCE("ProducedRunId", '')</c> is asserted as text because it is not cosmetic: a
+    /// The <c>COALESCE("ProducedRunId", '')</c> (and, since REQ-FN-144, <c>COALESCE("CorrectionRunId", '')</c>) is asserted as text because it is not cosmetic: a
     /// nullable column never collides with itself in a PostgreSQL unique index, so without it a review
     /// naming no produce run would be re-inserted by every sync.
     /// </remarks>
@@ -50,7 +50,7 @@ public sealed class MissStreamContractTests
 
         Assert.Contains("""CREATE TABLE IF NOT EXISTS "MissReview" """.TrimEnd(), vSchema, StringComparison.Ordinal);
         Assert.Contains(
-            """ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''))""",
+            """ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''), COALESCE("CorrectionRunId", ''))""",
             vSchema,
             StringComparison.Ordinal);
         Assert.Contains("""ALTER TABLE "Miss" ADD COLUMN IF NOT EXISTS "Sort" text NULL;""", vSchema, StringComparison.Ordinal);

@@ -23,9 +23,10 @@ public sealed record DedupeResult<T>(IReadOnlyList<T> Records, int Collapsed);
 ///   <item><term><c>gates</c></term><description><c>(UserId, Repo, Ts, App, ReqId, RunId)</c> — <c>UcGateIdentity</c>. First wins (BRD-28).</description></item>
 ///   <item><term><c>events</c></term><description><c>(UserId, Repo, Ts, EventType, SessionId)</c> — <c>UcPbEventIdentity</c>. First wins (provisional, ADR-010).</description></item>
 ///   <item><term><c>misses</c> / <c>miss</c></term><description><c>(UserId, Repo, MissId)</c> — <c>UcMissUserRepoMissId</c>. <b>Earliest <c>ts</c> wins</b>: a miss is opened once, so a duplicate is a re-parse of the same archived file rather than new information (BRD-114).</description></item>
-///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, FixRunId)</c> — <c>UcMissFixUserRepoMissIdFixRunId</c>. <b>Latest <c>ts</c> wins</b> (BRD-114).</description></item>
+///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, COALESCE(FixRunId, ''), COALESCE(FixAttempt, -1))</c> — <c>UcMissFixUserRepoMissIdFixRunIdAttempt</c>. <b>Latest <c>ts</c> wins</b> (BRD-114, widened by REQ-FN-144).</description></item>
 ///   <item><term><c>misses</c> / <c>miss-amend</c></term><description><c>(UserId, Repo, MissId, Field, Ts)</c> — <c>UcMissAmendUserRepoMissIdFieldTs</c>. <b>Earliest wins</b>; because <c>Ts</c> is itself in the key, a collision is byte-for-byte the same fact (BRD-114, §5.5.7).</description></item>
-///   <item><term><c>misses</c> / <c>review</c></term><description><c>(UserId, Repo, ReviewPhase, COALESCE(ProducedRunId, ''))</c> — <c>UcMissReviewUserRepoPhaseRunId</c>. <b>Earliest <c>ts</c> wins</b> (BRD-114, added 2026-09-08).</description></item>
+///   <item><term><c>misses</c> / <c>review</c></term><description><c>(UserId, Repo, ReviewPhase, COALESCE(ProducedRunId, ''), COALESCE(CorrectionRunId, ''))</c> — <c>UcMissReviewUserRepoPhaseRunIdCorrection</c>. <b>Earliest <c>ts</c> wins</b> (BRD-114, added 2026-09-08, widened by REQ-FN-144).</description></item>
+///   <item><term><c>misses</c> / <c>miss-void</c></term><description><c>(UserId, Repo, MissId)</c> — <c>UcMissVoidUserRepoMissId</c>. <b>Earliest <c>ts</c> wins</b> (SCHEMA.md §5.5.11, REQ-FN-143).</description></item>
 ///   <item><term><c>playbookmisses</c> (all three kinds)</term><description><c>(UserId, Repo, SourceLineHash)</c> — <c>UcMissUserRepoSourceLine</c>, <c>UcMissFixUserRepoSourceLine</c>, <c>UcMissAmendUserRepoSourceLine</c>. The three <c>MissId</c> keys above are partial (<c>WHERE "SourceLineHash" IS NULL</c>), so a Playbook line that repeats a <c>miss_id</c> is its own record (REQ-FN-103, ADR-024).</description></item>
 /// </list>
 /// <para>
@@ -235,15 +236,23 @@ public static class Dedupe
             (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) < 0);
 
     /// <summary>
-    /// Collapses <c>miss-fix</c> records sharing <c>miss_id + fix_run_id</c> within one user and
-    /// repository, keeping the one with the <b>latest</b> <c>ts</c>.
+    /// Collapses <c>miss-fix</c> records sharing <c>miss_id + fix_run_id + fix_attempt</c> within one
+    /// user and repository, keeping the one with the <b>latest</b> <c>ts</c>.
     /// </summary>
     /// <remarks>
-    /// One repair run produces one fix record per miss it repaired, so the pair is the natural key. The
-    /// later write is the more complete one — the emitter injects the token window after the run closes.
+    /// <para>
+    /// One repair attempt produces one fix record per miss it repaired. <c>fix_attempt</c> is
+    /// <c>1 +</c> the prior miss-fix records for the miss (SCHEMA.md §5.5.3), so a second attempt inside
+    /// one fix run is a second fact, and the reference counts both (REQ-FN-144); only a re-parse of the
+    /// same attempt collapses. The later write is the more complete one — the emitter injects the token
+    /// window after the run closes.
+    /// </para>
+    /// <para>
     /// A record whose <c>fix_run_id</c> is absent (the deliberate <c>log-miss --fixed</c> path, §5.5.3)
-    /// keys on the empty string, exactly as the store's <c>COALESCE("FixRunId", '')</c> unique index
-    /// does, so the two spellings of the rule cannot drift (BRD-114, REQ-FN-073).
+    /// keys on the empty string and one with no <c>fix_attempt</c> on <c>-1</c>, exactly as the store's
+    /// <c>COALESCE("FixRunId", '')</c> / <c>COALESCE("FixAttempt", -1)</c> unique index does, so the two
+    /// spellings of the rule cannot drift (BRD-114, REQ-FN-073, REQ-FN-144).
+    /// </para>
     /// </remarks>
     /// <param name="aRecords">The fix records as parsed, in file order.</param>
     /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
@@ -252,7 +261,12 @@ public static class Dedupe
             aRecords,
             aR => string.IsNullOrEmpty(aR.MissId)
                 ? null
-                : Key(aR.UserId, aR.Repo, aR.MissId, aR.FixRunId ?? string.Empty),
+                : Key(
+                    aR.UserId,
+                    aR.Repo,
+                    aR.MissId,
+                    aR.FixRunId ?? string.Empty,
+                    (aR.FixAttempt ?? -1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
             (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) > 0);
 
     /// <summary>
@@ -276,21 +290,25 @@ public static class Dedupe
                 : Key(aR.UserId, aR.Repo, aR.MissId, aR.Field, aR.Ts));
 
     /// <summary>
-    /// Collapses <c>review</c> records sharing <c>phase + reviewed_run_id</c> within one user and
-    /// repository, keeping the one with the <b>earliest</b> <c>ts</c> (BRD-114, added 2026-09-08).
+    /// Collapses <c>review</c> records sharing <c>phase + reviewed_run_id + correction_run_id</c> within
+    /// one user and repository, keeping the one with the <b>earliest</b> <c>ts</c> (BRD-114, added
+    /// 2026-09-08, widened by REQ-FN-144).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The run whose output was reviewed is the one thing a review record cannot be written twice about,
-    /// so <c>(phase, reviewed_run_id)</c> is the natural key and the earliest write is the review. Two
-    /// copies are a re-parse of the same archived file, or two archived snapshots overlapping; counting
-    /// both would double a phase's corrections and double-charge its cost.
+    /// A review is identified by the run whose output was reviewed and the run that applied the
+    /// corrections, so <c>(phase, reviewed_run_id, correction_run_id)</c> is the natural key and the
+    /// earliest write is the review. A second correction pass over one reviewed run carries a different
+    /// <c>correction_run_id</c> and is a second fact the reference counts (REQ-FN-144). Two copies of one
+    /// key are a re-parse of the same archived file, or two archived snapshots overlapping; counting both
+    /// would double a phase's corrections and double-charge its cost.
     /// </para>
     /// <para>
     /// <b>The <c>COALESCE</c> is not optional.</b> A review whose <c>reviewed_run_id</c> is absent — the
     /// owner reviewed output no run record names, which is the shape of the first review records in the
     /// estate — keys on the empty string here, exactly as the store's
-    /// <c>COALESCE("ProducedRunId", '')</c> unique index does. Leaving the null in the key would make
+    /// <c>COALESCE("ProducedRunId", '')</c> unique index does; an absent <c>correction_run_id</c>
+    /// (corrections applied by hand) likewise. Leaving the null in the key would make
     /// such a record never collide with itself, because a <c>NULL</c> never equals a <c>NULL</c> in a
     /// PostgreSQL unique index, and every re-sync would insert it again.
     /// </para>
@@ -306,7 +324,29 @@ public static class Dedupe
             aRecords,
             aR => string.IsNullOrEmpty(aR.ReviewPhase)
                 ? null
-                : Key(aR.UserId, aR.Repo, aR.ReviewPhase, aR.ProducedRunId ?? string.Empty),
+                : Key(
+                    aR.UserId,
+                    aR.Repo,
+                    aR.ReviewPhase,
+                    aR.ProducedRunId ?? string.Empty,
+                    aR.CorrectionRunId ?? string.Empty),
+            (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) < 0);
+
+    /// <summary>
+    /// Collapses <c>miss-void</c> records naming the same <c>miss_id</c> within one user and repository,
+    /// keeping the one with the <b>earliest</b> <c>ts</c> (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// The producer refuses a second void of one miss, so two copies are a re-parse of the same archived
+    /// file; the earliest write is the void. A record carrying no <c>miss_id</c> is <b>kept</b>, on the
+    /// same reasoning as a commit with no SHA, and reads as an orphan because it names no miss.
+    /// </remarks>
+    /// <param name="aRecords">The void records as parsed, in file order.</param>
+    /// <returns>The survivors, in the order their key was first seen, and the collapsed count.</returns>
+    public static DedupeResult<MissVoidRecord> MissVoids(IReadOnlyList<MissVoidRecord> aRecords) =>
+        KeepBest(
+            aRecords,
+            aR => string.IsNullOrEmpty(aR.MissId) ? null : Key(aR.UserId, aR.Repo, aR.MissId),
             (aCandidate, aKept) => string.CompareOrdinal(aCandidate.Ts, aKept.Ts) < 0);
 
     /// <summary>

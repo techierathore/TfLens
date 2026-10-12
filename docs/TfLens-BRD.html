@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="sub">Last rendered: 2026-09-15</div>
+    <div class="sub">Last rendered: 2026-10-12</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -155,7 +155,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="subtitle">Rendered 2026-09-15 &middot; source <code>TfLens-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -217,7 +217,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </tbody>
 </table>
 <p><strong>Phase 1 of 3 — identity, sources, sync, storage, ops.</strong> Requirement ids: <strong>BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144</strong>.
-Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.md">Phase 3 — Depth</a> · the map is <a href="./TfLens-Phases.md">TfLens-Phases.md</a>.</p>
+Other phases: <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · the map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
 <p><strong>This document also carries the whole-project context</strong> — the executive summary, objectives, scope, stakeholders, the diagrams, the constraints, the parity procedure, the definition of done, the success metrics and the risks. The later phases point back here for all of it rather than repeating it.</p>
 <h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
@@ -300,14 +300,14 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><a href="#glossary">Glossary</a>
 </li>
 </ol>
-<h2 id="executive-summary">1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
+<h2 id="executive-summary"><a id="1-executive-summary"></a>1. Executive summary<a class="anchor-link" href="#executive-summary">#</a></h2>
 <p>TfLens is a read-only lens over the development telemetry that <strong>both</strong> of the owner's frameworks — TechieFlow and the AI-First-Playbook — <strong>already emit</strong>. Every TechieFlow-managed repository carries five append-only JSONL streams under <code>docs/metrics/</code> (<code>runs</code>, <code>gates</code>, <code>sessions</code>, <code>commits</code> and — since 2026-08-28 — <code>misses</code>; schema v=1, defined in <code>.tfcore/telemetry/SCHEMA.md</code>); Playbook-managed repositories emit <code>verification/telemetry/events.ndjson</code> today and will converge on the same schema. Today the only consumer of those streams is a shell script, <code>tf-metrics.sh --rollup</code>, which prints a segmented text report. TfLens pulls the streams from GitHub, stores them in PostgreSQL (amended 2026-08-26), and renders the same figures — plus a few the script does not compute — as an authenticated Blazor Server dashboard with a <strong>Framework switch</strong> (TechieFlow | Playbook) on every report page, and a weekly snapshot export whose numbers can be quoted in public writing. The Playbook report set is Phase 3, as is the miss / rework report (F-MISS, amended 2026-08-28) and the phase-effort report (F-EFFORT, amended 2026-09-01).</p>
 <p><strong>Both frameworks now publish an effort contract</strong> (amended 2026-09-01). TechieFlow's <code>runs.jsonl</code> gained three §2.6 fields on 2026-08-31 — <code>subagent_runs</code>, <code>tokens_out_subagents</code>, <code>model_tokens_out</code> — and an oracle mode, <code>tf-metrics.sh --phases</code>, that groups every run by <code>cmd</code>; the AI-First-Playbook shipped a normalized <strong>schema-2 <code>phase-metric</code></strong> record carrying wall-clock elapsed, observed active time, a full per-model breakdown, stable phase identity and spawned-child counts, alongside a normalized miss export. Together they answer <em>"what did each phase cost — in time, tokens, models and subagents?"</em>, and TfLens renders that as a seventh report page, <code>/effort</code>. The answer is bounded in three places at once, and <strong>every bound is on screen beside its figure</strong>: a run whose token window was never computed is not a zero, a run whose window never read the subagent transcripts has not reported "no subagents", and a Playbook execution whose window ended at EOF has no duration at all. Reporting any of those as <code>0</code> would be the same defect this product exists to prevent, arriving on a third stream.</p>
 <p>TfLens is free and open source, and it is <strong>multi-user by design</strong> (amended 2026-08-26): anyone who uses TechieFlow or the Playbook can sign in, connect their own <strong>public</strong> GitHub repos, and see the reports for their data. Identity is delegated to the owner's <strong>AppManager</strong> service (<code>https://appmgrapi.techierathore.com</code>, Application Id 1) — TfLens stores no passwords; every user is an AppManager <code>Manager</code> for this application and no licensing, feature or payment capability is used. Each user's repos, raw archive, parsed rows and reports are isolated from every other user's.</p>
 <p>It builds <strong>no capture layer, no ingestion API, and no per-machine agents</strong>. Capture is the frameworks' job and already works across Claude Code, OpenCode, and (via <code>harness: null</code>) anything else that runs the tasks. TfLens never writes to any repository; it reads with a fine-grained, contents-only token.</p>
 <p>The name is deliberate: "Analyst" collides with TechieFlow's analyst agent and "TfMetrics" collides with <code>tf-metrics.sh</code>. A <em>lens</em> changes nothing it looks at. The dangerous failure mode of this product is not a crash but a <strong>plausible wrong number</strong> — a backfilled record leaking into a live rate, a <code>library</code> record pooled into an <code>app</code> gate distribution — that gets exported, quoted, and cannot be defended. The provenance rules of SCHEMA.md §6 are therefore enforced in code with no switch to disable them, and a mandatory parity test against <code>tf-metrics.sh</code> is the acceptance gate (§13).</p>
 <p>Plan context (from <code>docs/ravi-90day-positioning-plan-v2.4.2.md</code>): TfLens is the A-V verification vehicle — a real side project built through the full TechieFlow phase sequence, funded from side-project hours, never a plan deliverable. Its exported numbers feed the plan's Numbers table, the B1 portability story (harness comparison), and the B3 token-economics post (counterfactual repricing).</p>
-<h2 id="business-objectives">2. Business objectives<a class="anchor-link" href="#business-objectives">#</a></h2>
+<h2 id="business-objectives"><a id="2-business-objectives"></a>2. Business objectives<a class="anchor-link" href="#business-objectives">#</a></h2>
 <ul>
 <li>Turn the existing telemetry into a dashboard the owner can open in a browser, within a 1–2 day timebox, without adding any capture surface to the frameworks.
 </li>
@@ -320,7 +320,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li>Serve as the A-V verification build: every TechieFlow phase runs on TfLens itself, gates enforced, so the framework's telemetry records its own dashboard being built.
 </li>
 </ul>
-<h2 id="scope">3. Scope<a class="anchor-link" href="#scope">#</a></h2>
+<h2 id="scope"><a id="3-scope"></a>3. Scope<a class="anchor-link" href="#scope">#</a></h2>
 <p><strong>In scope</strong></p>
 <ul>
 <li>Pulling <code>docs/metrics/{runs,gates,sessions,commits,misses}.jsonl</code> (and, for Playbook repos, <code>verification/telemetry/events.ndjson</code>) from the <strong>public</strong> GitHub repos each signed-in user connects on the <code>/repos</code> screen, on a poll interval and on demand; raw archive; PostgreSQL store (Dapper); rebuild from raw; per-user data isolation. <em>(<code>misses</code> added 2026-08-28 — F-MISS.)</em>
@@ -375,18 +375,18 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><strong>Running a framework's exporter.</strong> TfLens does not execute <code>playbook-telemetry.mjs</code>, <code>tf-metrics.sh</code>, or any framework tooling against a user's repository. It reads what the frameworks have already written, and where that output is transient rather than committed it is <strong>uploaded</strong> through the existing import mode (BRD-153) — no node dependency, no execution surface, no change asked of either framework.
 </li>
 </ul>
-<h2 id="development-status">4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+<h2 id="development-status"><a id="4-development-status"></a>4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
 <p>Written by the status gate after every build, verify and handoff; not by hand.</p>
-<p><strong>Snapshot as of 2026-09-15.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-Checklist.md</code>.</p>
+<p><strong>Snapshot as of 2026-10-12.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-Checklist.md</code>.</p>
 <table>
 <thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
 <tbody>
-<tr><td>UI / Pages</td><td>13</td><td>12</td><td>1</td><td>Partial</td></tr>
-<tr><td>Functional requirements</td><td>46</td><td>46</td><td>0</td><td>Done</td></tr>
-<tr><td>Non-functional</td><td>18</td><td>15</td><td>3</td><td>Partial</td></tr>
+<tr><td>UI / Pages</td><td>13</td><td>13</td><td>0</td><td>Done</td></tr>
+<tr><td>Functional requirements</td><td>44</td><td>44</td><td>0</td><td>Done</td></tr>
+<tr><td>Non-functional</td><td>18</td><td>17</td><td>1</td><td>Partial</td></tr>
 </tbody>
 </table>
-<h2 id="stakeholders-users">5. Stakeholders / users<a class="anchor-link" href="#stakeholders-users">#</a></h2>
+<h2 id="stakeholders-users"><a id="5-stakeholders--users"></a>5. Stakeholders / users<a class="anchor-link" href="#stakeholders-users">#</a></h2>
 <p>TfLens is multi-user (amended 2026-08-26). Every signed-in person is an AppManager <code>Manager</code> for Application 1 and sees only their own connected repos. The owner additionally wears the parity, author and ops hats.</p>
 <table>
 <thead><tr><th>Role</th><th>Who</th><th>Needs</th><th>Key screens</th></tr></thead>
@@ -400,7 +400,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </tbody>
 </table>
 <p>Onboarding path (any user): open <code>/register</code> (or sign in at <code>/login</code>), go to <strong>Repos</strong>, connect a public GitHub repo by URL, press <strong>Sync now</strong>, and read the Coverage page until it is green. Ops path: set the AppManager settings (<code>TfLensAppManagerApiKey</code> / <code>TfLensAppManagerApiSecret</code>, App Id 1) and optionally <code>TfLensGitHubToken</code>, start the container.</p>
-<h2 id="context-diagram">6. Context diagram<a class="anchor-link" href="#context-diagram">#</a></h2>
+<h2 id="context-diagram"><a id="6-context-diagram"></a>6. Context diagram<a class="anchor-link" href="#context-diagram">#</a></h2>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -421,7 +421,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
   Ref["tf-metrics.sh --rollup --json&lt;br/&gt;(reference, owner-run)"] -. "parity diff" .-&gt; Rep
   Rep --&gt; Plan["Numbers table · B1 · B3"]</pre>
 </div>
-<h2 id="user-journey-primary-use-case">7. User journey — primary use case<a class="anchor-link" href="#user-journey-primary-use-case">#</a></h2>
+<h2 id="user-journey-primary-use-case"><a id="7-user-journey--primary-use-case"></a>7. User journey — primary use case<a class="anchor-link" href="#user-journey-primary-use-case">#</a></h2>
 <p>The weekly loop: sync, check health, read the questions, export, prove parity, quote.</p>
 <div class="diagram">
   <div class="dt">
@@ -455,7 +455,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
   O-&gt;&gt;T: python3 tools/parity-compare.py reference.json tflens.json
   T--&gt;&gt;O: empty diff (exit 0) → record in DECISIONS.md → numbers are quotable</pre>
 </div>
-<h2 id="component-sketch">8. Component sketch<a class="anchor-link" href="#component-sketch">#</a></h2>
+<h2 id="component-sketch"><a id="8-component-sketch"></a>8. Component sketch<a class="anchor-link" href="#component-sketch">#</a></h2>
 <div class="diagram">
   <div class="dt">
     <button data-zout title="Zoom out">&minus;</button>
@@ -500,8 +500,8 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
   RepoSvc --&gt; Store
   Sync --&gt; RepoSvc</pre>
 </div>
-<h2 id="feature-catalog">9. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
-<h3 id="screen-inventory-every-screen-what-it-is-for-and-its-mockup">Screen inventory — every screen, what it is for, and its mockup<a class="anchor-link" href="#screen-inventory-every-screen-what-it-is-for-and-its-mockup">#</a></h3>
+<h2 id="feature-catalog"><a id="9-feature-catalog"></a>9. Feature catalog<a class="anchor-link" href="#feature-catalog">#</a></h2>
+<h3 id="screen-inventory-every-screen-what-it-is-for-and-its-mockup"><a id="screen-inventory--every-screen-what-it-is-for-and-its-mockup"></a>Screen inventory — every screen, what it is for, and its mockup<a class="anchor-link" href="#screen-inventory-every-screen-what-it-is-for-and-its-mockup">#</a></h3>
 <p>Read this table with <code>docs/mockups/</code> open. It lists every screen the app has, <strong>what question that screen exists to answer</strong>, the feature that owns it, the requirements it satisfies — <strong>every ID is a link into the §10/§11 ledger, so you can read the requirement itself without searching</strong> — and the mockup the built screen is graded against. The mockups are a click-through: start at <a href="./mockups/login.html">login.html</a>. The per-screen component map (<code>region → TrBlazeUI control</code>) is in <code>docs/TfLens-UIDesign.md</code>.</p>
 <table>
 <thead><tr><th>Screen</th><th>Route</th><th>Purpose — the question this screen answers</th><th>Feature</th><th>Requirements <em>(click an ID to jump to it)</em></th><th>Mockup</th></tr></thead>
@@ -511,7 +511,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </tbody>
 </table>
 <a id="the-gate-outcomes"></a>
-<h4 id="what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions">What “Gate outcomes” shows — and why it is no longer called “Three questions”<a class="anchor-link" href="#what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions">#</a></h4>
+<h4 id="what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions"><a id="what-gate-outcomes-shows--and-why-it-is-no-longer-called-three-questions"></a>What “Gate outcomes” shows — and why it is no longer called “Three questions”<a class="anchor-link" href="#what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions">#</a></h4>
 <p>This screen renders the questions <code>.tfcore/telemetry/SCHEMA.md</code> §0 declares the telemetry exists to answer — the questions the whole system was built for, in order:</p>
 <table>
 <thead><tr><th>#</th><th>Question</th><th>Stated as</th><th>Answered from</th></tr></thead>
@@ -537,7 +537,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 | Reset password | <code>/reset-password</code> | <strong>Finish that reset</strong> from the emailed link, with the new password RSA-encrypted before it leaves the server. | F-AUTH | <a href="#brd-92">BRD‑92</a> | <a href="./mockups/reset-password.html">reset-password.html</a> |
 | Profile | <code>/profile</code> | <strong>The one screen where a user acts on themselves rather than on data</strong> — display name, password, theme preference. | F-AUTH, F-SHELL | <a href="#brd-106">BRD‑106</a> · <a href="#brd-107">BRD‑107</a> | <a href="./mockups/profile.html">profile.html</a> <em>(user menu shown open)</em> |
 | Health endpoint | <code>/healthz</code> | <strong>Liveness for the container and the orchestrator.</strong> Not a user surface. | F-OPS | <a href="#brd-78">BRD‑78</a> | <em>(no UI)</em> |</p>
-<p><strong>Screens of the other phases</strong>, each in its own phase BRD so a screen sits in exactly one place: phase 2 — Coverage / health, Gate outcomes, Harness comparison, Routing &amp; economics, Snapshot export (<a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>); phase 3 — Misses &amp; rework, Phase effort, Playbook framework state (<a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a>).</p>
+<p><strong>Screens of the other phases</strong>, each in its own phase BRD so a screen sits in exactly one place: phase 2 — Coverage / health, Gate outcomes, Harness comparison, Routing &amp; economics, Snapshot export (<a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>); phase 3 — Misses &amp; rework, Phase effort, Playbook framework state (<a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a>).</p>
 <h3 id="f-shell-app-shell-and-navigation">F-SHELL: App shell and navigation<a class="anchor-link" href="#f-shell-app-shell-and-navigation">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: login moved to F-AUTH; collapsible icon sidebar, user menu, dark-first)</em></p>
 <p>Every page lives inside one TrBlazeUI sidebar shell (<code>SidebarProvider</code> + <code>Sidebar Collapsible</code> + <code>SidebarInset</code>). The sidebar is <strong>collapsible</strong> via <code>SidebarTrigger</code> (icon-only rail with tooltips when collapsed) and every item carries a <strong>Lucide icon</strong>; the order is the order a user should work in: <strong>Repos</strong> first (nothing to see until a repo is connected), then Coverage ("every other number is suspect until this page is green"), Gate outcomes, Harness comparison, Routing &amp; economics, <strong>Misses &amp; rework</strong> <em>(added 2026-08-28, F-MISS)</em>, <strong>Phase effort</strong> <em>(added 2026-09-01, F-EFFORT)</em>, Snapshot export (the separate Playbook page was retired 2026-08-26 — see F-FRAMEWORK). <em>Phase effort</em> sits after <em>Misses &amp; rework</em> deliberately: both are cost lenses, and the reader should meet the quality question before the budget one. The header carries the <strong>Framework switch</strong> (TechieFlow | Playbook, F-FRAMEWORK), the page title, a <strong>Sync now</strong> button with the last-sync badge, the theme toggle, and — on the right — the <strong>signed-in user's name</strong> with a <code>DropdownMenu</code> (Profile, Manage repos, Sign out); there is no bare sign-out button. The application <strong>starts in dark mode</strong>; the user's toggle choice is persisted per user.</p>
@@ -559,7 +559,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </li>
 </ol>
 <p><strong>Requirements:</strong> BRD-2, BRD-4, BRD-5, BRD-6, BRD-105, BRD-106, BRD-107, BRD-124, BRD-151</p>
-<h3 id="f-auth-appmanager-identity-login-registration-sessions">F-AUTH: AppManager identity — login, registration, sessions<a class="anchor-link" href="#f-auth-appmanager-identity-login-registration-sessions">#</a></h3>
+<h3 id="f-auth-appmanager-identity-login-registration-sessions"><a id="f-auth-appmanager-identity--login-registration-sessions"></a>F-AUTH: AppManager identity — login, registration, sessions<a class="anchor-link" href="#f-auth-appmanager-identity-login-registration-sessions">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (GitHub SSO: Phase 2, deferred) <em>(added 2026-08-26)</em></p>
 <p>TfLens keeps <strong>no user store and no passwords</strong>. Identity is delegated to the owner's AppManager service (<code>docs/AppManager-api-usage-guide.md</code>, v1.4): base URL <code>https://appmgrapi.techierathore.com</code>, <strong>Application Id 1</strong>, identified on every call by the <code>X-Api-Key</code> / <code>X-Api-Secret</code> headers (values from configuration only — F-OPS). Passwords are never sent in clear: TfLens fetches and caches <code>GET /AuthSvc/public-key</code> and RSA-OAEP-256-encrypts the password client-side before <code>POST /AuthSvc/login</code> or <code>/AuthSvc/register</code>. Because TfLens is free and open source, no licence, feature, subscription or payment endpoint is ever called, and every registered user is assigned <code>applicationRoleCode: "Manager"</code>. On success TfLens issues its own auth cookie (sliding 12 h, HttpOnly, Secure) carrying the AppManager <code>userId</code>, email, display name and role; the AppManager access and refresh tokens are held <strong>server-side</strong> per session and refreshed through <code>POST /AuthSvc/refresh</code> before expiry; a resumed cookie is checked with <code>POST /AuthSvc/validate</code>. A demo account <strong><code>TfLensDemo</code></strong> (<code>tflensdemo@techierathore.com</code>) is registered in AppManager during development and its public demo repos are connected through the Repos screen (no configuration seed — amended 2026-08-26), so testers and first-time visitors can see a populated dashboard.</p>
 <p><strong>GitHub SSO — deferred to Phase 2 (BRD-94).</strong> AppManager exposes no external-login or token-exchange endpoint, so "Continue with GitHub" cannot obtain an AppManager token without a bridge (a TfLens-held random credential per SSO user). The owner chose to defer this until AppManager grows an SSO endpoint; the login screen reserves the button position but does not show it in this release.</p>
@@ -620,7 +620,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </li>
 </ol>
 <p><strong>Requirements:</strong> BRD-1, BRD-90, BRD-91, BRD-92, BRD-93, BRD-94 (deferred), BRD-95, BRD-96, BRD-97</p>
-<h3 id="f-repos-source-management-fetch-public-repos-or-import-metric-files">F-REPOS: Source management — fetch public repos, or import metric files<a class="anchor-link" href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">#</a></h3>
+<h3 id="f-repos-source-management-fetch-public-repos-or-import-metric-files"><a id="f-repos-source-management--fetch-public-repos-or-import-metric-files"></a>F-REPOS: Source management — fetch public repos, or import metric files<a class="anchor-link" href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (import mode: Phase 3) <em>(added 2026-08-26; amended 2026-08-28 — F-IMPORT folded in as a second mode of the same dialog rather than a separate screen, owner decision)</em></p>
 <p>TfLens is for anyone using the frameworks, so the sources to read are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected sources (owner/name, branch, kind, <strong>source</strong>, visibility, status, last sync or last import, per-stream record counts) with per-row <strong>Sync</strong> / <strong>Re-import</strong> and <strong>Remove</strong> actions and an <strong>Add source</strong> dialog.</p>
 <p><strong>Two ways in, chosen in the dialog (amended 2026-08-28 — F-IMPORT).</strong> The first step of the dialog is a mode choice, and it is the demarcation the whole feature rests on:</p>
@@ -682,7 +682,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <p><strong>Requirements:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-103, BRD-104, BRD-131, BRD-132, BRD-133, BRD-134, BRD-135, BRD-136, BRD-138, BRD-139, BRD-140, BRD-141, BRD-153</p>
 <h3 id="f-cfg-configuration-and-secrets-retired-2026-08-26">F-CFG: Configuration and secrets (retired 2026-08-26)<a class="anchor-link" href="#f-cfg-configuration-and-secrets-retired-2026-08-26">#</a></h3>
 <p><s>F-CFG</s> — retired in the second amendment. Repos are managed only on the Repos screen (F-REPOS), so there is no repo list and no demo seed in configuration; the remaining infrastructure settings (AppManager connection, database connection, poll interval, optional PAT, <code>DataRoot</code>) moved to <strong>F-OPS</strong>. BRD-7 is retired; BRD-8, BRD-9, BRD-10 and BRD-11 now belong to F-OPS. The candidate demo repos (techierathore/TechieFlow, TechieRag, TrBlazeUI, blog, AI-First-Playbook — public ones only) are connected to <code>TfLensDemo</code> through the UI during development (BRD-96).</p>
-<h3 id="f-sync-repo-puller-background-sync-and-sync-now">F-SYNC: Repo puller — background sync and Sync now<a class="anchor-link" href="#f-sync-repo-puller-background-sync-and-sync-now">#</a></h3>
+<h3 id="f-sync-repo-puller-background-sync-and-sync-now"><a id="f-sync-repo-puller--background-sync-and-sync-now"></a>F-SYNC: Repo puller — background sync and Sync now<a class="anchor-link" href="#f-sync-repo-puller-background-sync-and-sync-now">#</a></h3>
 <p><strong>Personas:</strong> Owner (Sync now), Ops (background) · <strong>Phase:</strong> 1</p>
 <p>A <code>BackgroundService</code> polls every connected repo of every user on the interval; the header button runs the identical code on demand for the signed-in user's repos (amended 2026-08-26: repos come from F-REPOS, not configuration). For each repo it asks GitHub for the latest commit SHA touching the telemetry path (<code>docs/metrics</code> for <code>techieflow</code>, <code>verification/telemetry</code> for <code>playbook</code>) on the configured branch. If that SHA equals the one in <code>sync_state</code>, the repo is skipped without fetching a byte. Otherwise every stream file is fetched whole at that exact SHA (they are small), written verbatim to the raw archive (F-RAW), and parsed (F-PARSE). A 404 on a stream file means "this stream is absent" and is recorded as zero, not as an error. Errors are per repo: one failing repo never stops the others, and the failure text (status code + short reason, never the token) lands in <code>sync_state.LastError</code> for the Coverage page. The puller is structurally read-only — no method exists that issues anything but GET.</p>
 <div class="diagram">
@@ -785,25 +785,25 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </ol>
 <p><strong>Requirements:</strong> BRD-23, BRD-24, BRD-25, BRD-26, BRD-27, BRD-28, BRD-29, BRD-113, BRD-114, BRD-145, BRD-154, BRD-164, BRD-165</p>
 <h3 id="f-engine-metrics-engine-with-provenance-rules">F-ENGINE: Metrics engine with provenance rules<a class="anchor-link" href="#f-engine-metrics-engine-with-provenance-rules">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
-<h3 id="f-cover-coverage-health-page">F-COVER: Coverage / health page<a class="anchor-link" href="#f-cover-coverage-health-page">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<h3 id="f-cover-coverage-health-page"><a id="f-cover-coverage--health-page"></a>F-COVER: Coverage / health page<a class="anchor-link" href="#f-cover-coverage-health-page">#</a></h3>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-3q-gate-outcomes-page">F-3Q: Gate outcomes page<a class="anchor-link" href="#f-3q-gate-outcomes-page">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-harn-harness-comparison-page">F-HARN: Harness comparison page<a class="anchor-link" href="#f-harn-harness-comparison-page">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-route-routing-and-economics-page">F-ROUTE: Routing and economics page<a class="anchor-link" href="#f-route-routing-and-economics-page">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-miss-misses-and-rework-economics">F-MISS: Misses and rework economics<a class="anchor-link" href="#f-miss-misses-and-rework-economics">#</a></h3>
-<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
-<h3 id="f-effort-phase-effort-and-efficiency-what-each-phase-cost">F-EFFORT: Phase effort and efficiency — what each phase cost<a class="anchor-link" href="#f-effort-phase-effort-and-efficiency-what-each-phase-cost">#</a></h3>
-<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<h3 id="f-effort-phase-effort-and-efficiency-what-each-phase-cost"><a id="f-effort-phase-effort-and-efficiency--what-each-phase-cost"></a>F-EFFORT: Phase effort and efficiency — what each phase cost<a class="anchor-link" href="#f-effort-phase-effort-and-efficiency-what-each-phase-cost">#</a></h3>
+<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-export-weekly-snapshot-export">F-EXPORT: Weekly snapshot export<a class="anchor-link" href="#f-export-weekly-snapshot-export">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
-<h3 id="f-parity-parity-check-against-tf-metrics-sh">F-PARITY: Parity check against tf-metrics.sh<a class="anchor-link" href="#f-parity-parity-check-against-tf-metrics-sh">#</a></h3>
-<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
-<h3 id="f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)<a class="anchor-link" href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">#</a></h3>
-<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<h3 id="f-parity-parity-check-against-tf-metrics-sh"><a id="f-parity-parity-check-against-tf-metricssh"></a>F-PARITY: Parity check against tf-metrics.sh<a class="anchor-link" href="#f-parity-parity-check-against-tf-metrics-sh">#</a></h3>
+<p><strong>Moved to phase 2</strong> on 2026-09-08 — see <a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
+<h3 id="f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb"><a id="f-framework-playbook-as-a-first-class-framework--the-full-report-set-was-f-pb"></a>F-FRAMEWORK: Playbook as a first-class framework — the full report set (was F-PB)<a class="anchor-link" href="#f-framework-playbook-as-a-first-class-framework-the-full-report-set-was-f-pb">#</a></h3>
+<p><strong>Moved to phase 3</strong> on 2026-09-08 — see <a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a>: its screen row in §2 and its requirements in §3 (the phase BRDs dropped their feature catalogs on 2026-09-11). The heading stays here so every inbound link and every reference to this feature still resolves.</p>
 <h3 id="f-ops-container-configuration-health-docs-and-decisions">F-OPS: Container, configuration, health, docs and decisions<a class="anchor-link" href="#f-ops-container-configuration-health-docs-and-decisions">#</a></h3>
 <p><strong>Personas:</strong> Ops · <strong>Phase:</strong> 1 <em>(amended 2026-08-26: absorbs the settings formerly in F-CFG; PostgreSQL)</em></p>
 <p>A multi-stage Dockerfile produces one image; a <code>docker-compose.yml</code> runs it beside a <strong>PostgreSQL 16</strong> service (owner decision 2026-08-26 — SQLite is unreliable on container storage; Dapper stays the data-access layer via Npgsql). Volumes: <code>data/</code> (raw archive, reports, <code>prices.json</code>), <code>logs/</code>, and the Postgres data directory. All settings come from configuration with secrets <strong>only</strong> via the PascalCase env-var provider: <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>, <code>TfLensDbConnection</code> (required); <code>TfLensGitHubToken</code> (optional — raises the GitHub API rate limit for public reads). Non-secret: <code>TfLensAppManagerBaseUrl</code> (default <code>https://appmgrapi.techierathore.com</code>), <code>TfLensAppManagerAppId</code> (default <code>1</code>), <code>PollIntervalMinutes</code> (default 15), <code>DataRoot</code> (default <code>data/</code>). Startup validates the configuration, applies the idempotent schema script <code>database/001-schema.sql</code>, and refuses to run with a missing secret or an unreachable database, logging a redacted reason. <code>/healthz</code> (anonymous) reports database reachability and the age of the last successful sync, nothing else. The README states the out-of-scope list verbatim (§3) and the run/rebuild/export commands. <code>DECISIONS.md</code> is created at day-1 build time and records: the storage choice (Dapper + PostgreSQL, superseding SQLite), the dedupe keys, the parser version scheme, anything cut for the timebox, and every parity run.</p>
@@ -817,7 +817,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 </li>
 </ol>
 <p><strong>Requirements:</strong> BRD-8, BRD-9, BRD-10, BRD-11, BRD-77, BRD-78, BRD-79, BRD-80, BRD-81, BRD-111, BRD-144</p>
-<h2 id="functional-requirements-brd-ledger">10. Functional requirements (BRD ledger)<a class="anchor-link" href="#functional-requirements-brd-ledger">#</a></h2>
+<h2 id="functional-requirements-brd-ledger"><a id="10-functional-requirements-brd-ledger"></a>10. Functional requirements (BRD ledger)<a class="anchor-link" href="#functional-requirements-brd-ledger">#</a></h2>
 <ul>
 <li><a id="brd-1"></a><strong>BRD-1</strong> — User can sign in at <code>/login</code> with their AppManager email and password and is redirected to the requested page (first sign-in with no repos lands on <code>/repos</code>). <em>(F-AUTH — amended 2026-08-26)</em>
 </li>
@@ -886,7 +886,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><a id="brd-81"></a><strong>BRD-81</strong> — Ops can run <code>sync</code> as a command verb for a one-off headless sync. <em>(F-OPS)</em>
 </li>
 </ul>
-<h2 id="non-functional-requirements">11. Non-functional requirements<a class="anchor-link" href="#non-functional-requirements">#</a></h2>
+<h2 id="non-functional-requirements"><a id="11-non-functional-requirements"></a>11. Non-functional requirements<a class="anchor-link" href="#non-functional-requirements">#</a></h2>
 <table>
 <thead><tr><th>Metric</th><th>Target</th><th>Notes</th></tr></thead>
 <tbody>
@@ -909,7 +909,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><a id="brd-88"></a><strong>BRD-88</strong> — Testability: the engine and parser are in <code>TfLens.Core</code> with no web dependency; fixture JSONL under <code>tests/</code>; Blazor screens use stable <code>data-testid</code> ids for Playwright.
 </li>
 </ul>
-<h3 id="amendment-2026-08-26-identity-repo-management-shell">Amendment 2026-08-26 — identity, repo management, shell<a class="anchor-link" href="#amendment-2026-08-26-identity-repo-management-shell">#</a></h3>
+<h3 id="amendment-2026-08-26-identity-repo-management-shell"><a id="amendment-2026-08-26--identity-repo-management-shell"></a>Amendment 2026-08-26 — identity, repo management, shell<a class="anchor-link" href="#amendment-2026-08-26-identity-repo-management-shell">#</a></h3>
 <ul>
 <li><a id="brd-90"></a><strong>BRD-90</strong> — User can sign in with email + password via AppManager <code>POST /AuthSvc/login</code> (App Id 1, <code>X-Api-Key</code>/<code>X-Api-Secret</code> headers, password RSA-OAEP-256-encrypted with the cached <code>/AuthSvc/public-key</code>); TfLens stores no passwords. <em>(F-AUTH)</em>
 </li>
@@ -948,14 +948,14 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><a id="brd-107"></a><strong>BRD-107</strong> — User can view their AppManager profile and change their password at <code>/profile</code> (<code>GET /UserSvc/profile</code>, <code>POST /UserSvc/change-password</code>, both passwords RSA-encrypted). <em>(F-AUTH)</em>
 </li>
 </ul>
-<h3 id="amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL<a class="anchor-link" href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">#</a></h3>
+<h3 id="amendment-2026-08-26-round-2-both-frameworks-codex-postgresql"><a id="amendment-2026-08-26-round-2--both-frameworks-codex-postgresql"></a>Amendment 2026-08-26 (round 2) — both frameworks, Codex, PostgreSQL<a class="anchor-link" href="#amendment-2026-08-26-round-2-both-frameworks-codex-postgresql">#</a></h3>
 <ul>
 <li><a id="brd-108"></a><strong>BRD-108</strong> — User can switch every report page (Coverage, Gate outcomes, Harness, Routing &amp; economics, <strong>Misses &amp; rework</strong>, <strong>Phase effort</strong>, Snapshot export) between <strong>TechieFlow</strong> and <strong>Playbook</strong> via a header Framework switch; the system shall never pool any figure across frameworks (a third provenance axis, same rule as <code>project_type</code>); the choice is persisted per user. <em>(F-FRAMEWORK, F-SHELL — amended 2026-08-28: six report pages; 2026-09-01: the switch now spans <strong>seven</strong>)</em>
 </li>
 <li><a id="brd-111"></a><strong>BRD-111</strong> — Ops can run TfLens with <code>docker compose</code> beside a PostgreSQL 16 service; the system shall apply <code>database/001-schema.sql</code> idempotently at startup and read the connection string from <code>TfLensDbConnection</code>. <em>(F-OPS)</em>
 </li>
 </ul>
-<h3 id="amendment-2026-08-28-round-3-the-test-accounts-are-part-of-the-product-not-of-the-tester-s-memory">Amendment 2026-08-28 (round 3) — the test accounts are part of the product, not of the tester's memory<a class="anchor-link" href="#amendment-2026-08-28-round-3-the-test-accounts-are-part-of-the-product-not-of-the-tester-s-memory">#</a></h3>
+<h3 id="amendment-2026-08-28-round-3-the-test-accounts-are-part-of-the-product-not-of-the-tester-s-memory"><a id="amendment-2026-08-28-round-3--the-test-accounts-are-part-of-the-product-not-of-the-testers-memory"></a>Amendment 2026-08-28 (round 3) — the test accounts are part of the product, not of the tester's memory<a class="anchor-link" href="#amendment-2026-08-28-round-3-the-test-accounts-are-part-of-the-product-not-of-the-tester-s-memory">#</a></h3>
 <ul>
 <li><a id="brd-142"></a><strong>BRD-142</strong> — The AppManager accounts the automated suite signs in with shall be <strong>provisioned, documented and restorable from inside this repository</strong>, without help from anyone outside it. <code>docs/TfLens-UsageGuide.md</code> is the single source for those credentials; the system shall ship a repeatable procedure that restores a known-good credential for every account that table names, and a guardrail test shall fail when the suite signs in as an account the guide does not list. Any test that mutates an account's password shall restore it, or provision its own throwaway account rather than touch a shared one. <em>(F-AUTH, F-OPS)</em>
 </li>
@@ -965,7 +965,7 @@ Other phases: <a href="./TfLens-P2-BRD.md">Phase 2 — Reports</a> · <a href=".
 <li><a id="brd-144"></a><strong>BRD-144</strong> — A built screen shall be graded against its approved mockup, mechanically. For every screen carrying a mockup in <code>docs/mockups/</code>, a gate shall compare the built page against that mockup at 1280 and 390 and shall FAIL on a structural difference — a control the mockup renders as a <strong>badge or pill</strong> rendered as plain text, a <strong>missing icon or icon button</strong>, a <strong>semantic colour</strong> that does not match (status green/amber/red, chart series), a <strong>header or row that wraps</strong> where the mockup is single-line, a <strong>table column clipped</strong> out of its container, or a <strong>value cell narrower than its longest unbreakable token</strong> (a formatted number shall never break mid-digit). The gate shall additionally assert that no route's document escapes the app-shell scroll container, shall run inside the verification phase alongside the render-truth and visual-truth gates, shall write its findings into the <code>gates</code> stream as <code>mockup-parity</code> so a screen cannot reach <code>Verified</code> on those two gates alone, and shall report a screen with no mockup as <strong><code>⚠ NO-MOCKUP</code></strong>, never as a silent pass. <em>(F-SHELL, F-OPS — applies to every screen in the §9 inventory)</em>
 </li>
 </ul>
-<h3 id="amendment-2026-09-08-round-2-seven-quality-rules-the-checklist-was-enforcing-without-a-brd-item">Amendment 2026-09-08 (round 2) — seven quality rules the checklist was enforcing without a BRD item<a class="anchor-link" href="#amendment-2026-09-08-round-2-seven-quality-rules-the-checklist-was-enforcing-without-a-brd-item">#</a></h3>
+<h3 id="amendment-2026-09-08-round-2-seven-quality-rules-the-checklist-was-enforcing-without-a-brd-item"><a id="amendment-2026-09-08-round-2--seven-quality-rules-the-checklist-was-enforcing-without-a-brd-item"></a>Amendment 2026-09-08 (round 2) — seven quality rules the checklist was enforcing without a BRD item<a class="anchor-link" href="#amendment-2026-09-08-round-2-seven-quality-rules-the-checklist-was-enforcing-without-a-brd-item">#</a></h3>
 <p><em>Every clause below was already being enforced — each was found by the owner or by a build, written as a
 <code>REQ-NFR-</code> row with full acceptance criteria, and has been graded ever since. What none of them had was a
 <strong>requirement in this document</strong>, so each row was inferred from a finding rather than owned by the BRD.
@@ -992,12 +992,12 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <table>
 <thead><tr><th>Phase</th><th>Range</th><th>Document</th></tr></thead>
 <tbody>
-<tr><td>2 — Reports</td><td>BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143</td><td><a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a></td></tr>
-<tr><td>3 — Depth</td><td>BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181</td><td><a href="./TfLens-P3-BRD.md">TfLens-P3-BRD.md</a></td></tr>
+<tr><td>2 — Reports</td><td>BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143</td><td><a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a></td></tr>
+<tr><td>3 — Depth</td><td>BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181</td><td><a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a></td></tr>
 </tbody>
 </table>
 <p>Ids run on across the three phases and are never reused or renumbered, so a range is a statement about which file holds an item and never about when it was written.</p>
-<h2 id="constraints-assumptions">12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
+<h2 id="constraints-assumptions"><a id="12-constraints--assumptions"></a>12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
 <ul>
 <li>Blazor Server on the current LTS .NET (10); <strong>PostgreSQL 16</strong> (owner decision 2026-08-26 — SQLite is unreliable on container storage); Dapper via Npgsql; TrBlazeUI where it fits (dogfood). Docker Compose on a VPS — infra config supplied separately.
 </li>
@@ -1046,7 +1046,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <li>An imported bundle is user-supplied and could in principle be edited before upload. TfLens does not attempt to detect that; it makes origin visible on every surface instead (BRD-136). Detecting tampering would require a signature the frameworks do not produce, and asking them to produce one is out of scope (§1).
 </li>
 </ul>
-<h2 id="parity-check-the-mandatory-acceptance-test">13. Parity check — the mandatory acceptance test<a class="anchor-link" href="#parity-check-the-mandatory-acceptance-test">#</a></h2>
+<h2 id="parity-check-the-mandatory-acceptance-test"><a id="13-parity-check--the-mandatory-acceptance-test"></a>13. Parity check — the mandatory acceptance test<a class="anchor-link" href="#parity-check-the-mandatory-acceptance-test">#</a></h2>
 <p><strong>Principle:</strong> two independent implementations compute the same metrics from the same files — <code>tf-metrics.sh</code> (existing, trusted; SCHEMA.md §6 enforced in its code) and TfLens (new, unproven). Correct implementations must agree exactly. Any disagreement is, by definition, a bug in TfLens. The script is never "fixed" to match the app.</p>
 <p><strong>Why this test exists:</strong> the dangerous failure mode is not a crash — it is a <em>plausible wrong number</em>. A pooling bug produces a figure that looks normal, gets exported, and ends up quoted publicly in B3. Once published it cannot be defended. The parity diff is the only cheap way to catch that class of bug.</p>
 <p><strong>Procedure</strong> (run before TfLens's export is used for any weekly Numbers row or any post, and re-run after every parser or engine change):</p>
@@ -1068,7 +1068,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <p><strong>Second standing rule (added 2026-08-29, BRD-143):</strong> a passing diff is not on its own a licence to quote, because the diff only compares TfLens against the reference <strong>over whatever rows are in the store</strong>. Provenance the store never obtained is invisible to it until the counts happen to disagree with upstream — which is how 155 fabricated rows survived until 2026-08-29. The export is therefore quotable only when the parity run passes <strong>and</strong> no row carries a <code>source_sha</code> that no <code>SyncState</code> row or import bundle accounts for; <code>/export</code> refuses <code>QUOTABLE</code> on either condition.</p>
 <p><strong>The comparison grows with the fields (added 2026-09-08).</strong> When the <code>sort</code>, <code>what</code> and <code>review</code> work ships, <code>parity-compare.py</code> covers the new numbers too: the <code>sort</code> distribution <strong>with its eligible denominator and its predates-field count as separate keys</strong>, the amendment-folded count (BRD-176), the <code>FR</code>-segmented gate figures kept apart from the application ones (BRD-177), and the <strong>derived counts</strong> for <code>duration_s</code> and <code>attempt</code> (BRD-179, BRD-180) — a derived total that matches the oracle's while the derived <em>count</em> differs is two implementations agreeing by accident. Three of these compare figures TfLens computes wrongly today (BRD-178, BRD-179, BRD-180), so <strong>the first run of the extended diff is expected to fail, and that failure is the point</strong>: it is the same class of defect §13 exists to catch, found the same way. A rate keyed on <code>req_id</code> alone and one keyed on <code>(project, req_id)</code> differ by roughly twenty points on the framework's own data, which is far too large to mistake for a rounding difference.</p>
 <p><strong>Third standing rule (added 2026-09-01, BRD-152, BRD-163).</strong> The Playbook's phase and miss figures have <strong>no oracle at all</strong> — <code>tf-metrics.sh</code> reads TechieFlow streams and knows nothing about schema-2 <code>phase-metric</code> rows. They therefore stand where <code>extras</code> stands (step 5): spot-checked by hand against the raw NDJSON once, recorded in DECISIONS.md, and <strong>never quoted on the strength of a passing TechieFlow diff</strong>, which says nothing about them. The TechieFlow <code>phases</code> block is the opposite case — it has a first-class oracle, so every figure on the TechieFlow axis of <code>/effort</code> ships <strong>unverified until BRD-152's compare is green</strong>. A page whose two halves have different evidentiary standing must say so on its face rather than let a reader assume the stronger one.</p>
-<h2 id="definition-of-done">14. Definition of done<a class="anchor-link" href="#definition-of-done">#</a></h2>
+<h2 id="definition-of-done"><a id="14-definition-of-done"></a>14. Definition of done<a class="anchor-link" href="#definition-of-done">#</a></h2>
 <ul>
 <li>[ ] All configured repos syncing; Coverage page green with real staleness numbers
 </li>
@@ -1130,7 +1130,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <li>[ ] Finish report delivered: any field observed in real files that SCHEMA.md doesn't document; any place TfLens disagrees with <code>tf-metrics.sh --rollup</code> on the same data (must be none); what breaks first when schema v=2 appears
 </li>
 </ul>
-<h2 id="success-metrics">15. Success metrics<a class="anchor-link" href="#success-metrics">#</a></h2>
+<h2 id="success-metrics"><a id="15-success-metrics"></a>15. Success metrics<a class="anchor-link" href="#success-metrics">#</a></h2>
 <ul>
 <li>Parity diff empty on the first real dataset within the timebox; re-run green after every parser change.
 </li>
@@ -1143,7 +1143,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <li>TfLens's own <code>docs/metrics/</code> streams show the full TechieFlow phase sequence with gates enforced (A-V evidence).
 </li>
 </ul>
-<h2 id="risks">16. Risks<a class="anchor-link" href="#risks">#</a></h2>
+<h2 id="risks"><a id="16-risks"></a>16. Risks<a class="anchor-link" href="#risks">#</a></h2>
 <table>
 <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
 <tbody>
@@ -1175,7 +1175,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <tr><td>A per-actor figure is added later "just for the team view"</td><td>Low</td><td>High</td><td>Prohibited structurally with no filter or parameter that could produce one (BRD-168); both producer contracts state the rule</td></tr>
 </tbody>
 </table>
-<h2 id="glossary">17. Glossary<a class="anchor-link" href="#glossary">#</a></h2>
+<h2 id="glossary"><a id="17-glossary"></a>17. Glossary<a class="anchor-link" href="#glossary">#</a></h2>
 <ul>
 <li><strong>The three questions</strong> <em>(schema concept)</em> — the canonical questions <code>.tfcore/telemetry/SCHEMA.md</code> §0 declares the telemetry exists to answer: <strong>first-pass rate</strong>, <strong>gate catch distribution</strong> and <strong>escape rate</strong>, all three from <code>gates.jsonl</code>. They are rendered on the <strong>Gate outcomes</strong> screen (<code>/gate-outcomes</code>), which was called <em>Three questions</em> until 2026-09-01 — the <strong>schema keeps the phrase</strong>, the screen does not. A <strong>fourth</strong> question (miss attribution and rework cost, added 2026-08-28) is answered by <code>misses.jsonl</code> on its own screen, <code>/misses</code>, and never renamed or redefined the first three. See <a href="#what-gate-outcomes-shows-and-why-it-is-no-longer-called-three-questions">§9</a>.
 </li>

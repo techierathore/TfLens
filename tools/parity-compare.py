@@ -109,6 +109,10 @@ MISSES_KEYS = (
     "misses_total", "miss_fixes_total", "orphan_fixes", "open_misses", "wont_fix",
     "resolved_misses", "why_missed_n", "why_missed", "escapes_missing_why", "why_missed_eligible",
     "why_missed_predates_field", "amendments_applied", "orphan_amends", "class_distribution",
+    # Withdrawn misses (SCHEMA.md §5.5.11, REQ-FN-143): what a `miss-void` took out of every figure
+    # above, and the voids that named no miss. A total offered without its exclusions is a different
+    # wrong number, so the exclusions are compared key for key like the figures they qualify.
+    "misses_voided_n", "misses_voided", "miss_voids_orphaned_n",
     # Whose gap it was (BRD-170/BRD-172, added to both sides 2026-09-07). The three denominator keys
     # are listed separately on purpose: sort_predates_field is not part of sort_eligible and never
     # summed into it, so a compare that diffed only the pair would hide either one moving.
@@ -213,6 +217,12 @@ ENVIRONMENT_KEYS = {
 # how the tool was invoked (the reference lists repositories in argv order) rather than data.
 KEYED_LISTS = {"per_repo": "repo"}
 
+# Lists of values with no identity key whose order is ALSO an artefact of invocation: the reference
+# appends each repository's entries as it walks argv, TfLens orders by owner/name. They are compared
+# as multisets -- every entry must appear on both sides exactly as often, byte for byte -- so content
+# is held exactly as strictly as before and only the position stops counting (2026-10-12, REQ-FN-063).
+UNORDERED_LISTS = {"runs_voided", "misses.misses_voided", "gates_malformed"}
+
 
 def canonical(path):
     """Collapse concrete list indices so a path can be looked up in the allow-lists.
@@ -283,6 +293,10 @@ class Compare(object):
         if key_name and self.keyed(reference, actual, path, key_name):
             return
 
+        if canonical(path) in UNORDERED_LISTS:
+            self.unordered(reference, actual, path)
+            return
+
         if len(reference) != len(actual):
             self.fail("LENGTH", path,
                       "reference has %d entries, tflens has %d" % (len(reference), len(actual)))
@@ -324,6 +338,25 @@ class Compare(object):
                   "matched on '%s' rather than by position -- list order here is an artefact of "
                   "how each tool was invoked, not data" % key_name)
         return True
+
+    def unordered(self, reference, actual, path):
+        """Compare two lists as multisets of their canonical JSON; report each unmatched entry."""
+        def text(entry):
+            return json.dumps(entry, sort_keys=True, ensure_ascii=False)
+
+        remaining = [text(x) for x in actual]
+        for entry in reference:
+            if text(entry) in remaining:
+                remaining.remove(text(entry))
+            else:
+                self.fail("MISSING", "%s[%s]" % (path, render(entry)[:120]),
+                          "the reference lists this entry; tflens does not")
+        for entry in remaining:
+            self.fail("ADDED", "%s[%s]" % (path, entry[:120]),
+                      "tflens lists this entry; the reference does not")
+        self.note("UNORDERED", path,
+                  "compared as a multiset -- every entry on both sides exactly as often; the order is "
+                  "the order each tool walked its repositories, not data")
 
     # ------------------------------------------------------------ scalars
 

@@ -343,6 +343,13 @@ public static class ParserVersion
     /// <summary>The current parser version.</summary>
     /// <remarks>
     /// <para>
+    /// <b>1.3.0 (2026-10-12)</b> — minor bump: the parser reads <c>kind: "miss-void"</c> (SCHEMA.md
+    /// §5.5.11, REQ-FN-143) instead of counting it as an invalid line, a withdrawn miss leaves every
+    /// figure with its fixes and amends, and the export gained <c>misses_voided_n</c>,
+    /// <c>misses_voided</c> and <c>miss_voids_orphaned_n</c>, as the reference publishes them. Metrics
+    /// were added and no stored column changed meaning (D-005).
+    /// </para>
+    /// <para>
     /// <b>1.2.0 (2026-08-28)</b> — minor bump: the export gained the whole <c>misses</c> block plus
     /// <c>per_repo[].misses</c> and <c>per_repo[].stale_types</c>. The reference gained them when
     /// <c>tf-metrics.sh</c> learned to read the <c>misses</c> stream (<c>analyse_misses()</c>), and
@@ -365,5 +372,5 @@ public static class ParserVersion
     /// </para>
     /// <para><b>1.0.0 (2026-08-26)</b> — the first shipping parser.</para>
     /// </remarks>
-    public const string Current = "1.2.0";
+    public const string Current = "1.3.0";
 }

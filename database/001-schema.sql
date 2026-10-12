@@ -334,7 +334,7 @@ CREATE TABLE IF NOT EXISTS "MissFix" (
 
 -- BRD-114: one repair run produces one fix record per miss it repaired. COALESCE mirrors the parser's
 -- key exactly, so the deliberate no-fix_run_id record (§5.5.3) keys on the empty string in both places.
--- "UcMissFixUserRepoMissIdFixRunId" is declared further down, PARTIAL like the "Miss" key and for the
+-- "UcMissFixUserRepoMissIdFixRunIdAttempt" (REQ-FN-144: fix_attempt joined the key) is declared further down, PARTIAL like the "Miss" key and for the
 -- same reason: it governs the TechieFlow edition only (REQ-FN-103).
 
 CREATE INDEX IF NOT EXISTS "IxMissFixUserRepo" ON "MissFix" ("UserId", "Repo");
@@ -405,15 +405,46 @@ CREATE TABLE IF NOT EXISTS "MissReview" (
     "Overflow"            jsonb   NULL
 );
 
--- BRD-114 (amended 2026-09-08): the run whose output was reviewed is the one thing a review record
--- cannot be written twice about. COALESCE mirrors the parser's key exactly AND is load-bearing on its
--- own: a nullable column never collides with itself in a PostgreSQL unique index, so without it a review
--- carrying no reviewed_run_id would be re-inserted by every sync and double-count that phase.
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunId"
-    ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''));
+-- BRD-114 (amended 2026-09-08, widened 2026-10-12 by REQ-FN-144): a review record is identified by the
+-- run whose output was reviewed AND the run that applied the corrections. A second correction pass over
+-- one reviewed run is a second fact — the reference (tf-metrics.sh) counts every review record — so
+-- correction_run_id is part of the key. Each COALESCE mirrors the parser's key exactly AND is
+-- load-bearing on its own: a nullable column never collides with itself in a PostgreSQL unique index, so
+-- without it a review carrying no reviewed_run_id would be re-inserted by every sync. The narrower
+-- 2026-09-08 key is dropped by name so an established database migrates at the next startup.
+DROP INDEX IF EXISTS "UcMissReviewUserRepoPhaseRunId";
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunIdCorrection"
+    ON "MissReview" ("UserId", "Repo", "ReviewPhase", COALESCE("ProducedRunId", ''), COALESCE("CorrectionRunId", ''));
 
 CREATE INDEX IF NOT EXISTS "IxMissReviewUserRepo" ON "MissReview" ("UserId", "Repo");
 CREATE INDEX IF NOT EXISTS "IxMissReviewPhase" ON "MissReview" ("UserId", "ReviewPhase");
+
+-- REQ-FN-143 (SCHEMA.md §5.5.11, added 2026-09-22): `miss-void` withdraws a miss that should never have
+-- been written. The stream is append-only, so the withdrawal is another record, stored verbatim here and
+-- applied at READ time: the named miss leaves every figure with its fixes and amends, and nothing is
+-- deleted from "Miss", "MissFix" or "MissAmend". A void naming no miss on its repository is an orphan,
+-- counted and never applied.
+CREATE TABLE IF NOT EXISTS "MissVoid" (
+    "UserId"              integer NOT NULL,
+    "Repo"                text    NOT NULL,
+    "SourceSha"           text    NOT NULL,
+    "V"                   integer NOT NULL DEFAULT 1,
+    "Ts"                  text    NOT NULL,
+    "App"                 text    NULL,
+    "ProjectType"         text    NULL,
+    "ProjectTypeInferred" boolean NULL,
+    "Backfilled"          boolean NULL,
+    "Harness"             text    NULL,
+    "MissId"              text    NOT NULL,  -- wire: miss_id -- the miss withdrawn
+    "Reason"              text    NULL,      -- wire: reason -- NULL reads as "no reason recorded"
+    "Overflow"            jsonb   NULL
+);
+
+-- One void per miss: the producer refuses a second, so a collision is a re-parse. Earliest wins.
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissVoidUserRepoMissId"
+    ON "MissVoid" ("UserId", "Repo", "MissId");
+
+CREATE INDEX IF NOT EXISTS "IxMissVoidUserRepo" ON "MissVoid" ("UserId", "Repo");
 
 -- ---------------------------------------------------------------- playbook (Phase 3)
 
@@ -553,8 +584,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"
     ON "Miss" ("UserId", "Repo", "MissId")
     WHERE "SourceLineHash" IS NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId"
-    ON "MissFix" ("UserId", "Repo", "MissId", COALESCE("FixRunId", ''))
+-- REQ-FN-144 (2026-10-12): fix_attempt joins the TechieFlow miss-fix key. SCHEMA.md §5.5.3 defines it as
+-- 1 + the prior miss-fix records for the miss, so a second attempt inside one fix run is a second fact and
+-- the reference counts both. COALESCE(-1) keeps a record with no fix_attempt colliding with itself. The
+-- narrower key is dropped by name so an established database migrates at the next startup.
+DROP INDEX IF EXISTS "UcMissFixUserRepoMissIdFixRunId";
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunIdAttempt"
+    ON "MissFix" ("UserId", "Repo", "MissId", COALESCE("FixRunId", ''), COALESCE("FixAttempt", -1))
     WHERE "SourceLineHash" IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoSourceLine"
@@ -744,7 +780,7 @@ DECLARE
     vTable text;
     vName  text;
 BEGIN
-    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'MissReview', 'PbEvent']
+    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'MissReview', 'MissVoid', 'PbEvent']
     LOOP
         vName := 'Ck' || vTable || 'SourceShaPresent';
 

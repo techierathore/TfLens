@@ -137,6 +137,10 @@ Everything added after the first report set shipped: the miss and rework economi
 | REQ-FN-141 | System shall identify a run record by its **line in its source file**, not by `(ts, app, cmd)`. That key is not unique: two `log-miss` runs land in the same second, and so do two `run-void` records naming different runs — and collapsing the latter silently un-voids a run. The streams are append-only, so line *n* is always the same record: re-parsing a file shall remain the no-op BRD-28 requires, while **two byte-identical records shall both survive** | Verified | 100% | 2026-09-13 verify: not verified — no test named REQ-FN-141 ran | [view](#d-req-fn-141) |
 | REQ-UI-072 | User can see, on a **Price providers** screen, every provider a rate comes from — starting with Anthropic, OpenAI, OpenCode Go and OpenRouter — with each model's published rate, the page a person can check it against, and **when it was last checked**. User can add a provider and its endpoint, add or change a rate, and remove a provider. A provider that publishes rates as data shall be **refreshed from its own endpoint**; one that does not shall be marked as typed from its published page, and the two shall be **visibly different claims**. A rate the endpoint declines to publish (OpenRouter's `-1`) shall be **skipped, never stored and never coerced to zero**. A refresh that fails shall leave the stored rates unchanged and say so. Where two providers price the same model the first shall win and the clash shall be **reported, never averaged** — the mean of two published rates is a number nobody publishes | Verified | 100% | 2026-09-15 verify: PASS — test REQ-UI-072 — every provider shows when its rates were last c; matches its mockup | [view](#d-req-ui-072) |
 | REQ-FN-142 | A superseded model shall **keep its rate**. A record naming an older model is history and still has to report what it cost; dropping the rate would move those runs into `list_usd_unpriced_n` and make a past phase read as cheaper than it was | Verified | 100% | 2026-09-13 verify: not verified — no test named REQ-FN-142 ran | [view](#d-req-fn-142) |
+| REQ-FN-143 | Withdrawn misses (kind miss-void, SCHEMA 5.5.11) leave every figure | Verified | 100% | 2026-10-12 verify: PASS — test `UAT numbers — one fixture imported as user 2 REQ-FN-143 a wi`; Misses & rework renders and looks right @1280/390; matches its mockup | [d](#d-req-fn-143) |
+| REQ-FN-144 | A second fix attempt and a second review correction are separate records | Verified | 100% | 2026-10-12 verify: PASS — test `REQ-FN-144 — two fix attempts in one run are two records`; Misses & rework renders and looks right @1280/390; matches its mockup | [d](#d-req-fn-144) |
+| REQ-FN-145 | Malformed gate records are listed, never scored | Verified | 100% | 2026-10-12 verify: PASS — test `REQ-FN-145 — the engine scores no malformed gate` | [d](#d-req-fn-145) |
+| REQ-FN-146 | An import records the session duplicates it collapsed | Verified | 100% | 2026-10-12 verify: PASS — test `REQ-FN-146 — a bundle with no sessions stream records no ses` | [d](#d-req-fn-146) |
 
 **Status values:** `Not Started` · `In Progress` · `Implemented` (code done, not yet verified) · `Verified` (self-smoke or verifier PASS — acceptance AND data-render AND visual gates all pass) · `Done (pre-existing)` (migrated from an earlier dev plan as already complete — build agents must NOT rebuild; terminal like `Verified`) · `Needs re-verify` (a defect or change was logged — must be re-run before it can return to `Verified`) · `PARTIAL` (some acceptance unmet — say what in Remarks) · `FAIL` (verifier ran and failed — bug in Remarks) · `Blocked` (external/library gap — link the TR-/TR-RAG- entry in Remarks) · `N/A`.
 **% guide:** `0` not started · `25` scaffolded · `50` in progress · `75` implemented-unverified · `100` verified.
@@ -803,3 +807,24 @@ Everything added after the first report set shipped: the miss and rework economi
   - *Acceptance:* When a user opens `/prices`, then a superseded model still carries its rate, and runs naming it are priced in `list_usd` rather than counted in `list_usd_unpriced_n`.
   - *History:* 2026-09-11 verify: acceptance line written from the BRD item, because the row was appended with a placeholder and cannot be graded without one.
 
+
+
+## Misses & rework
+
+- <a id="d-req-fn-143"></a> **REQ-FN-143** — Withdrawn misses (kind miss-void, SCHEMA 5.5.11) leave every figure. *BRD:* BRD-202
+  - *Acceptance:* When a user imports a misses.jsonl holding a miss-void on /repos, then the named miss leaves /misses, Coverage and the snapshot, which lists it under misses_voided.
+
+- <a id="d-req-fn-144"></a> **REQ-FN-144** — A second fix attempt and a second review correction are separate records. *BRD:* BRD-203
+  - *Acceptance:* When a user imports two fix attempts for one miss, or two corrections of one reviewed run, on /repos, then /misses and the snapshot count both.
+
+
+## Gate outcomes
+
+- <a id="d-req-fn-145"></a> **REQ-FN-145** — Malformed gate records are listed, never scored. *BRD:* BRD-204
+  - *Acceptance:* When a user imports a gate record with no req_id or verdict on /repos, then no gate figure scores it and the snapshot lists it under gates_malformed.
+
+
+## Repos
+
+- <a id="d-req-fn-146"></a> **REQ-FN-146** — An import records the session duplicates it collapsed. *BRD:* BRD-205
+  - *Acceptance:* When a user imports sessions sharing a session_id on /repos, then the snapshot's session_duplicates_collapsed counts them as a sync would.

@@ -73,6 +73,31 @@ public sealed class RepoSyncRunnerTests : IDisposable
         vState.LastSyncTs.Should().NotBe("2020-01-01T00:00:00Z");
     }
 
+    /// <summary>
+    /// A source whose earlier attempt failed is checked again, GitHub answers with the SHA already
+    /// stored, and the skip clears the stale error so /repos stops badging it <c>error</c> (REQ-FN-021,
+    /// found 2026-10-12 on TechieBlog).
+    /// </summary>
+    [Fact(DisplayName = "REQ-FN-021 — a skip on an unchanged SHA clears the error an earlier attempt left")]
+    public async Task SkipClearsAStaleError()
+    {
+        var vHarness = BuildHarness();
+        vHarness.Store.States["2|techierathore/TfLens"] = new SyncState
+        {
+            UserId = 2,
+            Repo = "techierathore/TfLens",
+            LastSha = Sha,
+            LastSyncTs = "2020-01-01T00:00:00Z",
+            RunsCount = 7,
+            LastError = "Network error reaching GitHub."
+        };
+
+        await vHarness.Runner.SyncAsync(2);
+
+        var vState = vHarness.Store.States["2|techierathore/TfLens"];
+        vState.LastError.Should().BeNull();
+    }
+
     /// <summary>The raw archive is on disk before the parser is handed the text (REQ-FN-027).</summary>
     [Fact]
     public async Task ArchiveIsWrittenBeforeTheParse()

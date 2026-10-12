@@ -94,6 +94,12 @@ public sealed class AppManagerException : Exception
         /// <summary>The refresh token can no longer renew the session; the user must sign in again.</summary>
         public const string ExpiredRefreshToken = "EXPIRED_REFRESH_TOKEN";
 
+        /// <summary>
+        /// The refresh token was revoked — by a logout — and can never renew a session; the user must
+        /// sign in again (docs/AppManager-api-usage-guide.md, error table).
+        /// </summary>
+        public const string RevokedRefreshToken = "REVOKED_REFRESH_TOKEN";
+
         /// <summary>AppManager could not decrypt the password field — rendered generically.</summary>
         public const string DecryptionFailed = "DECRYPTION_FAILED";
 
@@ -210,6 +216,17 @@ public sealed record ParseResult
     public IReadOnlyList<MissReviewRecord> MissReviews { get; init; } = [];
 
     /// <summary>
+    /// <c>miss-void</c> records, after the dedupe on <c>(MissId)</c> keeping the earliest
+    /// (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// A correction, not a miss: nothing here enters <see cref="Misses"/>, and before this list existed
+    /// every one of these records fell into <see cref="InvalidLines"/> while the miss it withdrew stayed
+    /// in every figure.
+    /// </remarks>
+    public IReadOnlyList<MissVoidRecord> MissVoids { get; init; } = [];
+
+    /// <summary>
     /// Schema-2 <c>phase-metric</c> executions, when <see cref="Stream"/> is
     /// <see cref="StreamKind.PhaseMetrics"/> (REQ-FN-094, ADR-023).
     /// </summary>
@@ -258,7 +275,7 @@ public sealed record ParseResult
 
     /// <summary>Total records stored from this file, across every record type.</summary>
     public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count
-        + Misses.Count + MissFixes.Count + MissAmends.Count + MissReviews.Count
+        + Misses.Count + MissFixes.Count + MissAmends.Count + MissReviews.Count + MissVoids.Count
         + PhaseExecutions.Count + PhaseModelUsages.Count + PhaseSubagents.Count;
 }
 

@@ -101,7 +101,11 @@ namespace TfLens.Core.Parsing;
 /// <c>corrections</c>→<c>Corrections</c>, <c>what</c>→<c>What</c>,
 /// <c>tokens_produce</c>→<c>TokensProduce</c>, <c>cost_produce_usd</c>→<c>CostProduceUsd</c>,
 /// <c>model_produce</c>→<c>ModelProduce</c>, <c>tokens_correct</c>→<c>TokensCorrect</c>,
-/// <c>cost_correct_usd</c>→<c>CostCorrectUsd</c>, <c>model_correct</c>→<c>ModelCorrect</c>. Any other
+/// <c>cost_correct_usd</c>→<c>CostCorrectUsd</c>, <c>model_correct</c>→<c>ModelCorrect</c>.
+/// </para>
+/// <para>
+/// <c>kind: "miss-void"</c> (§5.5.11) → <c>"MissVoid"</c>: <c>miss_id</c>→<c>MissId</c>,
+/// <c>reason</c>→<c>Reason</c>. Any other
 /// <c>kind</c> increments <see cref="ParseResult.InvalidLines"/> and is skipped — never thrown, because
 /// an unknown kind in a stream TfLens <i>does</i> know is the same class of event as a malformed line
 /// (REQ-FN-032).
@@ -193,6 +197,9 @@ public sealed class StreamParser : IStreamParser
     /// <summary>Fields SCHEMA.md §5.5.7 documents for a <c>miss-amend</c> record.</summary>
     private static readonly string[] MissAmendDocumented = ["miss_id", "field", "value"];
 
+    /// <summary>Fields SCHEMA.md §5.5.11 documents for a <c>miss-void</c> record (added 2026-09-22).</summary>
+    private static readonly string[] MissVoidDocumented = ["miss_id", "reason"];
+
     /// <summary>Fields SCHEMA.md §5.5.9 documents for a <c>review</c> record (added 2026-09-07).</summary>
     /// <remarks>
     /// The last six are <b>derived</b>: the emitter copies them from the two runs the record names, and
@@ -251,6 +258,9 @@ public sealed class StreamParser : IStreamParser
     /// <summary>Wire names that <c>"MissAmend"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> MissAmendMapped = BuildMapped(MissAmendDocumented, "inferred");
 
+    /// <summary>Wire names that <c>"MissVoid"</c> has a column for; anything else overflows.</summary>
+    private static readonly HashSet<string> MissVoidMapped = BuildMapped(MissVoidDocumented, "inferred");
+
     /// <summary>Wire names that <c>"MissReview"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> MissReviewMapped = BuildMapped(MissReviewDocumented, "inferred");
 
@@ -300,7 +310,11 @@ public sealed class StreamParser : IStreamParser
     /// reported as undocumented on the very page whose job is to say what TfLens cannot read.
     /// </remarks>
     private static readonly HashSet<string> MissesKnown =
-        BuildKnown([.. MissDocumented, .. MissFixDocumented, .. MissAmendDocumented, .. MissReviewDocumented]);
+        BuildKnown(
+        [
+            .. MissDocumented, .. MissFixDocumented, .. MissAmendDocumented, .. MissReviewDocumented,
+            .. MissVoidDocumented
+        ]);
 
     /// <summary>
     /// Says whether SCHEMA.md documents a wire field name for a stream (REQ-UI-016).
@@ -551,6 +565,12 @@ public sealed class StreamParser : IStreamParser
                 CollectUnknown(aObj, MissesKnown, aState);
                 aState.MissReviews.Add(BuildMissReview(aObj, aState, aVersion, aTs, aIsAboveV1));
                 return;
+            case MissKinds.MissVoid:
+                // REQ-FN-143 — a withdrawal, not a malformed line. Before this arm it fell to the default
+                // below: counted as invalid, and the miss it withdrew stayed in every figure.
+                CollectUnknown(aObj, MissesKnown, aState);
+                aState.MissVoids.Add(BuildMissVoid(aObj, aState, aVersion, aTs, aIsAboveV1));
+                return;
             default:
                 aState.InvalidLines++;
                 return;
@@ -730,6 +750,43 @@ public sealed class StreamParser : IStreamParser
             MissId = ReadString(aObj, "miss_id") ?? string.Empty,
             Field = ReadString(aObj, "field") ?? string.Empty,
             Value = ReadString(aObj, "value"),
+            Overflow = vOverflow
+        };
+    }
+
+    /// <summary>
+    /// Builds one <c>miss-void</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <remarks>
+    /// Stored exactly as written. Nothing is withdrawn here: <c>MissVoid.Apply</c> drops the named miss
+    /// and its fixes and amends at read time, so a rebuild re-derives identical figures (REQ-FN-143).
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static MissVoidRecord BuildMissVoid(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, MissVoidMapped, aIsAboveV1);
+        var vIsFull = !aIsAboveV1;
+
+        return new MissVoidRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = vIsFull ? ReadString(aObj, "project_type") : null,
+            ProjectTypeInferred = vIsFull ? ReadBool(aObj, "project_type_inferred") : null,
+            Backfilled = vIsFull ? ReadBool(aObj, "backfilled") : null,
+            Harness = vIsFull ? ReadString(aObj, "harness") : null,
+            MissId = ReadString(aObj, "miss_id") ?? string.Empty,
+            Reason = vIsFull ? ReadString(aObj, "reason") : null,
             Overflow = vOverflow
         };
     }
@@ -1401,6 +1458,9 @@ public sealed class StreamParser : IStreamParser
         /// <summary><c>review</c> records read so far, before dedupe (SCHEMA.md §5.5.9).</summary>
         public List<MissReviewRecord> MissReviews { get; } = [];
 
+        /// <summary><c>miss-void</c> records read so far, before dedupe (SCHEMA.md §5.5.11).</summary>
+        public List<MissVoidRecord> MissVoids { get; } = [];
+
         /// <summary>Schema-2 phase executions read so far, before dedupe.</summary>
         public List<PbPhaseExecutionRecord> PhaseExecutions { get; } = [];
 
@@ -1451,6 +1511,7 @@ public sealed class StreamParser : IStreamParser
             var vMissFixes = Dedupe.MissFixes(MissFixes);
             var vMissAmends = Dedupe.MissAmends(MissAmends);
             var vMissReviews = Dedupe.MissReviews(MissReviews);
+            var vMissVoids = Dedupe.MissVoids(MissVoids);
 
             // The exporter re-emits every currently readable window, so a repeated phase execution id
             // inside one file is the same window read further on: keep the last (REQ-FN-094).
@@ -1473,6 +1534,7 @@ public sealed class StreamParser : IStreamParser
                 MissFixes = vMissFixes.Records,
                 MissAmends = vMissAmends.Records,
                 MissReviews = vMissReviews.Records,
+                MissVoids = vMissVoids.Records,
                 PhaseExecutions = vPhases.Records,
                 PhaseModelUsages = vPhaseModels.Records,
                 PhaseSubagents = vPhaseSubagents.Records,
@@ -1480,7 +1542,7 @@ public sealed class StreamParser : IStreamParser
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
                     + vCommits.Collapsed + vEvents.Collapsed
                     + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed
-                    + vMissReviews.Collapsed
+                    + vMissReviews.Collapsed + vMissVoids.Collapsed
                     + vPhases.Collapsed + vPhaseModels.Collapsed + vPhaseSubagents.Collapsed,
                 SessionDuplicatesCollapsed = vSessions.Collapsed,
                 UnknownFields = UnknownFields.OrderBy(aN => aN, StringComparer.Ordinal).ToList(),

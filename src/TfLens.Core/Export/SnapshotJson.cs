@@ -65,6 +65,11 @@ internal static class SnapshotJson
             ["runs_voided_n"] = aInputs.Analysis.RunsVoidedN,
             ["runs_voided"] = Strings(aInputs.Analysis.RunsVoided),
             ["run_voids_orphaned_n"] = aInputs.Analysis.RunVoidsOrphanedN,
+
+            // REQ-FN-145 — gate records that are not one REQ's verdict, scored nowhere and listed here,
+            // at the reference's paths and in its shape (SCHEMA.md §3).
+            ["gates_malformed_n"] = aInputs.Analysis.GatesMalformed.Count,
+            ["gates_malformed"] = GatesMalformed(aInputs.Analysis.GatesMalformed),
             ["live"] = Segments(aInputs.Analysis.Live),
             ["backfilled"] = Segments(aInputs.Analysis.Backfilled),
             ["pooled"] = Pooled(aInputs.Analysis.Pooled),
@@ -220,6 +225,7 @@ internal static class SnapshotJson
                 ["project_type"] = vRepo.ProjectType,
                 ["gates"] = vRepo.Gates,
                 ["gates_backfilled"] = vRepo.GatesBackfilled,
+                ["gates_malformed"] = vRepo.GatesMalformed,
                 ["runs"] = vRepo.Runs,
                 ["sessions"] = vRepo.Sessions,
                 ["commits"] = vRepo.Commits,
@@ -230,6 +236,29 @@ internal static class SnapshotJson
                 ["events"] = vRepo.Events,
                 ["source_sha"] = vShas.GetValueOrDefault(vRepo.Repo),
                 ["source_kind"] = vOrigin?.SourceKind ?? SourceKinds.Default
+            });
+        }
+
+        return vArray;
+    }
+
+    /// <summary>
+    /// The <c>gates_malformed</c> list, one object per record, shaped as the reference writes it
+    /// (REQ-FN-145).
+    /// </summary>
+    /// <param name="aMalformed">The malformed gate records.</param>
+    /// <returns>The array of <c>{app, ts, gate, result}</c> objects.</returns>
+    private static JsonArray GatesMalformed(IReadOnlyList<MalformedGate> aMalformed)
+    {
+        var vArray = new JsonArray();
+        foreach (var vGate in aMalformed)
+        {
+            vArray.Add(new JsonObject
+            {
+                ["app"] = vGate.App,
+                ["ts"] = vGate.Ts,
+                ["gate"] = vGate.Gate,
+                ["result"] = vGate.Result
             });
         }
 
@@ -285,6 +314,11 @@ internal static class SnapshotJson
             ["resolved_misses"] = vTotals.ResolvedMisses,
             ["amendments_applied"] = vTotals.AmendmentsApplied,
             ["orphan_amends"] = vTotals.OrphanAmends,
+            // REQ-FN-143 — what a `miss-void` withdrew, beside the figures it was withdrawn from, in the
+            // reference's spelling and order (SCHEMA.md §5.5.11).
+            ["misses_voided_n"] = vTotals.MissesVoidedN,
+            ["misses_voided"] = Strings(vTotals.MissesVoided),
+            ["miss_voids_orphaned_n"] = vTotals.MissVoidsOrphanedN,
             ["why_missed_n"] = vBlock.WhyMissedN,
             ["why_missed_eligible"] = vBlock.WhyMissedEligibility.Eligible,
             ["why_missed_predates_field"] = vBlock.WhyMissedEligibility.PredatesField,

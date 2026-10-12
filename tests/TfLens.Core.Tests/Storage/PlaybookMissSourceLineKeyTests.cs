@@ -161,7 +161,7 @@ public sealed class PlaybookMissSourceLineKeyTests : IAsyncLifetime
         var vDefinitions = (await vConnection.QueryAsync<(string Name, string Definition)>(
                 """
                 SELECT indexname, indexdef FROM pg_indexes
-                WHERE indexname IN ('UcMissUserRepoMissId','UcMissFixUserRepoMissIdFixRunId',
+                WHERE indexname IN ('UcMissUserRepoMissId','UcMissFixUserRepoMissIdFixRunIdAttempt',
                                     'UcMissAmendUserRepoMissIdFieldTs','UcMissUserRepoSourceLine',
                                     'UcMissFixUserRepoSourceLine','UcMissAmendUserRepoSourceLine')
                 """))
@@ -169,7 +169,7 @@ public sealed class PlaybookMissSourceLineKeyTests : IAsyncLifetime
 
         using var vScope = new FluentAssertions.Execution.AssertionScope();
         vDefinitions.Should().HaveCount(6, "each of the three miss tables carries both editions' keys");
-        foreach (var vName in new[] { "UcMissUserRepoMissId", "UcMissFixUserRepoMissIdFixRunId", "UcMissAmendUserRepoMissIdFieldTs" })
+        foreach (var vName in new[] { "UcMissUserRepoMissId", "UcMissFixUserRepoMissIdFixRunIdAttempt", "UcMissAmendUserRepoMissIdFieldTs" })
         {
             vDefinitions.GetValueOrDefault(vName).Should().MatchRegex(
                 "(?i)WHERE \\(?\"?SourceLineHash\"? IS NULL\\)?",
@@ -191,7 +191,7 @@ public sealed class PlaybookMissSourceLineKeyTests : IAsyncLifetime
         var vSchema = File.ReadAllText(Path.Combine(RepoRoot(), "database", "001-schema.sql"));
 
         using var vScope = new FluentAssertions.Execution.AssertionScope();
-        foreach (var vName in new[] { "UcMissUserRepoMissId", "UcMissFixUserRepoMissIdFixRunId", "UcMissAmendUserRepoMissIdFieldTs" })
+        foreach (var vName in new[] { "UcMissUserRepoMissId", "UcMissFixUserRepoMissIdFixRunIdAttempt", "UcMissAmendUserRepoMissIdFieldTs" })
         {
             var vMatch = Regex.Match(
                 vSchema,

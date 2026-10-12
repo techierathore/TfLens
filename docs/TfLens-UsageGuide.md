@@ -5,7 +5,7 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Date | 2026-09-14 |
+| Date | 2026-10-12 |
 
 ## Test users
 
@@ -26,8 +26,8 @@
 
   Signs in each listed account and registers it with `applicationRoleCode: "Manager"` only if sign-in fails. Idempotent, prints no password, exit 0 = every account usable. On `DUPLICATE_EMAIL`, reset through `/forgot-password` or re-create the account in the AppManager admin UI, then correct this table.
 - **Last run:** 2026-08-28, `2 of 2 documented accounts usable`, exit 0. Sign-in re-checked 2026-09-14 at handoff: both accounts sign in through `/login` (headers "TfLens Demo" and "TfLens Test2").
-- **Seeding:** none. User 1's five demo repos were connected by hand through Repos.
-- **Secrets:** user secrets only (REQ-NFR-011), never `.env` or `appsettings.json`. Template: `src/TfLens/secrets.example.json` (all nine settings). `TfLens:AppManagerApiKey` and `TfLens:AppManagerApiSecret` are required as a pair; password reset fails without them. `TfLens:GitHubToken` is effectively required (unauthenticated GitHub allows 60 requests/hour). `TfLens:DbConnection` falls back to the local Development connection. Fixture mode: `TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures`.
+- **Seeding:** none. User 1's sources were connected by hand: Chatur, TechieRag, TrBlazeUI and TechieFlow are **imported** from their `docs/metrics` folders (2026-10-12), TechieBlog and TfLens are **fetched** from GitHub. Only public repositories may be sources (owner rule 2026-10-12); Lekhak and Sevak are private and are never imported.
+- **Secrets:** user secrets only (REQ-NFR-011), never `.env` or `appsettings.json`. Template: `src/TfLens/secrets.example.json` (all nine settings). `TfLens:AppManagerApiKey` and `TfLens:AppManagerApiSecret` are required as a pair; password reset fails without them. `TfLens:GitHubToken` is effectively required (unauthenticated GitHub allows 60 requests/hour). `TfLens:DbConnection` has no default: on this machine it points at the `WinPostgre` container (port 5550), and the app refuses to start without it. Fixture mode: `TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures`.
 
 ## Execution guide
 
@@ -35,8 +35,9 @@ Prerequisites: .NET 10 SDK (10.0.302 or later), PostgreSQL 16 (local or the `pos
 
 ```
 git clone https://github.com/techierathore/TfLens.git && cd TfLens
+export PATH=$HOME/.dotnet:$PATH DOTNET_ROOT=$HOME/.dotnet   # WSL: the SDK lives in ~/.dotnet and is not on PATH
 printf 'TfLensDbPassword=tflensdev\n' > .env
-docker compose up -d postgres
+docker compose up -d postgres   # only when TfLens:DbConnection points at it (port 5433); this machine uses WinPostgre on 5550
 dotnet user-secrets set "TfLens:AppManagerApiKey" "<key>" --project src/TfLens
 dotnet user-secrets set "TfLens:AppManagerApiSecret" "<secret>" --project src/TfLens
 dotnet user-secrets set "TfLens:GitHubToken" "<PAT>" --project src/TfLens
@@ -83,7 +84,7 @@ dotnet run --project src/TfLens -- provision-test-accounts
 - [ ] Open **Phase effort**, expand `build-phase`, and confirm every figure shows its denominator beside it
 - [ ] Open **Price providers**, filter OpenRouter's models and page through a provider's rates
 - [ ] Flip the Framework switch to Playbook on a report page and back
-- [ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE by design (see Known limitations)
+- [ ] Export a snapshot and open both files from the new row — the banner reads QUOTABLE (parity run of 2026-10-12, parser 1.3.0) and the Dataset SHAs table shows `sha256 <8 chars>` for each imported source
 - [ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
 - [ ] Re-check **Phase effort** and **Misses & rework** at a phone width (390px) — nothing breaks a word mid-token, nothing is cut off inside its own box
 - [ ] Sign out from the user menu
@@ -191,13 +192,13 @@ flowchart LR
 ### Snapshot export (`/export`)
 - **Sign in as:** user 1
 - **Steps:** 1) Read the banner 2) Press **Export snapshot** 3) Open both files from the new row 4) Copy a SHA from the dataset table
-- **Expected:** banner reads **NOT QUOTABLE today** until a parity run is recorded for parser **1.2.0** (see Known limitations), QUOTABLE after; export writes `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON has top-level keys `per_repo`, `tainted_reqs`, `live`, `backfilled`, `pooled`, `misses`, `extras`, `parity`, each `per_repo` entry carrying `source_kind`; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
+- **Expected:** banner reads **QUOTABLE** (parity P-004, parser **1.3.0**) until the parser or `tf-metrics.sh` changes; the parity card shows `0 differences`; Dataset SHAs show a commit SHA when fetched, `sha256 <8 chars>` when imported; export writes `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON carries `per_repo` (each with `source_kind`), `live`, `backfilled`, `pooled`, `misses`, `extras` and `parity`; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
 - **Covers:** BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 
 ### Parity procedure (terminal — no screen)
 - **Sign in as:** n/a (operator at a shell)
-- **Steps:** 1) `dotnet TfLens.dll export --user 2 --framework techieflow` 2) Clone the connected repos at the SHAs shown on `/export` 3) `bash .tfcore/telemetry/tf-metrics.sh --rollup <repos…> --json > reference.json` 4) `python3 tools/parity-compare.py reference.json data/reports/<userId>/<date>/techieflow/tflens.json --allow-environment-keys --record src/TfLens/data/parity-last.json --parser-version 1.2.0 --script .tfcore/telemetry/tf-metrics.sh --dataset-sha <owner/name>=<sha> …`
-- **Expected:** exit 0 and `0 finding(s)`, allowed differences itemised `ENV-OK` / `ADDED-OK`, `misses` reported `COVERED` over all 29 BRD-129 figures; a deliberate change (delete one backfilled record) exits non-zero naming the key; a passing run writes `data/parity-last.json` (`passed: true`, `parser_version: "1.2.0"`) and `/export` reads QUOTABLE.
+- **Steps:** 1) `dotnet TfLens.dll export --user 2 --framework techieflow` 2) Clone the connected repos at the SHAs shown on `/export` 3) `bash .tfcore/telemetry/tf-metrics.sh --rollup <repos…> --json > reference.json` 4) `python3 tools/parity-compare.py reference.json data/reports/<userId>/<date>/techieflow/tflens.json --allow-environment-keys --record src/TfLens/data/parity-last.json --parser-version 1.3.0 --script .tfcore/telemetry/tf-metrics.sh --dataset-sha <owner/name>=<sha> …`
+- **Expected:** exit 0 and `0 finding(s)`, allowed differences itemised `ENV-OK` / `ADDED-OK`, `misses` reported `COVERED` over all 29 BRD-129 figures; a deliberate change (delete one backfilled record) exits non-zero naming the key; a passing run writes `data/parity-last.json` (`passed: true`, `parser_version: "1.3.0"`, every dataset identity) and `/export` reads QUOTABLE.
 - **Covers:** BRD-64, BRD-68, BRD-69, BRD-71, BRD-72
 
 ### Playbook framework state (Framework switch → Playbook, every report page)
@@ -232,32 +233,26 @@ Covers: core, guardrail and integration tests (`-m:1`: not parallel-safe), plus 
 
 ## Known limitations
 
-**Phase 3:** 115 of 117 rows in `docs/TfLens-P3-Checklist.md` are `Verified` or `N/A`. **Earlier phases:** 9 rows are not yet `Verified`. None is `Blocked`.
+**Phase 3:** 121 of 121 rows in `docs/TfLens-P3-Checklist.md` are `Verified`. **Phase 2:** 39 of 44. **Phase 1:** 76 of 77. None is `Blocked` (verify of 2026-10-12, `docs/TfLens-UAT-Readiness-2026-10-12.md`).
 
 ### This release
 
-- `REQ-UI-050` (Needs re-verify, Phase 3) — on the Playbook view of `/effort` the harness filter changes no row (`PlaybookEffortSurface.razor:1358`).
-- `REQ-UI-072` (Needs re-verify, Phase 3) — a single missing OpenRouter price is stored as zero (`PriceProviders.cs:294`, `:311-314`).
-
-- `REQ-UI-006` (Implemented, Phase 1) — collapsible icon sidebar and nav order; built, not re-verified.
-- `REQ-NFR-020` (Implemented, Phase 1) — grading a built screen against its mockup; built, not re-verified.
+- `REQ-UI-023` (Needs re-verify, Phase 2) — Harness page; every test passes, but mockup parity counts the token chart's `<svg>` as an icon (`TF-054`).
+- `REQ-UI-027`, `REQ-UI-029` (Needs re-verify, Phase 2) — `/routing`; every test passes, but the drift table pages its rows and the mockup draws no pager (owner decision).
+- `REQ-UI-032`, `REQ-UI-033` (Needs re-verify, Phase 2) — `/export`; every test passes and the banner reads QUOTABLE, but parity reads the green `0 differences` badge as neutral in dark mode and the scrolling compare output as clipped (`TF-053`).
 - `REQ-NFR-024` (In Progress, Phase 1) — no machine-specific state in version control; the remaining clause is upstream (`TF-014`).
-- `REQ-NFR-025` (Implemented, Phase 1) — production deployment pipeline; its image build was repaired 2026-09-14 (`docs/TfLens-TrBlazeUI-2.0.6-Upgrade.md`).
-- `REQ-UI-023` (Needs re-verify, Phase 2) — Harness page, three harness columns.
-- `REQ-UI-029` (Implemented, Phase 2) — counterfactual repricing cards.
-- `REQ-UI-033`, `REQ-FN-063` (Needs re-verify, Phase 2) — `/export` reads NOT QUOTABLE until a parity run postdates the last parser change.
-- `REQ-NFR-019` (Implemented, Phase 2) — stored provenance audit.
+- An imported source created by an import is badged `private` on Repos even when its GitHub repository is public (Chatur); owner decision.
+- Records of TechieFlow and TrBlazeUI mention the private repository Lekhak by name in 49 free-text fields; they are those repositories' own records and are shown as written.
 - The demo account has 0 Playbook repositories, so the Playbook axis is verified in its empty state only (`REQ-UI-050`, `REQ-UI-051`); import a `verification/telemetry/` bundle to drive it with data.
 - `REQ-FN-012` (N/A) — GitHub SSO is deferred; `/login` shows no GitHub button.
 - `TfLensGitHubToken` is effectively required: unauthenticated GitHub allows 60 requests/hour.
 - Run `rebuild --user <id>` after any framework schema addition; a sync alone does not backfill new columns.
 - Harness, routing and repricing figures have no reference implementation; spot-checked by hand once (BRD-72).
-- A stray `isolation-probe/belongs-to-user-two` row showed in `/export`'s dataset table on 2026-09-02 (owner action: delete that `SyncState` row); not re-checked at this handoff.
 
 ### Upstream — TechieFlow (`docs/TfLens-TechieFlow-Feedback.md`)
-- `TF-049` (open, minor) — `handoff-phase.md` names `tf-build.sh --print`, which does not exist.
-- `TF-050` (open, minor) — `tf-devguide-list.py` lists test screenshot paths as page routes.
-- 14 entries fixed upstream and waiting to be re-checked here; 34 closed. Nothing blocks.
+- `TF-053` (open, minor) — `tf-mockup-parity` reads a box that scrolls its own content as cut off.
+- `TF-054` (open, minor) — `tf-mockup-parity` counts a chart's `<svg>` as an icon.
+- 16 entries fixed upstream and waiting to be re-checked here; 36 closed. Nothing blocks.
 
 ### Upstream — AppManager (`docs/TfLens-AppManager-Feedback.md`)
 - `AM-001`, `AM-002` — both resolved 2026-08-28; nothing open.

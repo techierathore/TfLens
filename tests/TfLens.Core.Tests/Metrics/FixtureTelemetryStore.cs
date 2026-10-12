@@ -27,6 +27,7 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly List<MissFixRecord> objMissFixes = [];
     private readonly List<MissAmendRecord> objMissAmends = [];
     private readonly List<MissReviewRecord> objMissReviews = [];
+    private readonly List<MissVoidRecord> objMissVoids = [];
     private readonly List<UserRepo> objRepos = [];
 
     /// <summary>
@@ -386,6 +387,42 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
             objMissReviews
                 .Where(aReview => aReview.UserId == aUserId && (aRepo is null || aReview.Repo == aRepo))
                 .OrderBy(aReview => aReview.Ts, StringComparer.Ordinal)
+                .ToList());
+
+    /// <summary>
+    /// Seeds the <c>miss-void</c> records (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// Served as stored; the engine applies them at read time, so a fixture that pre-removed the withdrawn
+    /// misses would prove nothing.
+    /// </remarks>
+    /// <param name="aUserId">The user id the records are attributed to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> they belong to.</param>
+    /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aVoids">The void records.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SeedMissVoids(
+        int aUserId,
+        string aRepo,
+        string aFramework,
+        IEnumerable<MissVoidRecord>? aVoids = null)
+    {
+        RegisterRepo(aUserId, aRepo, aFramework);
+        objMissVoids.AddRange(aVoids ?? []);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MissVoidRecord>> ReadMissVoidsAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MissVoidRecord>>(
+            objMissVoids
+                .Where(aVoid => aVoid.UserId == aUserId && Matches(aVoid.Repo, aFramework, aRepo))
+                .OrderBy(aVoid => aVoid.Ts, StringComparer.Ordinal)
                 .ToList());
 
     public FixtureTelemetryStore SeedMisses(

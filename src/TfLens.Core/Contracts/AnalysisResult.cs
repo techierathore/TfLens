@@ -93,6 +93,12 @@ public sealed record AnalysisResult
     /// <summary>Voids naming a run this stream does not hold; counted and shown, never dropped.</summary>
     public int RunVoidsOrphanedN { get; init; }
 
+    /// <summary>
+    /// Gate records carrying no <c>req_id</c> or no <c>verdict</c>, left out of every gate figure and
+    /// listed instead (SCHEMA.md §3, REQ-FN-145).
+    /// </summary>
+    public IReadOnlyList<MalformedGate> GatesMalformed { get; init; } = [];
+
     /// <summary>Parser version stamped into every export, so a figure can be traced to the code that made it.</summary>
     public required string ParserVersion { get; init; }
 
@@ -115,6 +121,10 @@ public sealed record AnalysisResult
 /// <param name="Sessions">Session records stored, after dedupe.</param>
 /// <param name="Commits">Commit records stored, after dedupe.</param>
 /// <param name="Events">Playbook event records stored.</param>
+/// <param name="GatesMalformed">
+/// Gate records left out of every figure for carrying no <c>req_id</c> or no <c>verdict</c>; not
+/// included in <paramref name="Gates"/> (REQ-FN-145).
+/// </param>
 public sealed record PerRepoFacts(
     string Repo,
     string? App,
@@ -125,7 +135,8 @@ public sealed record PerRepoFacts(
     int Runs,
     int Sessions,
     int Commits,
-    int Events);
+    int Events,
+    int GatesMalformed = 0);
 
 /// <summary>
 /// The figures for one (provenance, project type) segment — the only shape a rate is ever computed in.
@@ -424,6 +435,23 @@ public sealed record MissAnalysis
 
     /// <summary>Amendments that could never be applied — parity key <c>orphan_amends</c>.</summary>
     public required int OrphanAmends { get; init; }
+
+    /// <summary>
+    /// Misses a <c>miss-void</c> withdrew from every figure here — parity key <c>misses_voided_n</c>
+    /// (SCHEMA.md §5.5.11, REQ-FN-143).
+    /// </summary>
+    public int MissesVoidedN { get; init; }
+
+    /// <summary>
+    /// One line per withdrawn miss, <c>"&lt;miss_id&gt; — &lt;reason&gt;"</c> — parity key
+    /// <c>misses_voided</c>.
+    /// </summary>
+    public IReadOnlyList<string> MissesVoided { get; init; } = [];
+
+    /// <summary>
+    /// Voids naming no miss on their repository's stream — parity key <c>miss_voids_orphaned_n</c>.
+    /// </summary>
+    public int MissVoidsOrphanedN { get; init; }
 
     /// <summary>Backfilled misses held out of every figure here, reported rather than dropped.</summary>
     public required int BackfilledMissesExcluded { get; init; }
@@ -940,3 +968,11 @@ public sealed record MissReviewBlock
     /// <summary>Repairs that could be priced; the denominator of <see cref="ListUsdPerMiss"/>.</summary>
     public int ListUsdRecords { get; init; }
 }
+
+/// <summary>One gate record that names no requirement or carries no verdict (REQ-FN-145).</summary>
+/// <param name="Repo"><c>owner/name</c> the record came from.</param>
+/// <param name="App">The record's own <c>app</c>, falling back to the repository name.</param>
+/// <param name="Ts">The record's timestamp.</param>
+/// <param name="Gate">The record's <c>gate</c>, or <c>null</c>.</param>
+/// <param name="Result">The record's <c>result</c> (an undocumented field, read from Overflow), or <c>null</c>.</param>
+public sealed record MalformedGate(string Repo, string App, string? Ts, string? Gate, string? Result);

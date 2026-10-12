@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 52 entries: none open, 16 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051, TF-052), 36 closed. TF-051 and TF-052, filed from the 2026-09-15 fix, are fixed the same day. TF-049 and TF-050, filed at the handoff and fixed the same day, were re-checked and closed here on 2026-09-15. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-052 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14 and TF-051 and TF-052 on 2026-09-15. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 54 entries: none open, 18 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-054), 36 closed. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -141,6 +141,17 @@ that grew a legal move as a result.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-10-12)
+
+**TF-053 and TF-054 are fixed in the framework and deployed to this repository.** Nothing is blocked. Cases `tf_053` and `tf_054` in `tests/regression/run.sh`, each failing against the script you had; misses `MISS-TechieFlow-20261012-01` and `-02`. Close each with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-053** | `clipOf()` in `tf-mockup-parity.mjs` no longer reports an axis on which the element's own `overflow` is `auto` or `scroll`. `hidden` and `clip` are still reported. Proved on a page with a `<pre>` scrolling 40 long lines and a box with `overflow: hidden` holding the same lines: the old script reports both, the new one reports only the hidden box. | Start the app, then `bash .tfcore/utils/tf-mockup-parity.sh --base http://localhost:5099 --screen export=/export` with the 47-line compare output showing: no `clip parity-output > pre[0]` finding at 1280 or 390. |
+| **TF-054** | An `svg` larger than 48 px on either side is no longer counted as an icon, on the mockup's side or the app's. Smaller `svg` glyphs, `img`, and the class-named icons are counted as before. Proved on a page with a 300×60 chart `svg` and a 16 px glyph `svg`: the old script reports the chart as an icon, the new one reports only the missing glyph. | `bash .tfcore/utils/tf-mockup-parity.sh --base http://localhost:5099 --screen harness=/harness`: no `icon tokens-chart > div[0]` finding at 1280 or 390. |
 
 ---
 
@@ -3324,3 +3335,44 @@ finding on text that matches.
 
 **What is NOT affected.** A standalone `*verify`; the gate records and misses a chained verify writes;
 `tf-fix-close.sh --misses`.
+
+## TF-053 — `tf-mockup-parity`'s `clip` clause reads a box that scrolls its own content as "cut off"
+
+- **Severity:** minor
+- **Blocks:** no, but it keeps REQ-UI-033 and REQ-UI-032 below `Verified` on the mockup check alone.
+- **Repro:** on `/export`, the parity card's `parity-output` `<pre>` is styled `overflow-x: auto; overflow-y: auto;
+  max-height: 18rem` (`src/TfLens/Components/Pages/Export/CodeBlock.razor.css`). With a real 47-line compare output,
+  `bash .tfcore/utils/tf-mockup-parity.sh --base http://localhost:5099 --screen export=/export …` reports
+  `clip parity-output > pre[0] — content is cut off horizontally; the mockup is not clipped` at 1280 and
+  `… vertically …` at 390. The mockup's sample output is four short lines, so its `<pre>` never overflows.
+- **Expected:** a box whose own `overflow` is `auto` or `scroll` holds its content in reach; it is not cut off.
+- **Actual:** `clipOf()` (`tf-mockup-parity.mjs` ~line 423) sets `x`/`y` from the element's own `scrollWidth` /
+  `scrollHeight` against its client size for every overflow value except `visible` (TF-042), so a scroller is
+  reported exactly like an `overflow: hidden` box. TF-039 fixed the case of a descendant inside a scroller, not the
+  scroller itself.
+- **Encountered in:** TfLens `*verify` phase 2, 2026-10-12.
+- **Workaround:** none taken; the finding is left visible and the rows keep their verdict.
+- **Suggested fix:** treat the element's own `overflow-x/y` of `auto`/`scroll` as "not clipped" on that axis, as
+  TF-039 does for its ancestors; keep reporting `hidden` and `clip`.
+
+**What is NOT affected.** Content really cut off by `overflow: hidden` (still reported); the TF-039 and TF-042
+cases; `tf-verify-screens`'s visual check, which passed `/export` on the same run.
+
+## TF-054 — `tf-mockup-parity` counts a chart's `<svg>` as an icon, so every SVG chart is "an icon the mockup does not carry"
+
+- **Severity:** minor
+- **Blocks:** no, but it keeps REQ-UI-023 below `Verified` on the mockup check alone.
+- **Repro:** `/harness` draws its token chart with the TrBlazeUI `BarChart` (ApexCharts renders one `<svg>`);
+  `docs/mockups/harness.html` draws the same chart as `<div>` bars. Parity reports `icon tokens-chart > div[0] —
+  app carries an icon the mockup does not` at 1280 and 390; the `app_text` it quotes is the chart's own
+  `.apexcharts-flip-y { … }` style block.
+- **Expected:** a chart body is not an icon; an icon is a small glyph.
+- **Actual:** `const ICON = 'svg, img, i[class*="icon"], …'` (`tf-mockup-parity.mjs` line 280) matches every `svg`
+  regardless of size or role.
+- **Encountered in:** TfLens `*verify` phase 2, 2026-10-12.
+- **Workaround:** none taken; the finding is left visible.
+- **Suggested fix:** count an `svg` as an icon only below a size bound (for example ≤ 48 px on both sides) or when
+  it is not a chart root (`role="img"` with a chart class, or an `svg` with more than N child shapes).
+
+**What is NOT affected.** Lucide and other glyph icons (still counted, and a missing one inside an anchored region is
+still caught — proved 2026-10-12 by a planted badge, which the gate reported at both widths).

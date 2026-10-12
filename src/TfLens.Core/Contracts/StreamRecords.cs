@@ -108,6 +108,17 @@ public static class MissKinds
     /// figure, chart, filter or export.
     /// </remarks>
     public const string Review = "review";
+
+    /// <summary>
+    /// The withdrawal of a miss that should never have been written — maps to <see cref="MissVoidRecord"/>
+    /// (SCHEMA.md §5.5.11, added 2026-09-22; REQ-FN-143).
+    /// </summary>
+    /// <remarks>
+    /// <b>A correction, never a miss.</b> The named miss leaves every figure together with its fixes and
+    /// amends; review records are untouched. The void line itself is a known kind and is never counted
+    /// as an invalid line.
+    /// </remarks>
+    public const string MissVoid = "miss-void";
 }
 
 /// <summary>
@@ -1224,6 +1235,69 @@ public sealed record MissReviewRecord
     public string? ModelCorrect { get; init; }
 
     /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
+    public string? Overflow { get; init; }
+}
+
+/// <summary>
+/// One <c>misses.jsonl</c> record of kind <c>miss-void</c>, stored in the <c>"MissVoid"</c> table
+/// (SCHEMA.md §5.5.11, REQ-FN-143).
+/// </summary>
+/// <remarks>
+/// <para>
+/// The misses stream is append-only, so a miss written in error can be neither edited nor deleted; the
+/// producer writes this record instead, naming the miss by its <c>miss_id</c> and saying why. It is the
+/// misses-stream sibling of the runs stream's <c>run-void</c> (SCHEMA.md §2.7).
+/// </para>
+/// <para>
+/// <b>Stored verbatim, applied at read time.</b> Nothing is removed from <c>"Miss"</c>,
+/// <c>"MissFix"</c> or <c>"MissAmend"</c>: <c>MissVoid.Apply</c> drops the named miss and its fixes and
+/// amends from every figure on every read, so a rebuild re-derives identical figures. Deduped on
+/// <c>(UserId, Repo, MissId)</c> keeping the earliest <see cref="Ts"/> — the producer refuses a second
+/// void of one miss, so a duplicate is a re-parse of the same archived file.
+/// </para>
+/// </remarks>
+public sealed record MissVoidRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA the raw file was fetched at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp the void was written.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the void belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type.</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>True when <c>project_type</c> was inferred rather than declared.</summary>
+    public bool? ProjectTypeInferred { get; init; }
+
+    /// <summary>True when the record was backfilled rather than emitted live.</summary>
+    public bool? Backfilled { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary>
+    /// The miss withdrawn; a void naming no miss on its repository's stream is an orphan, counted and
+    /// never applied.
+    /// </summary>
+    public required string MissId { get; init; }
+
+    /// <summary>Why the miss was withdrawn; <c>null</c> reads as <c>no reason recorded</c>.</summary>
+    public string? Reason { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document.</summary>
     public string? Overflow { get; init; }
 }
 

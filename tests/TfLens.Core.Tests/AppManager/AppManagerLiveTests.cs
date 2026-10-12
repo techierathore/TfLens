@@ -75,9 +75,11 @@ public sealed class AppManagerLiveTests
 
         await vClient.LogoutAsync(vRefreshed.RefreshToken, vRefreshed.AccessToken);
 
+        // A logged-out token is REVOKED, not expired: the live service has answered
+        // REVOKED_REFRESH_TOKEN here since at least 2026-10-12, as the API guide's error table documents.
         var vReuse = async () => await vClient.RefreshAsync(vRefreshed.RefreshToken);
         (await vReuse.Should().ThrowAsync<AppManagerException>())
-            .Which.Code.Should().Be(AppManagerException.Codes.ExpiredRefreshToken);
+            .Which.Code.Should().Be(AppManagerException.Codes.RevokedRefreshToken);
     }
 
     /// <summary>The profile endpoint returns live AppManager data for the signed-in user.</summary>

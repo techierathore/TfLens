@@ -783,7 +783,7 @@ Every stream table also carries `UserId` (omitted from the boxes above for brevi
 ```sql
 -- unique keys (the dedupe rules, encoded)
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissUserRepoMissId"            ON "Miss"      ("UserId","Repo","MissId");
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunId" ON "MissFix"   ("UserId","Repo","MissId",COALESCE("FixRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissFixUserRepoMissIdFixRunIdAttempt" ON "MissFix" ("UserId","Repo","MissId",COALESCE("FixRunId",''),COALESCE("FixAttempt",-1)) WHERE "SourceLineHash" IS NULL; -- REQ-FN-144
 CREATE UNIQUE INDEX IF NOT EXISTS "UcMissAmendUserRepoMissIdFieldTs" ON "MissAmend" ("UserId","Repo","MissId","Field","Ts");
 -- read paths
 CREATE INDEX IF NOT EXISTS "IxMissUserRepo"      ON "Miss"      ("UserId","Repo");
@@ -827,8 +827,8 @@ CREATE TABLE IF NOT EXISTS "MissReview" (
   "ModelCorrect"        text    NULL,
   "Overflow"            jsonb   NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunId"
-  ON "MissReview" ("UserId","Repo","ReviewPhase",COALESCE("ProducedRunId",''));
+CREATE UNIQUE INDEX IF NOT EXISTS "UcMissReviewUserRepoPhaseRunIdCorrection"  -- REQ-FN-144
+  ON "MissReview" ("UserId","Repo","ReviewPhase",COALESCE("ProducedRunId",''),COALESCE("CorrectionRunId",''));
 CREATE INDEX IF NOT EXISTS "IxMissReviewUserRepo" ON "MissReview" ("UserId","Repo");
 CREATE INDEX IF NOT EXISTS "IxMissReviewPhase"    ON "MissReview" ("UserId","ReviewPhase");
 ```

@@ -119,13 +119,13 @@ Plan context (from `docs/ravi-90day-positioning-plan-v2.4.2.md`): TfLens is the 
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-09-15.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-Checklist.md`.
+**Snapshot as of 2026-10-12.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 13 | 12 | 1 | Partial |
-| Functional requirements | 46 | 46 | 0 | Done |
-| Non-functional | 18 | 15 | 3 | Partial |
+| UI / Pages | 13 | 13 | 0 | Done |
+| Functional requirements | 44 | 44 | 0 | Done |
+| Non-functional | 18 | 17 | 1 | Partial |
 
 ## 5. Stakeholders / users
 

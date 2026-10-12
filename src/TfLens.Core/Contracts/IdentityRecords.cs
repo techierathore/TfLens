@@ -251,7 +251,9 @@ public sealed record SyncState
     public int EventsCount { get; init; }
 
     /// <summary>
-    /// Rows stored for the <c>misses</c> stream, summed across its three tables (REQ-FN-071).
+    /// Rows stored for the <c>misses</c> stream, summed across its tables (REQ-FN-071) — since
+    /// REQ-FN-143 that includes <c>"MissReview"</c> and <c>"MissVoid"</c>, because it counts records on
+    /// the stream, never misses.
     /// </summary>
     /// <remarks>
     /// One count for one stream: <c>misses.jsonl</c> is a single file whose records land in

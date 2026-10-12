@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Usage Guide</h1>
-    <div class="subtitle">Rendered 2026-09-14 &middot; source <code>TfLens-UsageGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-UsageGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -150,7 +150,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>App</td><td>TfLens</td></tr>
 <tr><td>Kind</td><td>app</td></tr>
 <tr><td>Size</td><td>Large</td></tr>
-<tr><td>Date</td><td>2026-09-14</td></tr>
+<tr><td>Date</td><td>2026-10-12</td></tr>
 </tbody>
 </table>
 <h2 id="test-users">Test users<a class="anchor-link" href="#test-users">#</a></h2>
@@ -177,16 +177,17 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <ul>
 <li><strong>Last run:</strong> 2026-08-28, <code>2 of 2 documented accounts usable</code>, exit 0. Sign-in re-checked 2026-09-14 at handoff: both accounts sign in through <code>/login</code> (headers "TfLens Demo" and "TfLens Test2").
 </li>
-<li><strong>Seeding:</strong> none. User 1's five demo repos were connected by hand through Repos.
+<li><strong>Seeding:</strong> none. User 1's sources were connected by hand: Chatur, TechieRag, TrBlazeUI and TechieFlow are <strong>imported</strong> from their <code>docs/metrics</code> folders (2026-10-12), TechieBlog and TfLens are <strong>fetched</strong> from GitHub. Only public repositories may be sources (owner rule 2026-10-12); Lekhak and Sevak are private and are never imported.
 </li>
-<li><strong>Secrets:</strong> user secrets only (REQ-NFR-011), never <code>.env</code> or <code>appsettings.json</code>. Template: <code>src/TfLens/secrets.example.json</code> (all nine settings). <code>TfLens:AppManagerApiKey</code> and <code>TfLens:AppManagerApiSecret</code> are required as a pair; password reset fails without them. <code>TfLens:GitHubToken</code> is effectively required (unauthenticated GitHub allows 60 requests/hour). <code>TfLens:DbConnection</code> falls back to the local Development connection. Fixture mode: <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code>.
+<li><strong>Secrets:</strong> user secrets only (REQ-NFR-011), never <code>.env</code> or <code>appsettings.json</code>. Template: <code>src/TfLens/secrets.example.json</code> (all nine settings). <code>TfLens:AppManagerApiKey</code> and <code>TfLens:AppManagerApiSecret</code> are required as a pair; password reset fails without them. <code>TfLens:GitHubToken</code> is effectively required (unauthenticated GitHub allows 60 requests/hour). <code>TfLens:DbConnection</code> has no default: on this machine it points at the <code>WinPostgre</code> container (port 5550), and the app refuses to start without it. Fixture mode: <code>TfLensFixtureRoot=tests/TfLens.Core.Tests/Fixtures</code>.
 </li>
 </ul>
 <h2 id="execution-guide">Execution guide<a class="anchor-link" href="#execution-guide">#</a></h2>
 <p>Prerequisites: .NET 10 SDK (10.0.302 or later), PostgreSQL 16 (local or the <code>postgres</code> service in <code>docker-compose.yml</code>), Python 3, Node 20 + Playwright, Docker.</p>
 <pre><code>git clone https://github.com/techierathore/TfLens.git &amp;&amp; cd TfLens
+export PATH=$HOME/.dotnet:$PATH DOTNET_ROOT=$HOME/.dotnet   # WSL: the SDK lives in ~/.dotnet and is not on PATH
 printf 'TfLensDbPassword=tflensdev\n' &gt; .env
-docker compose up -d postgres
+docker compose up -d postgres   # only when TfLens:DbConnection points at it (port 5433); this machine uses WinPostgre on 5550
 dotnet user-secrets set "TfLens:AppManagerApiKey" "&lt;key&gt;" --project src/TfLens
 dotnet user-secrets set "TfLens:AppManagerApiSecret" "&lt;secret&gt;" --project src/TfLens
 dotnet user-secrets set "TfLens:GitHubToken" "&lt;PAT&gt;" --project src/TfLens
@@ -227,7 +228,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </li>
 <li>[ ] Flip the Framework switch to Playbook on a report page and back
 </li>
-<li>[ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE by design (see Known limitations)
+<li>[ ] Export a snapshot and open both files from the new row — the banner reads QUOTABLE (parity run of 2026-10-12, parser 1.3.0) and the Dataset SHAs table shows <code>sha256 &lt;8 chars&gt;</code> for each imported source
 </li>
 <li>[ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
 </li>
@@ -281,7 +282,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-91, BRD-95
 </li>
 </ul>
-<h3 id="forgot-reset-password-forgot-password-reset-password">Forgot / reset password (<code>/forgot-password</code>, <code>/reset-password</code>)<a class="anchor-link" href="#forgot-reset-password-forgot-password-reset-password">#</a></h3>
+<h3 id="forgot-reset-password-forgot-password-reset-password"><a id="forgot--reset-password-forgot-password-reset-password"></a>Forgot / reset password (<code>/forgot-password</code>, <code>/reset-password</code>)<a class="anchor-link" href="#forgot-reset-password-forgot-password-reset-password">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 3 (anonymous)
 </li>
@@ -303,7 +304,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-107, BRD-106
 </li>
 </ul>
-<h3 id="shell-sidebar-header">Shell (sidebar + header)<a class="anchor-link" href="#shell-sidebar-header">#</a></h3>
+<h3 id="shell-sidebar-header"><a id="shell-sidebar--header"></a>Shell (sidebar + header)<a class="anchor-link" href="#shell-sidebar-header">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -325,7 +326,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-98, BRD-99, BRD-100, BRD-101, BRD-102, BRD-104
 </li>
 </ul>
-<h3 id="add-source-import-metric-files-repos">Add source → Import metric files (<code>/repos</code>)<a class="anchor-link" href="#add-source-import-metric-files-repos">#</a></h3>
+<h3 id="add-source-import-metric-files-repos"><a id="add-source--import-metric-files-repos"></a>Add source → Import metric files (<code>/repos</code>)<a class="anchor-link" href="#add-source-import-metric-files-repos">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -347,7 +348,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> REQ-UI-072
 </li>
 </ul>
-<h3 id="coverage-health">Coverage / health (<code>/</code>)<a class="anchor-link" href="#coverage-health">#</a></h3>
+<h3 id="coverage-health"><a id="coverage--health-"></a>Coverage / health (<code>/</code>)<a class="anchor-link" href="#coverage-health">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -380,7 +381,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-51, BRD-52, BRD-53, BRD-54, BRD-55
 </li>
 </ul>
-<h3 id="routing-economics-routing">Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#routing-economics-routing">#</a></h3>
+<h3 id="routing-economics-routing"><a id="routing--economics-routing"></a>Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#routing-economics-routing">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -391,7 +392,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-56, BRD-57, BRD-58, BRD-59, BRD-60, BRD-61, BRD-62
 </li>
 </ul>
-<h3 id="misses-rework-misses">Misses &amp; rework (<code>/misses</code>)<a class="anchor-link" href="#misses-rework-misses">#</a></h3>
+<h3 id="misses-rework-misses"><a id="misses--rework-misses"></a>Misses &amp; rework (<code>/misses</code>)<a class="anchor-link" href="#misses-rework-misses">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -419,23 +420,23 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </li>
 <li><strong>Steps:</strong> 1) Read the banner 2) Press <strong>Export snapshot</strong> 3) Open both files from the new row 4) Copy a SHA from the dataset table
 </li>
-<li><strong>Expected:</strong> banner reads <strong>NOT QUOTABLE today</strong> until a parity run is recorded for parser <strong>1.2.0</strong> (see Known limitations), QUOTABLE after; export writes <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON has top-level keys <code>per_repo</code>, <code>tainted_reqs</code>, <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code>, <code>parity</code>, each <code>per_repo</code> entry carrying <code>source_kind</code>; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
+<li><strong>Expected:</strong> banner reads <strong>QUOTABLE</strong> (parity P-004, parser <strong>1.3.0</strong>) until the parser or <code>tf-metrics.sh</code> changes; the parity card shows <code>0 differences</code>; Dataset SHAs show a commit SHA when fetched, <code>sha256 &lt;8 chars&gt;</code> when imported; export writes <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON carries <code>per_repo</code> (each with <code>source_kind</code>), <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code> and <code>parity</code>; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
 </li>
 <li><strong>Covers:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 </li>
 </ul>
-<h3 id="parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)<a class="anchor-link" href="#parity-procedure-terminal-no-screen">#</a></h3>
+<h3 id="parity-procedure-terminal-no-screen"><a id="parity-procedure-terminal--no-screen"></a>Parity procedure (terminal — no screen)<a class="anchor-link" href="#parity-procedure-terminal-no-screen">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> n/a (operator at a shell)
 </li>
-<li><strong>Steps:</strong> 1) <code>dotnet TfLens.dll export --user 2 --framework techieflow</code> 2) Clone the connected repos at the SHAs shown on <code>/export</code> 3) <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repos…&gt; --json &gt; reference.json</code> 4) <code>python3 tools/parity-compare.py reference.json data/reports/&lt;userId&gt;/&lt;date&gt;/techieflow/tflens.json --allow-environment-keys --record src/TfLens/data/parity-last.json --parser-version 1.2.0 --script .tfcore/telemetry/tf-metrics.sh --dataset-sha &lt;owner/name&gt;=&lt;sha&gt; …</code>
+<li><strong>Steps:</strong> 1) <code>dotnet TfLens.dll export --user 2 --framework techieflow</code> 2) Clone the connected repos at the SHAs shown on <code>/export</code> 3) <code>bash .tfcore/telemetry/tf-metrics.sh --rollup &lt;repos…&gt; --json &gt; reference.json</code> 4) <code>python3 tools/parity-compare.py reference.json data/reports/&lt;userId&gt;/&lt;date&gt;/techieflow/tflens.json --allow-environment-keys --record src/TfLens/data/parity-last.json --parser-version 1.3.0 --script .tfcore/telemetry/tf-metrics.sh --dataset-sha &lt;owner/name&gt;=&lt;sha&gt; …</code>
 </li>
-<li><strong>Expected:</strong> exit 0 and <code>0 finding(s)</code>, allowed differences itemised <code>ENV-OK</code> / <code>ADDED-OK</code>, <code>misses</code> reported <code>COVERED</code> over all 29 BRD-129 figures; a deliberate change (delete one backfilled record) exits non-zero naming the key; a passing run writes <code>data/parity-last.json</code> (<code>passed: true</code>, <code>parser_version: "1.2.0"</code>) and <code>/export</code> reads QUOTABLE.
+<li><strong>Expected:</strong> exit 0 and <code>0 finding(s)</code>, allowed differences itemised <code>ENV-OK</code> / <code>ADDED-OK</code>, <code>misses</code> reported <code>COVERED</code> over all 29 BRD-129 figures; a deliberate change (delete one backfilled record) exits non-zero naming the key; a passing run writes <code>data/parity-last.json</code> (<code>passed: true</code>, <code>parser_version: "1.3.0"</code>, every dataset identity) and <code>/export</code> reads QUOTABLE.
 </li>
 <li><strong>Covers:</strong> BRD-64, BRD-68, BRD-69, BRD-71, BRD-72
 </li>
 </ul>
-<h3 id="playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)<a class="anchor-link" href="#playbook-framework-state-framework-switch-playbook-every-report-page">#</a></h3>
+<h3 id="playbook-framework-state-framework-switch-playbook-every-report-page"><a id="playbook-framework-state-framework-switch--playbook-every-report-page"></a>Playbook framework state (Framework switch → Playbook, every report page)<a class="anchor-link" href="#playbook-framework-state-framework-switch-playbook-every-report-page">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
@@ -473,28 +474,20 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <pre><code class="language-bash">TFLENS_BASE_URL=http://localhost:5099 npx playwright test</code></pre>
 <p>Covers: core, guardrail and integration tests (<code>-m:1</code>: not parallel-safe), plus browser specs under <code>tests/verify/</code> run serially against a running app (narrow with <code>TF_VERIFY_GREP='REQ-UI-0(3[5-8])\b'</code>).</p>
 <h2 id="known-limitations">Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
-<p><strong>Phase 3:</strong> 115 of 117 rows in <code>docs/TfLens-P3-Checklist.md</code> are <code>Verified</code> or <code>N/A</code>. <strong>Earlier phases:</strong> 9 rows are not yet <code>Verified</code>. None is <code>Blocked</code>.</p>
+<p><strong>Phase 3:</strong> 121 of 121 rows in <code>docs/TfLens-P3-Checklist.md</code> are <code>Verified</code>. <strong>Phase 2:</strong> 39 of 44. <strong>Phase 1:</strong> 76 of 77. None is <code>Blocked</code> (verify of 2026-10-12, <code>docs/TfLens-UAT-Readiness-2026-10-12.md</code>).</p>
 <h3 id="this-release">This release<a class="anchor-link" href="#this-release">#</a></h3>
 <ul>
-<li><code>REQ-UI-050</code> (Needs re-verify, Phase 3) — on the Playbook view of <code>/effort</code> the harness filter changes no row (<code>PlaybookEffortSurface.razor:1358</code>).
+<li><code>REQ-UI-023</code> (Needs re-verify, Phase 2) — Harness page; every test passes, but mockup parity counts the token chart's <code>&lt;svg&gt;</code> as an icon (<code>TF-054</code>).
 </li>
-<li><code>REQ-UI-072</code> (Needs re-verify, Phase 3) — a single missing OpenRouter price is stored as zero (<code>PriceProviders.cs:294</code>, <code>:311-314</code>).
+<li><code>REQ-UI-027</code>, <code>REQ-UI-029</code> (Needs re-verify, Phase 2) — <code>/routing</code>; every test passes, but the drift table pages its rows and the mockup draws no pager (owner decision).
 </li>
-<li><code>REQ-UI-006</code> (Implemented, Phase 1) — collapsible icon sidebar and nav order; built, not re-verified.
-</li>
-<li><code>REQ-NFR-020</code> (Implemented, Phase 1) — grading a built screen against its mockup; built, not re-verified.
+<li><code>REQ-UI-032</code>, <code>REQ-UI-033</code> (Needs re-verify, Phase 2) — <code>/export</code>; every test passes and the banner reads QUOTABLE, but parity reads the green <code>0 differences</code> badge as neutral in dark mode and the scrolling compare output as clipped (<code>TF-053</code>).
 </li>
 <li><code>REQ-NFR-024</code> (In Progress, Phase 1) — no machine-specific state in version control; the remaining clause is upstream (<code>TF-014</code>).
 </li>
-<li><code>REQ-NFR-025</code> (Implemented, Phase 1) — production deployment pipeline; its image build was repaired 2026-09-14 (<code>docs/TfLens-TrBlazeUI-2.0.6-Upgrade.md</code>).
+<li>An imported source created by an import is badged <code>private</code> on Repos even when its GitHub repository is public (Chatur); owner decision.
 </li>
-<li><code>REQ-UI-023</code> (Needs re-verify, Phase 2) — Harness page, three harness columns.
-</li>
-<li><code>REQ-UI-029</code> (Implemented, Phase 2) — counterfactual repricing cards.
-</li>
-<li><code>REQ-UI-033</code>, <code>REQ-FN-063</code> (Needs re-verify, Phase 2) — <code>/export</code> reads NOT QUOTABLE until a parity run postdates the last parser change.
-</li>
-<li><code>REQ-NFR-019</code> (Implemented, Phase 2) — stored provenance audit.
+<li>Records of TechieFlow and TrBlazeUI mention the private repository Lekhak by name in 49 free-text fields; they are those repositories' own records and are shown as written.
 </li>
 <li>The demo account has 0 Playbook repositories, so the Playbook axis is verified in its empty state only (<code>REQ-UI-050</code>, <code>REQ-UI-051</code>); import a <code>verification/telemetry/</code> bundle to drive it with data.
 </li>
@@ -506,24 +499,22 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </li>
 <li>Harness, routing and repricing figures have no reference implementation; spot-checked by hand once (BRD-72).
 </li>
-<li>A stray <code>isolation-probe/belongs-to-user-two</code> row showed in <code>/export</code>'s dataset table on 2026-09-02 (owner action: delete that <code>SyncState</code> row); not re-checked at this handoff.
-</li>
 </ul>
-<h3 id="upstream-techieflow-docs-tflens-techieflow-feedback-md">Upstream — TechieFlow (<code>docs/TfLens-TechieFlow-Feedback.md</code>)<a class="anchor-link" href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">#</a></h3>
+<h3 id="upstream-techieflow-docs-tflens-techieflow-feedback-md"><a id="upstream--techieflow-docstflens-techieflow-feedbackmd"></a>Upstream — TechieFlow (<code>docs/TfLens-TechieFlow-Feedback.md</code>)<a class="anchor-link" href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">#</a></h3>
 <ul>
-<li><code>TF-049</code> (open, minor) — <code>handoff-phase.md</code> names <code>tf-build.sh --print</code>, which does not exist.
+<li><code>TF-053</code> (open, minor) — <code>tf-mockup-parity</code> reads a box that scrolls its own content as cut off.
 </li>
-<li><code>TF-050</code> (open, minor) — <code>tf-devguide-list.py</code> lists test screenshot paths as page routes.
+<li><code>TF-054</code> (open, minor) — <code>tf-mockup-parity</code> counts a chart's <code>&lt;svg&gt;</code> as an icon.
 </li>
-<li>14 entries fixed upstream and waiting to be re-checked here; 34 closed. Nothing blocks.
+<li>16 entries fixed upstream and waiting to be re-checked here; 36 closed. Nothing blocks.
 </li>
 </ul>
-<h3 id="upstream-appmanager-docs-tflens-appmanager-feedback-md">Upstream — AppManager (<code>docs/TfLens-AppManager-Feedback.md</code>)<a class="anchor-link" href="#upstream-appmanager-docs-tflens-appmanager-feedback-md">#</a></h3>
+<h3 id="upstream-appmanager-docs-tflens-appmanager-feedback-md"><a id="upstream--appmanager-docstflens-appmanager-feedbackmd"></a>Upstream — AppManager (<code>docs/TfLens-AppManager-Feedback.md</code>)<a class="anchor-link" href="#upstream-appmanager-docs-tflens-appmanager-feedback-md">#</a></h3>
 <ul>
 <li><code>AM-001</code>, <code>AM-002</code> — both resolved 2026-08-28; nothing open.
 </li>
 </ul>
-<h3 id="upstream-trblazeui-docs-tflens-trblazeui-feedback-md">Upstream — TrBlazeUI (<code>docs/TfLens-TrBlazeUI-Feedback.md</code>)<a class="anchor-link" href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">#</a></h3>
+<h3 id="upstream-trblazeui-docs-tflens-trblazeui-feedback-md"><a id="upstream--trblazeui-docstflens-trblazeui-feedbackmd"></a>Upstream — TrBlazeUI (<code>docs/TfLens-TrBlazeUI-Feedback.md</code>)<a class="anchor-link" href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">#</a></h3>
 <ul>
 <li>TfLens builds on TrBlazeUI 2.0.6: 35 entries fixed upstream and closed, <code>TR-022</code> merged into <code>TR-008</code>.
 </li>
