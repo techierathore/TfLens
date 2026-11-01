@@ -1105,6 +1105,7 @@
     private bool objIsLoaded;
     private string? objLoadError;
     private int? objLoadedUserId;
+    private string? objLoadedRepo;
     private string? objSelectedExecutionId;
     private bool objIsDetailOpen = true;
     private readonly Dictionary<string, string> objFilters = new(StringComparer.Ordinal);
@@ -1113,6 +1114,20 @@
     [Parameter]
     [EditorRequired]
     public int? UserId { get; set; }
+
+    /// <summary>
+    /// The page's repo-picker choice, or <c>null</c> for all repositories (REQ-UI-077). The surface's own
+    /// repository filter follows it, so the page never shows two repository controls that disagree.
+    /// </summary>
+    [Parameter]
+    public string? Repo { get; set; }
+
+    /// <summary>
+    /// Raised when the reader changes the surface's own repository filter (or resets the filters), so the
+    /// page can carry the choice into the shared repo picker (REQ-UI-077).
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> RepoChanged { get; set; }
 
     /// <summary>The report the surface renders, exposed so the page can tell whether a read failed.</summary>
     public PlaybookPhaseReport? Report => objReport;
@@ -1577,7 +1592,7 @@
     }
 
     /// <summary>
-    /// Reads the phase report for the signed-in user, once per user.
+    /// Reads the phase report for the signed-in user, once per user and page repository.
     /// </summary>
     /// <returns>A task that completes when the surface knows what state it is in.</returns>
     protected override async Task OnParametersSetAsync()
@@ -1588,12 +1603,14 @@
             return;
         }
 
-        if (objIsLoaded && objLoadedUserId == UserId)
+        if (objIsLoaded && objLoadedUserId == UserId && objLoadedRepo == Repo)
         {
             return;
         }
 
         objLoadedUserId = UserId;
+        objLoadedRepo = Repo;
+        objFilters[RepoFilterKey] = Repo ?? AllKey;
         await ReloadAsync();
     }
 
@@ -1650,6 +1667,22 @@
         if (string.Equals(aKey, RepoFilterKey, StringComparison.Ordinal))
         {
             await ReloadAsync();
+            await PublishRepoAsync();
+        }
+    }
+
+    /// <summary>
+    /// Tells the page which repository the surface's own filter now holds (REQ-UI-077).
+    /// </summary>
+    /// <returns>A task that completes once the page has been told.</returns>
+    private async Task PublishRepoAsync()
+    {
+        var vRepo = ValueOf(RepoFilterKey);
+        objLoadedRepo = string.Equals(vRepo, AllKey, StringComparison.Ordinal) ? null : vRepo;
+
+        if (objLoadedRepo != Repo)
+        {
+            await RepoChanged.InvokeAsync(objLoadedRepo);
         }
     }
 
@@ -1662,6 +1695,7 @@
         objFilters.Clear();
         objSelectedExecutionId = null;
         await ReloadAsync();
+        await PublishRepoAsync();
     }
 
     /// <summary>Opens one execution's detail panel.</summary>

@@ -215,9 +215,11 @@ public sealed class MissInvariantTests
     /// </summary>
     /// <remarks>
     /// The same argument REQ-NFR-009 makes for the provenance rules. The engine's only public entry point
-    /// takes a user, a framework and a cancellation token; the miss calculators take records; and no
-    /// public member on either takes a <c>bool</c>, so there is no parameter a caller could set to merge
-    /// two columns or admit an inferred attribution.
+    /// takes a user, a framework, an optional repository and a cancellation token; the miss calculators
+    /// take records; and no public member on either takes a <c>bool</c>, so there is no parameter a caller
+    /// could set to merge two columns or admit an inferred attribution. The repository (REQ-UI-077) is a
+    /// <c>string?</c> that can only narrow the records read — it is pinned to that type here so it can
+    /// never become a switch.
     /// </remarks>
     [Fact(DisplayName = "REQ-NFR-013 — the miss engine's entry point and miss calculators take no true/false switch that could relax an invariant")]
     public void NoMissFigureTakesASwitchThatWouldRelaxAnyClause()
@@ -225,7 +227,9 @@ public sealed class MissInvariantTests
         var vEntry = typeof(MetricsEngine).GetMethod(nameof(MetricsEngine.AnalyseAsync))!;
 
         vEntry.GetParameters().Select(aParameter => aParameter.Name)
-            .Should().Equal("aUserId", "aFramework", "aCancellationToken");
+            .Should().Equal("aUserId", "aFramework", "aRepo", "aCancellationToken");
+        vEntry.GetParameters().Single(aParameter => aParameter.Name == "aRepo").ParameterType
+            .Should().Be(typeof(string), "the repository narrows the read and is never a toggle");
 
         foreach (var vType in new[] { typeof(MissFigures), typeof(MissAttributionTaint) })
         {

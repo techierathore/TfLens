@@ -3,17 +3,16 @@
 | | |
 |---|---|
 | App | TfLens |
-| Count | 153 logged: 81 open, 72 fixed, 0 will not fix |
+| Count | 155 logged: 80 open, 75 fixed, 0 will not fix |
 | Source | `docs/metrics/misses.jsonl`, one row per miss record. Rewritten by `tf-misses-md.sh` on every new record. Never edit it: a wrong row is corrected by a new record. |
 | Updated | 2026-11-01 |
 
 **Whose gap** answers the four questions of the miss protocol: **the app's spec** did not say it, so the checklist line is fixed; **the framework never said it**, so one requirement line and a check are added; **the check was too weak** (a review, or a script that did not fire), so the check is fixed; **said and ignored**, so the rule becomes a hook or is deleted. **not sorted** means the record predates the sort or nobody has answered yet; `bash .tfcore/utils/tf-emit.sh --amend <miss> sort <spec|unsaid|weak-check|ignored>` completes it.
 
-## Open (81)
+## Open (80)
 
 | Miss | Found | Whose gap | What went wrong |
 |---|---|---|---|
-| MISS-TfLens-20261101-02 (REQ-UI-072) | 2026-11-01 by gate | not sorted | no sentence recorded (regression, src) |
 | MISS-TfLens-20261101-01 (REQ-UI-075) | 2026-11-01 by agent-review | not sorted | BRD-209 asks for a sky-blue wordmark in the light theme, but none of the six approved brand files is a sky-blue wordmark on its own, so the builder showed only the wordmark part of TfLens-horizontal.svg |
 | MISS-TfLens-20261012-11 (REQ-UI-027) | 2026-10-12 by owner | the check was too weak | The /routing tables draw sort arrows on every column header that the approved routing mockup does not draw; mockup parity reports 'app carries an icon the mockup does not' on drift-table at 1280 and 390 |
 | MISS-TfLens-20261012-10 (REQ-UI-032) | 2026-10-12 by owner | the check was too weak | On /export the Dataset SHAs table shows '—' as the SHA of every imported source (Chatur, TechieFlow, TechieRag, TrBlazeUI) and a stale branch 'main' for sources converted from a fetch, although each import's sha256 is its dataset identity and the parity record pins it |
@@ -95,11 +94,14 @@
 | MISS-TfLens-20260828-25 (REQ-UI-014) | 2026-08-28 by gate | not sorted | no sentence recorded (standards-violation, tests, why: insufficient-verify-method) |
 | MISS-TfLens-20260828-21 | 2026-08-28 by owner | not sorted | no sentence recorded (standards-violation, config, why: missing-checklist-item) |
 
-## Fixed (72)
+## Fixed (75)
 
 | Miss | Found | Closed | Whose gap | What went wrong |
 |---|---|---|---|---|
+| MISS-TfLens-20261101-05 (REQ-UI-077) | 2026-11-01 by owner | 2026-11-01 by fix-issues | the app's spec | Report pages — a repo picker (All repos, or one repo) on Gate outcomes, Harness, Routing & economics, Misses & rework and Phase effort, re-querying every figure for the chosen repo |
+| MISS-TfLens-20261101-04 (REQ-UI-076) | 2026-11-01 by owner | 2026-11-01 by fix-issues | the app's spec | Repos grid — a Framework column (TechieFlow / Playbook) and a Kind column showing the codebase type (Application / Library / Framework, from the repo's declared project_type) |
 | MISS-TfLens-20261101-03 (REQ-UI-046) | 2026-11-01 by agent-review | 2026-11-01 by build-phase | not sorted | A command name longer than 20 characters (facilitate-brainstorming-session) kept on one line pushed the Phase effort table's Fan-out column behind a sideways scroll at 1280 |
+| MISS-TfLens-20261101-02 (REQ-UI-072) | 2026-11-01 by gate | 2026-11-01 by fix-issues | not sorted | no sentence recorded (regression, src) |
 | MISS-TfLens-20261012-12 (REQ-UI-001) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the check was too weak | On the first sign-in after the app starts, an email and password typed before the page turns interactive are blanked by the first interactive render, so Sign in posts empty fields and the browser says 'Please fill out this field' (4 times on 2026-10-12) |
 | MISS-TfLens-20261012-09 (REQ-FN-146) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | An import records the session duplicates it collapsed |
 | MISS-TfLens-20261012-08 (REQ-FN-145) | 2026-10-12 by owner | 2026-10-12 by fix-issues | the app's spec | Malformed gate records are listed, never scored |

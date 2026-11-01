@@ -47,8 +47,11 @@
         <div>
             <TypographyH2>Phase effort</TypographyH2>
             <TypographyMuted>@Subtitle</TypographyMuted>
+            <RepoScopeLine />
         </div>
         <div class="flex flex-wrap items-center gap-2">
+            @* REQ-UI-077 — All repos, or one repo; every band below is re-queried for the choice. *@
+            <RepoPicker />
             <Badge Variant="BadgeVariant.Outline" data-testid="effort-period-label">@PeriodLabel</Badge>
             <div class="tflens-period">
                 <Select TValue="string"
@@ -97,7 +100,9 @@
            the BRD-163 unsupported banner behind an empty state that names the wrong cause. The
            standing axis note is rendered directly instead, and the surface reads its own report. *@
         <PlaybookAxisNote />
-        <PlaybookEffortSurface UserId="@objUserId" />
+        <PlaybookEffortSurface UserId="@objUserId"
+                               Repo="@objPreferences.Repo"
+                               RepoChanged="@(aRepo => objPreferences.SetRepoAsync(aRepo))" />
     }
     else if (!objIsLoaded)
     {
@@ -1365,7 +1370,8 @@
         {
             // REQ-FN-140 — a `run-void` and the run it names leave every figure, so this page counts the
             // same live runs the export publishes as `runs_live` (SCHEMA.md §2.7).
-            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objPreferences.Framework)).Kept;
+            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(
+                objUserId.Value, objPreferences.Framework, objPreferences.Repo)).Kept;
             objLoadError = null;
         }
         catch (Exception vEx)

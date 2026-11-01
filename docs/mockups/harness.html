@@ -9,7 +9,8 @@
      Claude Code and Codex must SAY they are not measured rather than show a zero, and OpenCode must
      point at the card rather than repeat the figure). A requirement outranks a design artefact, so the
      design moved. Flagged to the owner in PROJECT-STATUS: reverse this and amend BRD-53 if the ten-row
-     column was the deliberate call. -->
+     column was the deliberate call.
+     AMENDED 2026-11-01 (REQ-UI-077): a repo picker (`repo-picker`, All repos or one repo) joins the title row. -->
 <script>(function(){var t=localStorage.getItem('tflens-theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark');})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -282,7 +283,7 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div><h1>Harness comparison</h1><p class="sub">claude-code · opencode · codex, side by side — same rows, no total</p></div>
+  <div class="row between wrap" style="gap:16px"><div><h1>Harness comparison</h1><p class="sub">claude-code · opencode · codex, side by side — same rows, no total</p></div><div class="row wrap" style="gap:8px"><button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="repo-picker" title="Repository: All repos (default) · or one connected repo on this framework" onclick="alert('Opens the repo list: All repos (default), then each connected repo on this framework. Picking one re-computes every figure on this page from that repo\'s records only, and the choice carries to the other report pages.')"><span>All repos</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button></div></div>
   <div class="alert info" data-testid="harness-note"><svg><use href="#i-info"/></svg><div><b>Compare tokens, not dollars</b><p>Tokens may be compared across harness; dollars may not. Claude Code and Codex cost is null by design.</p></div></div>
   <div class="grid g3" style="align-items:start" data-testid="harness-columns">
    <div class="card" data-testid="harness-col-claude-code">

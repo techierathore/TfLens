@@ -596,6 +596,7 @@ public interface ITelemetryStore
     /// <param name="aStream">Which stream to count.</param>
     /// <param name="aDays">How many days back the window runs, ending today.</param>
     /// <param name="aFailuresOnly">When true, counts only records whose verdict is a failure — the quantity the Failures-scored tile states. Applies to <see cref="StreamKind.Gates"/> only.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's (REQ-UI-077).</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The daily counts, oldest first, with a label naming exactly what was counted.</returns>
     Task<DailySeries> ReadDailySeriesAsync(
@@ -604,6 +605,7 @@ public interface ITelemetryStore
         StreamKind aStream,
         int aDays = 14,
         bool aFailuresOnly = false,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default) =>
         Task.FromResult(DailySeries.Empty);
 
@@ -710,11 +712,17 @@ public interface IMetricsEngine
     /// </summary>
     /// <param name="aUserId">The AppManager user id — a required parameter, never a filter (ADR-013).</param>
     /// <param name="aFramework">The provenance axis; figures never pool across frameworks (ADR-016).</param>
+    /// <param name="aRepo">
+    /// One repository (<c>owner/name</c>) to narrow every read to, or <c>null</c> for all of the user's —
+    /// the figures <c>tf-metrics.sh</c> would print run over that repository alone (REQ-UI-077). A filter
+    /// only narrows: no segmentation rule is relaxed inside one repository.
+    /// </param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The analysis, whose shape cannot express a merged rate (ADR-007).</returns>
     Task<AnalysisResult> AnalyseAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default);
 }
 
@@ -726,11 +734,13 @@ public interface IExtraMetrics
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
     /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's (REQ-UI-077).</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>One column per detected harness, plus the not-detected footnote count.</returns>
     Task<HarnessComparison> CompareHarnessesAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default);
 
     /// <summary>
@@ -738,11 +748,13 @@ public interface IExtraMetrics
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
     /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's (REQ-UI-077).</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The routing view; every money figure is labelled an estimate.</returns>
     Task<RoutingAnalysis> AnalyseRoutingAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default);
 }
 

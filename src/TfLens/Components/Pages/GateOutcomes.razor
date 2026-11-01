@@ -23,9 +23,14 @@
        (TypographyH2 / TypographyMuted) — the same pair /routing and /export already use. The <div> is the
        heading group, not a test-id carrier: it is what holds the title and its sub-line 4px apart inside
        the page's 24px .tflens-stack rhythm. *@
-    <div>
-        <TypographyH2>Gate outcomes</TypographyH2>
-        <TypographyMuted>@Subtitle</TypographyMuted>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <TypographyH2>Gate outcomes</TypographyH2>
+            <TypographyMuted>@Subtitle</TypographyMuted>
+            <RepoScopeLine />
+        </div>
+        @* REQ-UI-077 — All repos, or one repo; every figure below is re-queried for the choice. *@
+        <RepoPicker />
     </div>
 
     @if (!IsPlaybook)
@@ -47,7 +52,7 @@
            keyed by `phase_gate` with their phase totals, or the Phase-3 empty state. Every key on this
            branch is a PhaseGateKey, which has no conversion to or from the plain strings the TechieFlow
            gate members use, so the two axes cannot share a table here (SCHEMA.md §11). *@
-        <PlaybookState UserId="@objUserId">
+        <PlaybookState UserId="@objUserId" Repo="@objPreferences.Repo">
             <ChildContent Context="vAnalysis">
                 <PlaybookQuestionsSurface Analysis="@vAnalysis" />
             </ChildContent>
@@ -434,6 +439,7 @@
     private string? objSelectedType;
     private string? objLoadError;
     private string objFramework = string.Empty;
+    private string? objRepo;
     private bool objIsLoaded;
     private bool objIsTaintOpen = true;
     private int? objUserId;
@@ -496,10 +502,11 @@
         }
 
         objFramework = objPreferences.Framework;
+        objRepo = objPreferences.Repo;
 
         try
         {
-            objResult = await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework);
+            objResult = await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework, objRepo);
 
             // Only the Failures-scored tile gets a sparkline. It states a COUNT of failure records, so
             // the line plots failure records per day — the same quantity. First-pass rate and escape
@@ -507,7 +514,7 @@
             // through a run of `insufficient data` would be precisely the plausible-but-unfounded
             // picture the provenance rules exist to prevent.
             objFailureSeries = await objStore.ReadDailySeriesAsync(
-                objUserId.Value, objFramework, StreamKind.Gates, aFailuresOnly: true);
+                objUserId.Value, objFramework, StreamKind.Gates, aFailuresOnly: true, aRepo: objRepo);
             objTypes = objResult.ProjectTypes;
             objTaintedReqs = objResult.TaintedReqs;
             objLoadError = null;
@@ -700,10 +707,13 @@
     private static double SharePercent(int aCount, int aTotal) =>
         aTotal == 0 ? 0d : 100.0 * aCount / aTotal;
 
-    /// <summary>Re-queries the engine when the Framework switch changes the axis, rather than filtering.</summary>
+    /// <summary>
+    /// Re-queries the engine when the Framework switch changes the axis or the repo picker changes the
+    /// repository (REQ-UI-077), rather than filtering what is on screen.
+    /// </summary>
     private void OnPreferencesChanged()
     {
-        if (objPreferences.Framework == objFramework)
+        if (objPreferences.Framework == objFramework && objPreferences.Repo == objRepo)
         {
             return;
         }

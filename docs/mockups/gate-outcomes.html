@@ -275,13 +275,13 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <div class="umenu"><button class="btn ghost sm" data-testid="user-menu"><span class="avatar">TD</span>TfLens Demo<svg class="i"><use href="#i-chevron-down"/></svg></button></div>
  </header>
  <main class="content"><div class="page">
-  <div><h1>Gate outcomes</h1><p class="sub">First-pass rate · escape rate · failures scored — per project_type, never combined</p></div>
+  <div class="row between wrap" style="gap:16px"><div><h1>Gate outcomes</h1><p class="sub">First-pass rate · escape rate · failures scored — per project_type, never combined</p></div><div class="row wrap" style="gap:8px"><button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="repo-picker" title="Repository: All repos (default) · or one connected repo on this framework" onclick="alert('Opens the repo list: All repos (default), then each connected repo on this framework. Picking one re-computes every figure on this page from that repo\'s records only, and the choice carries to the other report pages.')"><span>All repos</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button></div></div>
   <div class="alert info" data-testid="schema-note"><svg><use href="#i-info"/></svg><div><b>SCHEMA.md §6</b><p>Figures are never combined across project_type or across live/backfilled (SCHEMA.md §6). There is no total.</p></div></div>
   <div class="tabs" role="tablist">
    <span class="tab active" data-testid="type-tab-app">app <span class="badge secondary">41</span></span>
    <span class="tab" data-testid="type-tab-library">library <span class="badge secondary">128</span></span>
-   <span class="tab" data-testid="type-tab-framework">framework <span class="badge secondary">96</span></span>
-   <span class="tab" data-testid="type-tab-unclassified">unclassified (project_type inferred) <span class="badge secondary">7</span></span>
+   <span class="tab" data-testid="type-tab-framework" data-tf-sample>framework <span class="badge secondary">96</span></span>
+   <span class="tab" data-testid="type-tab-unclassified" data-tf-sample>unclassified (project_type inferred) <span class="badge secondary">7</span></span>
   </div>
   <div class="grid g3" data-testid="kpis-app">
    <div class="card kpi" data-testid="kpi-first-pass-app" title="verified on first *verify ÷ REQs scored (SCHEMA.md §8)"><div class="row"><span class="t">First-pass rate</span><span class="chip c2"><svg><use href="#i-check-circle"/></svg></span></div><div class="v" data-testid="live-first-pass-app">71%</div><div class="n row"><span class="badge secondary">backfilled</span> 58%</div><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="0,20 15,18 30,22 45,14 60,12 75,10 90,9 100,6"/></svg></div>

@@ -253,6 +253,13 @@ and each is reported as absence with its denominator beside it.
 
 **Two choices taken here that the owner may reverse with one line.** (1) Pages that already set "<page> · TfLens" keep that title; only a page with no title of its own reads plain **TfLens**. (2) The sidebar subtitle is retired (BRD-209). Neither changes a figure.
 
+### Per-repo view of the report pages (owner UAT, 2026-11-01)
+
+The owner, in UAT: *"There is no way to identify the data according to repositories in the pages like Gate Outcomes, Routing & Economics, Misses & rework, Phase Effort, so ultimately all this data of the dashboard is kind of useless if I want to identify the costs for a single repository or codebase."* Until now every report page summed the selected framework's repositories, exactly as `tf-metrics.sh --rollup` does. A single repository is what `tf-metrics.sh` without `--rollup` reports, so narrowing to one repo keeps parity with the oracle and pools nothing new: it only removes records.
+
+- <a id="brd-210"></a>**BRD-210** — User can pick **one repository**, or **All repos**, in a repo picker on Gate outcomes, Harness, Routing & economics, Misses & rework and Phase effort, in both framework states; every figure, table, chart and sparkline on the page is then recomputed from that repository's records only, and the page says which repository the figures are for. The list holds the signed-in user's repositories of the selected framework; changing the framework clears the choice. The choice carries across those five pages for the rest of the session. **All repos** is today's view, unchanged. Every existing rule still holds inside one repository: live and backfilled, `project_type`, framework and harness cost never pool, and `n < 3` still reads `insufficient data (n=…)`. Coverage (already per repo), Repos, Snapshot export and Price providers are out of scope. *(F-UI, F-ENGINE — REQ-UI-077)*
+  - *Acceptance:* When a signed-in user picks one repo on Gate outcomes, then every figure comes from that repo only, the choice carries to Routing, and All repos is unchanged.
+
 ## 4. Development status
 
 Written by the status gate after every build, verify and handoff; not by hand.
@@ -264,10 +271,11 @@ Written by the status gate after every build, verify and handoff; not by hand.
 | UI / Pages | 15 | 15 | 0 | Done |
 | Functional requirements | 50 | 45 | 5 | Partial |
 | Non-functional | 12 | 12 | 0 | Done |
-| Other | 13 | 12 | 1 | Partial |
+| Other | 13 | 13 | 0 | Done |
 | Misses & rework | 2 | 2 | 0 | Done |
 | Gate outcomes | 1 | 1 | 0 | Done |
-| Repos | 1 | 1 | 0 | Done |
+| Repos | 2 | 2 | 0 | Done |
+| Report pages | 1 | 1 | 0 | Done |
 
 ## 5. Where the rest lives
 

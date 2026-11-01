@@ -1,0 +1,33 @@
+@*
+    REQ-UI-077 — the line under a report page's title that says which repository its figures are for.
+
+    Rendered only while the repo picker holds one repository. Without it a screenshot of a one-repo view
+    reads as the whole estate; with it the scope travels with the picture. All repos renders nothing, so
+    the all-repos page is exactly what it was.
+*@
+@implements IDisposable
+@inject ShellPreferences objPreferences
+
+@if (objPreferences.Repo is not null)
+{
+    <TypographyMuted data-testid="repo-scope">
+        Figures for <span class="font-mono">@objPreferences.Repo</span> only — not all repos.
+    </TypographyMuted>
+}
+
+@code {
+    /// <summary>Re-renders when the picker changes the repository.</summary>
+    protected override void OnInitialized()
+    {
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>Re-renders on any preference change.</summary>
+    private void OnPreferencesChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+}

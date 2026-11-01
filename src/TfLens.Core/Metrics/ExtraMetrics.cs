@@ -129,20 +129,22 @@ public sealed class ExtraMetrics : IExtraMetrics
     /// </remarks>
     /// <param name="aUserId">The AppManager user id.</param>
     /// <param name="aFramework">The provenance axis; figures never pool across frameworks (ADR-016).</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's (REQ-UI-077).</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>Three columns, the not-detected footnote count, and the OpenCode measured dollars.</returns>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     public async Task<HarnessComparison> CompareHarnessesAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default)
     {
-        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
         // REQ-FN-145 — a gate record with no req_id or no verdict is scored in no figure (SCHEMA.md §3).
         var vGates = GateMalformed.Apply(
-                await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false))
+                await objStore.ReadGatesAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false))
             .Kept;
-        var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken)
+        var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, aRepo, aCancellationToken)
             .ConfigureAwait(false);
 
         var vColumns = ColumnOrderOver(vRuns, vGates, vSessions)
@@ -173,15 +175,17 @@ public sealed class ExtraMetrics : IExtraMetrics
     /// </remarks>
     /// <param name="aUserId">The AppManager user id.</param>
     /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's (REQ-UI-077).</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The routing view; every money figure on it is an estimate and says so.</returns>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     public async Task<RoutingAnalysis> AnalyseRoutingAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default)
     {
-        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await ReadRunsWithVoidsAppliedAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
         var vCard = await RateCard.LoadAsync(objOptions.PricesPath, aCancellationToken).ConfigureAwait(false);
 
         var vRouting = vRuns.Where(HasRoutingFields).ToList();
@@ -221,14 +225,16 @@ public sealed class ExtraMetrics : IExtraMetrics
     /// </remarks>
     /// <param name="aUserId">The AppManager user id.</param>
     /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The runs that are still runs: no void record, and no run a void names.</returns>
     private async Task<IReadOnlyList<RunRecord>> ReadRunsWithVoidsAppliedAsync(
         int aUserId,
         string aFramework,
+        string? aRepo,
         CancellationToken aCancellationToken)
     {
-        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
 
         return RunVoid.Apply(vRuns).Kept;
     }

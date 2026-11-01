@@ -54,11 +54,18 @@ else
     private PlaybookAnalysis? objAnalysis;
     private bool objIsLoaded;
     private int? objLoadedUserId;
+    private string? objLoadedRepo;
 
     /// <summary>The signed-in user whose Playbook figures are shown; nothing loads without one (ADR-013).</summary>
     [Parameter]
     [EditorRequired]
     public int? UserId { get; set; }
+
+    /// <summary>
+    /// One repository to narrow the Playbook figures to, or <c>null</c> for all of the user's (REQ-UI-077).
+    /// </summary>
+    [Parameter]
+    public string? Repo { get; set; }
 
     /// <summary>The page's Playbook content, rendered only when there are real events behind it.</summary>
     [Parameter]
@@ -72,7 +79,7 @@ else
     public string? LoadError { get; private set; }
 
     /// <summary>
-    /// Reads the Playbook report set for the current user, once per user.
+    /// Reads the Playbook report set for the current user, once per user and repository.
     /// </summary>
     /// <returns>A task that completes when the state knows whether there is anything to show.</returns>
     protected override async Task OnParametersSetAsync()
@@ -83,16 +90,17 @@ else
             return;
         }
 
-        if (objIsLoaded && objLoadedUserId == UserId)
+        if (objIsLoaded && objLoadedUserId == UserId && objLoadedRepo == Repo)
         {
             return;
         }
 
         objLoadedUserId = UserId;
+        objLoadedRepo = Repo;
 
         try
         {
-            objAnalysis = await objReportBuilder.BuildAsync(UserId.Value);
+            objAnalysis = await objReportBuilder.BuildAsync(UserId.Value, Repo);
             LoadError = null;
         }
         catch (Exception vEx)

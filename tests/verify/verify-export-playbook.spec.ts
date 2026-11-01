@@ -231,7 +231,7 @@ function carriesNoData(v: Json): boolean {
   return false;
 }
 
-/** /repos: repo short name → { kind (techieflow|playbook), source badge text }. */
+/** /repos: repo short name → { kind = the Framework column (techieflow|playbook), source badge text }. */
 async function reposInventory(page: Page): Promise<Record<string, { full: string; kind: string; source: string }>> {
   await gotoScreen(page, '/repos');
   await testid(page, 'repos-table');
@@ -239,7 +239,9 @@ async function reposInventory(page: Page): Promise<Record<string, { full: string
     const table = document.querySelector('[data-testid="repos-table"]');
     if (!table) return [];
     const heads = Array.from(table.querySelectorAll('thead th')).map(th => (th.textContent || '').trim().toLowerCase());
-    const ki = heads.indexOf('kind');
+    // REQ-UI-076 (2026-11-01): the framework moved out of "Kind" into its own "Framework" column;
+    // "Kind" now holds the codebase type. This inventory wants the framework.
+    const ki = heads.indexOf('framework');
     const si = heads.indexOf('source');
     return Array.from(table.querySelectorAll('tbody tr')).map(tr => {
       const tds = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').replace(/\s+/g, ' ').trim());

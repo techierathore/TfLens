@@ -781,6 +781,7 @@ public sealed class PostgresStore : ITelemetryStore
         StreamKind aStream,
         int aDays = 14,
         bool aFailuresOnly = false,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default)
     {
         var vTable = aStream switch
@@ -824,6 +825,7 @@ public sealed class PostgresStore : ITelemetryStore
                   AND u."Framework" = @aFramework
                   AND s."Ts" LIKE '____-__-__%'
                   AND LEFT(s."Ts", 10)::date > (CURRENT_DATE - MAKE_INTERVAL(days => @aDays))
+                  AND (@aRepo IS NULL OR s."Repo" = @aRepo)
                   {vFailureFilter}
                 GROUP BY 1
             )
@@ -837,7 +839,7 @@ public sealed class PostgresStore : ITelemetryStore
         var vRows = await vConnection.QueryAsync<DailyCount>(
             new CommandDefinition(
                 vSql,
-                new { aUserId, aFramework, aDays },
+                new { aUserId, aFramework, aDays, aRepo },
                 cancellationToken: aCancellationToken)).ConfigureAwait(false);
 
         var vPoints = vRows.ToList();

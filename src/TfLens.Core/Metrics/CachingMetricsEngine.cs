@@ -5,7 +5,7 @@ using TfLens.Core.Contracts;
 namespace TfLens.Core.Metrics;
 
 /// <summary>
-/// Memoises <see cref="MetricsEngine"/> per <c>(userId, framework, sync version)</c>.
+/// Memoises <see cref="MetricsEngine"/> per <c>(userId, framework, repository, sync version)</c>.
 /// </summary>
 /// <remarks>
 /// The decorator holds the caching so <see cref="MetricsEngine"/> stays a pure port of
@@ -42,17 +42,22 @@ public sealed class CachingMetricsEngine : IMetricsEngine
     public async Task<AnalysisResult> AnalyseAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aFramework);
 
         var vSyncVersion = await SyncVersionAsync(aUserId, aCancellationToken).ConfigureAwait(false);
 
+        // The repository is part of the key (REQ-UI-077): a one-repo analysis and the all-repos analysis
+        // are different answers and must never be served for each other. The all-repos key is unchanged.
+        var vKey = aRepo is null ? vSyncVersion : $"repo={aRepo}|{vSyncVersion}";
+
         return await objCache.GetOrCreateAsync(
             aUserId,
             aFramework,
-            vSyncVersion,
-            aToken => objEngine.AnalyseAsync(aUserId, aFramework, aToken),
+            vKey,
+            aToken => objEngine.AnalyseAsync(aUserId, aFramework, aRepo, aToken),
             aCancellationToken).ConfigureAwait(false);
     }
 

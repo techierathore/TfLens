@@ -282,7 +282,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <main class="content"><div class="page" data-testid="effort-page">
   <div class="row between wrap" style="gap:16px">
    <div><h1>Phase effort</h1><p class="sub">How much time and how many tokens went into each command phase — with which model, and how many subagents it actually spun up</p></div>
-   <div class="row" style="gap:8px">
+   <div class="row wrap" style="gap:8px">
+    <button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="repo-picker" title="Repository: All repos (default) · or one connected repo on this framework" onclick="alert('Opens the repo list: All repos (default), then each connected repo on this framework. Picking one re-computes every figure on this page from that repo\'s records only, and the choice carries to the other report pages.')"><span>All repos</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button>
     <span class="badge outline">all history</span>
     <button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="effort-period" title="Period: All history (default) · Last 7 days · Last 30 days · Last 90 days" onclick="alert('Opens the period list: All history (default), Last 7 days, Last 30 days, Last 90 days.')"><span>All history (default)</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button>
    </div>

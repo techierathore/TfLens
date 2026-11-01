@@ -48,8 +48,11 @@
         <div>
             <TypographyH2>Misses &amp; rework</TypographyH2>
             <TypographyMuted>@Subtitle</TypographyMuted>
+            <RepoScopeLine />
         </div>
         <div class="flex flex-wrap items-center gap-2">
+            @* REQ-UI-077 — All repos, or one repo; every band below is re-queried for the choice. *@
+            <RepoPicker />
             <Badge Variant="BadgeVariant.Outline" data-testid="misses-period-label">@PeriodLabel</Badge>
             <div class="tflens-period">
                 <Select TValue="string"
@@ -1185,6 +1188,7 @@
     private int? objUserId;
     private string objFramework = FrameworkNames.TechieFlow;
     private string? objLoadedFramework;
+    private string? objLoadedRepo;
     private string objPeriod = AllHistory;
     private string objSelectedType = string.Empty;
     private string? objRawMissId;
@@ -1674,7 +1678,7 @@
             return;
         }
 
-        if (objIsLoaded && objLoadedFramework == objPreferences.Framework)
+        if (objIsLoaded && objLoadedFramework == objPreferences.Framework && objLoadedRepo == objPreferences.Repo)
         {
             return;
         }
@@ -1698,24 +1702,28 @@
         {
             objFramework = objPreferences.Framework;
 
+            // REQ-UI-077 — the repo picker narrows every read; null is all of the user's repositories.
+            var vRepo = objPreferences.Repo;
+
             // REQ-FN-143 — a withdrawn miss leaves every figure with its fixes and amends. Applied here,
             // before the period filter, so no window can bring one back (SCHEMA.md §5.5.11).
             var vWithdrawn = MissVoid.Apply(
-                await objStore.ReadMissesAsync(objUserId.Value, objFramework),
-                await objStore.ReadMissFixesAsync(objUserId.Value, objFramework),
-                await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework),
-                await objStore.ReadMissVoidsAsync(objUserId.Value, objFramework));
+                await objStore.ReadMissesAsync(objUserId.Value, objFramework, vRepo),
+                await objStore.ReadMissFixesAsync(objUserId.Value, objFramework, vRepo),
+                await objStore.ReadMissAmendsAsync(objUserId.Value, objFramework, vRepo),
+                await objStore.ReadMissVoidsAsync(objUserId.Value, objFramework, vRepo));
             objAllMisses = vWithdrawn.Misses;
             objAllFixes = vWithdrawn.Fixes;
             objAllAmends = vWithdrawn.Amends;
-            objAllReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework);
+            objAllReviews = await objStore.ReadMissReviewsAsync(objUserId.Value, objFramework, vRepo);
             // REQ-FN-140 — voided runs and the void records leave every figure (SCHEMA.md §2.7).
-            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework)).Kept;
+            objAllRuns = RunVoid.Apply(await objStore.ReadRunsAsync(objUserId.Value, objFramework, vRepo)).Kept;
 
             objRateCardPath = objOptions.Value.PricesPath;
             objRateCard = await RateCard.LoadAsync(objRateCardPath);
 
             objLoadedFramework = objFramework;
+            objLoadedRepo = vRepo;
             Recompute();
         }
         catch (Exception vEx)
@@ -2276,11 +2284,14 @@
             ? Figure.Value(vValue, aFigure.SupportingRecords, vValue.ToString("N0", CultureInfo.InvariantCulture))
             : aFigure;
 
-    /// <summary>Re-loads when the header Framework switch changes the axis (ADR-016).</summary>
+    /// <summary>
+    /// Re-loads when the header Framework switch changes the axis (ADR-016) or the repo picker changes
+    /// the repository (REQ-UI-077).
+    /// </summary>
     private void OnPreferencesChanged() =>
         InvokeAsync(async () =>
         {
-            if (objLoadedFramework != objPreferences.Framework)
+            if (objLoadedFramework != objPreferences.Framework || objLoadedRepo != objPreferences.Repo)
             {
                 await LoadAsync();
             }

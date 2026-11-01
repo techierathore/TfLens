@@ -282,7 +282,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <main class="content"><div class="page" data-testid="effort-page">
   <div class="row between wrap" style="gap:16px">
    <div><h1>Phase efficiency</h1><p class="sub">Playbook axis of <span class="mono">/effort</span> — normalized schema-2 phase metrics, imported through <b>Import metric files</b></p></div>
-   <div class="row" style="gap:8px">
+   <div class="row wrap" style="gap:8px">
+    <button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="repo-picker" title="Repository: All repos (default) · or one connected repo on this framework" onclick="alert('Opens the repo list: All repos (default), then each connected repo on this framework. Picking one re-computes every figure on this page from that repo\'s records only, and the choice carries to the other report pages.')"><span>All repos</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button>
     <span class="badge secondary">schema 2 · <span class="mono">opencode</span></span>
     <span class="badge outline">bundle <span class="sha">a91f4c7</span></span>
    </div>

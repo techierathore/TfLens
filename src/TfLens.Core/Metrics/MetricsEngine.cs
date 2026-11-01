@@ -49,22 +49,29 @@ public sealed class MetricsEngine : IMetricsEngine
     public async Task<AnalysisResult> AnalyseAsync(
         int aUserId,
         string aFramework,
+        string? aRepo = null,
         CancellationToken aCancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aFramework);
 
         // ---- stage 1: read the streams (the reference's read_stream loop over repos)
-        var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vRawCommits = await objStore.ReadCommitsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vMisses = await objStore.ReadMissesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vMissFixes = await objStore.ReadMissFixesAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vMissAmends = await objStore.ReadMissAmendsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vMissVoids = await objStore.ReadMissVoidsAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
-        var vRepos = await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false);
-        var vEvents = await objStore.ReadPbEventsAsync(aUserId, null, aCancellationToken).ConfigureAwait(false);
-        var vSyncStates = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
+        var vGates = await objStore.ReadGatesAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vRuns = await objStore.ReadRunsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vSessions = await objStore.ReadSessionsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vRawCommits = await objStore.ReadCommitsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vMisses = await objStore.ReadMissesAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vMissFixes = await objStore.ReadMissFixesAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vMissAmends = await objStore.ReadMissAmendsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vMissVoids = await objStore.ReadMissVoidsAsync(aUserId, aFramework, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vRepos = OnlyRepo(
+            await objStore.ReadUserReposAsync(aUserId, aCancellationToken).ConfigureAwait(false),
+            aRepo,
+            aRow => aRow.Repo);
+        var vEvents = await objStore.ReadPbEventsAsync(aUserId, aRepo, aCancellationToken).ConfigureAwait(false);
+        var vSyncStates = OnlyRepo(
+            await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false),
+            aRepo,
+            aRow => aRow.Repo);
 
         // ---- stage 1a: the two read-time derivations, done before anything is grouped or counted.
         // Neither writes to a stream, a table or a raw archive (§3): each is re-derived on every read
@@ -165,6 +172,25 @@ public sealed class MetricsEngine : IMetricsEngine
             ParserVersion = ParserVersion.Current
         };
     }
+
+    /// <summary>
+    /// Narrows a per-repository list to one repository, or returns it untouched.
+    /// </summary>
+    /// <remarks>
+    /// The stream reads narrow in SQL; <c>"UserRepo"</c> and <c>"SyncState"</c> are read whole, so they are
+    /// narrowed here to keep the per-repo facts and the session-duplicate count on the same repository the
+    /// figures were computed from (REQ-UI-077). <c>null</c> returns the very list it was given, so the
+    /// all-repos analysis is unchanged.
+    /// </remarks>
+    /// <typeparam name="T">The row type.</typeparam>
+    /// <param name="aRows">The user's rows.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all.</param>
+    /// <param name="aRepoOf">Reads a row's <c>owner/name</c>.</param>
+    /// <returns>The rows for that repository, or every row when <paramref name="aRepo"/> is <c>null</c>.</returns>
+    private static IReadOnlyList<T> OnlyRepo<T>(IReadOnlyList<T> aRows, string? aRepo, Func<T, string> aRepoOf) =>
+        aRepo is null
+            ? aRows
+            : aRows.Where(aRow => string.Equals(aRepoOf(aRow), aRepo, StringComparison.Ordinal)).ToList();
 
     /// <summary>
     /// Totals the session collapses ingest recorded, over this framework's repositories only.

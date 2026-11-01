@@ -233,7 +233,7 @@ public sealed class SnapshotExporter : ISnapshotExporter
         DateOnly aDate,
         CancellationToken aCancellationToken)
     {
-        var vAnalysis = await objEngine.AnalyseAsync(aUserId, aFramework, aCancellationToken).ConfigureAwait(false);
+        var vAnalysis = await objEngine.AnalyseAsync(aUserId, aFramework, null, aCancellationToken).ConfigureAwait(false);
 
         // REQ-FN-070: the Playbook-native report set is composed into the playbook snapshot and only
         // into that one. A techieflow snapshot never reads "PbEvent", so the two axes cannot meet in a
@@ -242,9 +242,9 @@ public sealed class SnapshotExporter : ISnapshotExporter
             ? await objPlaybook.BuildAsync(aUserId, null, aCancellationToken).ConfigureAwait(false)
             : null;
 
-        var vHarness = await objExtras.CompareHarnessesAsync(aUserId, aFramework, aCancellationToken)
+        var vHarness = await objExtras.CompareHarnessesAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
-        var vRouting = await objExtras.AnalyseRoutingAsync(aUserId, aFramework, aCancellationToken)
+        var vRouting = await objExtras.AnalyseRoutingAsync(aUserId, aFramework, null, aCancellationToken)
             .ConfigureAwait(false);
         var vSyncState = await objStore.ReadSyncStateAsync(aUserId, aCancellationToken).ConfigureAwait(false);
 

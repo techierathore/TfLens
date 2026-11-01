@@ -146,7 +146,7 @@ that grew a legal move as a result.
 
 ## Resolution status (TechieFlow team, 2026-11-01)
 
-**TF-055 and TF-056 are fixed in the framework.** Nothing is blocked. They ship in **TechieFlow v1.2.4**, the release after v1.2.3, and are not in this repository's `.tfcore/` until that release is installed. Cases `tf_055` and `tf_056` in `tests/regression/run.sh`, each failing against the v1.2.3 script and passing now.
+**TF-055 and TF-056 are fixed in the framework.** Nothing is blocked. They ship in **TechieFlow v1.2.4**, the release after v1.2.3, and are already in this repository's `.tfcore/` through the framework update of 2026-11-01. Cases `tf_055` and `tf_056` in `tests/regression/run.sh`, each failing against the v1.2.3 script and passing now.
 
 | ID | Fix | Verify from here |
 |----|-----|------------------|

@@ -38,7 +38,7 @@ public sealed class ShellPreferences
             : FrameworkNames.TechieFlow;
     }
 
-    /// <summary>Raised when either preference changes, so the shell and the current page re-render.</summary>
+    /// <summary>Raised when any preference changes, so the shell and the current page re-render.</summary>
     public event Action? Changed;
 
     /// <summary>True when the dark palette is active — the state of the header theme toggle.</summary>
@@ -46,6 +46,35 @@ public sealed class ShellPreferences
 
     /// <summary>The framework the report pages are querying (REQ-UI-010).</summary>
     public string Framework { get; private set; }
+
+    /// <summary>
+    /// The one repository (<c>owner/name</c>) the report pages are narrowed to, or <c>null</c> for all of
+    /// the signed-in user's repositories on <see cref="Framework"/> (REQ-UI-077).
+    /// </summary>
+    /// <remarks>
+    /// Held for the circuit only, so the choice carries from page to page without a cookie. A repository
+    /// belongs to exactly one framework, so changing the framework clears it rather than leave a page
+    /// asking the other axis for a repository it cannot hold.
+    /// </remarks>
+    public string? Repo { get; private set; }
+
+    /// <summary>
+    /// Narrows the report pages to one repository, or widens them back to all repositories.
+    /// </summary>
+    /// <param name="aRepo"><c>owner/name</c>, or <c>null</c> (or blank) for all repositories.</param>
+    /// <returns>A completed task; the pages re-query from the <see cref="Changed"/> event.</returns>
+    public Task SetRepoAsync(string? aRepo)
+    {
+        var vRepo = string.IsNullOrWhiteSpace(aRepo) ? null : aRepo;
+        if (vRepo == Repo)
+        {
+            return Task.CompletedTask;
+        }
+
+        Repo = vRepo;
+        Changed?.Invoke();
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Applies the theme choice — flips <c>&lt;html class="dark"&gt;</c> and persists the cookie.
@@ -72,7 +101,13 @@ public sealed class ShellPreferences
             throw new ArgumentOutOfRangeException(nameof(aFramework), aFramework, "Unknown framework.");
         }
 
-        Framework = aFramework.ToLowerInvariant();
+        var vFramework = aFramework.ToLowerInvariant();
+        if (vFramework != Framework)
+        {
+            Repo = null;
+        }
+
+        Framework = vFramework;
 
         await objJsRuntime
             .InvokeVoidAsync("tflens.setPreference", FrameworkState.CookieName, Framework)
@@ -126,6 +161,7 @@ public sealed class ShellPreferences
         }
 
         Framework = vFramework;
+        Repo = null;
         Changed?.Invoke();
     }
 

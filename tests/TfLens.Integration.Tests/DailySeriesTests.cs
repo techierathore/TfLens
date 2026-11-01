@@ -128,6 +128,25 @@ public sealed class DailySeriesTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// REQ-UI-077 — a series narrowed to one repository counts that repository's records; a repository the
+    /// user holds no rows for draws nothing, and <c>null</c> is the all-repos series.
+    /// </summary>
+    /// <returns>The running test.</returns>
+    [Fact]
+    public async Task SeriesNarrowsToOneRepo()
+    {
+        RequireDatabase();
+
+        var vRepo = await Store().ReadDailySeriesAsync(
+            UserA, FrameworkNames.TechieFlow, StreamKind.Gates, aRepo: Repo);
+        var vOther = await Store().ReadDailySeriesAsync(
+            UserA, FrameworkNames.TechieFlow, StreamKind.Gates, aRepo: "sparkline/elsewhere");
+
+        vRepo.Points.Sum(aP => aP.Count).Should().Be(3, "every one of user A's rows is in this repository");
+        vOther.Points.Should().BeEmpty("no row of user A's sits in that repository");
+    }
+
+    /// <summary>
     /// A framework with no rows yields no series at all, rather than a flat line at zero.
     /// </summary>
     /// <returns>The running test.</returns>

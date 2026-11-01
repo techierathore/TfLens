@@ -1,0 +1,96 @@
+@*
+    REQ-UI-077 — the report pages' repo picker: "All repos", or one of the signed-in user's repositories
+    on the current framework.
+
+    One component on five pages (Gate outcomes, Harness, Routing & economics, Misses & rework, Phase
+    effort), in each page's title row and NOT in the header — ShellHeader.razor is at its width limit.
+
+    The choice lives in ShellPreferences.Repo (per circuit), so it carries from page to page, and setting
+    it raises ShellPreferences.Changed: every page re-queries the store with that repository, it never
+    filters what it already rendered. A repository belongs to exactly one framework, so the options are
+    the current framework's repositories only, and the framework switch clears the choice. A repository
+    that has been removed since it was picked is cleared back to All repos rather than left asking for
+    rows that no longer exist.
+
+    The picker only narrows. Inside one repository every segmentation rule still holds — live/backfilled,
+    project_type, framework, harness — and there is no option here that relaxes one.
+*@
+@implements IDisposable
+@inject ShellPreferences objPreferences
+@inject ShellState objShellState
+
+<div class="tflens-repo-picker">
+    <Select TValue="string"
+            Value="@SelectedValue"
+            ValueChanged="OnRepoChangedAsync"
+            Class="w-full">
+        <SelectTrigger data-testid="repo-picker" aria-label="Repository">
+            <SelectValue Placeholder="@AllReposLabel" />
+        </SelectTrigger>
+        <SelectContent>
+            <SelectItem TValue="string" Value="@AllReposValue" Text="@AllReposLabel">@AllReposLabel</SelectItem>
+            @foreach (var vRepo in Options)
+            {
+                <SelectItem TValue="string" Value="@vRepo" Text="@vRepo">@vRepo</SelectItem>
+            }
+        </SelectContent>
+    </Select>
+</div>
+
+@code {
+    /// <summary>The option value that stands for "every repository" — never a valid <c>owner/name</c>.</summary>
+    private const string AllReposValue = "all";
+
+    /// <summary>The text the All-repos option and the empty trigger show.</summary>
+    private const string AllReposLabel = "All repos";
+
+    /// <summary>The value the Select shows: the chosen repository, or the All-repos sentinel.</summary>
+    private string SelectedValue => objPreferences.Repo ?? AllReposValue;
+
+    /// <summary>The signed-in user's repositories on the current framework, ordinally ordered.</summary>
+    private IReadOnlyList<string> Options =>
+        objShellState.Repos
+            .Where(aRepo => string.Equals(aRepo.Framework, objPreferences.Framework, StringComparison.OrdinalIgnoreCase))
+            .Select(aRepo => aRepo.Repo)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aRepo => aRepo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>Subscribes to the workspace and the preferences so the options and the choice stay current.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnPreferencesChanged;
+    }
+
+    /// <summary>
+    /// Stores the choice; the pages re-query from the preference change it raises.
+    /// </summary>
+    /// <param name="aValue">The picked option's value.</param>
+    /// <returns>A task that completes when the preference holds the choice.</returns>
+    private Task OnRepoChangedAsync(string? aValue) =>
+        objPreferences.SetRepoAsync(aValue is null || aValue == AllReposValue ? null : aValue);
+
+    /// <summary>
+    /// Re-renders the options, and clears a choice the workspace no longer holds.
+    /// </summary>
+    private void OnShellChanged() => InvokeAsync(async () =>
+    {
+        if (objShellState.IsLoaded && objPreferences.Repo is not null && !Options.Contains(objPreferences.Repo))
+        {
+            await objPreferences.SetRepoAsync(null);
+        }
+
+        StateHasChanged();
+    });
+
+    /// <summary>Re-renders when the framework (and with it the option list) or the choice changes.</summary>
+    private void OnPreferencesChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Unsubscribes so the circuit does not leak a handler per navigation.</summary>
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnPreferencesChanged;
+    }
+}

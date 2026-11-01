@@ -106,25 +106,21 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Development Telemetry</h1>
-    <div class="sub">Last rendered: 2026-08-29</div>
+    <div class="sub">Last rendered: 2026-11-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#stream-inventory">Stream inventory</a></li>
         <li><a href="#first-pass-rate-what-reaches-verified-on-attempt-1">1. First-pass rate — what reaches Verified on attempt 1</a></li>
         <li><a href="#gate-catch-distribution-which-gate-caught-each-failure">2. Gate catch distribution — which gate caught each failure</a></li>
-        <li><a href="#escape-rate-defects-that-reached-a-human-instead-of-a-gate">3. Escape rate — defects that reached a human instead of a gate</a></li>
-        <li><a href="#misses-what-was-missed-who-let-it-through-what-repair-cost">4. Misses — what was missed, who let it through, what repair cost</a></li>
-        <li class="h3"><a href="#which-practice-failed-whymissed">4.1 Which practice failed (why_missed)</a></li>
-        <li class="h3"><a href="#what-kind-of-defect">4.2 What kind of defect</a></li>
-        <li class="h3"><a href="#attribution-and-what-it-excludes">4.3 Attribution — and what it excludes</a></li>
-        <li class="h3"><a href="#what-repair-cost">4.4 What repair cost</a></li>
-        <li><a href="#throughput-and-rework-pooled-these-are-exempt">5. Throughput and rework (pooled — these are exempt)</a></li>
-        <li><a href="#what-is-missing-and-what-would-change-these-numbers">6. What is missing, and what would change these numbers</a></li>
+        <li><a href="#escape-rate-defects-that-reached-uat-or-production">3. Escape rate — defects that reached UAT or production</a></li>
+        <li><a href="#misses-and-rework-cost">4. Misses and rework cost</a></li>
+        <li><a href="#effort-per-phase-runs-not-tickets">5. Effort per phase (runs, not tickets)</a></li>
+        <li><a href="#poolable-figures">Poolable figures</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — Development Telemetry</h1>
-    <div class="subtitle">Rendered 2026-08-29 &middot; source <code>METRICS.md</code></div>
+    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>METRICS.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -132,195 +128,109 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#stream-inventory">Stream inventory</a></li>
         <li><a href="#first-pass-rate-what-reaches-verified-on-attempt-1">1. First-pass rate — what reaches Verified on attempt 1</a></li>
         <li><a href="#gate-catch-distribution-which-gate-caught-each-failure">2. Gate catch distribution — which gate caught each failure</a></li>
-        <li><a href="#escape-rate-defects-that-reached-a-human-instead-of-a-gate">3. Escape rate — defects that reached a human instead of a gate</a></li>
-        <li><a href="#misses-what-was-missed-who-let-it-through-what-repair-cost">4. Misses — what was missed, who let it through, what repair cost</a></li>
-        <li class="h3"><a href="#which-practice-failed-whymissed">4.1 Which practice failed (why_missed)</a></li>
-        <li class="h3"><a href="#what-kind-of-defect">4.2 What kind of defect</a></li>
-        <li class="h3"><a href="#attribution-and-what-it-excludes">4.3 Attribution — and what it excludes</a></li>
-        <li class="h3"><a href="#what-repair-cost">4.4 What repair cost</a></li>
-        <li><a href="#throughput-and-rework-pooled-these-are-exempt">5. Throughput and rework (pooled — these are exempt)</a></li>
-        <li><a href="#what-is-missing-and-what-would-change-these-numbers">6. What is missing, and what would change these numbers</a></li>
+        <li><a href="#escape-rate-defects-that-reached-uat-or-production">3. Escape rate — defects that reached UAT or production</a></li>
+        <li><a href="#misses-and-rework-cost">4. Misses and rework cost</a></li>
+        <li><a href="#effort-per-phase-runs-not-tickets">5. Effort per phase (runs, not tickets)</a></li>
+        <li><a href="#poolable-figures">Poolable figures</a></li>
       </ol>
     </div>
 <blockquote>
-<p>Generated 2026-08-29 from the append-only streams in <code>docs/metrics/</code> by
+<p>Generated 2026-11-01 from the append-only streams in <code>docs/metrics/</code> by
 <code>bash .tfcore/telemetry/tf-metrics.sh --report . --json</code>. Every figure below is that script's
 arithmetic, not this document's. Read <code>.tfcore/telemetry/SCHEMA.md</code> §6 before quoting anything here.</p>
 <p><strong>There is no "overall" number on this page, and that is deliberate.</strong> First-pass rate, gate catch
 distribution and escape rate are never pooled across <code>project_type</code>, and never across live and
-backfilled records. A <code>docs</code> requirement has no screen to fail a visual gate on, so pooling it with an
-<code>app</code> requirement would understate that gate by construction. The two columns below sit side by side
-and are never summed.</p>
+backfilled records. The two columns below sit side by side and are never summed.</p>
 </blockquote>
 <h2 id="stream-inventory">Stream inventory<a class="anchor-link" href="#stream-inventory">#</a></h2>
 <table>
 <thead><tr><th>Stream</th><th style="text-align:right">Records</th><th>Note</th></tr></thead>
 <tbody>
-<tr><td><code>gates.jsonl</code></td><td style="text-align:right">405</td><td>0 backfilled — every record written at the moment of the event</td></tr>
-<tr><td><code>runs.jsonl</code></td><td style="text-align:right">30</td><td></td></tr>
-<tr><td><code>misses.jsonl</code></td><td style="text-align:right">47 misses + 46 fixes</td><td>0 orphan fixes, 0 orphan amends</td></tr>
-<tr><td><code>sessions.jsonl</code></td><td style="text-align:right">10</td><td>written by the SessionEnd hook, never by an agent</td></tr>
-<tr><td><code>commits.jsonl</code></td><td style="text-align:right">15</td><td><code>pre-commit</code> hook present on this clone</td></tr>
+<tr><td><code>gates.jsonl</code></td><td style="text-align:right">1,340</td><td>0 backfilled — every record written at the moment of the event</td></tr>
+<tr><td><code>runs.jsonl</code></td><td style="text-align:right">106 live</td><td>1 more is voided by a <code>run-void</code> record and is in no figure</td></tr>
+<tr><td><code>misses.jsonl</code></td><td style="text-align:right">155 misses + 123 fixes</td><td>80 open, 75 resolved</td></tr>
+<tr><td><code>sessions.jsonl</code></td><td style="text-align:right">44</td><td>4 duplicate <code>session_id</code>s collapsed</td></tr>
+<tr><td><code>commits.jsonl</code></td><td style="text-align:right">33</td><td>over 13 active days</td></tr>
 </tbody>
 </table>
-<p><code>stale_types: ["docs"]</code> — the <code>docs</code> figures below are not being added to; they describe a stream that
-has stopped moving, not current practice.</p>
+<p>TfLens is classified <code>app</code> now, but its early records carry <code>docs</code>. Both segments below are periods of
+the same project, not two projects, and they are never pooled.</p>
 <hr>
-<h2 id="first-pass-rate-what-reaches-verified-on-attempt-1">1. First-pass rate — what reaches <code>Verified</code> on attempt 1<a class="anchor-link" href="#first-pass-rate-what-reaches-verified-on-attempt-1">#</a></h2>
-<p><strong>Live records only. No backfilled records exist in this repository, so there is no reconstructed
-arithmetic anywhere on this page.</strong></p>
+<h2 id="first-pass-rate-what-reaches-verified-on-attempt-1"><a id="1-first-pass-rate--what-reaches-verified-on-attempt-1"></a>1. First-pass rate — what reaches <code>Verified</code> on attempt 1<a class="anchor-link" href="#first-pass-rate-what-reaches-verified-on-attempt-1">#</a></h2>
 <table>
-<thead><tr><th><code>project_type</code></th><th style="text-align:right">REQs scored</th><th style="text-align:right">First-pass</th><th style="text-align:right">Rate</th></tr></thead>
+<thead><tr><th><code>project_type</code></th><th style="text-align:right">REQs scored</th><th style="text-align:right">Rate</th></tr></thead>
 <tbody>
-<tr><td><strong>app</strong></td><td style="text-align:right">147</td><td style="text-align:right">31</td><td style="text-align:right"><strong>21%</strong></td></tr>
-<tr><td><strong>docs</strong></td><td style="text-align:right">113</td><td style="text-align:right">106</td><td style="text-align:right"><strong>94%</strong></td></tr>
+<tr><td><strong>app</strong></td><td style="text-align:right">214</td><td style="text-align:right"><strong>32%</strong></td></tr>
+<tr><td><strong>docs</strong></td><td style="text-align:right">113</td><td style="text-align:right"><strong>94%</strong></td></tr>
 </tbody>
 </table>
-<p>These two numbers must not be averaged. The gap is real but it is not a quality comparison: a <code>docs</code>
-REQ is graded by reading a file, an <code>app</code> REQ by driving a browser through acceptance, data-render and
-visual-truth gates, so the <code>app</code> column has three more ways to fail on attempt 1 and a far longer tail
-of re-verification. <code>0 REQs excluded by backfill taint</code> in both columns.</p>
-<h2 id="gate-catch-distribution-which-gate-caught-each-failure">2. Gate catch distribution — which gate caught each failure<a class="anchor-link" href="#gate-catch-distribution-which-gate-caught-each-failure">#</a></h2>
+<p>A <code>docs</code> REQ is graded by reading a file; an <code>app</code> REQ is driven through acceptance, render, visual and
+mockup-parity gates. The gap is how many ways each can fail, not a quality comparison.</p>
+<h2 id="gate-catch-distribution-which-gate-caught-each-failure"><a id="2-gate-catch-distribution--which-gate-caught-each-failure"></a>2. Gate catch distribution — which gate caught each failure<a class="anchor-link" href="#gate-catch-distribution-which-gate-caught-each-failure">#</a></h2>
 <table>
-<thead><tr><th>Gate</th><th style="text-align:right">app</th><th style="text-align:right">docs</th></tr></thead>
+<thead><tr><th>Gate</th><th style="text-align:right">app (211 failures)</th><th style="text-align:right">docs (8 failures)</th></tr></thead>
 <tbody>
-<tr><td>acceptance</td><td style="text-align:right">4</td><td style="text-align:right">4</td></tr>
-<tr><td>render</td><td style="text-align:right">—</td><td style="text-align:right">2</td></tr>
-<tr><td>visual</td><td style="text-align:right">1</td><td style="text-align:right">—</td></tr>
-<tr><td><strong>escaped</strong></td><td style="text-align:right"><strong>22</strong></td><td style="text-align:right">—</td></tr>
-<tr><td>unattributed</td><td style="text-align:right">2</td><td style="text-align:right">2</td></tr>
-<tr><td><strong>n (failures scored)</strong></td><td style="text-align:right"><strong>29</strong></td><td style="text-align:right"><strong>8</strong></td></tr>
+<tr><td>build</td><td style="text-align:right">2 (1%)</td><td style="text-align:right">—</td></tr>
+<tr><td>acceptance</td><td style="text-align:right">19 (9%)</td><td style="text-align:right">4 (50%)</td></tr>
+<tr><td>render</td><td style="text-align:right">25 (12%)</td><td style="text-align:right">2 (25%)</td></tr>
+<tr><td>visual</td><td style="text-align:right">13 (6%)</td><td style="text-align:right">—</td></tr>
+<tr><td>mockup-parity</td><td style="text-align:right">74 (35%)</td><td style="text-align:right">—</td></tr>
+<tr><td><strong>escaped</strong></td><td style="text-align:right"><strong>34 (16%)</strong></td><td style="text-align:right">—</td></tr>
+<tr><td>unattributed</td><td style="text-align:right">44 (21%)</td><td style="text-align:right">2 (25%)</td></tr>
 </tbody>
 </table>
-<p><code>escaped</code> is not a gate. It is the record written when <strong>no gate fired and a human found the defect</strong>,
-and on the <code>app</code> axis it is 22 of 29 — larger than every real gate combined. That single row is the
-finding of this report.</p>
-<p><strong>Late-gate coverage.</strong> <code>perf</code> entered the enum on 2026-08-10, long after this stream started, so its
-raw share is structurally understated. Its honest denominator: <strong>ran 1, caught 0</strong>. No share is printed
-for it, because one run cannot support one.</p>
-<h2 id="escape-rate-defects-that-reached-a-human-instead-of-a-gate">3. Escape rate — defects that reached a human instead of a gate<a class="anchor-link" href="#escape-rate-defects-that-reached-a-human-instead-of-a-gate">#</a></h2>
+<p>Late gates (live <code>app</code> records only; a share above is not a catch rate): mockup-parity ran on 249
+records and caught 74 → 30%; assets ran on 178, caught 0; perf ran on 3, caught 0; test-users ran on 3,
+caught 0.</p>
+<h2 id="escape-rate-defects-that-reached-uat-or-production"><a id="3-escape-rate--defects-that-reached-uat-or-production"></a>3. Escape rate — defects that reached UAT or production<a class="anchor-link" href="#escape-rate-defects-that-reached-uat-or-production">#</a></h2>
 <table>
 <thead><tr><th><code>project_type</code></th><th style="text-align:right">Escape rate</th></tr></thead>
 <tbody>
-<tr><td><strong>app</strong></td><td style="text-align:right"><strong>91%</strong></td></tr>
+<tr><td><strong>app</strong></td><td style="text-align:right"><strong>39%</strong></td></tr>
 <tr><td><strong>docs</strong></td><td style="text-align:right">0%</td></tr>
 </tbody>
 </table>
-<p><strong>91% of scored <code>app</code> failures were found by a person, not by a gate.</strong> The 2026-08-29 mockup-parity
-UAT is most of that number: 16 <code>escaped</code> records in a single sitting, every one of them on a REQ that
-already read <code>Verified</code> and had passed acceptance, data-render and visual-truth.</p>
-<p><code>found_by</code> across all 47 misses: <strong>owner 28 · agent-review 12 · gate 6 · self-smoke 1.</strong> A gate is the
-fourth most common way a defect is discovered in this project.</p>
-<hr>
-<h2 id="misses-what-was-missed-who-let-it-through-what-repair-cost">4. Misses — what was missed, who let it through, what repair cost<a class="anchor-link" href="#misses-what-was-missed-who-let-it-through-what-repair-cost">#</a></h2>
-<p>47 misses, 46 fixes, <strong>21 still open</strong>, 26 resolved, 0 wont-fix. 0 orphan fixes and 0 orphan amends, so
-the lifecycle joins are intact.</p>
-<h3 id="which-practice-failed-whymissed">4.1 Which practice failed (<code>why_missed</code>)<a class="anchor-link" href="#which-practice-failed-whymissed">#</a></h3>
-<p>Answered on 46 of 47 eligible records; <strong>0 escapes are missing a reason</strong>.</p>
-<table>
-<thead><tr><th><code>why_missed</code></th><th style="text-align:right">n</th></tr></thead>
-<tbody>
-<tr><td><strong>insufficient-verify-method</strong></td><td style="text-align:right"><strong>24</strong></td></tr>
-<tr><td>missing-checklist-item</td><td style="text-align:right">11</td></tr>
-<tr><td>ambiguous-acceptance</td><td style="text-align:right">6</td></tr>
-<tr><td>dependency-not-declared</td><td style="text-align:right">2</td></tr>
-<tr><td>instruction-ignored</td><td style="text-align:right">2</td></tr>
-<tr><td>other</td><td style="text-align:right">1</td></tr>
-</tbody>
-</table>
-<p><strong>This is the report's headline.</strong> <code>insufficient-verify-method</code> means <em>the acceptance existed and no
-gate could have caught this class of defect</em> — it is more than half the stream, and more than twice
-<code>missing-checklist-item</code>. The specification is not the weak link here; the verification is. That is the
-same conclusion the escape rate reaches from the other direction, and it is now written down as
-<code>REQ-NFR-020</code> (no gate compares a built screen to its approved mockup) and raised upstream as <strong>TF-008</strong>.</p>
-<h3 id="what-kind-of-defect">4.2 What kind of defect<a class="anchor-link" href="#what-kind-of-defect">#</a></h3>
-<table>
-<thead><tr><th><code>miss_class</code></th><th style="text-align:right">n</th></tr></thead>
-<tbody>
-<tr><td>partial-implementation</td><td style="text-align:right">19</td></tr>
-<tr><td>wrong-behaviour</td><td style="text-align:right">15</td></tr>
-<tr><td><strong>unspecified-gap</strong></td><td style="text-align:right"><strong>7</strong></td></tr>
-<tr><td>standards-violation</td><td style="text-align:right">4</td></tr>
-<tr><td>regression</td><td style="text-align:right">1</td></tr>
-<tr><td>spec-contradiction</td><td style="text-align:right">1</td></tr>
-</tbody>
-</table>
-<p><strong>Design-miss share 15%</strong> — 7 of 47 are things the specification itself omitted, caught by a human
-months after the phase that made them. Those are the records nothing else in the framework can produce.</p>
-<h3 id="attribution-and-what-it-excludes">4.3 Attribution — and what it excludes<a class="anchor-link" href="#attribution-and-what-it-excludes">#</a></h3>
-<p><strong>34 of 47 misses carry <code>origin_confidence: linked</code>. 13 are excluded</strong> from every per-phase, per-agent
-and per-model figure below, because their origin could not be resolved to a real <code>runs.jsonl</code> record.
-The figures are computed over 34, not 47, and no attempt is made to distribute the other 13.</p>
-<table>
-<thead><tr><th>Origin phase</th><th style="text-align:right">n</th><th></th><th>Origin agent</th><th style="text-align:right">n</th></tr></thead>
-<tbody>
-<tr><td><strong>build-phase</strong></td><td style="text-align:right"><strong>28</strong></td><td></td><td>trblazeui</td><td style="text-align:right">17</td></tr>
-<tr><td>fix-issues</td><td style="text-align:right">4</td><td></td><td>flow-master</td><td style="text-align:right">9</td></tr>
-<tr><td>handoff-phase</td><td style="text-align:right">1</td><td></td><td>general-purpose</td><td style="text-align:right">8</td></tr>
-<tr><td>split-brd</td><td style="text-align:right">1</td><td></td><td></td><td style="text-align:right"></td></tr>
-</tbody>
-</table>
-<p>Per-model: <code>claude-opus-5</code> 34 — the whole attributed set. <strong>With one model in the data there is no
-comparison to make</strong>, and none is drawn; the column exists so that it becomes answerable once a second
-model appears, not so that a single-model figure can be read as a verdict.</p>
-<p><code>build-phase</code> owning 28 of 34 is what you would expect from where code is written, and says nothing on
-its own about whether that phase is unusually error-prone — it is also by far the largest phase.</p>
-<h3 id="what-repair-cost">4.4 What repair cost<a class="anchor-link" href="#what-repair-cost">#</a></h3>
-<table>
-<thead><tr><th></th><th style="text-align:right">n</th></tr></thead>
-<tbody>
-<tr><td><code>cost_attribution: sole</code></td><td style="text-align:right">2</td></tr>
-<tr><td><code>cost_attribution: shared</code></td><td style="text-align:right">43</td></tr>
-<tr><td><code>cost_unattributable</code></td><td style="text-align:right">1</td></tr>
-<tr><td><code>cost_recovered</code></td><td style="text-align:right">4</td></tr>
-</tbody>
-</table>
+<p>This run added two escapes: the owner's UAT report of 2026-11-01 (REQ-UI-076, REQ-UI-077). Both were
+gaps in the spec, not in a check, and both are now fixed and Verified.</p>
+<h2 id="misses-and-rework-cost"><a id="4-misses-and-rework-cost"></a>4. Misses and rework cost<a class="anchor-link" href="#misses-and-rework-cost">#</a></h2>
 <ul>
-<li><strong>Tokens per miss (measured, sole-attributed only): insufficient data (n=2).</strong> No headline token figure is printed. A <code>sole</code> attribution means one fix run closed exactly one miss, which is the only shape where the run's token window <em>is</em> that miss's repair cost.
+<li><strong>155 misses logged</strong> — 80 open, 75 resolved, 0 won't-fix. Design-miss share (the spec, not the build): <strong>19%</strong>. Found by a person (owner or production): <strong>44%</strong>, reported beside the escape rate above, never merged with it.
 </li>
-<li>Tokens per miss (apportioned, <code>shared</code> included): <strong>31,383</strong> — shown here <strong>as an adjacent figure, not as the cost of a miss</strong>. 43 of 46 fixes were batched, and dividing a batch evenly assumes every miss in it cost the same, which is not something this data knows.
+<li><strong>What was missed:</strong> partial-implementation 55 · unspecified-gap 30 · wrong-behaviour 27 · regression 24 · spec-contradiction 8 · standards-violation 7 · missed-requirement 4.
 </li>
-<li><strong>Measured USD: none. 0 records carry <code>cost_usd</code>.</strong> Only OpenCode reports real spend and no OpenCode fix record in this project carries it yet. Every dollar figure elsewhere in the product is a rate-card estimate and is labelled as one.
+<li><strong>Why (103 of 155 assessed):</strong> insufficient-verify-method 48 · missing-checklist-item 25 · ambiguous-acceptance 14 · instruction-ignored 8 · dependency-not-declared 5 · other 3. <strong>8 escapes carry no <code>why_missed</code>.</strong>
+</li>
+<li><strong>Whose gap (30 of 69 sorted):</strong> weak-check 13 · spec 10 · ignored 4 · unsaid 3. 86 misses predate the <code>sort</code> field.
+</li>
+<li><strong>Attribution (104 of 155 linked; 51 excluded as inferred or unknown):</strong> origin phase build-phase 72, fix-issues 21, amend-docs 8; every linked miss came from <code>claude-opus-5</code>.
+</li>
+<li><strong>Rework cost — measured and shared are separate, never one number:</strong> 5 solely-measured fixes at <strong>143.0k output tokens per miss</strong> (list price <strong>$30.30</strong> per miss — a published rate applied to measured tokens, not a bill); 89 shared fixes at 39.3k tokens per miss by equal division, which is <strong>not a measurement</strong>; 29 fixes with no usable window cannot be costed.
 </li>
 </ul>
-<hr>
-<h2 id="throughput-and-rework-pooled-these-are-exempt">5. Throughput and rework (pooled — these are exempt)<a class="anchor-link" href="#throughput-and-rework-pooled-these-are-exempt">#</a></h2>
-<p>Volume and cadence are comparable across project types, so these are the only pooled figures here.</p>
+<h2 id="effort-per-phase-runs-not-tickets"><a id="5-effort-per-phase-runs-not-tickets"></a>5. Effort per phase (runs, not tickets)<a class="anchor-link" href="#effort-per-phase-runs-not-tickets">#</a></h2>
 <table>
-<thead><tr><th>Measure</th><th style="text-align:right">Value</th></tr></thead>
+<thead><tr><th>Phase</th><th style="text-align:right">Runs</th><th style="text-align:right">Wall clock</th><th style="text-align:right">Tokens out</th><th style="text-align:right">Share of output</th></tr></thead>
 <tbody>
-<tr><td>Runs</td><td style="text-align:right">30</td></tr>
-<tr><td><strong>Rework ratio</strong></td><td style="text-align:right"><strong>150%</strong></td></tr>
-<tr><td>Throughput (median)</td><td style="text-align:right">16.33 REQs/hour</td></tr>
-<tr><td>Batch size (median)</td><td style="text-align:right">21.5 REQs</td></tr>
-<tr><td>Sessions</td><td style="text-align:right">10</td></tr>
-<tr><td>Tokens (total)</td><td style="text-align:right">3,822,984</td></tr>
-<tr><td>Tokens per Verified REQ</td><td style="text-align:right">10,388.5</td></tr>
-<tr><td>Cost USD</td><td style="text-align:right">not measured</td></tr>
-<tr><td>Commits</td><td style="text-align:right">15 over 4 active days (3.75/day)</td></tr>
+<tr><td>build-phase</td><td style="text-align:right">15</td><td style="text-align:right">50h20m</td><td style="text-align:right">5.8M</td><td style="text-align:right">37%</td></tr>
+<tr><td>verify-phase</td><td style="text-align:right">26</td><td style="text-align:right">28h24m</td><td style="text-align:right">2.9M</td><td style="text-align:right">19%</td></tr>
+<tr><td>fix-issues</td><td style="text-align:right">15</td><td style="text-align:right">12h24m</td><td style="text-align:right">2.7M</td><td style="text-align:right">17%</td></tr>
+<tr><td>amend-docs</td><td style="text-align:right">14</td><td style="text-align:right">2h40m</td><td style="text-align:right">1.6M</td><td style="text-align:right">10%</td></tr>
+<tr><td>split-brd</td><td style="text-align:right">3</td><td style="text-align:right">3h16m</td><td style="text-align:right">958.7k</td><td style="text-align:right">6%</td></tr>
+<tr><td>handoff-phase</td><td style="text-align:right">3</td><td style="text-align:right">1h07m</td><td style="text-align:right">687.0k</td><td style="text-align:right">4%</td></tr>
+<tr><td>mockups</td><td style="text-align:right">3</td><td style="text-align:right">3h07m</td><td style="text-align:right">281.9k</td><td style="text-align:right">2%</td></tr>
+<tr><td>triage-and-fix</td><td style="text-align:right">2</td><td style="text-align:right">35m46s</td><td style="text-align:right">198.2k</td><td style="text-align:right">1%</td></tr>
+<tr><td>triage-issues</td><td style="text-align:right">2</td><td style="text-align:right">28m01s</td><td style="text-align:right">199.0k</td><td style="text-align:right">1%</td></tr>
+<tr><td>log-miss</td><td style="text-align:right">15</td><td style="text-align:right">23m49s</td><td style="text-align:right">138.4k</td><td style="text-align:right">1%</td></tr>
+<tr><td>other (4 phases: rename-page, metrics-report, feedback-recheck, deploy-checklist)</td><td style="text-align:right">8</td><td style="text-align:right">3h00m</td><td style="text-align:right">182.4k</td><td style="text-align:right">&lt;1%</td></tr>
 </tbody>
 </table>
-<p><code>runs_by_cmd</code>: build-phase 4 · fix-issues 6 · log-miss 6 · metrics-report 4 · triage-issues 2 ·
-verify-phase 2 · amend-docs 2 · mockups 2 · split-brd 1 · handoff-phase 1.</p>
-<p><strong>Rework ratio 150%</strong> — half again as many repair runs as build runs (<code>fix-issues</code> 6 against
-<code>build-phase</code> 4). Read it beside §3: work is not reaching <code>Verified</code> on the first pass and is coming
-back through the fix door, and it is coming back because a person found it, not because a gate did.</p>
-<hr>
-<h2 id="what-is-missing-and-what-would-change-these-numbers">6. What is missing, and what would change these numbers<a class="anchor-link" href="#what-is-missing-and-what-would-change-these-numbers">#</a></h2>
-<ul>
-<li><strong>No measured dollars anywhere (0 <code>cost_usd</code> records).</strong> The cost of rework is only quotable in tokens, and even then only over 2 sole-attributed fixes. Fixing one miss per fix run — or recording <code>cost_usd</code> on OpenCode runs — is what would make §4.4 answerable.
-</li>
-<li><strong>13 of 47 misses are unattributed.</strong> Naming <code>origin_run_id</code> when a miss is logged is what moves a record into §4.3.
-</li>
-<li><strong>One model in the attributed set</strong>, so no per-model comparison is possible yet.
-</li>
-<li><strong><code>perf</code> has run once.</strong> Its catch rate is not knowable from one run.
-</li>
-<li><strong>The <code>docs</code> stream is stale</strong> — its 94% first-pass rate describes a stream that has stopped, and should not be read as current practice.
-</li>
-<li><strong>The gate set itself is the biggest gap.</strong> 22 escaped against 5 real gate catches on the <code>app</code> axis, and <code>insufficient-verify-method</code> on 24 of 46 answered records, both say the same thing: the gates measure whether a screen is <em>alive</em>, not whether it is <em>right</em>. <code>REQ-NFR-020</code> is the proposed fix and it is <code>Planned</code>, not built — so nothing on this page should be expected to improve until it is.
-</li>
-</ul>
+<p>Token windows: 39 runs saw their subagents (<code>tree</code>), 59 did not look (<code>main</code>), 8 measured nothing and
+are left out of every token figure. A <code>0</code> fan-out on a <code>main</code> run means <em>not looked</em>, not <em>none</em>.</p>
+<h2 id="poolable-figures">Poolable figures<a class="anchor-link" href="#poolable-figures">#</a></h2>
+<p>Rework ratio <strong>140%</strong> (fix-mode runs / build-phase runs) · batch size median <strong>10</strong> REQs per build ·
+throughput median <strong>18.32</strong> REQs/hour · <strong>15.66M</strong> total tokens over 44 sessions · list price
+<strong>$3,784.81</strong> over 98 priced runs, <strong>$3.38</strong> per Verified REQ — a price, never a bill · commit cadence
+<strong>2.54</strong> per active day.</p>
   </main>
 </div>
 

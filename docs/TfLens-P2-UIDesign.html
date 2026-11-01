@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — UI Design — Phase 2: Reports</h1>
-    <div class="subtitle">Rendered 2026-09-11 &middot; source <code>TfLens-P2-UIDesign.md</code></div>
+    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>TfLens-P2-UIDesign.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -132,7 +132,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </table>
 <p>This file holds the 5 screens of phase 2; what every phase shares is listed under <em>Where the rest lives</em> at the end.</p>
 <h2 id="screens">Screens<a class="anchor-link" href="#screens">#</a></h2>
-<h3 id="screen-coverage-health">Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
+<h3 id="screen-coverage-health"><a id="screen-coverage--health-"></a>Screen: Coverage / health (<code>/</code>)<a class="anchor-link" href="#screen-coverage-health">#</a></h3>
 <p><strong>Mockup:</strong> <a href="./mockups/coverage.html">docs/mockups/coverage.html</a> · <strong>Role(s):</strong> User, Owner · <strong>BRD:</strong> BRD-39..BRD-44, BRD-21, BRD-6, BRD-127, BRD-181 · <strong>REQ:</strong> (assigned by split-brd) <em>(amended 2026-09-08 — the Data quality section)</em></p>
 <p><strong>Layout (one line):</strong> shell; summary strip (status alert + 4 KPI cards); one <code>Card</code> per connected repo in a 2-column grid, each with a stream staleness table and warnings; a <strong>Data quality</strong> section (four cards in a 2×2 grid — field completeness, derived values, unrecognised values, miss-stream diagnostics — added 2026-09-08); unknown-fields <code>Collapsible</code>; Rebuild-from-raw card at the bottom.</p>
 <p><strong>Component map:</strong></p>
@@ -174,7 +174,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Taint list</td><td><code>Collapsible</code> → trigger "3 REQs excluded from the live first-pass rate" → <code>Badge Variant=Outline</code> per REQ ID <code>data-testid="taint-list"</code></td><td>REQ IDs</td><td>empty: "none"</td></tr>
 </tbody>
 </table>
-<p><strong>Notes / interactions:</strong> tab choice persisted per session; every figure has a <code>Tooltip</code> with its formula (SCHEMA.md §8 wording).</p>
+<p><strong>Notes / interactions:</strong> tab choice persisted per session; every figure has a <code>Tooltip</code> with its formula (SCHEMA.md §8 wording). <strong>Repo picker (REQ-UI-077):</strong> <code>Select</code> <code>repo-picker</code> narrows every figure to one repo; also on four other reports.</p>
 <p><strong>Empty / loading / error:</strong> no gate records → <code>Empty</code> "No gate records yet — run *verify on a connected repo"; loading → <code>Skeleton</code>.</p>
 <h3 id="screen-harness-comparison-harness">Screen: Harness comparison (<code>/harness</code>)<a class="anchor-link" href="#screen-harness-comparison-harness">#</a></h3>
 <p><strong>Mockup:</strong> <a href="./mockups/harness.html">docs/mockups/harness.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-51..BRD-55 · <strong>REQ:</strong> (assigned by split-brd)</p>
@@ -192,7 +192,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 </tbody>
 </table>
 <p><strong>Notes / interactions:</strong> no total dollar row anywhere; columns wrap to one per row under <code>md</code>.</p>
-<h3 id="screen-routing-economics-routing">Screen: Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#screen-routing-economics-routing">#</a></h3>
+<h3 id="screen-routing-economics-routing"><a id="screen-routing--economics-routing"></a>Screen: Routing &amp; economics (<code>/routing</code>)<a class="anchor-link" href="#screen-routing-economics-routing">#</a></h3>
 <p><strong>Mockup:</strong> <a href="./mockups/routing.html">docs/mockups/routing.html</a> · <strong>Role(s):</strong> User, Owner, Author · <strong>BRD:</strong> BRD-56..BRD-62 · <strong>REQ:</strong> (assigned by split-brd)</p>
 <p><strong>Layout (one line):</strong> shell; <code>Tabs</code> Routing drift · Tokens by model · Repricing (estimate) · Poolable metrics; the Repricing tab has two big cards (actual mix vs all-at-max) with the estimate badge and an "Edit prices" dialog button.</p>
 <p><strong>Component map:</strong></p>
@@ -227,12 +227,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <table>
 <thead><tr><th>What</th><th>Where</th></tr></thead>
 <tbody>
-<tr><td>UI library, theme and the design system</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
-<tr><td>The click-through flow across every phase</td><td><a href="./TfLens-UIDesign.md">phase 1 UI design</a></td></tr>
+<tr><td>UI library, theme and the design system</td><td><a href="./TfLens-UIDesign.html">phase 1 UI design</a></td></tr>
+<tr><td>The click-through flow across every phase</td><td><a href="./TfLens-UIDesign.html">phase 1 UI design</a></td></tr>
 <tr><td>Library gaps — controls TrBlazeUI lacks, logged once for every phase</td><td><a href="./TfLens-TrBlazeUI-Feedback.md">TfLens-TrBlazeUI-Feedback.md</a></td></tr>
-<tr><td>This phase's requirements</td><td><a href="./TfLens-P2-BRD.md">TfLens-P2-BRD.md</a></td></tr>
+<tr><td>This phase's requirements</td><td><a href="./TfLens-P2-BRD.html">TfLens-P2-BRD.md</a></td></tr>
 <tr><td>This phase's work list</td><td><a href="./TfLens-P2-Checklist.md">TfLens-P2-Checklist.md</a></td></tr>
-<tr><td>Every phase and its screens</td><td><a href="./TfLens-Phases.md">TfLens-Phases.md</a></td></tr>
+<tr><td>Every phase and its screens</td><td><a href="./TfLens-Phases.html">TfLens-Phases.md</a></td></tr>
 </tbody>
 </table>
   </main>

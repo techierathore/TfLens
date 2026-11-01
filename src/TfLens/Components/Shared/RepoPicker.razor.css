@@ -1,0 +1,21 @@
+/* REQ-UI-077 — the repo picker in a report page's title row.
+
+   TrBlazeUI's SelectTrigger sizes to its content, so a long owner/name would push the title row wider
+   than a 390px viewport. The wrapper pins the width the period selects use and lets it shrink to the row,
+   and the trigger's text is cut with an ellipsis rather than wrapping the row. */
+.tflens-repo-picker {
+    width: 14rem;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.tflens-repo-picker ::deep [data-testid="repo-picker"] {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.tflens-repo-picker ::deep [data-testid="repo-picker"] > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

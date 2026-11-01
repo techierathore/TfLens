@@ -23,6 +23,8 @@
 @using TfLens.Core.Repos
 @implements IDisposable
 @inject IRepoListReader objRepoListReader
+@inject IMetricsEngine objMetricsEngine
+@inject ILogger<Repos> objLogger
 @inject ITelemetryStore objStore
 @inject IServiceProvider objServices
 @inject ShellState objShellState
@@ -181,11 +183,25 @@
                             </CellTemplate>
                         </DataTableColumn>
 
+                        @* REQ-UI-076 (owner UAT 2026-11-01) — "Kind" used to hold the framework. The
+                           framework now has its own column; Kind is the codebase type the repo declares. *@
                         <DataTableColumn TData="RepoListItem" TValue="string"
-                                         Property="@(aRow => aRow.Repo.Kind)" Header="Kind" Sortable>
+                                         Property="@(aRow => RepoLabels.FrameworkName(aRow.Repo.Framework))"
+                                         Header="Framework" Sortable>
                             <CellTemplate Context="vRow">
                                 @* The mockup draws the framework pill as `badge info` (repos.html). *@
-                                <Badge Variant="BadgeVariant.Info">@vRow.Repo.Kind</Badge>
+                                <Badge Variant="BadgeVariant.Info" data-testid="@($"repo-framework-{vRow.Repo.Name}")">
+                                    @RepoLabels.FrameworkName(vRow.Repo.Framework)
+                                </Badge>
+                            </CellTemplate>
+                        </DataTableColumn>
+
+                        <DataTableColumn TData="RepoListItem" TValue="string"
+                                         Property="@(aRow => KindOf(aRow))" Header="Kind" Sortable>
+                            <CellTemplate Context="vRow">
+                                <Badge Variant="BadgeVariant.Outline" data-testid="@($"repo-kind-{vRow.Repo.Name}")">
+                                    @KindOf(vRow)
+                                </Badge>
                             </CellTemplate>
                         </DataTableColumn>
 
@@ -332,6 +348,16 @@
     private IReadOnlyList<RepoListItem> objRows = [];
 
     /// <summary>
+    /// Each repository's declared project type, keyed by <c>owner/name</c> (REQ-UI-076).
+    /// </summary>
+    /// <remarks>
+    /// Read from the metrics engine's per-repo facts, which already resolve the newest declaration across
+    /// a repository's records. A repository missing from the map has no records that declare one yet.
+    /// </remarks>
+    private IReadOnlyDictionary<string, string?> objProjectTypes =
+        new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Records-per-day history behind the Records-synced tile's sparkline (REQ-UI-011).
     /// </summary>
     /// <remarks>
@@ -395,7 +421,7 @@
             return objRows
                 .Where(aRow =>
                     Contains(aRow.Repo.Repo, vNeedle)
-                    || Contains(aRow.Repo.Kind, vNeedle)
+                    || Contains(KindOf(aRow), vNeedle)
                     || Contains(aRow.Repo.Framework, vNeedle)
                     || Contains(aRow.Repo.Branch, vNeedle)
                     || Contains(SourceKinds.DisplayName(aRow.Repo.SourceKind), vNeedle)
@@ -412,6 +438,61 @@
     /// <returns>True when the field carries the needle.</returns>
     private static bool Contains(string? aValue, string aNeedle) =>
         aValue is not null && aValue.Contains(aNeedle, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The Kind cell for one row — the codebase type the repository declares (REQ-UI-076).
+    /// </summary>
+    /// <param name="aRow">The grid row.</param>
+    /// <returns>Application, Library, Framework or Docs; a dash when nothing is declared yet.</returns>
+    private string KindOf(RepoListItem aRow) =>
+        RepoLabels.KindName(objProjectTypes.GetValueOrDefault(aRow.Repo.Repo));
+
+    /// <summary>
+    /// Reads every listed repository's declared project type from the metrics engine.
+    /// </summary>
+    /// <param name="aUserId">The signed-in user; the engine reads only their records.</param>
+    /// <param name="aRows">The rows on the grid, whose frameworks decide which analyses are read.</param>
+    /// <returns>
+    /// <c>owner/name</c> → declared type, for repositories holding at least one gate, run, session or
+    /// commit record. A repository with none is left out, so its Kind reads as not declared rather than as
+    /// the engine's <c>app</c> fallback, which would be a claim no record makes.
+    /// </returns>
+    /// <remarks>
+    /// One analysis per framework that has a source on the grid; the engine caches each until the next sync.
+    /// A failed analysis leaves that framework's Kinds blank — the grid itself must still render.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<string, string?>> ReadProjectTypesAsync(
+        int aUserId,
+        IReadOnlyList<RepoListItem> aRows)
+    {
+        var vTypes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var vFramework in aRows.Select(aRow => aRow.Repo.Framework).Distinct())
+        {
+            try
+            {
+                var vAnalysis = await objMetricsEngine.AnalyseAsync(aUserId, vFramework);
+                foreach (var vFacts in vAnalysis.PerRepo.Where(HasStreamRecords))
+                {
+                    vTypes[vFacts.Repo] = vFacts.ProjectType;
+                }
+            }
+            catch (Exception vEx)
+            {
+                objLogger.LogWarning(vEx, "Repos: could not read project types for {Framework}", vFramework);
+            }
+        }
+
+        return vTypes;
+    }
+
+    /// <summary>
+    /// True when a repository holds any record that can declare a project type.
+    /// </summary>
+    /// <param name="aFacts">The repository's per-repo facts.</param>
+    /// <returns>True when it has a gate, run, session or commit record.</returns>
+    private static bool HasStreamRecords(PerRepoFacts aFacts) =>
+        aFacts.Gates + aFacts.Runs + aFacts.Sessions + aFacts.Commits > 0;
 
     /// <summary>Records what the user typed and re-renders the grid.</summary>
     /// <param name="aFilter">The new filter text.</param>
@@ -486,6 +567,7 @@
         }
 
         objRows = await objRepoListReader.ListWithCountsAsync(objUserId.Value);
+        objProjectTypes = await ReadProjectTypesAsync(objUserId.Value, objRows);
         await objShellState.RefreshAsync(objUserId.Value);
 
         // REQ-UI-011 — the Records-synced tile states a count of records, so its sparkline plots

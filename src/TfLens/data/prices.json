@@ -1007,9 +1007,9 @@
       "cache_write": 0
     },
     "minimax/minimax-m3.1-flash": {
-      "input": 0.15000000,
-      "output": 0.6000000,
-      "cache_read": 0.015000000,
+      "input": 0.075000000,
+      "output": 0.3000000,
+      "cache_read": 0.0075000000,
       "cache_write": 0
     },
     "mistralai/codestral-2508": {
@@ -1841,8 +1841,8 @@
       "cache_write": 0
     },
     "openai/gpt-oss-120b": {
-      "input": 0.017000000,
-      "output": 0.065000000,
+      "input": 0.014000000,
+      "output": 0.052000000,
       "cache_read": 0,
       "cache_write": 0
     },
@@ -2351,9 +2351,9 @@
       "cache_write": 0
     },
     "tencent/hy3": {
-      "input": 0.132000000,
-      "output": 0.528000000,
-      "cache_read": 0.033000000,
+      "input": 0.0825000000,
+      "output": 0.33000000,
+      "cache_read": 0.020625000000,
       "cache_write": 0
     },
     "tencent/hy3-preview": {
@@ -2363,9 +2363,9 @@
       "cache_write": 0
     },
     "tencent/hy4-preview": {
-      "input": 0.834000000,
-      "output": 2.501000000,
-      "cache_read": 0.042000000,
+      "input": 0.7506000000,
+      "output": 2.2509000000,
+      "cache_read": 0.0378000000,
       "cache_write": 0
     },
     "thedrummer/cydonia-24b-v4.1": {
@@ -2675,7 +2675,7 @@
       "cache_write": 0
     },
     "~deepseek/deepseek-v4-flash-latest": {
-      "input": 0.0434000000,
+      "input": 0.059000000,
       "output": 0.3000000,
       "cache_read": 0.035000000,
       "cache_write": 0

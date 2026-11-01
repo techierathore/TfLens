@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="sub">Last rendered: 2026-10-12</div>
+    <div class="sub">Last rendered: 2026-11-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -155,7 +155,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>TfLens-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -622,7 +622,7 @@ Other phases: <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href=
 <p><strong>Requirements:</strong> BRD-1, BRD-90, BRD-91, BRD-92, BRD-93, BRD-94 (deferred), BRD-95, BRD-96, BRD-97</p>
 <h3 id="f-repos-source-management-fetch-public-repos-or-import-metric-files"><a id="f-repos-source-management--fetch-public-repos-or-import-metric-files"></a>F-REPOS: Source management — fetch public repos, or import metric files<a class="anchor-link" href="#f-repos-source-management-fetch-public-repos-or-import-metric-files">#</a></h3>
 <p><strong>Personas:</strong> User, Owner · <strong>Phase:</strong> 1 (import mode: Phase 3) <em>(added 2026-08-26; amended 2026-08-28 — F-IMPORT folded in as a second mode of the same dialog rather than a separate screen, owner decision)</em></p>
-<p>TfLens is for anyone using the frameworks, so the sources to read are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected sources (owner/name, branch, kind, <strong>source</strong>, visibility, status, last sync or last import, per-stream record counts) with per-row <strong>Sync</strong> / <strong>Re-import</strong> and <strong>Remove</strong> actions and an <strong>Add source</strong> dialog.</p>
+<p>TfLens is for anyone using the frameworks, so the sources to read are <strong>managed in the app, per user</strong>, not in a config file. The <code>/repos</code> screen lists the signed-in user's connected sources (owner/name, branch, framework, kind, <strong>source</strong>, visibility, status, last sync or last import, per-stream counts) with per-row <strong>Sync</strong> / <strong>Re-import</strong> and <strong>Remove</strong> actions and an <strong>Add source</strong> dialog.</p>
 <p><strong>Two ways in, chosen in the dialog (amended 2026-08-28 — F-IMPORT).</strong> The first step of the dialog is a mode choice, and it is the demarcation the whole feature rests on:</p>
 <table>
 <thead><tr><th>Mode</th><th>For</th><th>How the data arrives</th><th>Row action</th><th>Poller</th></tr></thead>
@@ -927,7 +927,7 @@ Other phases: <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href=
 </li>
 <li><a id="brd-97"></a><strong>BRD-97</strong> — System shall read the AppManager connection from configuration only: <code>TfLensAppManagerBaseUrl</code>, <code>TfLensAppManagerAppId</code> (1), <code>TfLensAppManagerApiKey</code>, <code>TfLensAppManagerApiSecret</code>; the key and secret never appear in the repo, logs or UI. <em>(F-AUTH)</em>
 </li>
-<li><a id="brd-98"></a><strong>BRD-98</strong> — User can see their connected sources at <code>/repos</code> (owner/name, branch, kind, <strong>source</strong> — <code>Synced</code> or <code>Imported</code> — visibility badge, status, last sync <strong>or</strong> last import, per-stream counts) with per-row Sync <strong>or</strong> Re-import, and Remove. <em>(F-REPOS — amended 2026-08-28)</em>
+<li><a id="brd-98"></a><strong>BRD-98</strong> — User can see their connected sources at <code>/repos</code> (owner/name, branch, framework, kind, <strong>source</strong> — <code>Synced</code> or <code>Imported</code> — visibility, status, last sync <strong>or</strong> last import, per-stream counts) with per-row Sync <strong>or</strong> Re-import, and Remove. <em>(F-REPOS — amended 2026-08-28)</em>
 </li>
 <li><a id="brd-99"></a><strong>BRD-99</strong> — In <strong>Fetch via API</strong> mode, user can connect a repo by GitHub URL or <code>owner/name</code> (+ branch); system shall validate through the GitHub API that it exists, is public, and has the telemetry path for its kind, auto-detecting the kind. <em>(F-REPOS — amended 2026-08-28: this is now one of the dialog's two modes, BRD-131)</em>
 </li>

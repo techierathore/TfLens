@@ -277,7 +277,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   <main class="content"><div class="page" data-testid="misses-page">
   <div class="row between wrap" style="gap:16px">
    <div><h1>Misses &amp; rework</h1><p class="sub">Playbook axis — same four bands, same guards, different stream. The switch changes the data, never the layout or the rules</p></div>
-   <div class="row" style="gap:8px">
+   <div class="row wrap" style="gap:8px">
+    <button class="input row between" style="width:190px;height:36px;cursor:pointer" data-testid="repo-picker" title="Repository: All repos (default) · or one connected repo on this framework" onclick="alert('Opens the repo list: All repos (default), then each connected repo on this framework. Picking one re-computes every figure on this page from that repo\'s records only, and the choice carries to the other report pages.')"><span>All repos</span><svg class="i" style="float:none;margin:0;opacity:.5"><use href="#i-chevron-down"/></svg></button>
     <span class="badge outline">all history</span>
     <select class="input" style="width:190px;height:36px" data-testid="misses-period">
      <option selected>All history (default)</option><option>Last 7 days</option><option>Last 30 days</option><option>Last 90 days</option>

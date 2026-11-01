@@ -11,7 +11,7 @@
 
 | # | Username / Email | Password | Role / Permission | Created? | Notes |
 |---|------------------|----------|-------------------|----------|-------|
-| 1 | `TfLensDemo` — `tflensdemo@techierathore.com` | `TfLensDemo!23` | Manager (every TfLens user) — the demo/test account (BRD-96) | ✅ | AppManager `userId` 2. Login and `GET /UserSvc/profile` return `applicationRole: "Manager"`. If the owner rotates the password, update it here and run the restore command. |
+| 1 | `tflensdemo@techierathore.com` (display name TfLensDemo) | `TfLensDemo!23` | Manager (every TfLens user) — the demo/test account (BRD-96) | ✅ | AppManager `userId` 2. Login and `GET /UserSvc/profile` return `applicationRole: "Manager"`. If the owner rotates the password, update it here and run the restore command. |
 | 2 | `tflenstest2@techierathore.com` | `TfLensTest2!23` | Manager — second user for tenant-isolation tests (BRD-102) | ✅ | AppManager `userId` 3. Returns `applicationRole: "Manager"`. Connects a different public repo; must never see user 1's repos. |
 | 3 | *(anonymous)* | — | Unauthenticated visitor — may reach `/login`, `/register`, `/forgot-password`, `/reset-password`, `/healthz` only | n/a | Proves the redirect and the anonymous routes. |
 

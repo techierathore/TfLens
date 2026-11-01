@@ -37,8 +37,13 @@
         <div>
             <TypographyH2>Routing &amp; economics</TypographyH2>
             <TypographyMuted>@Subtitle</TypographyMuted>
+            <RepoScopeLine />
         </div>
-        <Badge Variant="BadgeVariant.Outline" data-testid="routing-framework">@objFramework</Badge>
+        <div class="flex flex-wrap items-center gap-2">
+            <Badge Variant="BadgeVariant.Outline" data-testid="routing-framework">@objFramework</Badge>
+            @* REQ-UI-077 — All repos, or one repo; every tab below is re-queried for the choice. *@
+            <RepoPicker />
+        </div>
     </div>
 
     @if (IsPlaybook)
@@ -47,7 +52,7 @@
            main-vs-subagent token split and the observed-model totals, or the Phase-3 empty state. The
            figures are read through IPlaybookReportBuilder, so no TechieFlow run record can reach this
            branch and the two axes cannot be pooled (SCHEMA.md §11). *@
-        <PlaybookState UserId="@objUserId">
+        <PlaybookState UserId="@objUserId" Repo="@objPreferences.Repo">
             <ChildContent Context="vAnalysis">
                 <PlaybookRoutingSurface Analysis="@vAnalysis" />
             </ChildContent>
@@ -769,6 +774,7 @@
     private int? objUserId;
     private string objFramework = FrameworkNames.TechieFlow;
     private string? objLoadedFramework;
+    private string? objLoadedRepo;
     private bool objIsPricesOpen;
     private bool objIsSavingPrices;
 
@@ -988,7 +994,7 @@
             return;
         }
 
-        if (objIsLoaded && objLoadedFramework == objFramework)
+        if (objIsLoaded && objLoadedFramework == objFramework && objLoadedRepo == objPreferences.Repo)
         {
             return;
         }
@@ -1017,15 +1023,17 @@
         try
         {
             objFramework = objPreferences.Framework;
-            objRouting = await objExtraMetrics.AnalyseRoutingAsync(objUserId.Value, objFramework);
+            var vRepo = objPreferences.Repo;
+            objRouting = await objExtraMetrics.AnalyseRoutingAsync(objUserId.Value, objFramework, vRepo);
 
             // The drift KPIs count RUN records, so the line plots runs per day — the same quantity.
             // The repricing cards get none: they are estimates from a rate card, and a trend line
             // under an estimate reads as measured movement (SCHEMA.md §4).
             objRunSeries = await objStore.ReadDailySeriesAsync(
-                objUserId.Value, objFramework, StreamKind.Runs);
-            objPooled = (await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework)).Pooled;
+                objUserId.Value, objFramework, StreamKind.Runs, aRepo: vRepo);
+            objPooled = (await objMetricsEngine.AnalyseAsync(objUserId.Value, objFramework, vRepo)).Pooled;
             objLoadedFramework = objFramework;
+            objLoadedRepo = vRepo;
         }
         catch (Exception vEx)
         {
@@ -1263,10 +1271,10 @@
         _ => Missing
     };
 
-    /// <summary>Re-queries when the Framework switch changes the axis.</summary>
+    /// <summary>Re-queries when the Framework switch changes the axis or the repo picker the repository (REQ-UI-077).</summary>
     private void OnPreferencesChanged() => InvokeAsync(async () =>
     {
-        if (objPreferences.Framework == objLoadedFramework)
+        if (objPreferences.Framework == objLoadedFramework && objPreferences.Repo == objLoadedRepo)
         {
             StateHasChanged();
             return;
