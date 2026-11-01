@@ -110,16 +110,47 @@ h1:focus {
     padding-bottom: 0;
 }
 
-.tflens-sb-title {
-    font-size: 15px;
-    letter-spacing: -0.01em;
+/* REQ-UI-075 / BRD-209 — the horizontal lockup (`.mark` + `.brand .word` in misses.html). The tile is the
+   mockup's `.mark`: a 32 x 32 / 8px box filled with the brand's #0284C7 (in both themes, never a theme
+   token — ADR-033) holding the approved white glyph, TfLens-appiconfg.svg, at full size. The wordmark is
+   58% of the tile's height (18.56px), TfLens-horizontal.svg's own proportion, 589:139 wide. The text title
+   and the subtitle are retired, so these replace `.tflens-sb-title` / `.tflens-sb-subtitle`. */
+.tflens-sb-mark {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #0284C7;
+    overflow: hidden;
+    flex: none;
 }
 
-/* `.brand span{font-size:11px}`. At the library's 12px the subtitle did not fit its 183px and was
-   ellipsised to "lens on TechieFlow & Playbo…"; at 11px it reads whole, as the mockup draws it. */
-.tflens-sb-subtitle {
-    font-size: 11px;
-    line-height: 1.5;
+    .tflens-sb-mark svg {
+        display: block;
+        width: 32px;
+        height: 32px;
+    }
+
+/* Light: TfLens-horizontal.svg (976 x 320) scaled by 78.65/589 so its wordmark region (x 340, y 46,
+   589 x 139) fills the box exactly — 130.33 x 42.73 px, offset -45.40 / -6.14 px. Dark: the white PNG. */
+.tflens-sb-wordmark {
+    display: block;
+    flex: none;
+    width: 78.65px;
+    height: 18.56px;
+    background-image: var(--tflens-wm-light);
+    background-repeat: no-repeat;
+    background-size: 130.33px 42.73px;
+    background-position: -45.40px -6.14px;
+}
+
+/* The dark theme swaps in the white wordmark, keyed off the `dark` class on <html> — a second image, never
+   a filter (ADR-033). The tile is the same in both themes. */
+.dark .tflens-sb-wordmark {
+    background-image: var(--tflens-wm-dark);
+    background-size: contain;
+    background-position: left center;
 }
 
 /* `.sb-body{padding:12px 8px;gap:16px}` with the groups themselves unpadded, so the items start 8px in
@@ -286,15 +317,26 @@ li:has(> [data-testid="nav-repo-count"]) {
     gap: 0.75rem;
 }
 
+/* REQ-UI-074 / BRD-208 — the mockup's `.mark` box: 34 x 34 with a 9px radius on a phone (`.brandp .word
+   .mark` in login.html's 767px block), 44 x 44 with 12px from 768px up, filled with the brand's #0284C7 in
+   both themes — never a theme token (ADR-033) — and holding the approved white glyph
+   (TfLens-appiconfg.svg) at the box's full size, as login.html's `.mark svg` does. */
 .auth-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #0284C7;
+    overflow: hidden;
     flex: none;
 }
+
+    .auth-mark svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
 
 .auth-wordmark {
     font-size: 2rem;
@@ -353,6 +395,12 @@ li:has(> [data-testid="nav-repo-count"]) {
 @media (min-width: 768px) {
     .auth-split {
         flex-direction: row;
+    }
+
+    .auth-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
     }
 
     .auth-brand {

@@ -113,14 +113,21 @@ test('REQ-UI-014 Coverage landing page states a verdict, four KPIs, and one card
     const hasSha = (await page.locator(`[data-testid="repo-sha-${name}"]`).count()) > 0;
     if (hasSha) {
       shaCards++;
-      const href = await shaLoc.evaluate(el => {
-        const a = el instanceof HTMLAnchorElement ? el : el.closest('a');
-        return a ? a.getAttribute('href') : null;
-      });
-      expect(href, `repo-sha-${name} is not inside an anchor`).not.toBeNull();
-      expect(href!, `repo-sha-${name} href`).toMatch(
-        /^https:\/\/github\.com\/[^/]+\/[^/]+\/commit\/.+/,
-      );
+      // ADR-022 — an imported source shows its bundle's sha256, which has no commit to open, so it is
+      // deliberately not a link. Only a fetched source's SHA must link to GitHub.
+      const shaText = (await shaLoc.innerText()).trim();
+      if (/^sha256\b/i.test(shaText)) {
+        expect(await shaLoc.evaluate(el => el.closest('a') === null), `imported repo-sha-${name} must not be a link`).toBe(true);
+      } else {
+        const href = await shaLoc.evaluate(el => {
+          const a = el instanceof HTMLAnchorElement ? el : el.closest('a');
+          return a ? a.getAttribute('href') : null;
+        });
+        expect(href, `repo-sha-${name} is not inside an anchor`).not.toBeNull();
+        expect(href!, `repo-sha-${name} href`).toMatch(
+          /^https:\/\/github\.com\/[^/]+\/[^/]+\/commit\/.+/,
+        );
+      }
       expect((await shaLoc.innerText()).trim().length, `repo-sha-${name} is blank`).toBeGreaterThan(0);
     } else {
       // A card may legitimately carry no SHA when the repo has no commit SHA recorded in

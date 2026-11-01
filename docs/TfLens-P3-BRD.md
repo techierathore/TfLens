@@ -10,7 +10,7 @@
 | Stack answer set | Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker |
 | Date | 2026-09-08 |
 
-**Phase 3 of 3 — misses, phase effort, the Playbook axis, imported sources.** Requirement ids: **BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181**. Ids run on across the three phases and are never reused or renumbered.
+**Phase 3 of 3 — misses, phase effort, the Playbook axis, imported sources.** Requirement ids: **BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181, BRD-189 to BRD-209**. Ids run on across the three phases and are never reused or renumbered.
 
 Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 2 — Reports](./TfLens-P2-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
 
@@ -223,18 +223,48 @@ and each is reported as absence with its denominator beside it.
 - <a id="brd-204"></a>**BRD-204** — A gate record with no `req_id` or no `verdict` shall be **listed as malformed and scored nowhere**, published as `gates_malformed_n`, `gates_malformed` and `per_repo[].gates_malformed`. *(F-ENGINE)*
 - <a id="brd-205"></a>**BRD-205** — An **import** shall record the session duplicates it collapsed, exactly as a fetched source's sync does, so `session_duplicates_collapsed` does not depend on how data arrived. *(F-IMPORT)*
 
+### Amendment 2026-11-01 — the approved brand mark reaches the app
+
+*Source: the owner's brand folder `3-Resources/Brand/logos/` (TfLens redone 26 October 2026: a T and an F sharing one stem, the F's lower arm ending in a lens; white on a sky-blue `#0284C7` tile; the wordmark set in Zekton) and the owner's instruction of 2026-11-01. Nothing is renumbered and nothing is removed. This is scope arriving after the brand was drawn, not a miss.*
+
+**What changes and what does not.** Three places show the product's mark today, and none of them shows the approved one: the head of every page has no icon at all (every Playwright test filters a `favicon` 404 out of the console errors it checks, which is the evidence); the sign-in brand panel and the sidebar head both draw the Lucide `aperture` icon in a box that takes the theme's primary colour, near-black in the light theme and light grey in the dark, so the box has never been the brand colour in either. This amendment replaces the mark in those three places and does nothing else: **no other screen, colour or spacing changes, and every existing screen test still passes.** Each place is its own requirement with a visual check against a screenshot at 1280 and at 390 wide.
+
+**The files.** Six approved files are copied into the repository byte for byte; two bitmaps for the head are made from the tile. All are served from the plain path `/brand/<file>` (ADR-033).
+
+| File | What it is | Size | SHA-256 of the source |
+|---|---|---|---|
+| `TfLens-appicon.svg` | the white glyph on its `#0284C7` tile | 1024 × 1024 box | `967c70a1951086da34b84e5ff9f680936b8b1ca1427265ee184dcaaadeb2d144` |
+| `TfLens-appiconfg.svg` | the glyph alone, transparent | 1024 × 1024 box | `65567537498ce378ee88dfa9ba4ee224e2ddf69fa322db4d21dbf97ce8dfff2d` |
+| `TfLens-horizontal.svg` | tile and wordmark side by side | 976 × 320 box | `a61d5558f76a81e417c5833e2a518284dbe1fe973939d8ad9f0ecfcf47a10d79` |
+| `TfLens-horizontal.png` | the same, as a bitmap | 977 × 320 | `6c071c6c67995eedd361d2c18a6882fe9eadca923222b56e331a8f5da10c4cfb` |
+| `TfLens-wordmark-white.png` | the wordmark for dark panels | 829 × 198 | `65725034af2fa50ef1ff444063c29f90a6d7082fc2b223bbaeadc27a709ac432` |
+| `TfLens.png` | the tile | 1024 × 1024 | `602ae1da9ccb60f46651cbbb659c925faab037070fa1cef84ad517469525beef` |
+| `favicon-32.png` | made from `TfLens.png` at build time | 32 × 32 | — (derived, checked by its size) |
+| `apple-touch-icon.png` | made from `TfLens.png` at build time | 180 × 180 | — (derived, checked by its size) |
+
+- <a id="brd-206"></a>**BRD-206** — System shall carry the approved TfLens brand files in the repository under `src/TfLens/wwwroot/brand/`, copied **byte for byte** from the brand folder: `TfLens-appicon.svg`, `TfLens-appiconfg.svg`, `TfLens-horizontal.svg`, `TfLens-horizontal.png`, `TfLens-wordmark-white.png` and `TfLens.png`, each with the SHA-256 in the table above; beside them `favicon-32.png` (32 × 32) and `apple-touch-icon.png` (180 × 180), both made from `TfLens.png` and from nothing else. No file is altered, recoloured, cropped or re-exported, and no screen draws the mark from any other source. The files are served at the plain path `/brand/<file>`, with no fingerprint in the name, because a share scraper and a home-screen icon cache an image by its URL and these files change only when the brand does (ADR-033). *(F-SHELL)*
+  - *Acceptance:* When the build runs, then each copied brand file's SHA-256 equals the table's value and the two derived PNGs measure 32 × 32 and 180 × 180.
+- <a id="brd-207"></a>**BRD-207** — User can see the TfLens mark as the site icon on every page, signed in or not. The head of the host page (`App.razor`, so every route — the four anonymous screens, every report, the error page) links `TfLens-appicon.svg` as the `rel="icon"` of type `image/svg+xml`, `favicon-32.png` as the 32 × 32 `rel="icon"`, and `apple-touch-icon.png` as `rel="apple-touch-icon"`. The document title is **TfLens** by default; a page that already names itself ("Phase effort · TfLens") keeps its own title. A shared link shows the mark: `og:title` **TfLens**, `og:type` `website`, `og:description` "A read-only lens over TechieFlow and AI-First-Playbook telemetry", `og:image` the **absolute** URL of `/brand/TfLens.png` with `og:image:width` and `og:image:height` `1024`, `twitter:card` `summary` and `twitter:image` the same URL. The absolute URL is built from the request's scheme and host, never from a configured constant, so it is right behind the reverse proxy and on localhost alike. *(F-SHELL)*
+  - *Acceptance:* When a visitor opens any page at 1280 or 390, then the head links the three icons and the share image, each answers 200, and the title reads TfLens.
+- <a id="brd-208"></a>**BRD-208** — User can see, in the brand panel of every anonymous screen (sign in, register, forgot password, reset password — one layout, `AuthLayout.razor`), the TfLens glyph on its `#0284C7` tile where the `aperture` icon is today: the **same box** — 44 × 44 with a 12 px corner radius at 1280 wide, 34 × 34 with 9 px at 390 wide — with its colour **fixed at `#0284C7` in both themes** instead of the theme's primary colour. The box is `TfLens-appicon.svg` itself (the glyph sits in the tile's central two thirds by construction) and carries `data-testid="brand-mark"`. The wordmark **TfLens** beside it stays as text in the current font, size and weight; the tagline, the four benefit lines, the footer line and the theme toggle do not move by a pixel. *(F-AUTH, F-UI)*
+  - *Acceptance:* When a visitor opens /login at 1280 and 390 in either theme, then the brand mark is the sky-blue tile with the white glyph and nothing else moved.
+- <a id="brd-209"></a>**BRD-209** — User can see, at the top left of every signed-in screen (`MainLayout.razor`, the sidebar head), the TfLens horizontal lockup in place of the `aperture` box, the text title and the subtitle: the tile in the **32 × 32 / 8 px box** the `aperture` box has today, the wordmark beside it in the lockup's own proportions (`TfLens-horizontal.svg`: the wordmark is 58 % of the tile's height), so the head reads as the approved horizontal logo while the head stays **64 px** tall and its rule, its padding and the sidebar's width do not change. In the dark theme the wordmark is the white one (`TfLens-wordmark-white.png`), in the light theme the sky-blue one, chosen by the `dark` class on `<html>` and never by a colour filter; the tile is the same in both. With the sidebar collapsed to its 56 px icon rail the tile alone shows, as the `aperture` box does today, and the phone menu renders the same head. `data-testid="brand-mark"` on the tile, `data-testid="brand-wordmark"` on the wordmark. **The subtitle "lens on TechieFlow & Playbook" is retired from the head:** the lockup carries the name and a 64 px head has no room for a second line under a 32 px tile — a choice taken in this amendment under goal mode; one line from the owner puts it back beneath the lockup. *(F-SHELL)*
+  - *Acceptance:* When a signed-in user opens a report page at 1280 and 390 in both themes, then the sidebar head shows the lockup, readable in each, and every test passes.
+
+**Two choices taken here that the owner may reverse with one line.** (1) Pages that already set "<page> · TfLens" keep that title; only a page with no title of its own reads plain **TfLens**. (2) The sidebar subtitle is retired (BRD-209). Neither changes a figure.
+
 ## 4. Development status
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-10-12.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+**Snapshot as of 2026-11-01.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
-| UI / Pages | 12 | 12 | 0 | Done |
-| Functional requirements | 50 | 50 | 0 | Done |
-| Non-functional | 11 | 11 | 0 | Done |
-| Other | 13 | 13 | 0 | Done |
+| UI / Pages | 15 | 15 | 0 | Done |
+| Functional requirements | 50 | 45 | 5 | Partial |
+| Non-functional | 12 | 12 | 0 | Done |
+| Other | 13 | 12 | 1 | Partial |
 | Misses & rework | 2 | 2 | 0 | Done |
 | Gate outcomes | 1 | 1 | 0 | Done |
 | Repos | 1 | 1 | 0 | Done |

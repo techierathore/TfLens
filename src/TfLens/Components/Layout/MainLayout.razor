@@ -12,23 +12,39 @@
 @inject ShellState objShellState
 @inject ShellPreferences objPreferences
 
+<PageTitle>@BrandMark.Title</PageTitle>
+
 <SidebarProvider DefaultOpen="true" HeightClass="h-screen" CookieKey="@SidebarPreference.CookieName">
     @*
         Fix cycle 1, 2026-09-11 — the sidebar is drawn to docs/mockups/misses.html (`.sb-head`, `.sb-body`,
         `.grp-label`, `.sb-foot`). The `tflens-sb-*` hooks carry the few measurements the library's own
-        classes set differently (a 64px head ruled off below, 11px brand subtitle that fits un-ellipsised,
-        a compact group caption, a footer ruled off above); the rules live in app.css because the phone
+        classes set differently (a 64px head ruled off below carrying the brand lockup, a compact group caption, a footer ruled off above); the rules live in app.css because the phone
         menu renders these same parts inside the PortalHost, which no scoped stylesheet here can reach.
     *@
     <Sidebar Collapsible="true" data-testid="app-sidebar">
-        <SidebarHeader Class="tflens-sb-head border-b border-sidebar-border">
+        <SidebarHeader Class="tflens-sb-head border-b border-sidebar-border" data-testid="brand-head">
             <SidebarHeaderContent>
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <LucideIcon Name="aperture" Size="18" />
+                @*
+                    REQ-UI-075 / BRD-209 — the approved horizontal lockup in the 64px head: the tile in the
+                    32 x 32 / 8px box the `aperture` box had, the wordmark beside it at 58% of the tile's
+                    height (TfLens-horizontal.svg's own proportion). The light wordmark is the sky-blue one,
+                    the wordmark region of TfLens-horizontal.svg shown as a positioned background (the brand ships
+                    no stand-alone sky-blue wordmark); the dark one is TfLens-wordmark-white.png. `html.dark`
+                    picks between them in app.css — never a colour filter. SidebarHeaderInfo is what the
+                    icon rail hides, so the tile alone shows when collapsed. The subtitle is retired.
+                *@
+                <div class="tflens-sb-mark" data-testid="brand-mark" role="img" aria-label="@BrandMark.Title">
+                    <svg viewBox="0 0 1024 1024" aria-hidden="true" focusable="false">
+                        <image href="@BrandMark.GlyphSvg" width="1024" height="1024" />
+                    </svg>
                 </div>
                 <SidebarHeaderInfo>
-                    <span class="tflens-sb-title truncate font-semibold">TfLens</span>
-                    <span class="tflens-sb-subtitle truncate text-muted-foreground">lens on TechieFlow &amp; Playbook</span>
+                    @* One box in the mockup's 589 × 139 frame (78.65 × 18.56 px), drawn as a CSS background so it
+                       holds no child image: light shows the wordmark region of TfLens-horizontal.svg, dark the
+                       white PNG, switched by `html.dark` in app.css — a second file, never a colour filter.
+                       The paths come from BrandMark, so no screen names a brand file twice. *@
+                    <span class="tflens-sb-wordmark" data-testid="brand-wordmark" role="img" aria-label="@BrandMark.Title"
+                          style="--tflens-wm-light: url('@BrandMark.HorizontalSvg'); --tflens-wm-dark: url('@BrandMark.WordmarkWhitePng');"></span>
                 </SidebarHeaderInfo>
             </SidebarHeaderContent>
         </SidebarHeader>

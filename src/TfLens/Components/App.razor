@@ -7,6 +7,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    @* REQ-UI-073 / BRD-207 — the approved mark as the site icon on every route, and the share card a pasted
+       link unfurls into. The files are served at the plain /brand/ path, NOT through `Assets`: a share
+       scraper and a home-screen icon cache an image by its URL, so a fingerprint would only orphan them
+       (ADR-033). The default title lives in the two layouts (`<PageTitle>TfLens</PageTitle>`) so a page
+       that names itself still wins. *@
+    <link rel="icon" type="image/svg+xml" href="@BrandMark.TileSvg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="@BrandMark.Favicon32Png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="@BrandMark.AppleTouchIconPng" />
+    <meta property="og:title" content="@BrandMark.Title" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="@BrandMark.Description" />
+    <meta property="og:image" content="@ShareImageUrl" />
+    <meta property="og:image:width" content="@BrandMark.SharePngSize" />
+    <meta property="og:image:height" content="@BrandMark.SharePngSize" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="@ShareImageUrl" />
     <ResourcePreloader />
     @* REQ-NFR-015 — every stylesheet and script this document declares goes through `Assets`, which
        `MapStaticAssets` resolves to a content-fingerprinted url. A rebuilt file gets a new url, so a
@@ -45,4 +61,22 @@
         objHttpContextAccessor.HttpContext?.Request.Cookies[ThemeState.CookieName] == ThemeState.Light
             ? string.Empty
             : ThemeState.Dark;
+
+    /// <summary>
+    /// The absolute URL of the share image, built from the request being answered (BRD-207).
+    /// </summary>
+    /// <remarks>
+    /// The host page is static-rendered, so the request is always present here; the root-relative path is
+    /// only a fallback for a render with no request at all, which a share scraper never sees.
+    /// </remarks>
+    private string ShareImageUrl
+    {
+        get
+        {
+            var vRequest = objHttpContextAccessor.HttpContext?.Request;
+            return vRequest is null || !vRequest.Host.HasValue
+                ? BrandMark.SharePng
+                : BrandMark.ShareImageUrl(vRequest.Scheme, vRequest.Host.Value!, vRequest.PathBase.Value);
+        }
+    }
 }

@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Status</h1>
-    <div class="sub">Last rendered: 2026-10-12</div>
+    <div class="sub">Last rendered: 2026-11-01</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#where-i-am">Where I am</a></li>
@@ -121,18 +121,18 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Status</h1>
-    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>PROJECT-STATUS.md</code></div>
+    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>PROJECT-STATUS.md</code></div>
     <div class="cta-next" style="padding:20px; background:var(--cta-bg); border:2px solid var(--accent); border-radius:10px; margin:20px 0;">
       <div style="font-size:11px; color:var(--muted); letter-spacing:.5px;">NEXT COMMAND TO RUN</div>
-      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *handoff-phase TfLens</div>
+      <div style="font-family:var(--mono); font-size:18px; margin-top:6px;">/TechieFlow:agents:flow-master *build-phase TfLens</div>
     </div>
 <table>
 <tbody>
 <tr><th>project</th><td>TfLens</td></tr>
-<tr><th>last_updated</th><td>2026-10-12</td></tr>
-<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Handoff — 90 of 90 verified, 31 not applicable</td></tr>
+<tr><th>last_updated</th><td>2026-11-01</td></tr>
+<tr><th>current_phase</th><td>Phase 3 of 3 (Depth) · Build — 1 to fix, 88 of 94 verified, 31 not applicable</td></tr>
 <tr><th>last_verified_build</th><td>PASS</td></tr>
-<tr><th>last_verified_date</th><td>2026-10-12</td></tr>
+<tr><th>last_verified_date</th><td>2026-11-01</td></tr>
 </tbody>
 </table>
     <div class="toc-inline">
@@ -149,13 +149,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
       </ol>
     </div>
 <h2 id="where-i-am">Where I am<a class="anchor-link" href="#where-i-am">#</a></h2>
-<p>Phase 3 of 3 (Depth), ready for the owner's UAT on 2026-10-17. Four imported public repositories match their files on runs, misses and gate outcomes. The full export agrees with tf-metrics.sh (parity P-004, parser 1.3.0), so /export reads QUOTABLE. Eight defects were fixed and verified: REQ-FN-143..146, plus REQ-UI-001 and REQ-FN-021. 1,010 unit tests pass. TfLens runs on http://localhost:5099 with six sources for user 1.</p>
+<p>Phase 3 of 3 (Depth). The four brand rows (REQ-NFR-026, REQ-UI-073 to REQ-UI-075) are built and Verified. The full phase-3 regrade leaves 88 of 94 verified, 31 not applicable. REQ-UI-072 fails mockup parity only, on a parity-tool false reading (TF-056). Five Playbook and import rows were not measured, because today's data holds no state their tests can read. The owner's five UAT decisions remain open.</p>
 <h2 id="next-command-to-run">Next command to run<a class="anchor-link" href="#next-command-to-run">#</a></h2>
 <p>Claude Code:</p>
-<pre><code>/TechieFlow:agents:flow-master *handoff-phase TfLens</code></pre>
+<pre><code>/TechieFlow:agents:flow-master *build-phase TfLens</code></pre>
 <p>OpenCode:</p>
-<pre><code>/flow-master *handoff-phase TfLens</code></pre>
-<p>Before that, the owner runs the smoke checklist in docs/TfLens-UsageGuide.md and takes the five decisions in docs/TfLens-UAT-Readiness-2026-10-12.md.</p>
+<pre><code>/flow-master *build-phase TfLens</code></pre>
+<p>Why: 1 rows carry a defect (⚠ in Remarks) that a fix must clear before a verify: REQ-UI-072; working docs/TfLens-P3-Checklist.md.</p>
 <h2 id="open-requirements">Open requirements<a class="anchor-link" href="#open-requirements">#</a></h2>
 <table>
 <thead><tr><th>Status</th><th>Count</th></tr></thead>
@@ -163,21 +163,33 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Not Started</td><td>0</td></tr>
 <tr><td>In Progress</td><td>0</td></tr>
 <tr><td>Implemented</td><td>0</td></tr>
-<tr><td>Needs re-verify</td><td>0</td></tr>
+<tr><td>Needs re-verify</td><td>6</td></tr>
 <tr><td>Blocked</td><td>0</td></tr>
 </tbody>
 </table>
 <ul>
-<li>None
+<li>[ ] REQ-FN-065 — events.ndjson<code> fetch, archive and </code>PbEvent` tables (BRD-73, Phase 3) (Needs re-verify)
+</li>
+<li>[ ] REQ-FN-068 — Schema discovery recorded in DECISIONS.md before columns are fixed (BRD-76, Phase 3) (Needs re-verify)
+</li>
+<li>[ ] REQ-FN-069 — Schema-v1 Playbook repos reuse parser, engine and pages (BRD-109, Phase 3) (Needs re-verify)
+</li>
+<li>[ ] REQ-FN-084 — Bundle sha256 as dataset identity wherever a commit SHA is used, incl. parity pinning (BRD-134, BRD-70, Phase 3) (Needs re-verify)
+</li>
+<li>[ ] REQ-FN-104 — Cross-edition axes preserved — <code>ItemId</code> beside <code>ReqId</code>, <code>FoundPhaseGate</code> beside <code>FoundGate</code>; the second pair never shares a column or a chart (BRD-165, Phase 3) (Needs re-verify)
+</li>
+<li>[ ] REQ-UI-072 — Price providers screen: each provider's rates, source page and last-checked date; endpoint-read and hand-typed rates labelled differently (Needs re-verify)
 </li>
 </ul>
 <h2 id="known-blockers">Known blockers<a class="anchor-link" href="#known-blockers">#</a></h2>
 <ul>
-<li>Phase 2: REQ-UI-023, REQ-UI-027, REQ-UI-029, REQ-UI-032, REQ-UI-033 are Needs re-verify on mockup parity only; every test passes.
+<li>REQ-UI-072: its only failure is TF-056, a parity-tool false reading of a translucent mockup tint. Every other check passes. The app was not recoloured to suit the tool.
 </li>
-<li>REQ-UI-023 and REQ-UI-033 are held partly by two parity-tool false positives, TF-053 and TF-054 (filed).
+<li>REQ-FN-065, 068, 069, 104: not measured. They need a connected public Playbook repo that emits these streams, which only the owner can provide.
 </li>
-<li>REQ-UI-027/029: the drift table pages 566 rows and the mockup draws no pager — owner decision.
+<li>REQ-FN-084: not measured. No imported TechieFlow source exists now, and its test does not seed one.
+</li>
+<li>Phase 1/2: REQ-UI-032 test compares a 2026-10-12 parity record to re-synced data; REQ-NFR-019 test needs a Release build.
 </li>
 <li>Chatur, created by an import, is badged <code>private</code> on Repos although it is public — owner decision.
 </li>
@@ -189,25 +201,25 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <table>
 <thead><tr><th>Date</th><th>Phase</th><th>Result</th><th>Status table</th></tr></thead>
 <tbody>
-<tr><td>2026-09-15</td><td>log-miss</td><td>115/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
-<tr><td>2026-09-15</td><td>verify-phase</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>fix-issues</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-09-15</td><td>log-miss</td><td>117/117 Verified</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 <tr><td>2026-10-12</td><td>fix-issues</td><td>90/90 Verified, 31 N/A</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-11-01</td><td>amend-docs</td><td>90/94 Verified, 31 N/A</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
+<tr><td>2026-11-01</td><td>build-phase</td><td>88/94 Verified, 31 N/A</td><td>docs/TfLens-P3-Checklist.md#requirements-status</td></tr>
 </tbody>
 </table>
 <h2 id="library-feedback-summary">Library feedback summary<a class="anchor-link" href="#library-feedback-summary">#</a></h2>
 <ul>
 <li>AppManager: 0 open · 2 closed — docs/TfLens-AppManager-Feedback.md
 </li>
-<li>TechieFlow: 2 open · 16 fixed upstream, not yet re-checked (TF-018, TF-021, TF-020 …) · 36 closed — docs/TfLens-TechieFlow-Feedback.md
+<li>TechieFlow: 2 open · 18 fixed upstream, not yet re-checked (TF-018, TF-021, TF-020 …) · 36 closed — docs/TfLens-TechieFlow-Feedback.md
 </li>
 <li>TrBlazeUI: 0 open · 38 closed — docs/TfLens-TrBlazeUI-Feedback.md
 </li>
 </ul>
 <h2 id="standards-compliance">Standards compliance<a class="anchor-link" href="#standards-compliance">#</a></h2>
 <ul>
-<li>Last check 2026-10-12: 0 findings, see the checklist Remarks.
+<li>Last check 2026-11-01: 0 findings, see the checklist Remarks.
 </li>
 </ul>
 <h2 id="deferred-future"><a id="deferred--future"></a>Deferred / future<a class="anchor-link" href="#deferred-future">#</a></h2>
@@ -217,6 +229,10 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <li>Show an imported source as public when GitHub says it is public (Chatur).
 </li>
 <li>Draw the drift-table pager in docs/mockups/routing.html, or decide it should not page.
+</li>
+<li>Put the sidebar subtitle back beneath the lockup if the owner wants it (BRD-209 retired it).
+</li>
+<li>Make the REQ-FN-084 test seed its own imported TechieFlow source, so it never depends on another spec's leftovers.
 </li>
 </ul>
   </main>

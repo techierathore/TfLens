@@ -402,7 +402,7 @@
                             <DataTableColumn TData="PhaseTableRow" TValue="string"
                                              Property="@(aRow => aRow.Cmd)" Header="Command phase">
                                 <CellTemplate Context="vRow">
-                                    <span class="font-mono" data-testid="@($"phase-cmd-{vRow.Key}")">@vRow.Cmd</span>
+                                    <span class="@PhaseCmdClass(vRow.Cmd)" data-testid="@($"phase-cmd-{vRow.Key}")">@vRow.Cmd</span>
                                 </CellTemplate>
                             </DataTableColumn>
                             <DataTableColumn TData="PhaseTableRow" TValue="int"
@@ -1703,6 +1703,20 @@
     /// <param name="aValue">The count.</param>
     /// <returns>The grouped number.</returns>
     private static string CountText(long aValue) => aValue.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>The longest command name that is still held on one line in the phase table.</summary>
+    private const int MaxOneLineCmdLength = 20;
+
+    /// <summary>
+    /// Chooses the class for a command-phase identifier (REQ-UI-046/047). A command up to
+    /// <see cref="MaxOneLineCmdLength"/> characters keeps the mockup's one-line rule; a longer one
+    /// (e.g. <c>facilitate-brainstorming-session</c>) may wrap at its hyphens, because held on one
+    /// line it pushes the Fan-out column behind a horizontal scroll at 1280.
+    /// </summary>
+    /// <param name="aCmd">The command name as stored.</param>
+    /// <returns>The CSS class list for the identifier span.</returns>
+    private static string PhaseCmdClass(string aCmd) =>
+        aCmd.Length > MaxOneLineCmdLength ? "font-mono tflens-long-id" : "font-mono";
 
     /// <summary>
     /// Renders a token count in the approved design's compact notation — <c>24.2M</c>, <c>62k</c>.

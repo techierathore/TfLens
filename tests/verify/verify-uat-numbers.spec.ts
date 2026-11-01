@@ -231,5 +231,6 @@ test('REQ-NFR-020 a structural difference from the approved mockup fails the par
   expect(run.status, 'a planted structural difference must fail the gate').toBe(5);
   const findings = JSON.parse(fs.readFileSync(out, 'utf-8')).screens[0].findings
     .filter((f: any) => f.key === 'harness-claude-code-runs > span[0]' && f.class === 'missing');
-  expect(findings.map((f: any) => f.width).sort()).toEqual([1280, 390]);
+  // The gate grades light AND dark (each width reports once per theme), so compare the widths it failed at.
+  expect([...new Set(findings.map((f: any) => f.width))].sort()).toEqual([1280, 390]);
 });

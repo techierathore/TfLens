@@ -149,15 +149,19 @@ test('the whose-gap band reads against the eligible misses and states the rest a
   expect(vEligible).toBeGreaterThanOrEqual(PROBE_ELIGIBLE);
   expect(vSorted).toBeLessThan(vEligible);
 
-  // The rule the denominator has to obey: it is the misses ELIGIBLE to carry the field, never all of
-  // them. The estate holds ~200 records from before 2026-09-07, so a denominator over every miss would
-  // be two orders of magnitude larger than this one.
-  expect(vEligible).toBeLessThan(100);
-
   // REQ-FN-107 — the records from before the field are stated in those words, apart, and are never
   // pooled into the unsorted count above.
-  const vPredates = ((await (await testid(page, 'miss-sort-predates')).innerText()) || '').trim();
+  const vPredates = ((await (await testid(page, 'miss-sort-predates')).innerText()) || '').replace(/\s+/g, ' ').trim();
   expect(vPredates.toLowerCase()).toContain('predate');
+
+  // The rule the denominator has to obey: it is the misses ELIGIBLE to carry the field, never all of
+  // them. Read against the page's own statement rather than a fixed ceiling — the estate grows (the
+  // old `< 100` bound read 766 on 2026-11-01): the stated denominator is the eligible count, and the
+  // pre-field records it names are a positive number held outside it.
+  const vStated = vPredates.match(/denominator is (\d+)\.?\s+(\d+) misses? predates?/i);
+  expect(vStated, `expected "denominator is N. P misses predate", got "${vPredates}"`).not.toBeNull();
+  expect(Number(vStated![1])).toBe(vEligible);
+  expect(Number(vStated![2])).toBeGreaterThan(0);
   const vPredatesN = Number((vPredates.match(/(\d+)\s+miss(?:es)?\s+predates?/) ?? [])[1] ?? 0);
   expect(vPredatesN).toBeGreaterThanOrEqual(2);
 

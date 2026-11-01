@@ -60,13 +60,23 @@ test.describe('price providers', () => {
 
     const rows = tid(page, 'prices-table-anthropic').locator('tbody tr');
     await expect(rows).toHaveCount(5);
-    await expect(tid(page, 'prices-provider-anthropic')).toContainText('5 of 10 rates shown');
+    // The card states its own total; the rate card grows as models ship (10 → 11 by 2026-11-01), so
+    // the page count is derived from that statement, never hardcoded.
+    const provider = tid(page, 'prices-provider-anthropic');
+    await expect(provider).toContainText(/5 of \d+ rates shown/);
+    const total = Number(((await provider.innerText()).match(/5 of (\d+) rates shown/) ?? [])[1]);
+    expect(total, 'a paged list needs more than five rates').toBeGreaterThan(5);
+    const pages = Math.ceil(total / 5);
+    await expect(provider).toContainText(`page 1 of ${pages}`);
     await expect(tid(page, 'prices-page-prev-anthropic')).toBeDisabled();
 
-    const first = await rows.first().innerText();
-    await tid(page, 'prices-page-next-anthropic').click();
-    await expect(rows.first()).not.toHaveText(first);
-    await expect(tid(page, 'prices-provider-anthropic')).toContainText('page 2 of 2');
+    for (let p = 2; p <= pages; p++) {
+      const first = await rows.first().innerText();
+      await tid(page, 'prices-page-next-anthropic').click();
+      await expect(rows.first()).not.toHaveText(first);
+      await expect(provider).toContainText(`page ${p} of ${pages}`);
+    }
+    await expect(rows).toHaveCount(total - (pages - 1) * 5);
     await expect(tid(page, 'prices-page-next-anthropic')).toBeDisabled();
   });
 

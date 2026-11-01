@@ -25,13 +25,21 @@
     go through the static-web-assets manifest. Do not move these rules back into a scoped file.
 *@
 
+<PageTitle>@BrandMark.Title</PageTitle>
+
 <div class="auth-split">
     <aside class="auth-brand bg-sidebar" data-testid="auth-brand-panel">
         <div>
             <div class="auth-word">
-                <span class="auth-mark bg-primary text-primary-foreground">
-                    <LucideIcon Name="aperture" Size="24" />
-                </span>
+                @* REQ-UI-074 / BRD-208 — the glyph on its #0284C7 tile, in the box the `aperture` icon had and
+                   in the mockup's structure (a `.mark` box holding the glyph svg). The glyph is the approved
+                   TfLens-appiconfg.svg; the tile colour is the brand's in both themes, never the theme's
+                   primary. Decorative: the word beside it names the product. *@
+                <div class="auth-mark" data-testid="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 1024 1024" focusable="false">
+                        <image href="@BrandMark.GlyphSvg" width="1024" height="1024" />
+                    </svg>
+                </div>
                 <span class="auth-wordmark">TfLens</span>
             </div>
 

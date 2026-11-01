@@ -48,6 +48,15 @@ export async function gotoScreen(page: Page, route: string) {
   await page.waitForLoadState('networkidle').catch(() => {});
   // Blazor Server: give the circuit a beat to swap skeletons for data.
   await page.waitForTimeout(1500);
+  // A report that computes at request time can take longer than that fixed beat (/misses measured
+  // 3.2 s on 2026-11-01), and a check run against the loading skeleton reads "absent". Wait until
+  // no TrBlazeUI <Skeleton> (animate-pulse) is left in <main>; a page that keeps one forever just
+  // falls through after the bound.
+  await page.waitForFunction(
+    () => document.querySelectorAll('main .animate-pulse').length === 0,
+    undefined,
+    { timeout: 30_000 },
+  ).catch(() => {});
 }
 
 /**

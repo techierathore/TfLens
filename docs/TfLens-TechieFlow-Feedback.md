@@ -4,7 +4,7 @@
 |---|---|
 | App | TfLens |
 | Upstream | TechieFlow |
-| Updated | 2026-09-15 |
+| Updated | 2026-11-01 |
 
 Defects found in the **TechieFlow framework itself** (`.tfcore/`) while building TfLens. That directory
 is owned and maintained by the TechieFlow team and is gitignored here — `update-framework.sh` overwrites
@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 54 entries: none open, 18 fixed upstream and waiting to be re-checked here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-054), 36 closed. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 56 entries: 2 filed, not blocking (TF-055, TF-056), 18 fixed upstream awaiting re-check here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-054), 36 closed. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -141,6 +141,17 @@ that grew a legal move as a result.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-11-01)
+
+**TF-055 and TF-056 are fixed in the framework.** Nothing is blocked. They ship in **TechieFlow v1.2.4**, the release after v1.2.3, and are not in this repository's `.tfcore/` until that release is installed. Cases `tf_055` and `tf_056` in `tests/regression/run.sh`, each failing against the v1.2.3 script and passing now.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-055** | `tf-doc-check.py`'s baseline now treats a section or entry size finding the way it treats a whole-document one: the same finding with a count no larger than the baseline's is OLD. The count is read after "is", so a number in the section's name is not taken for it. A section that grows past its baseline count still FAILs. Case `tf_055`: 200 → 190 words is OLD, 230 FAILs. | After the framework update, cut the "Design system (TrBlazeUI)" section of `docs/TfLens-UIDesign.md` below 895 words and run `bash .tfcore/utils/tf-doc-check.sh --app TfLens`. Expect `OLD`, not `FAIL`. |
+| **TF-056** | `tf-mockup-parity.mjs` now blends a colour under 99 % opacity over what is painted behind it (each translucent layer, down to the first opaque background, white if none) before it buckets it, as you suggested. Text is blended over its own element's background. The mockup's `rgba(59,130,246,.08)` on a white card becomes `rgb(240,246,255)`, `neutral`, the same bucket as the app's opaque `oklch(0.965 0.03 250)`. A strong translucent colour (`rgba(220,38,38,.9)`) is still graded by its hue. Case `tf_056`: v1.2.3 gives `mockup accent, app neutral` on the pale note; now there is no finding on it, and a strong red against an opaque blue is still a difference. Measured on the mockups of 12 projects: anchored colours change bucket only in Chatur (146 of 4,366), AppManager (42 of 334), TfLens (30 of 920) and TrBlazeUI (14 of 1,970), all pale translucent tints that were read at full strength; the other 8 are unchanged. Your last `parity.json` held 4 colour findings, all this one (`prices-standing-note`, `prices-kind-openrouter`, light, 1280 and 390). | After the framework update, run your repro: `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen prices=/prices …`. Expect no `semantic colour differs` on `prices-standing-note` or `prices-kind-openrouter`, then re-grade REQ-UI-072 with a normal `*verify`. |
 
 ---
 
@@ -3376,3 +3387,33 @@ cases; `tf-verify-screens`'s visual check, which passed `/export` on the same ru
 
 **What is NOT affected.** Lucide and other glyph icons (still counted, and a missing one inside an anchored region is
 still caught — proved 2026-10-12 by a planted badge, which the gate reported at both widths).
+
+## TF-055 — `tf-doc-check` never treats a section-size finding as old, so a section already over its limit blocks any edit that does not land on the identical word count
+
+- **Severity:** minor
+- **Blocks:** no — the section was brought to its baseline count exactly (895 words) and the run carried on.
+- **Repro:** with the baseline holding `section "Design system (TrBlazeUI)" is 895 words; at most 300`, cut that section of `docs/TfLens-UIDesign.md` to 888 words and run `bash .tfcore/utils/tf-doc-check.sh --app TfLens`:
+  ```
+  FAIL docs/TfLens-UIDesign.md: section "Design system (TrBlazeUI)" is 888 words; at most 300
+  ```
+  The same section at exactly 895 words prints `OLD`.
+- **Expected:** a size finding whose count is no larger than the baseline's is old, as the comment above the matcher says (Lekhak TF-023) — for a section or an entry as for a whole document.
+- **Actual:** the count-tolerant branch in `tf-doc-check.py` runs only for a message that starts with a number (`re.match(r"^\d[\d,]* (words|lines|rows|requirements|KB|screens)", msg)`); a section message starts with `section "…"`, so only the identical string is old. Shortening an over-limit section therefore fails, and only a no-op or an exact landing passes.
+- **Encountered in:** `*amend-docs TfLens` on 2026-11-01 (brand assets), amending the design-system section.
+- **Workaround:** padded the section back to 895 words with one word; nothing else changed.
+- **Suggested fix:** apply the shape-and-count comparison to any message that carries a count, for example by matching `^(section|entry) ".*" is \d` the same way as the document-level form.
+
+**What is NOT affected.** Document-level size findings: the Architecture (baseline 12,770 words) went `OLD` as soon as its count was back at or under the baseline. No figure, test or build is touched.
+
+## TF-056 — `tf-mockup-parity` reads a mockup's translucent tint at full strength, so a pale tinted badge in the app reads "neutral" against "accent"
+
+- **Severity:** minor
+- **Blocks:** no — REQ-UI-072 stays `Needs re-verify` on this finding alone; the run carried on.
+- **Repro:** `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen prices=/prices …` (TfLens, 2026-11-01). Light theme: `color on prices-standing-note @1280: semantic colour differs — mockup accent, app neutral`, the same for `prices-kind-openrouter`, at 1280 and 390. The mockup background is `rgba(59,130,246,.08)`; the app's TrBlazeUI Info background is `oklch(0.965 0.03 250)` with text `oklch(0.42 0.13 250)`, plainly blue.
+- **Expected:** one bucket for both: the same pale blue over a white card.
+- **Actual:** `RGB()` in `tf-mockup-parity.mjs` drops alpha when it is ≥ 0.05, so the 8 % tint buckets as saturated `rgb(59,130,246)` → `accent`, while the app's opaque equivalent (≈ `rgb(236,244,255)`) has a channel spread under 28 → `neutral`.
+- **Encountered in:** `*build-phase TfLens` → chained `*verify all`, 2026-11-01.
+- **Workaround:** none; the app keeps the library's colour.
+- **Suggested fix:** composite a translucent colour over the nearest opaque ancestor background before bucketing.
+
+**What is NOT affected.** Every other parity class; `/misses` and `/effort` passed parity clean on the same run. No figure, test or build is touched.

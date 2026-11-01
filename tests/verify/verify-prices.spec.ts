@@ -461,13 +461,23 @@ test('REQ-FN-142 — runs naming a superseded model are priced in list_usd, not 
   for (const json of snapshots) {
     const missing: string[] = json?.extras?.repricing?.missing_price_models ?? [];
     for (const m of named) expect(missing, `${m} must not be reported as an unpriced model`).not.toContain(m);
+    // Per-model list price is attributed ONLY where the window ran one model (REQ-UI-071): a superseded
+    // model seen only inside a mixed window carries no `list_usd` key by design — absent, never zero.
+    // (2026-11-01: `facilitate-brainstorming-session · claude-opus-5` is such a mixed-window entry.)
+    // So where the key IS present it must be a positive number, and every named model must be priced
+    // in at least one phase of the snapshot.
+    const pricedSomewhere = new Set<string>();
     for (const [phase, p] of Object.entries<any>(json?.phases?.phases ?? {})) {
       for (const m of named) {
         const f = p?.models?.[m];
-        if (!f || !(f.tokens_out > 0)) continue;
+        if (!f || !(f.tokens_out > 0) || f.list_usd === undefined) continue;
         expect(typeof f.list_usd, `${phase} · ${m}: priced in list_usd`).toBe('number');
         expect(f.list_usd, `${phase} · ${m}: list_usd above zero`).toBeGreaterThan(0);
+        pricedSomewhere.add(m);
       }
+    }
+    for (const m of named) {
+      expect(pricedSomewhere.has(m), `${m} is priced in list_usd in at least one single-model phase window`).toBe(true);
     }
   }
 });

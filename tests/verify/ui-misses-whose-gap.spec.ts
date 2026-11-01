@@ -49,6 +49,19 @@ async function removeProbe(page: import('@playwright/test').Page) {
   await page.waitForTimeout(3000);
 }
 
+// 2026-11-01: in serial mode one failing test skips every later one, including the removal test at
+// the end, and a probe left behind moved other specs' figures (REQ-FN-084 read its half-built export).
+// The removal therefore also runs here, whatever happened above; on a clean run it finds nothing.
+test.afterAll(async ({ browser }, testInfo) => {
+  const page = await browser.newPage({ viewport: DESKTOP, baseURL: testInfo.project.use.baseURL });
+  try {
+    await signIn(page);
+    await removeProbe(page);
+  } finally {
+    await page.close();
+  }
+});
+
 /** Puts the repository's own telemetry behind the probe source, through the real import journey. */
 async function importProbe(page: import('@playwright/test').Page) {
   await gotoScreen(page, '/repos');
@@ -125,13 +138,21 @@ test('REQ-UI-052 the whose-gap band answers in words, beside the class distribut
   // The raw token means nothing to a reader who has not read SCHEMA.md, so it never LABELS a bucket.
   // (The letters may of course occur inside the English — "…and ignored anyway" is the answer to
   // `ignored`. What must never happen is a bucket whose label IS the stored value.)
+  // A stored value OUTSIDE the four (real data carries `weak-checks`, 2026-11-01) keeps its own row
+  // under its own name, marked as not one of the four — never coerced, never dropped (BRD-170). So
+  // the four answers are always there, and every further row must be an unrecognised one.
+  const rows = table.locator('tbody tr');
+  const rowTexts = (await rows.allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
   const labels = (await table.locator('tbody tr td:nth-child(1)').allInnerTexts()).map(t => t.trim());
-  expect(labels.length, 'all four answers get a row whether or not they were observed').toBe(4);
+  const UNRECOGNISED = /Not one of the four/;
+  const recognisedLabels = labels.filter((_, i) => !UNRECOGNISED.test(rowTexts[i]));
+  expect(recognisedLabels.length, 'all four answers get a row whether or not they were observed').toBe(4);
   for (const raw of ['weak-check', 'unsaid', 'ignored', 'spec']) {
     expect(labels, `the raw token ${raw} must never label a bucket`).not.toContain(raw);
   }
+  const recognisedText = rowTexts.filter(t => !UNRECOGNISED.test(t)).join(' ');
   for (const raw of ['weak-check', 'unsaid']) {
-    expect(tableText, `${raw} has no English form containing it, so it must be absent entirely`)
+    expect(recognisedText, `${raw} has no English form containing it, so it must be absent from the four`)
       .not.toContain(raw);
   }
 
@@ -172,17 +193,18 @@ test('REQ-UI-052 the per-miss table can be filtered by whose gap', async ({ page
   const term = gapCells[0].trim();
   expect(term.length).toBeGreaterThan(0);
 
+  // The filter is a server round trip on the circuit; a fixed 1.2 s beat lost that race on
+  // 2026-11-01 (25 of 25 rows still showing), so poll for the narrowed grid instead.
   await search.fill('zzzz-no-such-answer');
-  await page.waitForTimeout(1200);
-  const rowsNone = await detail.locator('tbody tr').count();
+  // The filter has to actually narrow: a search box that ignores the column is not a filter.
+  await expect.poll(() => detail.locator('tbody tr').count(), {
+    message: 'a term matching nothing must leave no data rows', timeout: 15_000,
+  }).toBeLessThan(rowsBefore);
 
   await search.fill(term);
-  await page.waitForTimeout(1200);
-  const rowsFiltered = await detail.locator('tbody tr').count();
-
-  // The filter has to actually narrow: a search box that ignores the column is not a filter.
-  expect(rowsNone, 'a term matching nothing must leave no data rows').toBeLessThan(rowsBefore);
-  expect(rowsFiltered, 'the whose-gap term must match rows').toBeGreaterThan(0);
+  await expect.poll(() => detail.locator('tbody tr').count(), {
+    message: 'the whose-gap term must match rows', timeout: 15_000,
+  }).toBeGreaterThan(0);
 });
 
 test('REQ-UI-053 every miss row carries the record own one sentence', async ({ page }) => {
@@ -267,6 +289,8 @@ test('the three new bands hold their shape at 1280 and 390', async ({ page }) =>
     await page.goto('/misses');
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(2500);
+    // The report computes at request time; wait for the loading skeleton to clear rather than read it.
+    await page.waitForFunction(() => document.querySelectorAll('main .animate-pulse').length === 0, undefined, { timeout: 30_000 }).catch(() => {});
 
     for (const id of ['miss-sort', 'miss-sort-denominator', 'miss-sort-predates', 'miss-review-cost', 'miss-what-note']) {
       const el = page.locator(`[data-testid="${id}"]`).first();
