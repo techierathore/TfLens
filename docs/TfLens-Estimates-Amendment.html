@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Estimates against actual (amendments of 2026-11-10)</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — Estimates against actual (amendments of 2026-11-10)</h1>
+    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-Estimates-Amendment.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#first-amendment-applied">First amendment — applied</a></li>
+        <li><a href="#second-amendment-proven-on-the-sample-app-not-on-a-real-project-applied-2026-11-10">Second amendment — proven on the Sample app, not on a real project (applied 2026-11-10)</a></li>
+        <li class="h3"><a href="#the-test-files-referenced-from-p4-brd-3-1">The test files (referenced from P4-BRD §3.1)</a></li>
+        <li class="h3"><a href="#expected-figures">Expected figures</a></li>
+        <li class="h3"><a href="#the-change-set">The change-set</a></li>
+      </ol>
+    </div>
+<p><em>Written by the analyst during <code>*amend-docs TfLens</code>. Documents only; no code; nothing committed.</em></p>
+<p>Words used below:</p>
+<ul>
+<li><strong>the reference script</strong> — <code>.tfcore/telemetry/tf-metrics.sh</code>, the framework's report script. TfLens's parity check compares TfLens's figures against it key by key, and it is never edited.
+</li>
+<li><strong>Sample app</strong> — a made-up project (app id <code>SampleApp</code>) that exists only as test files in this repository. It is not a real repository and is never connected to anything.
+</li>
+</ul>
+<h2 id="first-amendment-applied"><a id="first-amendment--applied"></a>First amendment — applied<a class="anchor-link" href="#first-amendment-applied">#</a></h2>
+<p>Phase 4, Estimates: BRD-211 to BRD-219, nine checklist rows, <code>docs/mockups/estimates.html</code> and
+<code>estimates-playbook.html</code>, Architecture §5.9, §6.x and ADR-034 / ADR-035, <code>appPhase: 4</code>, BRD-89
+extended to the estimate separation. Two figures are not computed by the reference script, so they are hand-checked once: the Total
+row (build + machine QA) and the per-row actuals (BRD-217).</p>
+<h2 id="second-amendment-proven-on-the-sample-app-not-on-a-real-project-applied-2026-11-10"><a id="second-amendment--proven-on-the-sample-app-not-on-a-real-project-applied-2026-11-10"></a>Second amendment — proven on the Sample app, not on a real project (applied 2026-11-10)<a class="anchor-link" href="#second-amendment-proven-on-the-sample-app-not-on-a-real-project-applied-2026-11-10">#</a></h2>
+<p>TfLens is public; no private project's figures or name go into it. Every figure and every mention of
+the private project in the phase 4 documents, the two mockups and <code>PROJECT-STATUS.md</code> is replaced by
+the Sample app. No real repository's estimates are needed: they appear on the page by themselves when a
+public repository carries an <code>estimates.jsonl</code> (TfLens's own first).</p>
+<h3 id="the-test-files-referenced-from-p4-brd-3-1"><a id="the-test-files-referenced-from-p4-brd-31"></a>The test files (referenced from P4-BRD §3.1)<a class="anchor-link" href="#the-test-files-referenced-from-p4-brd-3-1">#</a></h3>
+<p>Folder: <code>tests/TfLens.Core.Tests/Fixtures/Estimates/</code>, in the fixture layout the other fixtures use.</p>
+<table>
+<thead><tr><th>File</th><th>Records</th><th>Cases it covers</th></tr></thead>
+<tbody>
+<tr><td><code>sample__sample-app/estimates.jsonl</code></td><td>44</td><td>Phase 1 estimated twice — by <code>claude-opus-5-5</code> and by <code>claude-sonnet-5-5</code> (<strong>two estimating models</strong>); phase 2 by <code>claude-opus-5-5</code>. Every row has a build, verify and fix figure; after handoff (<code>triage</code>) is <code>basis: none</code> on every row (<strong>no precedent</strong>).</td></tr>
+<tr><td><code>sample__sample-app/runs.jsonl</code></td><td>15</td><td>Phase 1 build: actual <strong>inside</strong> the Opus range, <strong>below</strong> the Sonnet range. Phase 2 build and phase 1 verify: actual <strong>above</strong> the range. Phase 2 verify: <strong>inside</strong>. Fix: 2 runs on phase 1 and 1 on phase 2 (<strong>insufficient data</strong>). One fix run that <strong>named no row</strong>. One build run touching <code>REQ-UI-001</code> (phase 1) and <code>REQ-FN-003</code> (phase 2) (<strong>apportioned</strong>, half to each). No triage runs.</td></tr>
+<tr><td><code>sample__sample-empty/estimates.jsonl</code></td><td>0</td><td>An <strong>empty stream</strong>: "no estimate yet". This is a third file, because an empty stream and a full one cannot be the same file.</td></tr>
+</tbody>
+</table>
+<p><code>tf-metrics.sh --estimates</code> was run on these files on 2026-11-10 and printed every figure below.</p>
+<h3 id="expected-figures">Expected figures<a class="anchor-link" href="#expected-figures">#</a></h3>
+<table>
+<thead><tr><th>Card</th><th>Part</th><th>Estimate mid (low–high)</th><th>Actual</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td>Phase 1 · Opus</td><td>Build</td><td>42.0k (28.0k–56.0k) · 38m20s (23m20s–53m20s)</td><td>52.0k · 50m00s, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.5k (7.5k–19.5k) · 35m00s (20m00s–50m00s)</td><td>24.0k · 55m00s</td><td>5</td></tr>
+<tr><td></td><td>After handoff</td><td>no precedent</td><td>insufficient data (n=0)</td><td>0</td></tr>
+<tr><td></td><td>Total <em>(not in the reference script)</em></td><td>55.5k (35.5k–75.5k) · 1h13m (43m20s–1h43m)</td><td>76.0k · 1h45m, apportioned</td><td>8, 1 apportioned</td></tr>
+<tr><td>Phase 1 · Sonnet</td><td>Build</td><td>70.0k (55.0k–85.0k) · 56m40s (43m20s–1h10m)</td><td>52.0k · 50m00s, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.5k (7.5k–19.5k) · 35m00s (20m00s–50m00s)</td><td>24.0k · 55m00s</td><td>5</td></tr>
+<tr><td></td><td>Total <em>(not in the reference script)</em></td><td>83.5k (62.5k–104.5k) · 1h31m (1h03m–2h00m)</td><td>76.0k · 1h45m, apportioned</td><td>8, 1 apportioned</td></tr>
+<tr><td>Phase 2 · Opus</td><td>Build</td><td>45.0k (30.0k–60.0k) · 45m00s (30m00s–1h00m)</td><td>65.0k · 1h05m, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.0k (8.0k–18.0k) · 33m20s (23m20s–43m20s)</td><td>13.0k · 30m00s</td><td>4</td></tr>
+<tr><td></td><td>Total <em>(not in the reference script)</em></td><td>58.0k (38.0k–78.0k) · 1h18m (53m20s–1h43m)</td><td>78.0k · 1h35m, apportioned</td><td>7, 1 apportioned</td></tr>
+</tbody>
+</table>
+<p>By step, tokens: phase 1 build <strong>within</strong> (Opus) and <strong>below</strong> (Sonnet); phase 1 verify 15.0k
+<strong>above</strong> 6.0k (3.0k–9.0k); phase 1 fix <code>insufficient data (n=2)</code>; phase 2 build <strong>above</strong>, verify
+10.0k <strong>within</strong> 9.0k (6.0k–12.0k), fix <code>insufficient data (n=1)</code>. Runs that named no row: build 0 ·
+verify 0 · fix 1 · after handoff 0. Sample empty: <code>no estimate yet</code>.</p>
+<p>Per row, phase 1 Opus card <em>(not in the reference script)</em>: <code>REQ-FN-002</code> machine QA 4.5k (2.5k–6.5k) beside 11.0k ·
+25m00s, apportioned; <code>REQ-UI-001</code> machine QA beside 9.0k · 20m00s, apportioned; every build actual
+<code>insufficient data (n=1 or 2)</code>; every after-handoff cell <code>no precedent</code> beside <code>insufficient data (n=0)</code>.</p>
+<h3 id="the-change-set">The change-set<a class="anchor-link" href="#the-change-set">#</a></h3>
+<table>
+<thead><tr><th>#</th><th>Kind</th><th>Where</th><th>What</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>MODIFY</td><td>BRD-211</td><td>Acceptance: the three test files go in; <code>Estimate</code> holds 44 rows for Sample app, 0 for Sample empty; re-import adds none.</td></tr>
+<tr><td>2</td><td>MODIFY</td><td>BRD-212</td><td>Acceptance: on the Sample app files, the engine's <code>estimates</code> block equals <code>tf-metrics.sh --estimates --json</code> key for key.</td></tr>
+<tr><td>3</td><td>MODIFY</td><td>BRD-214</td><td>Acceptance: the Sample app files in, the parts figures of the table above on the page.</td></tr>
+<tr><td>4</td><td>MODIFY</td><td>BRD-215</td><td>Acceptance: the per-row figures above on the phase 1 Opus card.</td></tr>
+<tr><td>5</td><td>MODIFY</td><td>BRD-216</td><td>Acceptance: the Sample empty file in, <code>no estimate yet</code> and no number.</td></tr>
+<tr><td>6</td><td>MODIFY</td><td>BRD-217</td><td>Acceptance: Totals 55.5k / 83.5k / 58.0k beside 76.0k / 76.0k / 78.0k.</td></tr>
+<tr><td>7</td><td>MODIFY</td><td>BRD-218</td><td>Acceptance: parity over the Sample app files exits 0 with no <code>estimates</code> finding.</td></tr>
+<tr><td>8</td><td>MODIFY</td><td>P4-BRD §1, §2</td><td>The private project removed; the page is proven on the Sample app; real estimates appear by themselves. New §3.1 holds the expected-figures table above and the file list.</td></tr>
+<tr><td>9</td><td>MODIFY</td><td>P4 checklist</td><td>The nine rows' acceptance lines follow 1–7; status stays Not Started (nothing is built, so nothing needs re-verifying).</td></tr>
+<tr><td>10</td><td>MODIFY</td><td>Mockups</td><td><code>estimates.html</code> shows the three Sample app cards with the figures above; "no estimate yet" lists Sample empty. <code>estimates-playbook.html</code> needs no change.</td></tr>
+<tr><td>11</td><td>MODIFY</td><td><code>PROJECT-STATUS.md</code></td><td>The blocker about importing the private project's files is removed.</td></tr>
+<tr><td>12</td><td>MODIFY</td><td>This file</td><td>Rewritten without the private project.</td></tr>
+</tbody>
+</table>
+<p><strong>Not changed, and flagged for you:</strong> two older documents name the private project:
+<code>docs/TfLens-UAT-Readiness-2026-10-12.md</code> (three lines saying it was not imported because it is not
+public) and <code>docs/TfLens-UsageGuide.md</code> line 29. Neither carries its figures. They are outside phase 4,
+so I have left them as they are.</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>

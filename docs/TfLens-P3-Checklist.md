@@ -1,20 +1,20 @@
 # TfLens — Checklist (Phase 3)
 
 <!-- AGENT WORKING DOCUMENT — markdown only, never rendered to HTML.
-     Phase 3 of 3. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
+     Phase 3 of 4. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
      REQ ids run on across phases and are NEVER reused or renumbered. -->
 
 | | |
 |---|---|
 | App | TfLens |
 | Size | Large |
-| Phase | 3 of 3 |
+| Phase | 3 of 4 |
 
 ## Goal
 
 Everything added after the first report set shipped: the miss and rework economics page, the phase-effort page, the Playbook axis of every report, imported telemetry for private and corporate repositories, and the 2026-09-07 stream fields that say whose gap a miss was. The largest phase, and the one still being built.
 
-**Phase 3 — Depth — misses, phase effort, the Playbook axis, imported sources.** The other phases are `docs/TfLens-Checklist.md`, `docs/TfLens-P2-Checklist.md`; `docs/TfLens-Phases.md` is the map.
+**Phase 3 — Depth — misses, phase effort, the Playbook axis, imported sources.** The other phases are `docs/TfLens-Checklist.md`, `docs/TfLens-P2-Checklist.md`, `docs/TfLens-P4-Checklist.md`; `docs/TfLens-Phases.md` is the map.
 
 ## Requirements Status
 

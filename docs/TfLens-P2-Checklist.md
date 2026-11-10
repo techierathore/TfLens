@@ -1,20 +1,20 @@
 # TfLens — Checklist (Phase 2)
 
 <!-- AGENT WORKING DOCUMENT — markdown only, never rendered to HTML.
-     Phase 2 of 3. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
+     Phase 2 of 4. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
      REQ ids run on across phases and are NEVER reused or renumbered. -->
 
 | | |
 |---|---|
 | App | TfLens |
 | Size | Large |
-| Phase | 2 of 3 |
+| Phase | 2 of 4 |
 
 ## Goal
 
 The engine and the four report pages built on it — Coverage, Gate outcomes, Harness comparison, Routing & economics — plus the weekly snapshot export and the parity check that makes any of it quotable. This is the phase where a wrong number first becomes possible, which is why the provenance rules and the parity diff both live here.
 
-**Phase 2 — Reports — engine, the four report pages, export, parity.** The other phases are `docs/TfLens-Checklist.md`, `docs/TfLens-P3-Checklist.md`; `docs/TfLens-Phases.md` is the map.
+**Phase 2 — Reports — engine, the four report pages, export, parity.** The other phases are `docs/TfLens-Checklist.md`, `docs/TfLens-P3-Checklist.md`, `docs/TfLens-P4-Checklist.md`; `docs/TfLens-Phases.md` is the map.
 
 ## Requirements Status
 
@@ -62,7 +62,7 @@ The engine and the four report pages built on it — Coverage, Gate outcomes, Ha
 | REQ-FN-064 | Hand spot-check of the no-oracle extras, recorded (BRD-72, Phase 2) | Verified | 100% | 2026-08-27 DECISIONS.md §8 X-001 — the repricing hand spot-check, which found and corrected two real defects (per-run rounding in the code; a dropped row in the test's expectation). Verified figures: actual $5.08 / max $6.85 / delta $1.77. Full history in the entry below. | [view](#d-req-fn-064) |
 | REQ-NFR-001 | Report-page and sync performance (BRD-82, Phase 2) | Verified | 100% | 2026-08-27 Measured on the running app at concurrency 1, 5 samples per page: worst-case render / (123ms) · gate-outcomes 86 · harness 85 · routing 104 · export 111 · repos 135 — all well inside the 1500ms p95 budget. Full history in the entry below. | [view](#d-req-nfr-001) |
 | REQ-NFR-004 | Privacy — only stream-carried data stored and shown (BRD-84, Phase 2) | Verified | 100% | 2026-08-27 Structural: the unknown-fields panel selects `jsonb_object_keys("Overflow")` in `PostgresStore`, so no Overflow VALUE can leave the database; commits store `SubjectPrefix`, never the full subject. Full history in the entry below. | [view](#d-req-nfr-004) |
-| REQ-NFR-009 | Integrity — no switch relaxes the provenance rules (BRD-89, Phase 2) | Verified | 100% | 2026-08-26 No boolean, option, configuration key or query parameter in the engine can merge two segments: `AddTfLensMetrics` reads no configuration, `MinN`/`GateOrder`/`LateGates` are constants, and the only enum (`Provenance`) selects rules inside a bucket. Full history in the entry below. | [view](#d-req-nfr-009) |
+| REQ-NFR-009 | Integrity — no switch relaxes the provenance rules (BRD-89, Phase 2) | Needs re-verify | 75% | 2026-11-10 [REQ-NFR-009] BRD-89 amended by *amend-docs (Estimates): the no-switch rule now also covers the estimate separation BRD-213; re-verify that no key, parameter or toggle relaxes it once phase 4 is built | [view](#d-req-nfr-009) |
 | REQ-NFR-019 | Stored provenance is real: no row claims a `source_sha` that is not a commit in its repository (BRD-143, found 2026-08-29 by the BRD §13 parity re-run) | Verified | 100% | 2026-10-12 verify: PASS — test `REQ-NFR-019 no stored row carries an unaccounted source SHA,` | [view](#d-req-nfr-019) |
 
 **Status values:** `Not Started` · `In Progress` · `Implemented` (code done, not yet verified) · `Verified` (self-smoke or verifier PASS — acceptance AND data-render AND visual gates all pass) · `Done (pre-existing)` (migrated from an earlier dev plan as already complete — build agents must NOT rebuild; terminal like `Verified`) · `Needs re-verify` (a defect or change was logged — must be re-run before it can return to `Verified`) · `PARTIAL` (some acceptance unmet — say what in Remarks) · `FAIL` (verifier ran and failed — bug in Remarks) · `Blocked` (external/library gap — link the TR-/TR-RAG- entry in Remarks) · `N/A`.

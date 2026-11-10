@@ -1,20 +1,20 @@
 # TfLens — Checklist
 
 <!-- AGENT WORKING DOCUMENT — markdown only, never rendered to HTML.
-     Phase 1 of 3. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
+     Phase 1 of 4. Split out of the single checklist on 2026-09-08 (192 rows, cap 100).
      REQ ids run on across phases and are NEVER reused or renumbered. -->
 
 | | |
 |---|---|
 | App | TfLens |
 | Size | Large |
-| Phase | 1 of 3 |
+| Phase | 1 of 4 |
 
 ## Goal
 
 Everything TfLens needs before a single figure can be shown: sign-in through AppManager, the Repos screen where a user connects a source, the background sync, the raw archive, the parser and the PostgreSQL store, the app shell, and the container it all runs in. Nothing on this list renders a metric; everything on it is what the metrics later rest on.
 
-**Phase 1 — Foundation — identity, sources, sync, storage, ops.** The other phases are `docs/TfLens-P2-Checklist.md`, `docs/TfLens-P3-Checklist.md`; `docs/TfLens-Phases.md` is the map.
+**Phase 1 — Foundation — identity, sources, sync, storage, ops.** The other phases are `docs/TfLens-P2-Checklist.md`, `docs/TfLens-P3-Checklist.md`, `docs/TfLens-P4-Checklist.md`; `docs/TfLens-Phases.md` is the map.
 
 ## Requirements Status
 

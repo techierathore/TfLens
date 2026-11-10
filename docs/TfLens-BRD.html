@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="sub">Last rendered: 2026-11-01</div>
+    <div class="sub">Last rendered: 2026-11-10</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -155,7 +155,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Business Requirements — Phase 1: Foundation</h1>
-    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>TfLens-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -210,14 +210,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>App</td><td>TfLens</td></tr>
 <tr><td>Kind</td><td>app</td></tr>
 <tr><td>Size</td><td>Large</td></tr>
-<tr><td>Phase</td><td>1 of 3</td></tr>
+<tr><td>Phase</td><td>1 of 4</td></tr>
 <tr><td>Status</td><td>Target</td></tr>
 <tr><td>Stack answer set</td><td>Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker</td></tr>
 <tr><td>Date</td><td>2026-09-08</td></tr>
 </tbody>
 </table>
-<p><strong>Phase 1 of 3 — identity, sources, sync, storage, ops.</strong> Requirement ids: <strong>BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144</strong>.
-Other phases: <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · the map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
+<p><strong>Phase 1 of 4 — identity, sources, sync, storage, ops.</strong> Requirement ids: <strong>BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144</strong>.
+Other phases: <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · <a href="./TfLens-P4-BRD.html">Phase 4 — Estimates</a> · the map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
 <p><strong>This document also carries the whole-project context</strong> — the executive summary, objectives, scope, stakeholders, the diagrams, the constraints, the parity procedure, the definition of done, the success metrics and the risks. The later phases point back here for all of it rather than repeating it.</p>
 <h2 id="table-of-contents">Table of Contents<a class="anchor-link" href="#table-of-contents">#</a></h2>
 <ol>
@@ -996,7 +996,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 <tr><td>3 — Depth</td><td>BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181</td><td><a href="./TfLens-P3-BRD.html">TfLens-P3-BRD.md</a></td></tr>
 </tbody>
 </table>
-<p>Ids run on across the three phases and are never reused or renumbered, so a range is a statement about which file holds an item and never about when it was written.</p>
+<p>Ids run on across the four phases and are never reused or renumbered; a range says which file holds an item, never when it was written.</p>
 <h2 id="constraints-assumptions"><a id="12-constraints--assumptions"></a>12. Constraints &amp; assumptions<a class="anchor-link" href="#constraints-assumptions">#</a></h2>
 <ul>
 <li>Blazor Server on the current LTS .NET (10); <strong>PostgreSQL 16</strong> (owner decision 2026-08-26 — SQLite is unreliable on container storage); Dapper via Npgsql; TrBlazeUI where it fits (dogfood). Docker Compose on a VPS — infra config supplied separately.

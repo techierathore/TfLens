@@ -5,20 +5,20 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Phase | 3 of 3 |
+| Phase | 3 of 4 |
 | Status | Target |
 | Stack answer set | Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker |
 | Date | 2026-09-08 |
 
-**Phase 3 of 3 — misses, phase effort, the Playbook axis, imported sources.** Requirement ids: **BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181, BRD-189 to BRD-209**. Ids run on across the three phases and are never reused or renumbered.
+**Phase 3 of 4 — misses, phase effort, the Playbook axis, imported sources.** Requirement ids: **BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181, BRD-189 to BRD-209**. Ids run on across the four phases and are never reused or renumbered.
 
-Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 2 — Reports](./TfLens-P2-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
+Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 2 — Reports](./TfLens-P2-BRD.md) · [Phase 4 — Estimates](./TfLens-P4-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
 
 **The whole-project context lives in phase 1 and is not repeated here:** the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens and its requirements.
 
 ## 1. Summary
 
-Everything added after the first report set shipped, and the largest of the three phases. The miss
+Everything added after the first report set shipped, and the largest of the four phases. The miss
 and rework economics page; the phase-effort page fed by two different producers; the Playbook axis of
 every report; imported telemetry, which is how a private or corporate repository reaches TfLens
 without it ever holding a credential; and the 2026-09-07 stream fields that answer **whose gap a miss
@@ -264,7 +264,7 @@ The owner, in UAT: *"There is no way to identify the data according to repositor
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-11-01.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
+**Snapshot as of 2026-11-10.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P3-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|

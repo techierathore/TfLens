@@ -11,13 +11,13 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Phase | 1 of 3 |
+| Phase | 1 of 4 |
 | Status | Target |
 | Stack answer set | Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker |
 | Date | 2026-09-08 |
 
-**Phase 1 of 3 — identity, sources, sync, storage, ops.** Requirement ids: **BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144**.
-Other phases: [Phase 2 — Reports](./TfLens-P2-BRD.md) · [Phase 3 — Depth](./TfLens-P3-BRD.md) · the map is [TfLens-Phases.md](./TfLens-Phases.md).
+**Phase 1 of 4 — identity, sources, sync, storage, ops.** Requirement ids: **BRD-1 to BRD-20, BRD-22 to BRD-29, BRD-77 to BRD-108, BRD-111 to BRD-111, BRD-142 to BRD-142, BRD-144 to BRD-144**.
+Other phases: [Phase 2 — Reports](./TfLens-P2-BRD.md) · [Phase 3 — Depth](./TfLens-P3-BRD.md) · [Phase 4 — Estimates](./TfLens-P4-BRD.md) · the map is [TfLens-Phases.md](./TfLens-Phases.md).
 
 **This document also carries the whole-project context** — the executive summary, objectives, scope, stakeholders, the diagrams, the constraints, the parity procedure, the definition of done, the success metrics and the risks. The later phases point back here for all of it rather than repeating it.
 
@@ -630,7 +630,7 @@ seven rows of the same kind. Appended, not renumbered; all phase 1, because each
 | 2 — Reports | BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143 | [TfLens-P2-BRD.md](./TfLens-P2-BRD.md) |
 | 3 — Depth | BRD-73 to BRD-76, BRD-109 to BRD-110, BRD-112 to BRD-141, BRD-145 to BRD-181 | [TfLens-P3-BRD.md](./TfLens-P3-BRD.md) |
 
-Ids run on across the three phases and are never reused or renumbered, so a range is a statement about which file holds an item and never about when it was written.
+Ids run on across the four phases and are never reused or renumbered; a range says which file holds an item, never when it was written.
 
 ## 12. Constraints & assumptions
 

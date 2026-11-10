@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Business Requirements — Phase 2: Reports</h1>
-    <div class="subtitle">Rendered 2026-10-12 &middot; source <code>TfLens-P2-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-P2-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -125,14 +125,14 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>App</td><td>TfLens</td></tr>
 <tr><td>Kind</td><td>app</td></tr>
 <tr><td>Size</td><td>Large</td></tr>
-<tr><td>Phase</td><td>2 of 3</td></tr>
+<tr><td>Phase</td><td>2 of 4</td></tr>
 <tr><td>Status</td><td>Target</td></tr>
 <tr><td>Stack answer set</td><td>Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker</td></tr>
 <tr><td>Date</td><td>2026-09-08</td></tr>
 </tbody>
 </table>
-<p><strong>Phase 2 of 3 — engine, the four report pages, export, parity.</strong> Requirement ids: <strong>BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143</strong>. Ids run on across the three phases and are never reused or renumbered.</p>
-<p>Other phases: <a href="./TfLens-BRD.html">Phase 1 — Foundation</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · The map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
+<p><strong>Phase 2 of 4 — engine, the four report pages, export, parity.</strong> Requirement ids: <strong>BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143</strong>. Ids run on across the four phases and are never reused or renumbered.</p>
+<p>Other phases: <a href="./TfLens-BRD.html">Phase 1 — Foundation</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · <a href="./TfLens-P4-BRD.html">Phase 4 — Estimates</a> · The map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
 <p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens and its requirements.</p>
 <h2 id="summary"><a id="1-summary"></a>1. Summary<a class="anchor-link" href="#summary">#</a></h2>
 <p>TfLens reads the telemetry the frameworks already emit and turns it into figures. Phase 1 got the
@@ -259,18 +259,18 @@ of the result types rather than as a check someone remembers to run, and the par
 </li>
 <li><a id="brd-84"></a><strong>BRD-84</strong> — Privacy: TfLens displays and stores only what the streams carry (IDs, counts, durations, verdicts, short SHAs); no requirement text, no commit subjects, nothing from <code>src/</code>; the <code>Overflow</code> column is never rendered, only its field names.
 </li>
-<li><a id="brd-89"></a><strong>BRD-89</strong> — Integrity: the provenance rules (BRD-31..36) have no configuration switch, no query parameter and no UI toggle that relaxes them.
+<li><a id="brd-89"></a><strong>BRD-89</strong> — Integrity: the provenance rules (BRD-31..36, and from 2026-11-10 the estimate separation <a href="./TfLens-P4-BRD.html#brd-213">BRD-213</a>) have no configuration switch, no query parameter and no UI toggle that relaxes them. <em>(amended 2026-11-10: an estimate never pooling with a measurement is the fourth separation of SCHEMA.md §6 and is held to the same rule)</em>
 </li>
 </ul>
 <h2 id="development-status"><a id="4-development-status"></a>4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
 <p>Written by the status gate after every build, verify and handoff; not by hand.</p>
-<p><strong>Snapshot as of 2026-10-12.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P2-Checklist.md</code>.</p>
+<p><strong>Snapshot as of 2026-11-10.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P2-Checklist.md</code>.</p>
 <table>
 <thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
 <tbody>
 <tr><td>UI / Pages</td><td>20</td><td>15</td><td>5</td><td>Partial</td></tr>
 <tr><td>Functional requirements</td><td>19</td><td>19</td><td>0</td><td>Done</td></tr>
-<tr><td>Non-functional</td><td>4</td><td>4</td><td>0</td><td>Done</td></tr>
+<tr><td>Non-functional</td><td>4</td><td>3</td><td>1</td><td>Partial</td></tr>
 </tbody>
 </table>
 <h2 id="where-the-rest-lives"><a id="5-where-the-rest-lives"></a>5. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>

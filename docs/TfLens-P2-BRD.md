@@ -5,14 +5,14 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Phase | 2 of 3 |
+| Phase | 2 of 4 |
 | Status | Target |
 | Stack answer set | Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker |
 | Date | 2026-09-08 |
 
-**Phase 2 of 3 — engine, the four report pages, export, parity.** Requirement ids: **BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143**. Ids run on across the three phases and are never reused or renumbered.
+**Phase 2 of 4 — engine, the four report pages, export, parity.** Requirement ids: **BRD-21 to BRD-21, BRD-30 to BRD-72, BRD-143 to BRD-143**. Ids run on across the four phases and are never reused or renumbered.
 
-Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 3 — Depth](./TfLens-P3-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
+Other phases: [Phase 1 — Foundation](./TfLens-BRD.md) · [Phase 3 — Depth](./TfLens-P3-BRD.md) · [Phase 4 — Estimates](./TfLens-P4-BRD.md) · The map is [TfLens-Phases.md](./TfLens-Phases.md).
 
 **The whole-project context lives in phase 1 and is not repeated here:** the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screens and its requirements.
 
@@ -97,19 +97,19 @@ Both clauses below were already being *enforced by hand* — the first by the pa
 **Cross-cutting non-functional requirements that this phase owns** (moved here 2026-09-08 with the phase split, because the checklist rows that own them are this phase's):
 - <a id="brd-82"></a>**BRD-82** — Performance: report pages render from the memoised analysis within a second for the expected data volume (tens of thousands of records across ≤10 repos); a full sync of 5 repos completes in under 30 s on a normal connection. Targets:
 - <a id="brd-84"></a>**BRD-84** — Privacy: TfLens displays and stores only what the streams carry (IDs, counts, durations, verdicts, short SHAs); no requirement text, no commit subjects, nothing from `src/`; the `Overflow` column is never rendered, only its field names.
-- <a id="brd-89"></a>**BRD-89** — Integrity: the provenance rules (BRD-31..36) have no configuration switch, no query parameter and no UI toggle that relaxes them.
+- <a id="brd-89"></a>**BRD-89** — Integrity: the provenance rules (BRD-31..36, and from 2026-11-10 the estimate separation [BRD-213](./TfLens-P4-BRD.md#brd-213)) have no configuration switch, no query parameter and no UI toggle that relaxes them. *(amended 2026-11-10: an estimate never pooling with a measurement is the fourth separation of SCHEMA.md §6 and is held to the same rule)*
 
 ## 4. Development status
 
 Written by the status gate after every build, verify and handoff; not by hand.
 
-**Snapshot as of 2026-10-12.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P2-Checklist.md`.
+**Snapshot as of 2026-11-10.** Live per-requirement status: `PROJECT-STATUS.md` and the Requirements Status table in `docs/TfLens-P2-Checklist.md`.
 
 | Screen | Requirements | Verified | Open | Status |
 |---|---|---|---|---|
 | UI / Pages | 20 | 15 | 5 | Partial |
 | Functional requirements | 19 | 19 | 0 | Done |
-| Non-functional | 4 | 4 | 0 | Done |
+| Non-functional | 4 | 3 | 1 | Partial |
 
 ## 5. Where the rest lives
 

@@ -7,10 +7,10 @@
 | App | TfLens |
 | Kind | app |
 | Size | Large |
-| Phase | 1 of 3 |
+| Phase | 1 of 4 |
 | Date | 2026-09-08 |
 
-**Phase 1 of 3.** This file holds the six foundation screens plus the shared design system, the click-through flow and the library-gap log. Phase 2's five report screens are in [TfLens-P2-UIDesign.md](./TfLens-P2-UIDesign.md); phase 3's four are in [TfLens-P3-UIDesign.md](./TfLens-P3-UIDesign.md).
+**Phase 1 of 4.** This file holds the six foundation screens plus the shared design system, the click-through flow and the library-gap log. Phase 2's five report screens are in [TfLens-P2-UIDesign.md](./TfLens-P2-UIDesign.md); phase 3's four are in [TfLens-P3-UIDesign.md](./TfLens-P3-UIDesign.md); phase 4's one is in [TfLens-P4-UIDesign.md](./TfLens-P4-UIDesign.md).
 
 ## Table of Contents
 

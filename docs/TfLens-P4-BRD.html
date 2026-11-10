@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TfLens — Business Requirements — Phase 4: Estimates</title>
+<script>
+/* Resolve the theme BEFORE first paint (no flash). Saved choice wins; otherwise
+   pick by time of day — light 07:00–19:00 local, softened dark at night. */
+(function(){
+  try{
+    var t = localStorage.getItem('tf-theme');
+    if(t!=='light' && t!=='dark'){ var h = new Date().getHours(); t = (h>=7 && h<19) ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* LIGHT is the default theme — a warm off-white, easy on the eyes (never bright white). */
+:root{
+  --bg:#f4f1e9; --panel:#efe9db; --panel2:#e7e0cd; --line:#d8cfb6;
+  --ink:#2e2a22; --muted:#6f6857; --accent:#2f6f9f; --accent2:#3f7d54;
+  --warn:#9a6b15; --danger:#b03a52; --ok:#3f7d54;
+  --code-bg:#ece5d3; --code-ink:#332f26; --row-alt:#eae2cf;
+  --h3:#3a352b; --h4:#2f6f9f; --quote:#4a4537; --cta-bg:#e6eef5;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+/* DARK — softened near-black (warmer / less harsh than pure #0f1115). */
+html[data-theme="dark"]{
+  --bg:#11141a; --panel:#171b23; --panel2:#1e2430; --line:#2b3240;
+  --ink:#dfe3ea; --muted:#99a2b1; --accent:#7cc4ff; --accent2:#a6e3a1;
+  --warn:#f9c74f; --danger:#f38ba8; --ok:#a6e3a1;
+  --code-bg:#0c1016; --code-ink:#d8dde8; --row-alt:#141821;
+  --h3:#cfd5e3; --h4:#7cc4ff; --quote:#cfd5e3; --cta-bg:#0d2030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--code-bg);color:var(--code-ink);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;color:var(--code-ink);position:relative}
+pre code{background:none;border:none;padding:0}
+.copy{position:absolute;top:8px;right:8px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;font-family:var(--sans);cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+/* floating light/dark toggle (top-right) */
+.theme-toggle{position:fixed;top:12px;right:14px;z-index:10000;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.layout.no-toc{grid-template-columns:1fr}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:18px 14px}
+nav.side h1{font-size:14px;margin:0 0 4px;letter-spacing:.5px;color:var(--ink)}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side ol,nav.side ul{list-style:none;padding:0;margin:0}
+nav.side li{font-size:13px;margin:2px 0}
+nav.side li a{display:block;padding:5px 8px;color:var(--ink);border-radius:6px}
+nav.side li a:hover{background:var(--panel2);text-decoration:none}
+nav.side li.h3 a{padding-left:22px;font-size:12.5px;color:var(--h3)}
+nav.side .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:14px 8px 4px}
+
+main{padding:28px 40px 80px;max-width:1100px}
+.layout.no-toc main{margin:0 auto}
+
+h1{font-size:28px;margin:0 0 6px}
+h2{font-size:22px;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);scroll-margin-top:16px}
+h3{font-size:17px;margin:22px 0 6px;color:var(--h3);scroll-margin-top:16px}
+h4{font-size:14px;margin:14px 0 4px;color:var(--h4);scroll-margin-top:16px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:-4px;margin-bottom:18px}
+p{margin:6px 0 10px}
+blockquote{border-left:3px solid var(--accent);background:var(--panel);margin:8px 0;padding:8px 14px;color:var(--quote)}
+ul,ol{padding-left:22px}
+li{margin:2px 0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--h3);font-weight:600}
+tr:nth-child(even) td{background:var(--row-alt)}
+
+hr{border:none;border-top:1px solid var(--line);margin:24px 0}
+.anchor-link{color:var(--muted);font-weight:400;font-size:0.85em;margin-left:8px;opacity:0;transition:opacity .15s;text-decoration:none}
+h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
+
+/* inline TOC at top of main content */
+.toc-inline{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:14px 0 24px}
+.toc-inline > div{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.toc-inline ol,.toc-inline ul{margin:4px 0;padding-left:18px}
+.toc-inline li{font-size:13px;margin:1px 0}
+.toc-inline a{color:var(--h3)}
+
+/* mermaid diagram wrapper + toolbar */
+.diagram{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);margin:14px 0;overflow:hidden}
+.diagram .mermaid{padding:14px;margin:0;background:transparent;border:none;overflow:auto}
+.diagram .dt{display:flex;gap:6px;justify-content:flex-end;padding:6px 8px;background:var(--row-alt);border-bottom:1px solid var(--line)}
+.diagram .dt button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px;font-family:var(--sans);cursor:pointer;min-width:30px}
+.diagram .dt button:hover{color:var(--accent);border-color:var(--accent)}
+.diagram .dt .zlabel{padding:3px 6px;font-size:11px;color:var(--muted);font-family:var(--mono);align-self:center}
+.diagram.fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none}
+.diagram.fs .mermaid{height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto}}
+</style>
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" title="Toggle light / dark">&#9790; Dark</button>
+<div class="layout no-toc">
+  <main>
+    <h1>TfLens — Business Requirements — Phase 4: Estimates</h1>
+    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-P4-BRD.md</code></div>
+
+    <div class="toc-inline">
+      <div>Contents</div>
+      <ol>
+        <li><a href="#summary">1. Summary</a></li>
+        <li><a href="#screens-and-flow">2. Screens and flow</a></li>
+        <li><a href="#requirements">3. Requirements</a></li>
+        <li class="h3"><a href="#amendment-2026-11-10-estimates-against-actual-from-the-framework-s-new-stream">Amendment 2026-11-10 — estimates against actual, from the framework&#x27;s new stream</a></li>
+        <li class="h3"><a href="#the-sample-app-the-test-files-every-acceptance-line-uses">3.1 The Sample app — the test files every acceptance line uses</a></li>
+        <li><a href="#development-status">4. Development status</a></li>
+        <li><a href="#where-the-rest-lives">5. Where the rest lives</a></li>
+      </ol>
+    </div>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td>App</td><td>TfLens</td></tr>
+<tr><td>Kind</td><td>app</td></tr>
+<tr><td>Size</td><td>Large</td></tr>
+<tr><td>Phase</td><td>4 of 4</td></tr>
+<tr><td>Status</td><td>Target</td></tr>
+<tr><td>Stack answer set</td><td>Blazor Server · PostgreSQL 16 · Dapper · TrBlazeUI · Docker</td></tr>
+<tr><td>Date</td><td>2026-11-10</td></tr>
+</tbody>
+</table>
+<p><strong>Phase 4 of 4 — estimates against actual, from the framework's new stream.</strong> Requirement ids: <strong>BRD-211 to BRD-219</strong>. Ids run on across the four phases and are never reused or renumbered.</p>
+<p>Other phases: <a href="./TfLens-BRD.html">Phase 1 — Foundation</a> · <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · The map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
+<p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screen and its requirements.</p>
+<h2 id="summary"><a id="1-summary"></a>1. Summary<a class="anchor-link" href="#summary">#</a></h2>
+<p>TechieFlow v1.3.0 (deployed here on 2026-11-08) adds a sixth stream, <code>docs/metrics/estimates.jsonl</code>
+(SCHEMA.md §2.8): what a phase <strong>should</strong> cost in output tokens and wall time, written by
+<code>*estimate-phase</code> before the build. One record per checklist row and one per phase total, per step —
+build, verify, fix, and triage (after handoff) — each a low, mid and high, with its basis, its run
+count and the estimating model.</p>
+<p>This phase reads that stream the way <code>runs.jsonl</code> is read and adds one page, <strong>Estimates</strong>, setting
+each phase's estimate beside what the live runs measured.</p>
+<p>One rule governs it, SCHEMA.md §6's <strong>fourth separation: an estimate never pools with a
+measurement</strong> — two columns, never one number. Every number is code over the two streams; owner UAT
+time prints <strong>not measured</strong>. On 2026-11-10 no connected public repository carries estimates, so every
+one reads <strong>no estimate yet</strong>, which is correct; real ones appear by themselves when a public repository
+writes <code>estimates.jsonl</code>, TfLens's own first. The page is proven on the <strong>Sample app</strong> test files (§3.1).</p>
+<p><strong>Parity.</strong> <code>tf-metrics.sh --estimates</code> is the oracle and is never edited. The <strong>Total</strong> row and the
+<strong>per-row</strong> actuals have no oracle and are hand-checked once (BRD-217).</p>
+<h2 id="screens-and-flow"><a id="2-screens-and-flow"></a>2. Screens and flow<a class="anchor-link" href="#screens-and-flow">#</a></h2>
+<table>
+<thead><tr><th>Screen</th><th>Route</th><th>Role</th><th>What it answers</th><th>Fields</th><th>Feature</th><th>Requirements</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td>Estimates</td><td><code>/estimates</code></td><td>Owner, Author</td><td><strong>What did the framework expect each phase to cost, and what did it cost?</strong> Per repository, per phase and per estimating model, the latest estimate beside the actual from the live runs, in three parts — build, machine QA (verify + fix), after handoff (triage) — and a total of build + machine QA. Sits in the Reports group of the sidebar after Phase effort, under the same repo picker and framework switch as the other report pages. A budgeting view: it says how far the forecast and the measurement lie apart and never scores either.</td><td>Repo picker (All repos, or one repo) · Framework switch · one card per (repo, phase, estimating model) with its header line (estimated by, at, rows, "estimated after the fact" when a hindsight batch) · the parts table: Part · Estimate mid (low–high), tokens and time · Actual, tokens and time · Runs (n, apportioned, with no tokens, main-thread only) · Rows covered <code>[n/m]</code> · By step disclosure with the position (within / above / below) · Owner UAT time row reading "not measured" · runs that named no row, per step · per-row drill-down (collapsed) · empty state "no estimate yet" · standing note that estimate and actual never pool</td><td>F-ESTIMATE</td><td><a href="#brd-211">BRD‑211</a> · <a href="#brd-212">BRD‑212</a> · <a href="#brd-213">BRD‑213</a> · <a href="#brd-214">BRD‑214</a> · <a href="#brd-215">BRD‑215</a> · <a href="#brd-216">BRD‑216</a> · <a href="#brd-217">BRD‑217</a> · <a href="#brd-218">BRD‑218</a> · <a href="#brd-219">BRD‑219</a> · <a href="./TfLens-P2-BRD.html#brd-89">BRD‑89</a></td><td><a href="./mockups/estimates.html">estimates.html</a> · Playbook state: <a href="./mockups/estimates-playbook.html">estimates-playbook.html</a></td></tr>
+</tbody>
+</table>
+<p><strong>Flow.</strong> Sign in → any report page → sidebar <strong>Estimates</strong> → pick a repository (or All repos) →
+read each phase card → expand <strong>By row</strong> under a phase for the per-row figures. The framework switch
+moves to the Playbook state, which reads <strong>no estimate yet</strong> (the Playbook writes no estimate stream).</p>
+<h2 id="requirements"><a id="3-requirements"></a>3. Requirements<a class="anchor-link" href="#requirements">#</a></h2>
+<h3 id="amendment-2026-11-10-estimates-against-actual-from-the-framework-s-new-stream"><a id="amendment-2026-11-10--estimates-against-actual-from-the-frameworks-new-stream"></a>Amendment 2026-11-10 — estimates against actual, from the framework's new stream<a class="anchor-link" href="#amendment-2026-11-10-estimates-against-actual-from-the-framework-s-new-stream">#</a></h3>
+<ul>
+<li><a id="brd-211"></a><strong>BRD-211</strong> — System shall read <code>docs/metrics/estimates.jsonl</code> from every connected TechieFlow repository exactly as it reads <code>runs.jsonl</code>: fetched on the ordinary sync and on Sync now, archived raw under <code>data/raw/&lt;userId&gt;/</code>, recognised by <strong>Import metric files</strong> as a sixth stream name, and parsed into its own <code>Estimate</code> table — known fields (<code>v</code>, <code>ts</code>, <code>kind</code>, <code>app</code>, <code>project_type</code>, <code>phase</code>, <code>req_id</code>, <code>cmd</code>, <code>tokens_out</code> low/mid/high, <code>duration_s</code> low/mid/high, <code>basis</code>, <code>basis_runs</code>, <code>model</code>, <code>harness</code>, <code>basis_note</code>, <code>rows_n</code>, <code>rows_no_precedent_n</code>) as typed columns, anything else in the <code>Overflow</code> JSON column. Dedupe key <code>(UserId, Repo, Ts, App, Phase, ReqId, Cmd, Model)</code>, first wins. A missing file is an empty stream, never an error. Removing a repository and Rebuild from raw cover the table like every other stream. <code>UserId</code> is a parameter of every read. <em>(F-ESTIMATE, F-SYNC, F-IMPORT)</em>
+<ul>
+<li><em>Acceptance:</em> When the three Sample app test files are imported on /repos, then Estimate holds 44 Sample app rows and 0 Sample empty rows, and re-importing adds none.
+</li>
+</ul>
+</li>
+<li><a id="brd-212"></a><strong>BRD-212</strong> — System shall compute the reconciliation as a field-for-field port of <code>analyse_estimates</code> in <code>tf-metrics.sh</code>: per repository, phase and estimating model, the <strong>latest forecast batch</strong> (one <code>ts</code>); a batch carrying <code>basis_note: "retro"</code> is used only when that phase and model has no forecast, and is labelled <strong>estimated after the fact</strong>. The batch's rows are the phase's rows. Per step, the rows the actual is measured over are those whose estimate for that step had a figure. The actual is the <strong>live</strong> runs (never backfilled, never voided by a <code>run-void</code>) of that step (<code>triage-and-fix</code> and <code>triage-issues</code> both count as <code>triage</code>) whose <code>reqs_touched</code> meet those rows; a run counts the share <code>rows hit ÷ reqs_count</code> of its <code>tokens_out</code> and duration (its timestamps win, as in every reader), capped at one, and is counted <strong>apportioned</strong> when that share is below one. Tokens count only from runs whose <code>tokens_scope</code> is set and not <code>none</code>; the others are counted as <em>with no tokens</em>, and <code>main</code>-scope runs are counted as <em>main-thread only</em>. Fewer than three runs: <code>insufficient data (n=…)</code>. Where both an estimate and a numeric actual exist, the actual's position is <strong>within</strong>, <strong>above</strong> or <strong>below</strong> the low–high range. Runs of each step that named no row are counted over the whole repository and <strong>never shared out</strong> into any phase. The three parts are build (<code>build-phase</code>), machine QA (<code>verify-phase</code> + <code>fix-issues</code>, over the rows both had a figure for) and after handoff (<code>triage</code>). <em>(F-ESTIMATE, F-ENGINE)</em>
+<ul>
+<li><em>Acceptance:</em> When the engine reconciles the Sample app test files on /estimates, then its estimates block equals tf-metrics.sh --estimates --json on those files, key for key.
+</li>
+</ul>
+</li>
+<li><a id="brd-213"></a><strong>BRD-213</strong> — System shall never pool an estimate with a measurement (SCHEMA.md §6, fourth separation). No figure on any page, in the export or in the API adds, averages, subtracts or divides an <code>Estimate</code> value with a <code>Run</code> value; there is no ratio, no difference, no accuracy percentage and no single blended number. The estimate's mid and range sit in one column and the actual in a second. The <code>Estimate</code> table is read only by the reconciliation (BRD-212, BRD-217) and the export (BRD-218); no other figure in TfLens reads it, and the reconciliation never reads an estimate into a run figure or a run into an estimate figure. <em>(F-ESTIMATE, F-ENGINE)</em>
+<ul>
+<li><em>Acceptance:</em> When a test scans the result types on /estimates, then no member combines an estimate with an actual, and only EstimateMetrics, the store and the exporter read Estimate.
+</li>
+</ul>
+</li>
+<li><a id="brd-214"></a><strong>BRD-214</strong> — User can open <strong>Estimates</strong> (<code>/estimates</code>) from the Reports group of the sidebar, after Phase effort, and see one card per repository, phase and estimating model, under the same repo picker as BRD-210 (All repos or one repository, the choice carried across the report pages for the session) and the header framework switch. The card's header says the repository, the phase, the estimating model, when the estimate was made and how many rows it covers, and <strong>estimated after the fact</strong> for a hindsight batch. Its table has one line per part — <strong>Build</strong>, <strong>Machine QA (verify + fix)</strong>, <strong>After handoff (triage)</strong>, <strong>Total (build + machine QA)</strong> — and a last line <strong>Owner UAT time</strong> reading <strong>not measured</strong>. Each line shows the estimate's mid with its low–high range in one column (tokens, and time beneath), the actual in a second column (tokens, and time beneath) with <strong>apportioned</strong> beside it when any run counted was apportioned, the run counts, and <code>[n/m]</code> where the part covers fewer than all the phase's rows. Beneath the table, the count of runs that named no row, per step, labelled "in the repository, not shared out". A collapsed <strong>By step</strong> disclosure gives the same two columns for each of the four steps separately, with the actual's position — <strong>within</strong>, <strong>above</strong> or <strong>below</strong> the range, or a dash — as <code>tf-metrics.sh</code> reports it per step. <em>(F-UI, F-ESTIMATE — REQ-UI-078)</em>
+<ul>
+<li><em>Acceptance:</em> When the Sample app test files are loaded on /estimates, then each card's Build, Machine QA, After handoff and Owner UAT lines show exactly the figures in §3.1.
+</li>
+</ul>
+</li>
+<li><a id="brd-215"></a><strong>BRD-215</strong> — User can expand <strong>By row</strong> under each phase card and see one line per checklist row of the estimate batch: the row id, and for each of build, machine QA and after handoff the estimate's mid (low–high) with its basis (<code>repo</code>, <code>family</code>, <code>none</code>) and <code>basis_runs</code>, beside the row's actual — the live runs of that step that touched the row, each counting <code>1 ÷ reqs_count</code> of its tokens and duration, labelled <strong>apportioned</strong> when that share is below one, <code>insufficient data (n=…)</code> under three runs. The list is paged and sortable by row id; nothing on it is summed into a per-row total. <em>(F-UI, F-ESTIMATE — REQ-UI-079)</em>
+<ul>
+<li><em>Acceptance:</em> When By row is expanded on the Sample app phase 1 Opus card on /estimates, then each row shows exactly the per-row figures in §3.1.
+</li>
+</ul>
+</li>
+<li><a id="brd-216"></a><strong>BRD-216</strong> — User can see the page's empty and partial states in words, never as zeros: <strong>no estimate yet</strong> — run <code>*estimate-phase</code> before <code>*build-phase</code> — when the picked repository's estimate stream is empty or absent (on 2026-11-10 every connected repository), and in the Playbook state of the page, which has no estimate stream; with <strong>All repos</strong> picked, one card per repository that has estimates and one line listing the repositories that have none — never a card that adds repositories together; <strong>no precedent</strong> for a step whose estimate is null (<code>basis: none</code>); <code>insufficient data (n=…)</code> for an actual under three runs. <em>(F-UI, F-ESTIMATE — REQ-UI-080)</em>
+<ul>
+<li><em>Acceptance:</em> When the Sample empty test file is loaded on /estimates, then the page shows <code>no estimate yet</code> and no card, table, number or <code>0</code>.
+</li>
+</ul>
+</li>
+<li><a id="brd-217"></a><strong>BRD-217</strong> — System shall compute the two figures <code>tf-metrics.sh</code> does not, by stated rules, and label both as TfLens additions with no parity oracle. <strong>Total (build + machine QA):</strong> over the rows that build, verify and fix all had a figure for, the estimate is the sum of those rows' low, mid and high for the three steps (the rule <code>tf-estimate.sh</code> prints as "build + machine QA"), and the actual is the reconciliation's part rule applied to the three steps over the same rows; after handoff is <strong>never</strong> inside the total, so a phase with no triage history still has one. Where those rows are none, the total reads <strong>not one figure: the steps cover different rows</strong>. <strong>Per-row actual:</strong> the rule in BRD-215. Both are hand-checked once against the raw JSONL and recorded in DECISIONS.md, and both stand where <code>extras</code> stands. <em>(F-ESTIMATE, F-ENGINE)</em>
+<ul>
+<li><em>Acceptance:</em> When the Sample app test files are loaded on /estimates, then the three Totals read 55.5k, 83.5k and 58.0k beside 76.0k, 76.0k and 78.0k.
+</li>
+</ul>
+</li>
+<li><a id="brd-218"></a><strong>BRD-218</strong> — System shall write the reconciliation into the snapshot export's <code>tflens.json</code> as an <code>estimates</code> block in the <strong>exact key layout</strong> of <code>tf-metrics.sh --rollup --json</code> (<code>phases[]</code>, <code>repos_with_estimates</code>, and under each phase <code>cmds</code>, <code>parts</code>, <code>actual</code>, <code>actual_in_range</code>), so the parity check diffs it key for key; the total and per-row figures (BRD-217) are written beside it under keys listed in <code>tools/parity-compare.py</code>'s <code>ADDED_KEYS</code> with their reason. The Snapshot export page itself is unchanged. <em>(F-EXPORT, F-ESTIMATE)</em>
+<ul>
+<li><em>Acceptance:</em> When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then it exits 0 with no <code>estimates</code> finding.
+</li>
+</ul>
+</li>
+<li><a id="brd-219"></a><strong>BRD-219</strong> — Every number on the Estimates page is computed by code over the <code>Estimate</code> and <code>Run</code> tables at request time: no model or AI call anywhere in the request path, no stored derived value (BRD-30), no configuration key, query parameter or toggle that changes a figure. <strong>Owner UAT time</strong> is a fixed text, <strong>not measured</strong>; no field, input, setting or stream column accepts a value for it. <em>(NFR — REQ-NFR-027)</em>
+<ul>
+<li><em>Acceptance:</em> When a source scan covers EstimateMetrics and the page on /estimates, then it finds no HTTP or AI client, and Owner UAT time reads exactly <code>not measured</code>.
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="the-sample-app-the-test-files-every-acceptance-line-uses"><a id="31-the-sample-app--the-test-files-every-acceptance-line-uses"></a>3.1 The Sample app — the test files every acceptance line uses<a class="anchor-link" href="#the-sample-app-the-test-files-every-acceptance-line-uses">#</a></h3>
+<p>The Sample app (app id <code>SampleApp</code>) is made up and exists only as test files in
+<code>tests/TfLens.Core.Tests/Fixtures/Estimates/</code>. No real repository's data is needed or used.</p>
+<table>
+<thead><tr><th>File</th><th>Records</th><th>Cases</th></tr></thead>
+<tbody>
+<tr><td><code>sample__sample-app/estimates.jsonl</code></td><td>44</td><td>phase 1 estimated by <code>claude-opus-5-5</code> and by <code>claude-sonnet-5-5</code> (two estimating models); phase 2 by <code>claude-opus-5-5</code>; after handoff <code>basis: none</code> on every row (no precedent)</td></tr>
+<tr><td><code>sample__sample-app/runs.jsonl</code></td><td>15</td><td>actual inside, above and below the range; fix with 2 and 1 runs (insufficient data); one fix run that named no row; one build run on <code>REQ-UI-001</code> (phase 1) and <code>REQ-FN-003</code> (phase 2), apportioned half to each; no triage runs</td></tr>
+<tr><td><code>sample__sample-empty/estimates.jsonl</code></td><td>0</td><td>an empty stream: no estimate yet</td></tr>
+</tbody>
+</table>
+<p><strong>Expected figures</strong> — tokens, then time; estimate mid (low–high) beside actual. <code>tf-metrics.sh --estimates</code> prints every figure here except the Totals and the per-row actuals (BRD-217).</p>
+<table>
+<thead><tr><th>Card</th><th>Part</th><th>Estimate</th><th>Actual</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td>Phase 1 · Opus</td><td>Build</td><td>42.0k (28.0k–56.0k) · 38m20s (23m20s–53m20s)</td><td>52.0k · 50m00s, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.5k (7.5k–19.5k) · 35m00s (20m00s–50m00s)</td><td>24.0k · 55m00s</td><td>5</td></tr>
+<tr><td></td><td>Total</td><td>55.5k (35.5k–75.5k) · 1h13m (43m20s–1h43m)</td><td>76.0k · 1h45m, apportioned</td><td>8, 1 apportioned</td></tr>
+<tr><td>Phase 1 · Sonnet</td><td>Build</td><td>70.0k (55.0k–85.0k) · 56m40s (43m20s–1h10m)</td><td>52.0k · 50m00s, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.5k (7.5k–19.5k) · 35m00s (20m00s–50m00s)</td><td>24.0k · 55m00s</td><td>5</td></tr>
+<tr><td></td><td>Total</td><td>83.5k (62.5k–104.5k) · 1h31m (1h03m–2h00m)</td><td>76.0k · 1h45m, apportioned</td><td>8, 1 apportioned</td></tr>
+<tr><td>Phase 2 · Opus</td><td>Build</td><td>45.0k (30.0k–60.0k) · 45m00s (30m00s–1h00m)</td><td>65.0k · 1h05m, apportioned</td><td>3, 1 apportioned</td></tr>
+<tr><td></td><td>Machine QA</td><td>13.0k (8.0k–18.0k) · 33m20s (23m20s–43m20s)</td><td>13.0k · 30m00s</td><td>4</td></tr>
+<tr><td></td><td>Total</td><td>58.0k (38.0k–78.0k) · 1h18m (53m20s–1h43m)</td><td>78.0k · 1h35m, apportioned</td><td>7, 1 apportioned</td></tr>
+</tbody>
+</table>
+<p>On every card: After handoff <code>no precedent</code> beside <code>insufficient data (n=0)</code>; Owner UAT time <code>not measured</code>; runs that named no row: build 0 · verify 0 · fix 1 · after handoff 0. By step, tokens: phase 1 build <strong>within</strong> (Opus) and <strong>below</strong> (Sonnet), phase 1 verify 15.0k <strong>above</strong> 6.0k (3.0k–9.0k), phase 1 fix <code>insufficient data (n=2)</code>; phase 2 build <strong>above</strong>, verify 10.0k <strong>within</strong> 9.0k (6.0k–12.0k), fix <code>insufficient data (n=1)</code>.</p>
+<table>
+<thead><tr><th>Per row, phase 1 · Opus card</th><th>Build</th><th>Machine QA</th><th>After handoff</th></tr></thead>
+<tbody>
+<tr><td><code>REQ-FN-001</code></td><td>15.0k (10.0k–20.0k) · insufficient data (n=2)</td><td>4.5k (2.5k–6.5k) · insufficient data (n=2)</td><td>no precedent · insufficient data (n=0)</td></tr>
+<tr><td><code>REQ-FN-002</code></td><td>15.0k (10.0k–20.0k) · insufficient data (n=1)</td><td>4.5k (2.5k–6.5k) · 11.0k, 25m00s, apportioned</td><td>no precedent · insufficient data (n=0)</td></tr>
+<tr><td><code>REQ-UI-001</code></td><td>12.0k (8.0k–16.0k) · insufficient data (n=2)</td><td>4.5k (2.5k–6.5k) · 9.0k, 20m00s, apportioned</td><td>no precedent · insufficient data (n=0)</td></tr>
+</tbody>
+</table>
+<h2 id="development-status"><a id="4-development-status"></a>4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
+<p>Written by the status gate after every build, verify and handoff; not by hand.</p>
+<p><strong>Snapshot as of 2026-11-10.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P4-Checklist.md</code>.</p>
+<table>
+<thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Functional requirements</td><td>5</td><td>0</td><td>5</td><td>Planned</td></tr>
+<tr><td>UI / Pages</td><td>3</td><td>0</td><td>3</td><td>Planned</td></tr>
+<tr><td>Non-functional</td><td>1</td><td>0</td><td>1</td><td>Planned</td></tr>
+</tbody>
+</table>
+<h2 id="where-the-rest-lives"><a id="5-where-the-rest-lives"></a>5. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>
+<table>
+<thead><tr><th>What</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Executive summary, objectives, scope, stakeholders, diagrams</td><td><a href="./TfLens-BRD.html">phase 1 BRD</a> §1–§8</td></tr>
+<tr><td>Constraints and assumptions</td><td><a href="./TfLens-BRD.html">phase 1 BRD</a> §12</td></tr>
+<tr><td>Parity check — the mandatory acceptance test</td><td><a href="./TfLens-BRD.html">phase 1 BRD</a> §13</td></tr>
+<tr><td>The provenance rules this phase extends (BRD-30..36, BRD-89)</td><td><a href="./TfLens-P2-BRD.html">phase 2 BRD</a></td></tr>
+<tr><td>The repo picker this page reuses (BRD-210)</td><td><a href="./TfLens-P3-BRD.html">phase 3 BRD</a></td></tr>
+<tr><td>Architecture, decisions log, data model</td><td><a href="./TfLens-Architecture.html">TfLens-Architecture.md</a> (not phased)</td></tr>
+<tr><td>This phase's work list</td><td><a href="./TfLens-P4-Checklist.md">TfLens-P4-Checklist.md</a></td></tr>
+<tr><td>This phase's screen, control by control</td><td><a href="./TfLens-P4-UIDesign.html">TfLens-P4-UIDesign.md</a></td></tr>
+<tr><td>The stream's definition</td><td><code>.tfcore/telemetry/SCHEMA.md</code> §2.8 and §6</td></tr>
+</tbody>
+</table>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+// Light/dark toggle. The initial theme was already applied flash-free by the
+// <head> script (saved choice, else time-of-day). Clicking flips it, saves the
+// choice, and reloads so Mermaid re-renders in the matching theme.
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var relabel = function(){
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀ Light' : '☾ Dark';
+  };
+  relabel();
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem('tf-theme', next); }catch(e){}
+    location.reload();
+  });
+})();
+
+// Copy buttons on every code <pre> — but NEVER on a `pre.mermaid`:
+// mermaid reads the <pre>'s textContent as the diagram source, so a button
+// appended here glues "copy" onto the last line and breaks the parse
+// (flowcharts → "Syntax error"; sequence diagrams silently absorb it).
+// Mermaid blocks get copy/export from their own .diagram toolbar instead.
+document.querySelectorAll('pre:not(.mermaid)').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy';
+  btn.textContent = 'copy';
+  btn.addEventListener('click', () => {
+    const text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1200);
+    });
+  });
+  pre.appendChild(btn);
+});
+
+// Mermaid init — theme follows the resolved light/dark theme
+if (window.mermaid) {
+  var mermaidTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+  mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+}
+
+// Mermaid toolbar wiring — run after mermaid renders
+function wireMermaidToolbars() {
+  document.querySelectorAll('.diagram').forEach(dia => {
+    if (dia.dataset.wired) return;
+    const merm = dia.querySelector('.mermaid');
+    const svg = merm && merm.querySelector('svg');
+    if (!svg) return;
+    dia.dataset.wired = '1';
+    let scale = 1;
+    const label = dia.querySelector('.zlabel');
+    const apply = () => {
+      svg.style.transform = `scale(${scale})`;
+      svg.style.transformOrigin = 'top left';
+      if (label) label.textContent = Math.round(scale * 100) + '%';
+    };
+    const setScale = (s) => { scale = Math.max(0.25, Math.min(4, s)); apply(); };
+    dia.querySelector('[data-zin]').onclick = () => setScale(scale * 1.2);
+    dia.querySelector('[data-zout]').onclick = () => setScale(scale / 1.2);
+    dia.querySelector('[data-fit]').onclick = () => {
+      svg.style.transform = '';
+      svg.removeAttribute('width');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      scale = 1;
+      if (label) label.textContent = 'Fit';
+    };
+    dia.querySelector('[data-one]').onclick = () => {
+      svg.style.transform = '';
+      svg.style.maxWidth = 'none';
+      svg.style.width = '';
+      svg.style.height = '';
+      scale = 1;
+      if (label) label.textContent = '100%';
+    };
+    dia.querySelector('[data-fs]').onclick = () => {
+      dia.classList.toggle('fs');
+      if (dia.classList.contains('fs')) {
+        document.addEventListener('keydown', escFs);
+      } else {
+        document.removeEventListener('keydown', escFs);
+      }
+    };
+    function escFs(e) { if (e.key === 'Escape') { dia.classList.remove('fs'); document.removeEventListener('keydown', escFs); } }
+    dia.querySelector('[data-pop]').onclick = () => openInNewTab(svg);
+    // Ctrl+wheel zoom
+    merm.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setScale(scale * (e.deltaY < 0 ? 1.1 : 1/1.1));
+    }, { passive: false });
+  });
+}
+
+function openInNewTab(svg) {
+  const svgSource = new XMLSerializer().serializeToString(svg);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Diagram</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f1115;color:#e6e8ee;font-family:system-ui,sans-serif}
+  .bar{position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#161a22;border-bottom:1px solid #2a3142;display:flex;gap:8px;z-index:10}
+  .bar button{background:#1c2230;color:#9aa3b2;border:1px solid #2a3142;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .bar button:hover{color:#7cc4ff;border-color:#7cc4ff}
+  .bar .hint{margin-left:auto;color:#9aa3b2;font-size:11.5px;align-self:center}
+  #stage{position:absolute;top:42px;bottom:0;left:0;right:0;overflow:hidden}
+  #stage svg{width:100%;height:100%}
+</style>
+</head><body>
+<div class="bar">
+  <button onclick="zpz.zoomIn()">+</button>
+  <button onclick="zpz.zoomOut()">−</button>
+  <button onclick="zpz.fit();zpz.center()">Fit</button>
+  <button onclick="zpz.resetZoom();zpz.center()">1:1</button>
+  <button onclick="window.print()">Print</button>
+  <button onclick="dlPng()">PNG</button>
+  <button onclick="dlSvg()">SVG</button>
+  <span class="hint">Drag to pan · Ctrl+wheel to zoom · + / − keys</span>
+</div>
+<div id="stage">${svgSource}</div>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"><\/script>
+<script>
+  const el = document.querySelector('#stage svg');
+  const zpz = svgPanZoom(el, { zoomScaleSensitivity: .3, minZoom: .2, maxZoom: 10, controlIconsEnabled: false, fit: true, center: true });
+  document.addEventListener('keydown', e => {
+    if (e.key === '+' || e.key === '=') zpz.zoomIn();
+    if (e.key === '-' || e.key === '_') zpz.zoomOut();
+    if (e.key === '0') { zpz.resetZoom(); zpz.center(); }
+  });
+  function dlSvg() {
+    const blob = new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diagram.svg'; a.click();
+  }
+  function dlPng() {
+    const src = new XMLSerializer().serializeToString(el);
+    const img = new Image();
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(src)));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = el.clientWidth * 2; c.height = el.clientHeight * 2;
+      const ctx = c.getContext('2d'); ctx.scale(2,2); ctx.drawImage(img, 0, 0);
+      c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'diagram.png'; a.click(); });
+    };
+    img.src = url;
+  }
+<\/script>
+</body></html>`;
+  const w = window.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+// Run wiring after mermaid finishes (it renders async)
+if (window.mermaid) {
+  setTimeout(wireMermaidToolbars, 400);
+  setTimeout(wireMermaidToolbars, 1200);  // safety re-run for slow renders
+}
+</script>
+</body>
+</html>
