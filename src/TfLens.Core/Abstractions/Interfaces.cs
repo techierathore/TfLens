@@ -218,6 +218,27 @@ public interface IGitHubStreamFetcher
         string aPath,
         string aRef,
         CancellationToken aCancellationToken = default);
+
+    /// <summary>
+    /// Lists the file names directly inside one folder of a repository at one ref (BRD-220).
+    /// </summary>
+    /// <remarks>
+    /// One GET of the contents API — read-only, like every call TfLens makes to GitHub. Used once per
+    /// changed sync to read the app name from <c>docs/*-Checklist.md</c>. A fetcher that cannot list
+    /// answers <c>null</c>, which leaves the stored name as it was.
+    /// </remarks>
+    /// <param name="aOwner">Repository owner.</param>
+    /// <param name="aName">Repository name.</param>
+    /// <param name="aPath">The folder, such as <c>docs</c>.</param>
+    /// <param name="aRef">The commit SHA or branch to read at.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The file names, an empty list for a missing folder, or <c>null</c> when not listed.</returns>
+    Task<IReadOnlyList<string>?> ListFileNamesAsync(
+        string aOwner,
+        string aName,
+        string aPath,
+        string aRef,
+        CancellationToken aCancellationToken = default) => Task.FromResult<IReadOnlyList<string>?>(null);
 }
 
 /// <summary>Turns raw JSONL text into typed records, preserving everything it does not recognise.</summary>
@@ -420,6 +441,27 @@ public interface ITelemetryStore
         Task.FromResult<IReadOnlyList<MissVoidRecord>>([]);
 
     /// <summary>
+    /// Reads every <c>estimate</c> record for a user, optionally narrowed to one repository
+    /// (SCHEMA.md §2.8, REQ-FN-147).
+    /// </summary>
+    /// <remarks>
+    /// The fourth separation is a read-side wall (BRD-213): the rows this returns are read only by the
+    /// reconciliation (<c>EstimateMetrics</c>) and composed into the export — no other figure in TfLens
+    /// touches them, and nothing here is ever joined to a run inside the store.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id — mandatory (ADR-013).</param>
+    /// <param name="aFramework">The provenance axis to read; the Playbook writes no estimate stream.</param>
+    /// <param name="aRepo">One repository, or <c>null</c> for all of the user's.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>The matching estimate records, ordered by timestamp.</returns>
+    Task<IReadOnlyList<EstimateRecord>> ReadEstimatesAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<EstimateRecord>>([]);
+
+    /// <summary>
     /// Reads every Playbook event record for a user, optionally narrowed to one repository.
     /// </summary>
     /// <param name="aUserId">The AppManager user id.</param>
@@ -524,6 +566,26 @@ public interface ITelemetryStore
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>A task that completes when the row is written.</returns>
     Task WriteUserRepoAsync(UserRepo aRepo, CancellationToken aCancellationToken = default);
+
+    /// <summary>
+    /// Records the app name read from a repository's single <c>docs/*-Checklist.md</c> (BRD-220,
+    /// REQ-FN-152, ADR-036).
+    /// </summary>
+    /// <remarks>
+    /// The one writer of <see cref="UserRepo.ChecklistApp"/>: the row upsert leaves the column alone, so
+    /// a write that does not know the name can never clear it. <c>null</c> records that the repository
+    /// had none, or more than one. A store that keeps no such column ignores the call.
+    /// </remarks>
+    /// <param name="aUserId">The AppManager user id — mandatory (ADR-013).</param>
+    /// <param name="aRepo">The <c>owner/name</c>.</param>
+    /// <param name="aChecklistApp">The app name, or <c>null</c>.</param>
+    /// <param name="aCancellationToken">Cancels the call.</param>
+    /// <returns>A task that completes when the name is written.</returns>
+    Task WriteChecklistAppAsync(
+        int aUserId,
+        string aRepo,
+        string? aChecklistApp,
+        CancellationToken aCancellationToken = default) => Task.CompletedTask;
 
     /// <summary>
     /// Deletes a repository and every row derived from it, for one user only.

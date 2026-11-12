@@ -340,6 +340,7 @@ public sealed class SnapshotExporter : ISnapshotExporter
             vMissParity,
             vMeasuredRework,
             vReviewBlock,
+            MissDiscovery.Compute(vMisses, vFixes),
             vShas,
             vParity,
             vStamp.Status,

@@ -70,4 +70,23 @@ public sealed class FakeGitHubStreamFetcher : IGitHubStreamFetcher
         string aPath,
         string aRef,
         CancellationToken aCancellationToken = default) => Task.FromResult(true);
+
+    /// <summary>Scripted folder listings, keyed <c>owner/name:path</c> (BRD-220).</summary>
+    public Dictionary<string, IReadOnlyList<string>> Folders { get; } = [];
+
+    /// <summary>Every folder listing requested, as <c>owner/name:path@ref</c>.</summary>
+    public List<string> ListCalls { get; } = [];
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>?> ListFileNamesAsync(
+        string aOwner,
+        string aName,
+        string aPath,
+        string aRef,
+        CancellationToken aCancellationToken = default)
+    {
+        ListCalls.Add($"{aOwner}/{aName}:{aPath}@{aRef}");
+
+        return Task.FromResult(Folders.TryGetValue($"{aOwner}/{aName}:{aPath}", out var vNames) ? vNames : null);
+    }
 }

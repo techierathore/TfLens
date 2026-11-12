@@ -83,8 +83,9 @@ dotnet run --project src/TfLens -- provision-test-accounts
 - [ ] Open **Gate outcomes** and switch `project_type` tabs; check the catch-distribution lists all ten gates with a caveat badge on `assets`, `mockup-parity` and `perf`
 - [ ] Open **Phase effort**, expand `build-phase`, and confirm every figure shows its denominator beside it
 - [ ] Open **Price providers**, filter OpenRouter's models and page through a provider's rates
+- [ ] Import the Sample app test files on **Repos**, open **Estimates**, and expand **By step** and **By row** on the phase 1 Opus card
 - [ ] Flip the Framework switch to Playbook on a report page and back
-- [ ] Export a snapshot and open both files from the new row — the banner reads QUOTABLE (parity run of 2026-10-12, parser 1.3.0) and the Dataset SHAs table shows `sha256 <8 chars>` for each imported source
+- [ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE until the parity procedure is re-run (the framework's script changed 2026-11-08), and the Dataset SHAs table shows `sha256 <8 chars>` for each imported source
 - [ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
 - [ ] Re-check **Phase effort** and **Misses & rework** at a phone width (390px) — nothing breaks a word mid-token, nothing is cut off inside its own box
 - [ ] Sign out from the user menu
@@ -189,10 +190,16 @@ flowchart LR
 - **Expected:** every figure shows its denominator beside it, not a tooltip (`measured on n of N runs`; fan-out states `observed_n of runs` first); bands open Time, Tokens, By model, Fan-out; Tokens shows mean beside median; By model says "observational, not causal"; nothing grouped by actor, no per-REQ view; unmeasured reads `—` or `insufficient data (n=…)`, never `0`; at 390px model ids and `median · max` stay on one line and the panel scrolls within itself.
 - **Covers:** BRD-145..BRD-163, BRD-168, BRD-169 (`REQ-UI-045`..`051`)
 
+### Estimates (`/estimates`)
+- **Sign in as:** user 2
+- **Steps:** 1) Run `TF_BASE=<app url> bash tests/verify/seed/estimates.sh` 2) Open `/estimates`, pick Sample app 3) Expand **By step** and **By row** on the phase 1 Opus card 4) Pick Sample empty, then All repos 5) Flip to Playbook and back 6) Run the seed again with `--remove`
+- **Expected:** three cards whose Build, Machine QA, Total, After handoff and Owner UAT lines read exactly as BRD-P4 §3.1 (Totals 55.5k, 83.5k, 58.0k beside 76.0k, 76.0k, 78.0k); By row shows `none` under after handoff; Sample empty and Playbook read `No estimate yet` with no card or digit; no ratio or percentage anywhere.
+- **Covers:** BRD-211..BRD-220 (`REQ-UI-078`..`080`, `REQ-FN-147`..`152`, `REQ-NFR-027`)
+
 ### Snapshot export (`/export`)
 - **Sign in as:** user 1
 - **Steps:** 1) Read the banner 2) Press **Export snapshot** 3) Open both files from the new row 4) Copy a SHA from the dataset table
-- **Expected:** banner reads **QUOTABLE** (parity P-004, parser **1.3.0**) until the parser or `tf-metrics.sh` changes; the parity card shows `0 differences`; Dataset SHAs show a commit SHA when fetched, `sha256 <8 chars>` when imported; export writes `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON carries `per_repo` (each with `source_kind`), `live`, `backfilled`, `pooled`, `misses`, `extras` and `parity`; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
+- **Expected:** banner reads **NOT QUOTABLE** until the parity procedure is re-run — `tf-metrics.sh` changed on 2026-11-08, after parity P-004; afterwards **QUOTABLE**; Dataset SHAs show a commit SHA when fetched, `sha256 <8 chars>` when imported; export writes `data/reports/<userId>/<today>/<framework>/snapshot.md` and `tflens.json`; the JSON carries `per_repo` (each with `source_kind`), `live`, `backfilled`, `pooled`, `misses` (with the discovery-cost keys), `estimates`, `estimates_extras`, `extras` and `parity`; the row appears in past snapshots with the parser version.
 - **Covers:** BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 
 ### Parity procedure (terminal — no screen)
@@ -233,10 +240,12 @@ Covers: core, guardrail and integration tests (`-m:1`: not parallel-safe), plus 
 
 ## Known limitations
 
-**Phase 3:** 121 of 121 rows in `docs/TfLens-P3-Checklist.md` are `Verified`. **Phase 2:** 39 of 44. **Phase 1:** 76 of 77. None is `Blocked` (verify of 2026-10-12, `docs/TfLens-UAT-Readiness-2026-10-12.md`).
+**Phase 4:** 10 of 10 rows in `docs/TfLens-P4-Checklist.md` are `Verified` (2026-11-12). **Phase 3:** 91 of 96. **Phase 2:** 38 of 43. **Phase 1:** 74 of 75. None is `Blocked`.
 
 ### This release
 
+- The export banner reads NOT QUOTABLE: `tf-metrics.sh` changed on 2026-11-08 and the last recorded parity run (P-004) predates it. Re-run the parity procedure below to restore it.
+- `REQ-FN-065`, `068`, `069`, `104` (Needs re-verify, Phase 3) — need a connected public Playbook repository; `REQ-FN-084` needs an imported TechieFlow source.
 - `REQ-UI-023` (Needs re-verify, Phase 2) — Harness page; every test passes, but mockup parity counts the token chart's `<svg>` as an icon (`TF-054`).
 - `REQ-UI-027`, `REQ-UI-029` (Needs re-verify, Phase 2) — `/routing`; every test passes, but the drift table pages its rows and the mockup draws no pager (owner decision).
 - `REQ-UI-032`, `REQ-UI-033` (Needs re-verify, Phase 2) — `/export`; every test passes and the banner reads QUOTABLE, but parity reads the green `0 differences` badge as neutral in dark mode and the scrolling compare output as clipped (`TF-053`).
@@ -250,14 +259,11 @@ Covers: core, guardrail and integration tests (`-m:1`: not parallel-safe), plus 
 - Harness, routing and repricing figures have no reference implementation; spot-checked by hand once (BRD-72).
 
 ### Upstream — TechieFlow (`docs/TfLens-TechieFlow-Feedback.md`)
-- `TF-053` (open, minor) — `tf-mockup-parity` reads a box that scrolls its own content as cut off.
-- `TF-054` (open, minor) — `tf-mockup-parity` counts a chart's `<svg>` as an icon.
-- 16 entries fixed upstream and waiting to be re-checked here; 36 closed. Nothing blocks.
+- `TF-057` (open, minor) — `tf-phase.sh end` inside a nested command deletes the outer command's marker.
+- 19 entries fixed upstream and waiting to be re-checked here (`TF-053`, `TF-054` among them); 37 closed. Nothing blocks.
 
 ### Upstream — AppManager (`docs/TfLens-AppManager-Feedback.md`)
 - `AM-001`, `AM-002` — both resolved 2026-08-28; nothing open.
 
 ### Upstream — TrBlazeUI (`docs/TfLens-TrBlazeUI-Feedback.md`)
-- TfLens builds on TrBlazeUI 2.0.6: 35 entries fixed upstream and closed, `TR-022` merged into `TR-008`.
-- `TR-039` (open, minor) — leaving a page with a chart logs an unobserved `JSDisconnectedException` from the chart library; server log only.
-- `TR-040` (open, minor) — `InputGroupInput` has no debounce, so the filter boxes on `/misses` and `/prices` re-filter on every keystroke, in memory.
+- 38 entries, all closed; nothing open.

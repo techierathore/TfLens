@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Development Telemetry</h1>
-    <div class="sub">Last rendered: 2026-11-01</div>
+    <div class="sub">Last rendered: 2026-11-12</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#stream-inventory">Stream inventory</a></li>
@@ -115,12 +115,13 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#escape-rate-defects-that-reached-uat-or-production">3. Escape rate — defects that reached UAT or production</a></li>
         <li><a href="#misses-and-rework-cost">4. Misses and rework cost</a></li>
         <li><a href="#effort-per-phase-runs-not-tickets">5. Effort per phase (runs, not tickets)</a></li>
+        <li><a href="#estimate-against-actual-two-columns-never-one-number">6. Estimate against actual — two columns, never one number</a></li>
         <li><a href="#poolable-figures">Poolable figures</a></li>
     </ol>
   </nav>
   <main>
     <h1>TfLens — Development Telemetry</h1>
-    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>METRICS.md</code></div>
+    <div class="subtitle">Rendered 2026-11-12 &middot; source <code>METRICS.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -131,11 +132,12 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li><a href="#escape-rate-defects-that-reached-uat-or-production">3. Escape rate — defects that reached UAT or production</a></li>
         <li><a href="#misses-and-rework-cost">4. Misses and rework cost</a></li>
         <li><a href="#effort-per-phase-runs-not-tickets">5. Effort per phase (runs, not tickets)</a></li>
+        <li><a href="#estimate-against-actual-two-columns-never-one-number">6. Estimate against actual — two columns, never one number</a></li>
         <li><a href="#poolable-figures">Poolable figures</a></li>
       </ol>
     </div>
 <blockquote>
-<p>Generated 2026-11-01 from the append-only streams in <code>docs/metrics/</code> by
+<p>Generated 2026-11-12 (refreshed after the repo-picker fix) from the append-only streams in <code>docs/metrics/</code> by
 <code>bash .tfcore/telemetry/tf-metrics.sh --report . --json</code>. Every figure below is that script's
 arithmetic, not this document's. Read <code>.tfcore/telemetry/SCHEMA.md</code> §6 before quoting anything here.</p>
 <p><strong>There is no "overall" number on this page, and that is deliberate.</strong> First-pass rate, gate catch
@@ -146,11 +148,12 @@ backfilled records. The two columns below sit side by side and are never summed.
 <table>
 <thead><tr><th>Stream</th><th style="text-align:right">Records</th><th>Note</th></tr></thead>
 <tbody>
-<tr><td><code>gates.jsonl</code></td><td style="text-align:right">1,340</td><td>0 backfilled — every record written at the moment of the event</td></tr>
-<tr><td><code>runs.jsonl</code></td><td style="text-align:right">106 live</td><td>1 more is voided by a <code>run-void</code> record and is in no figure</td></tr>
-<tr><td><code>misses.jsonl</code></td><td style="text-align:right">155 misses + 123 fixes</td><td>80 open, 75 resolved</td></tr>
-<tr><td><code>sessions.jsonl</code></td><td style="text-align:right">44</td><td>4 duplicate <code>session_id</code>s collapsed</td></tr>
-<tr><td><code>commits.jsonl</code></td><td style="text-align:right">33</td><td>over 13 active days</td></tr>
+<tr><td><code>gates.jsonl</code></td><td style="text-align:right">1,355</td><td>0 backfilled — every record written at the moment of the event</td></tr>
+<tr><td><code>runs.jsonl</code></td><td style="text-align:right">120 live</td><td>1 more is voided by a <code>run-void</code> record and is in no figure</td></tr>
+<tr><td><code>misses.jsonl</code></td><td style="text-align:right">162 misses + 132 fixes</td><td>78 open, 84 resolved</td></tr>
+<tr><td><code>sessions.jsonl</code></td><td style="text-align:right">47</td><td>6 duplicate <code>session_id</code>s collapsed</td></tr>
+<tr><td><code>commits.jsonl</code></td><td style="text-align:right">35</td><td>over 14 active days</td></tr>
+<tr><td><code>estimates.jsonl</code></td><td style="text-align:right">phase 4</td><td>one forecast batch, 2026-11-11</td></tr>
 </tbody>
 </table>
 <p>TfLens is classified <code>app</code> now, but its early records carry <code>docs</code>. Both segments below are periods of
@@ -160,7 +163,7 @@ the same project, not two projects, and they are never pooled.</p>
 <table>
 <thead><tr><th><code>project_type</code></th><th style="text-align:right">REQs scored</th><th style="text-align:right">Rate</th></tr></thead>
 <tbody>
-<tr><td><strong>app</strong></td><td style="text-align:right">214</td><td style="text-align:right"><strong>32%</strong></td></tr>
+<tr><td><strong>app</strong></td><td style="text-align:right">224</td><td style="text-align:right"><strong>35%</strong></td></tr>
 <tr><td><strong>docs</strong></td><td style="text-align:right">113</td><td style="text-align:right"><strong>94%</strong></td></tr>
 </tbody>
 </table>
@@ -168,20 +171,22 @@ the same project, not two projects, and they are never pooled.</p>
 mockup-parity gates. The gap is how many ways each can fail, not a quality comparison.</p>
 <h2 id="gate-catch-distribution-which-gate-caught-each-failure"><a id="2-gate-catch-distribution--which-gate-caught-each-failure"></a>2. Gate catch distribution — which gate caught each failure<a class="anchor-link" href="#gate-catch-distribution-which-gate-caught-each-failure">#</a></h2>
 <table>
-<thead><tr><th>Gate</th><th style="text-align:right">app (211 failures)</th><th style="text-align:right">docs (8 failures)</th></tr></thead>
+<thead><tr><th>Gate</th><th style="text-align:right">app (214 failures)</th><th style="text-align:right">docs (8 failures)</th></tr></thead>
 <tbody>
 <tr><td>build</td><td style="text-align:right">2 (1%)</td><td style="text-align:right">—</td></tr>
+<tr><td>test-users</td><td style="text-align:right">2 (1%)</td><td style="text-align:right">—</td></tr>
 <tr><td>acceptance</td><td style="text-align:right">19 (9%)</td><td style="text-align:right">4 (50%)</td></tr>
 <tr><td>render</td><td style="text-align:right">25 (12%)</td><td style="text-align:right">2 (25%)</td></tr>
 <tr><td>visual</td><td style="text-align:right">13 (6%)</td><td style="text-align:right">—</td></tr>
 <tr><td>mockup-parity</td><td style="text-align:right">74 (35%)</td><td style="text-align:right">—</td></tr>
-<tr><td><strong>escaped</strong></td><td style="text-align:right"><strong>34 (16%)</strong></td><td style="text-align:right">—</td></tr>
+<tr><td><strong>escaped</strong></td><td style="text-align:right"><strong>35 (16%)</strong></td><td style="text-align:right">—</td></tr>
 <tr><td>unattributed</td><td style="text-align:right">44 (21%)</td><td style="text-align:right">2 (25%)</td></tr>
 </tbody>
 </table>
-<p>Late gates (live <code>app</code> records only; a share above is not a catch rate): mockup-parity ran on 249
-records and caught 74 → 30%; assets ran on 178, caught 0; perf ran on 3, caught 0; test-users ran on 3,
-caught 0.</p>
+<p>Late gates (live <code>app</code> records only; a share above is not a catch rate): mockup-parity ran on 252
+records and caught 74 → 29%; assets ran on 181, caught 0; test-users ran on 16, caught 2 → 12%; perf ran
+on 3, caught 0. The visual and mockup-parity findings of 2026-11-12 on <code>/estimates</code> were found and fixed
+inside one triage-and-fix before its verify wrote a gate record, so they appear as misses (§4), not here.</p>
 <h2 id="escape-rate-defects-that-reached-uat-or-production"><a id="3-escape-rate--defects-that-reached-uat-or-production"></a>3. Escape rate — defects that reached UAT or production<a class="anchor-link" href="#escape-rate-defects-that-reached-uat-or-production">#</a></h2>
 <table>
 <thead><tr><th><code>project_type</code></th><th style="text-align:right">Escape rate</th></tr></thead>
@@ -190,47 +195,62 @@ caught 0.</p>
 <tr><td><strong>docs</strong></td><td style="text-align:right">0%</td></tr>
 </tbody>
 </table>
-<p>This run added two escapes: the owner's UAT report of 2026-11-01 (REQ-UI-076, REQ-UI-077). Both were
-gaps in the spec, not in a check, and both are now fixed and Verified.</p>
 <h2 id="misses-and-rework-cost"><a id="4-misses-and-rework-cost"></a>4. Misses and rework cost<a class="anchor-link" href="#misses-and-rework-cost">#</a></h2>
 <ul>
-<li><strong>155 misses logged</strong> — 80 open, 75 resolved, 0 won't-fix. Design-miss share (the spec, not the build): <strong>19%</strong>. Found by a person (owner or production): <strong>44%</strong>, reported beside the escape rate above, never merged with it.
+<li><strong>162 misses logged</strong> — 78 open, 84 resolved, 0 won't-fix. Design-miss share (the spec, not the build): <strong>20%</strong>. Found by a person (owner or production): <strong>44%</strong>, reported beside the escape rate above, never merged with it.
 </li>
-<li><strong>What was missed:</strong> partial-implementation 55 · unspecified-gap 30 · wrong-behaviour 27 · regression 24 · spec-contradiction 8 · standards-violation 7 · missed-requirement 4.
+<li><strong>What was missed:</strong> partial-implementation 56 · unspecified-gap 32 · wrong-behaviour 28 · regression 24 · spec-contradiction 10 · standards-violation 7 · missed-requirement 4.
 </li>
-<li><strong>Why (103 of 155 assessed):</strong> insufficient-verify-method 48 · missing-checklist-item 25 · ambiguous-acceptance 14 · instruction-ignored 8 · dependency-not-declared 5 · other 3. <strong>8 escapes carry no <code>why_missed</code>.</strong>
+<li><strong>Why (105 of 161 assessed):</strong> insufficient-verify-method 48 · missing-checklist-item 26 · ambiguous-acceptance 15 · instruction-ignored 8 · dependency-not-declared 5 · other 3. <strong>8 escapes carry no <code>why_missed</code>.</strong>
 </li>
-<li><strong>Whose gap (30 of 69 sorted):</strong> weak-check 13 · spec 10 · ignored 4 · unsaid 3. 86 misses predate the <code>sort</code> field.
+<li><strong>Whose gap (36 of 75 sorted):</strong> spec 16 · weak-check 13 · ignored 4 · unsaid 3. 86 misses predate the <code>sort</code> field.
 </li>
-<li><strong>Attribution (104 of 155 linked; 51 excluded as inferred or unknown):</strong> origin phase build-phase 72, fix-issues 21, amend-docs 8; every linked miss came from <code>claude-opus-5</code>.
+<li><strong>Attribution (104 of 161 linked; 57 excluded as inferred or unknown):</strong> origin phase build-phase 72, fix-issues 21, amend-docs 8; every linked miss came from <code>claude-opus-5</code>. Which model gets which work is not random, so this is an observation, not a cause.
 </li>
-<li><strong>Rework cost — measured and shared are separate, never one number:</strong> 5 solely-measured fixes at <strong>143.0k output tokens per miss</strong> (list price <strong>$30.30</strong> per miss — a published rate applied to measured tokens, not a bill); 89 shared fixes at 39.3k tokens per miss by equal division, which is <strong>not a measurement</strong>; 29 fixes with no usable window cannot be costed.
+<li><strong>Discovery cost per miss (new, SCHEMA.md §5.5.12):</strong> insufficient data — 1 measured, 6 not measured, 155 written before the field existed. The one measured: the owner's UAT report of the repo picker (MISS-TfLens-20261112-07, REQ-UI-077) cost <strong>13.0k tokens and 6.1 minutes</strong> to find, beside <strong>39.7k tokens</strong> to fix — two columns, never added. The six of 2026-11-12 are all <code>not measured</code>: two were found by the owner, and the run that found the other four set no mark when each investigation began. Their fixes sit beside them at <strong>45.9k tokens each, apportioned 1/5</strong> — a share of one window, not a measurement.
+</li>
+<li><strong>Rework cost — measured and shared are separate, never one number:</strong> 5 solely-measured fixes at <strong>143.0k output tokens per miss</strong> (list price <strong>$30.30</strong> per miss — a published rate applied to measured tokens, not a bill); 95 shared fixes at 38.7k tokens per miss by equal division, which is <strong>not a measurement</strong>; 31 fixes with no usable window cannot be costed.
 </li>
 </ul>
 <h2 id="effort-per-phase-runs-not-tickets"><a id="5-effort-per-phase-runs-not-tickets"></a>5. Effort per phase (runs, not tickets)<a class="anchor-link" href="#effort-per-phase-runs-not-tickets">#</a></h2>
 <table>
 <thead><tr><th>Phase</th><th style="text-align:right">Runs</th><th style="text-align:right">Wall clock</th><th style="text-align:right">Tokens out</th><th style="text-align:right">Share of output</th></tr></thead>
 <tbody>
-<tr><td>build-phase</td><td style="text-align:right">15</td><td style="text-align:right">50h20m</td><td style="text-align:right">5.8M</td><td style="text-align:right">37%</td></tr>
-<tr><td>verify-phase</td><td style="text-align:right">26</td><td style="text-align:right">28h24m</td><td style="text-align:right">2.9M</td><td style="text-align:right">19%</td></tr>
-<tr><td>fix-issues</td><td style="text-align:right">15</td><td style="text-align:right">12h24m</td><td style="text-align:right">2.7M</td><td style="text-align:right">17%</td></tr>
-<tr><td>amend-docs</td><td style="text-align:right">14</td><td style="text-align:right">2h40m</td><td style="text-align:right">1.6M</td><td style="text-align:right">10%</td></tr>
+<tr><td>build-phase</td><td style="text-align:right">16</td><td style="text-align:right">51h28m</td><td style="text-align:right">6.1M</td><td style="text-align:right">37%</td></tr>
+<tr><td>verify-phase</td><td style="text-align:right">28</td><td style="text-align:right">29h25m</td><td style="text-align:right">3.0M</td><td style="text-align:right">18%</td></tr>
+<tr><td>fix-issues</td><td style="text-align:right">15</td><td style="text-align:right">12h24m</td><td style="text-align:right">2.7M</td><td style="text-align:right">16%</td></tr>
+<tr><td>amend-docs</td><td style="text-align:right">16</td><td style="text-align:right">5h11m</td><td style="text-align:right">1.9M</td><td style="text-align:right">11%</td></tr>
 <tr><td>split-brd</td><td style="text-align:right">3</td><td style="text-align:right">3h16m</td><td style="text-align:right">958.7k</td><td style="text-align:right">6%</td></tr>
 <tr><td>handoff-phase</td><td style="text-align:right">3</td><td style="text-align:right">1h07m</td><td style="text-align:right">687.0k</td><td style="text-align:right">4%</td></tr>
+<tr><td>triage-and-fix</td><td style="text-align:right">4</td><td style="text-align:right">1h10m</td><td style="text-align:right">439.3k</td><td style="text-align:right">3%</td></tr>
 <tr><td>mockups</td><td style="text-align:right">3</td><td style="text-align:right">3h07m</td><td style="text-align:right">281.9k</td><td style="text-align:right">2%</td></tr>
-<tr><td>triage-and-fix</td><td style="text-align:right">2</td><td style="text-align:right">35m46s</td><td style="text-align:right">198.2k</td><td style="text-align:right">1%</td></tr>
 <tr><td>triage-issues</td><td style="text-align:right">2</td><td style="text-align:right">28m01s</td><td style="text-align:right">199.0k</td><td style="text-align:right">1%</td></tr>
 <tr><td>log-miss</td><td style="text-align:right">15</td><td style="text-align:right">23m49s</td><td style="text-align:right">138.4k</td><td style="text-align:right">1%</td></tr>
-<tr><td>other (4 phases: rename-page, metrics-report, feedback-recheck, deploy-checklist)</td><td style="text-align:right">8</td><td style="text-align:right">3h00m</td><td style="text-align:right">182.4k</td><td style="text-align:right">&lt;1%</td></tr>
+<tr><td>other (5 phases: rename-page, deploy-checklist, feedback-recheck, metrics-report, estimate-phase)</td><td style="text-align:right">9</td><td style="text-align:right">3h03m</td><td style="text-align:right">185.6k</td><td style="text-align:right">&lt;1%</td></tr>
 </tbody>
 </table>
-<p>Token windows: 39 runs saw their subagents (<code>tree</code>), 59 did not look (<code>main</code>), 8 measured nothing and
-are left out of every token figure. A <code>0</code> fan-out on a <code>main</code> run means <em>not looked</em>, not <em>none</em>.</p>
+<p>Token windows: 44 runs saw their subagents (<code>tree</code>), 62 did not look (<code>main</code>), 8 measured nothing and
+are left out of every token figure. A <code>0</code> fan-out on a <code>main</code> run means <em>not looked</em>, not <em>none</em>.
+<code>build-phase</code> costing more than <code>log-miss</code> is what those phases are, not a finding about either.</p>
+<h2 id="estimate-against-actual-two-columns-never-one-number"><a id="6-estimate-against-actual--two-columns-never-one-number"></a>6. Estimate against actual — two columns, never one number<a class="anchor-link" href="#estimate-against-actual-two-columns-never-one-number">#</a></h2>
+<p>Phase 4 was estimated on 2026-11-11 by <code>opencode-go/qwen3.8-max</code>, over its 9 rows. Every actual reads
+<strong>insufficient data</strong>: the build and verify of phase 4 were each one run against TfLens's own rows, and a
+figure needs three.</p>
+<table>
+<thead><tr><th>Part</th><th>Estimate — mid (low–high)</th><th>Actual</th></tr></thead>
+<tbody>
+<tr><td>Build</td><td>289.0k tok (173.2k–431.6k) · 1h23m (58m03s–3h18m)</td><td>insufficient data (n=1)</td></tr>
+<tr><td>Machine QA</td><td>345.5k tok (230.1k–621.1k) · 2h08m (1h33m–3h08m)</td><td>insufficient data (n=1)</td></tr>
+<tr><td>After handoff [3/9 rows]</td><td>55.5k tok (32.5k–126.4k) · 8m36s (4m48s–22m09s)</td><td>insufficient data (n=1)</td></tr>
+</tbody>
+</table>
+<p>Runs that named no row are counted in the repository and shared into no phase: verify 3, fix 2, after
+handoff 2.</p>
 <h2 id="poolable-figures">Poolable figures<a class="anchor-link" href="#poolable-figures">#</a></h2>
-<p>Rework ratio <strong>140%</strong> (fix-mode runs / build-phase runs) · batch size median <strong>10</strong> REQs per build ·
-throughput median <strong>18.32</strong> REQs/hour · <strong>15.66M</strong> total tokens over 44 sessions · list price
-<strong>$3,784.81</strong> over 98 priced runs, <strong>$3.38</strong> per Verified REQ — a price, never a bill · commit cadence
-<strong>2.54</strong> per active day.</p>
+<p>Rework ratio <strong>144%</strong> (fix-mode runs / build-phase runs) · batch size median <strong>10</strong> REQs per build ·
+throughput median <strong>15.28</strong> REQs/hour · <strong>16.24M</strong> total tokens over 47 sessions · list price
+<strong>$3,887.65</strong> over 106 priced runs, <strong>$3.43</strong> per Verified REQ — a price, never a bill · commit cadence
+<strong>2.5</strong> per active day.</p>
   </main>
 </div>
 

@@ -2,8 +2,8 @@
     REQ-UI-077 — the report pages' repo picker: "All repos", or one of the signed-in user's repositories
     on the current framework.
 
-    One component on five pages (Gate outcomes, Harness, Routing & economics, Misses & rework, Phase
-    effort), in each page's title row and NOT in the header — ShellHeader.razor is at its width limit.
+    One component on six pages (Gate outcomes, Harness, Routing & economics, Misses & rework, Phase
+    effort, Estimates), in each page's title row and NOT in the header — ShellHeader.razor is at its width limit.
 
     The choice lives in ShellPreferences.Repo (per circuit), so it carries from page to page, and setting
     it raises ShellPreferences.Changed: every page re-queries the store with that repository, it never
@@ -19,7 +19,9 @@
 @inject ShellPreferences objPreferences
 @inject ShellState objShellState
 
-<div class="tflens-repo-picker">
+@* Owner UAT 2026-11-12 (REQ-UI-077): the width is set on the element itself as well as in the scoped
+   sheet, so the picker can never fall back to the width of "All repos" and cut every repository name. *@
+<div class="tflens-repo-picker" style="width: 18rem; max-width: 100%; flex: none;">
     <Select TValue="string"
             Value="@SelectedValue"
             ValueChanged="OnRepoChangedAsync"
@@ -31,7 +33,7 @@
             <SelectItem TValue="string" Value="@AllReposValue" Text="@AllReposLabel">@AllReposLabel</SelectItem>
             @foreach (var vRepo in Options)
             {
-                <SelectItem TValue="string" Value="@vRepo" Text="@vRepo">@vRepo</SelectItem>
+                <SelectItem TValue="string" Value="@vRepo" Text="@vRepo" title="@vRepo">@vRepo</SelectItem>
             }
         </SelectContent>
     </Select>

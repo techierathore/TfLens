@@ -19,14 +19,18 @@ public sealed class MissStreamParserTests
 {
     private readonly StreamParser objParser = new();
 
-    /// <summary>The fifth stream has a wire name, a kind, and a place in the TechieFlow report order.</summary>
+    /// <summary>The miss stream has a wire name, a kind, and a place in the TechieFlow report order —
+    /// fifth of the six, ahead of only the estimates stream added 2026-11-10 (BRD-211).</summary>
     [Fact]
     public void MissesIsTheFifthTechieFlowStream()
     {
         StreamNames.TechieFlow.Should().Equal(
-            StreamNames.Runs, StreamNames.Gates, StreamNames.Sessions, StreamNames.Commits, StreamNames.Misses);
+            StreamNames.Runs, StreamNames.Gates, StreamNames.Sessions, StreamNames.Commits,
+            StreamNames.Misses, StreamNames.Estimates);
         StreamNames.ToKind(StreamNames.Misses).Should().Be(StreamKind.Misses);
         StreamNames.ToName(StreamKind.Misses).Should().Be(StreamNames.Misses);
+        StreamNames.ToKind(StreamNames.Estimates).Should().Be(StreamKind.Estimates);
+        StreamNames.ToName(StreamKind.Estimates).Should().Be(StreamNames.Estimates);
     }
 
     /// <summary>All four record kinds parse out of one file in a single pass (REQ-FN-072).</summary>

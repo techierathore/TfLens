@@ -310,8 +310,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   </div>
 
   <div class="coll" data-testid="est-by-step">
-   <div class="trg"><svg><use href="#i-chevron-down"/></svg>By step<span class="muted" style="font-weight:400">— phase 1 · claude-opus-5-5, each step with where the actual falls</span><span class="spacer"></span><span class="badge secondary">expanded</span></div>
-   <div class="body"><table class="tbl est">
+   <div class="trg"><svg><use href="#i-chevron-down"/></svg>By step<span class="muted" style="font-weight:400">— phase 1 · claude-opus-5-5, each step with where the actual falls</span><span class="spacer"></span><span class="badge secondary" data-tf-state="expanded">expanded</span></div>
+   <div class="body" data-tf-state="expanded" title="Drawn expanded; the page opens with By step collapsed (BRD-214)"><table class="tbl est">
     <thead><tr><th>Step</th><th>Estimate — mid (low–high)</th><th>Actual</th><th>Range</th><th class="r">Runs</th></tr></thead>
     <tbody>
      <tr><td class="mono">build-phase</td><td>42.0k tok (28.0k–56.0k)<span class="t2">38m20s (23m20s–53m20s)</span></td><td>52.0k tok<span class="t2">50m00s</span></td><td data-testid="est-range"><span class="badge secondary">within</span><span class="t2">within</span></td><td class="r">3 · 1 apportioned</td></tr>
@@ -322,8 +322,8 @@ function toggleTheme(){var d=document.documentElement.classList.toggle('dark');l
   </div>
 
   <div class="coll" data-testid="est-by-row">
-   <div class="trg"><svg><use href="#i-chevron-down"/></svg>By row<span class="muted" style="font-weight:400">— phase 1 · claude-opus-5-5, estimate beside each row's own actual</span><span class="spacer"></span><span class="badge secondary">expanded</span></div>
-   <div class="body"><table class="tbl est">
+   <div class="trg"><svg><use href="#i-chevron-down"/></svg>By row<span class="muted" style="font-weight:400">— phase 1 · claude-opus-5-5, estimate beside each row's own actual</span><span class="spacer"></span><span class="badge secondary" data-tf-state="expanded">expanded</span></div>
+   <div class="body" data-tf-state="expanded" title="Drawn expanded; the page opens with By row collapsed (BRD-215)"><table class="tbl est">
     <thead><tr><th>Row</th><th>Build</th><th>Machine QA</th><th>After handoff</th></tr></thead>
     <tbody>
      <tr><td class="mono">REQ-FN-001</td><td>15.0k tok (10.0k–20.0k) · 13m20s<span class="t2">repo n=6 · actual: <i>insufficient data (n=2)</i></span></td><td>4.5k tok (2.5k–6.5k) · 11m40s<span class="t2">repo n=6 · actual: <i>insufficient data (n=2)</i></span></td><td><span class="nm">no precedent</span><span class="t2">none · actual: <i>insufficient data (n=0)</i></span></td></tr>

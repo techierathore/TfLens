@@ -68,6 +68,12 @@ ALTER TABLE "UserRepo"
 ALTER TABLE "UserRepo"
     ADD COLUMN IF NOT EXISTS "LastImportTs" timestamptz NULL;
 
+-- REQ-FN-152 / BRD-220 / ADR-036: the app name from the repository's single docs/*-Checklist.md, read
+-- on sync (one listing of docs/) and on import (a bundle entry). NULL when there is none or several.
+-- Names only a repository whose records carry no app name, as app_name() in tf-metrics.sh does.
+ALTER TABLE "UserRepo"
+    ADD COLUMN IF NOT EXISTS "ChecklistApp" text NULL;
+
 -- Server-side AppManager tokens. The browser only ever holds "SessionId" (inside the auth cookie);
 -- the token columns are encrypted at rest with ASP.NET Data Protection before they are written here.
 CREATE TABLE IF NOT EXISTS "AuthSession" (
@@ -765,6 +771,64 @@ FROM "UserRepo"
 WHERE "BundleSha" IS NOT NULL AND btrim("BundleSha") <> ''
 ON CONFLICT ON CONSTRAINT "PkSourceProvenance" DO NOTHING;
 
+-- ---------------------------------------------------------------- estimates (phase 4, 2026-11-10)
+
+-- REQ-FN-147 / BRD-211: the sixth TechieFlow stream (SCHEMA.md §2.8, added to the framework
+-- 2026-11-08). A FORECAST, never a measurement: one row per (checklist row | phase total) per step,
+-- written by *estimate-phase before the build. The fourth separation (SCHEMA.md §6, BRD-213, ADR-034)
+-- governs it -- this table is never joined to "Run" in SQL, and no figure adds, averages, subtracts
+-- or divides one of these values with a run value.
+--
+-- "ReqId" is NULL on the phase total -- a meaningful absence, never an empty string. The two forecast
+-- objects fan out to three columns each; a `null` figure (basis "none", no precedent) stays three
+-- NULLs and is never coerced to zeros (SCHEMA.md §2.5). "Model" is the ESTIMATING model, not the
+-- model the build will use. "Cmd" is an open vocabulary at the producer (ADR-032): a value outside
+-- the four known steps is stored as it stands.
+CREATE TABLE IF NOT EXISTS "Estimate" (
+    "UserId"           integer NOT NULL,
+    "Repo"             text    NOT NULL,
+    "SourceSha"        text    NOT NULL,
+    "V"                integer NOT NULL DEFAULT 1,
+    "Ts"               text    NOT NULL,
+    "App"              text    NULL,
+    "ProjectType"      text    NULL,
+    "Phase"            integer NULL,
+    "ReqId"            text    NULL,
+    "Cmd"              text    NOT NULL,
+    "TokensOutLow"     bigint  NULL,
+    "TokensOutMid"     bigint  NULL,
+    "TokensOutHigh"    bigint  NULL,
+    "DurationSLow"     bigint  NULL,
+    "DurationSMid"     bigint  NULL,
+    "DurationSHigh"    bigint  NULL,
+    "Basis"            text    NULL,
+    "BasisRuns"        integer NULL,
+    "Model"            text    NULL,
+    "Harness"          text    NULL,
+    "BasisNote"        text    NULL,
+    "RowsN"            integer NULL,
+    "RowsNoPrecedentN" integer NULL,
+    "Overflow"         jsonb   NULL
+);
+
+-- The dedupe key (BRD-211), first wins. The nullable parts COALESCE exactly as Dedupe.Estimates does,
+-- so a phase total (ReqId NULL) collides with itself -- a NULL in a PostgreSQL unique index never
+-- equals another NULL, and without the COALESCE every re-import would insert it again (the lesson
+-- "UcMissFixUserRepoMissIdFixRunIdAttempt" recorded on 2026-08-28, applied before it bites).
+CREATE UNIQUE INDEX IF NOT EXISTS "UcEstimateIdentity"
+    ON "Estimate" ("UserId", "Repo", "Ts", COALESCE("App", ''), COALESCE("Phase", -1),
+                   COALESCE("ReqId", ''), "Cmd", COALESCE("Model", ''));
+
+-- Read path: the reconciliation reads per (user, repo), like every other stream.
+CREATE INDEX IF NOT EXISTS "IxEstimateUserRepo" ON "Estimate" ("UserId", "Repo");
+
+-- REQ-FN-147: SyncState gains the sixth stream's count, so Coverage reports six stream rows per
+-- repository. A repository that does not emit estimates.jsonl keeps this at zero -- the same fact a
+-- 404 states, never an error (BRD-211).
+ALTER TABLE "SyncState"
+    ADD COLUMN IF NOT EXISTS "EstimatesCount" integer NOT NULL DEFAULT 0;
+
+
 -- REQ-NFR-019 clause 1, second layer. StreamParser.Parse refuses a blank source SHA, but the 155 rows
 -- arrived through raw SQL, which is exactly the layer the application does not control. PostgreSQL
 -- enforces the same rule for every writer: a stream row with no provenance at all cannot exist.
@@ -780,7 +844,7 @@ DECLARE
     vTable text;
     vName  text;
 BEGIN
-    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'MissReview', 'MissVoid', 'PbEvent']
+    FOREACH vTable IN ARRAY ARRAY['Run', 'Gate', 'Session', 'Commit', 'Miss', 'MissFix', 'MissAmend', 'MissReview', 'MissVoid', 'PbEvent', 'Estimate']
     LOOP
         vName := 'Ck' || vTable || 'SourceShaPresent';
 

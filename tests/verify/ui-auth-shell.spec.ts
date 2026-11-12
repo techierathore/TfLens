@@ -98,6 +98,21 @@ test('REQ-UI-002 register page renders every field, the strength meter and the M
   const requests: string[] = [];
   page.on('request', r => requests.push(r.method() + ' ' + r.url()));
 
+  // FW-001 guard — the fallback submit below types test user 1's address. The password rules
+  // short-circuit it locally, but a regression that let it through would CREATE the account again if
+  // AppManager no longer held it. The sanctioned pattern: sign in as test user 1 first in this same
+  // test to prove the account exists, and stop (skip) without any submit when that sign-in is refused.
+  let vSignedIn = true;
+  try {
+    await signIn(page, { email: USER1.email, password: USER1.password });
+  } catch {
+    vSignedIn = false;
+  }
+  test.skip(!vSignedIn, 'sign-in as test user 1 was refused — submitting Register with their address could create an account (FW-001)');
+
+  // Back to anonymous, so /register renders the form rather than redirecting a signed-in user.
+  await page.context().clearCookies();
+
   await gotoAnonymous(page, '/register', 'reg-email');
 
   for (const id of ['reg-first', 'reg-last', 'reg-email', 'reg-pass', 'reg-confirm', 'reg-submit']) {
@@ -243,7 +258,8 @@ test('REQ-UI-005 profile renders the AppManager values, the Manager badge and th
 // ─────────────────────────────────────────────────────────────────────────────
 // Amended 2026-08-28 (BRD-5, BRD-124): SEVEN items — Misses & rework sits between Routing and Export.
 // Amended 2026-09-11 (BRD-5, BRD-200): NINE items — Price providers is second, under Repos.
-test('REQ-UI-006 app shell shows the nine nav items in order, collapses to an icon rail, a repo-count badge and no /playbook item', async ({ page }) => {
+// Amended 2026-11-11 (BRD-214, REQ-UI-078): TEN items — Estimates sits directly after Phase effort.
+test('REQ-UI-006 app shell shows the ten nav items in order, collapses to an icon rail, a repo-count badge and no /playbook item', async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await signIn(page);
   await gotoScreen(page, '/');
@@ -251,7 +267,7 @@ test('REQ-UI-006 app shell shows the nine nav items in order, collapses to an ic
   await expect(page.locator('[data-testid="app-sidebar"]').first()).toBeVisible();
 
   const ids = ['nav-repos', 'nav-prices', 'nav-coverage', 'nav-gate-outcomes', 'nav-harness', 'nav-routing',
-    'nav-misses', 'nav-effort', 'nav-export'];
+    'nav-misses', 'nav-effort', 'nav-estimates', 'nav-export'];
   for (const id of ids) {
     expect(await page.locator(`[data-testid="${id}"]`).count(), `${id} missing`).toBeGreaterThan(0);
   }
@@ -262,7 +278,7 @@ test('REQ-UI-006 app shell shows the nine nav items in order, collapses to an ic
     expect(order[i], `${ids[i]} is not after ${ids[i - 1]} in DOM order: ${JSON.stringify(order)}`).toBeGreaterThan(order[i - 1]);
   }
 
-  // No tenth item: every nav-* link in the sidebar is one of the nine.
+  // No eleventh item: every nav-* link in the sidebar is one of the ten.
   const navIds = await page.locator('[data-testid="app-sidebar"] [data-testid^="nav-"]').evaluateAll(
     els => Array.from(new Set(els.map(e => e.getAttribute('data-testid') || ''))).filter(id => id !== 'nav-repo-count'));
   expect(navIds.sort(), `the sidebar carries items outside BRD-5: ${JSON.stringify(navIds)}`).toEqual([...ids].sort());

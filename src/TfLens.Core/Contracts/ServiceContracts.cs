@@ -244,6 +244,16 @@ public sealed record ParseResult
     /// <summary>Sub-agent session rows, deduped on <c>(UserId, Repo, PhaseExecutionId, SessionId)</c>.</summary>
     public IReadOnlyList<PbPhaseSubagentRecord> PhaseSubagents { get; init; } = [];
 
+    /// <summary>
+    /// <c>estimate</c> records, when <see cref="Stream"/> is <see cref="StreamKind.Estimates"/>
+    /// (SCHEMA.md §2.8, REQ-FN-147).
+    /// </summary>
+    /// <remarks>
+    /// After the dedupe on <c>(UserId, Repo, Ts, App, Phase, ReqId, Cmd, Model)</c>, first wins. These
+    /// are forecasts: nothing downstream may pool them with a measurement (BRD-213, ADR-034).
+    /// </remarks>
+    public IReadOnlyList<EstimateRecord> Estimates { get; init; } = [];
+
     /// <summary>Lines that were not valid JSON; counted and skipped, never fatal.</summary>
     public int InvalidLines { get; init; }
 
@@ -276,7 +286,7 @@ public sealed record ParseResult
     /// <summary>Total records stored from this file, across every record type.</summary>
     public int RecordCount => Runs.Count + Gates.Count + Sessions.Count + Commits.Count + PbEvents.Count
         + Misses.Count + MissFixes.Count + MissAmends.Count + MissReviews.Count + MissVoids.Count
-        + PhaseExecutions.Count + PhaseModelUsages.Count + PhaseSubagents.Count;
+        + PhaseExecutions.Count + PhaseModelUsages.Count + PhaseSubagents.Count + Estimates.Count;
 }
 
 /// <summary>What a rebuild-from-raw replayed.</summary>

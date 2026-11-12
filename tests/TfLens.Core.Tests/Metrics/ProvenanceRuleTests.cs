@@ -1,3 +1,4 @@
+using TfLens.Core;
 using Microsoft.Extensions.Logging.Abstractions;
 using TfLens.Core.Contracts;
 using TfLens.Core.Metrics;
@@ -156,5 +157,41 @@ public sealed class ProvenanceRuleTests
         var vStore = new FixtureTelemetryStore().Seed(UserId, "acme/alpha", Framework, aGates);
         var vEngine = new MetricsEngine(vStore, NullLogger<MetricsEngine>.Instance);
         return await vEngine.AnalyseAsync(UserId, Framework);
+    }
+    /// <summary>
+    /// No switch relaxes a provenance rule, the estimate separation included (REQ-NFR-009, BRD-89 as
+    /// amended 2026-11-10): the engine and the reconciliation take only who, which framework and which
+    /// repository, and no setting in the options type is a true/false that a figure could read.
+    /// </summary>
+    /// <remarks>
+    /// The rules themselves are enforced by the result types (ADR-007, ADR-034), so the only way to
+    /// relax one would be an input a caller could set. Both public entry points are pinned to their exact
+    /// parameters — the repository is a <c>string?</c> that can only narrow the records read — and the
+    /// options type carries no settable flag at all; the one boolean it exposes is a read-only fact about
+    /// whether the AppManager key pair is present.
+    /// </remarks>
+    [Fact(DisplayName = "REQ-NFR-009 — no key, parameter or toggle can relax a provenance rule or the estimate separation")]
+    public void NoSwitchRelaxesAProvenanceRuleOrTheEstimateSeparation()
+    {
+        var vAnalyse = typeof(MetricsEngine).GetMethod(nameof(MetricsEngine.AnalyseAsync))!;
+        Assert.Equal(
+            ["aUserId", "aFramework", "aRepo", "aCancellationToken"],
+            vAnalyse.GetParameters().Select(aParameter => aParameter.Name));
+
+        var vReconcile = typeof(EstimateMetrics).GetMethod(nameof(EstimateMetrics.ReconcileAsync))!;
+        Assert.Equal(
+            ["aStore", "aUserId", "aFramework", "aRepo", "aCancellationToken"],
+            vReconcile.GetParameters().Select(aParameter => aParameter.Name));
+        Assert.Equal(typeof(string), vReconcile.GetParameters().Single(aParameter => aParameter.Name == "aRepo").ParameterType);
+
+        Assert.DoesNotContain(
+            typeof(EstimateMetrics).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .SelectMany(aMethod => aMethod.GetParameters()),
+            aParameter => aParameter.ParameterType == typeof(bool) || aParameter.ParameterType == typeof(bool?));
+
+        Assert.DoesNotContain(
+            typeof(TfLensOptions).GetProperties(),
+            aProperty => (aProperty.PropertyType == typeof(bool) || aProperty.PropertyType == typeof(bool?))
+                         && aProperty.CanWrite);
     }
 }

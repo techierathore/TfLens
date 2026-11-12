@@ -339,6 +339,10 @@ public static class PriceProviders
             null,
             [
                 new PriceProviderModel("claude-opus-5", 5m, 25m, 0.5m, 6.25m),
+
+                // Read 2026-11-12 from https://platform.claude.com/docs/en/about-claude/pricing:
+                // $4 input, $20 output, $0.20 cache hits, $5 five-minute cache writes per million.
+                new PriceProviderModel("claude-opus-5-5", 4m, 20m, 0.2m, 5m),
                 new PriceProviderModel("claude-sonnet-5", 2m, 10m, 0.2m, 2.5m),
                 new PriceProviderModel("claude-fable-5", 10m, 50m, 1m, 12.5m),
                 new PriceProviderModel("claude-fable-5-1", 10m, 50m, 0.25m, 12.5m),

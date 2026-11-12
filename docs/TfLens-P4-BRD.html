@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Business Requirements — Phase 4: Estimates</h1>
-    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-P4-BRD.md</code></div>
+    <div class="subtitle">Rendered 2026-11-12 &middot; source <code>TfLens-P4-BRD.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -132,7 +132,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <tr><td>Date</td><td>2026-11-10</td></tr>
 </tbody>
 </table>
-<p><strong>Phase 4 of 4 — estimates against actual, from the framework's new stream.</strong> Requirement ids: <strong>BRD-211 to BRD-219</strong>. Ids run on across the four phases and are never reused or renumbered.</p>
+<p><strong>Phase 4 of 4 — estimates against actual, from the framework's new stream.</strong> Requirement ids: <strong>BRD-211 to BRD-220</strong>. Ids run on across the four phases and are never reused or renumbered.</p>
 <p>Other phases: <a href="./TfLens-BRD.html">Phase 1 — Foundation</a> · <a href="./TfLens-P2-BRD.html">Phase 2 — Reports</a> · <a href="./TfLens-P3-BRD.html">Phase 3 — Depth</a> · The map is <a href="./TfLens-Phases.html">TfLens-Phases.md</a>.</p>
 <p><strong>The whole-project context lives in phase 1 and is not repeated here:</strong> the executive summary, business objectives, scope and out-of-scope list, stakeholders, the context and component diagrams, the constraints, the parity procedure (§13), the success metrics and the risks. This document holds what belongs to this phase: its screen and its requirements.</p>
 <h2 id="summary"><a id="1-summary"></a>1. Summary<a class="anchor-link" href="#summary">#</a></h2>
@@ -187,7 +187,7 @@ moves to the Playbook state, which reads <strong>no estimate yet</strong> (the P
 </li>
 </ul>
 </li>
-<li><a id="brd-215"></a><strong>BRD-215</strong> — User can expand <strong>By row</strong> under each phase card and see one line per checklist row of the estimate batch: the row id, and for each of build, machine QA and after handoff the estimate's mid (low–high) with its basis (<code>repo</code>, <code>family</code>, <code>none</code>) and <code>basis_runs</code>, beside the row's actual — the live runs of that step that touched the row, each counting <code>1 ÷ reqs_count</code> of its tokens and duration, labelled <strong>apportioned</strong> when that share is below one, <code>insufficient data (n=…)</code> under three runs. The list is paged and sortable by row id; nothing on it is summed into a per-row total. <em>(F-UI, F-ESTIMATE — REQ-UI-079)</em>
+<li><a id="brd-215"></a><strong>BRD-215</strong> — User can expand <strong>By row</strong> under each phase card and see one line per checklist row of the estimate batch: the row id, and for each of build, machine QA and after handoff the estimate's mid (low–high) with its basis (<code>repo</code>, <code>family</code>) and <code>basis_runs</code> — or, for a step with no precedent, <code>no precedent</code> above the basis <code>none</code> alone, with no run count (amended 2026-11-12, as the mockup draws it) — beside the row's actual — the live runs of that step that touched the row, each counting <code>1 ÷ reqs_count</code> of its tokens and duration, labelled <strong>apportioned</strong> when that share is below one, <code>insufficient data (n=…)</code> under three runs. The list is paged and sortable by row id; nothing on it is summed into a per-row total. <em>(F-UI, F-ESTIMATE — REQ-UI-079)</em>
 <ul>
 <li><em>Acceptance:</em> When By row is expanded on the Sample app phase 1 Opus card on /estimates, then each row shows exactly the per-row figures in §3.1.
 </li>
@@ -205,15 +205,21 @@ moves to the Playbook state, which reads <strong>no estimate yet</strong> (the P
 </li>
 </ul>
 </li>
-<li><a id="brd-218"></a><strong>BRD-218</strong> — System shall write the reconciliation into the snapshot export's <code>tflens.json</code> as an <code>estimates</code> block in the <strong>exact key layout</strong> of <code>tf-metrics.sh --rollup --json</code> (<code>phases[]</code>, <code>repos_with_estimates</code>, and under each phase <code>cmds</code>, <code>parts</code>, <code>actual</code>, <code>actual_in_range</code>), so the parity check diffs it key for key; the total and per-row figures (BRD-217) are written beside it under keys listed in <code>tools/parity-compare.py</code>'s <code>ADDED_KEYS</code> with their reason. The Snapshot export page itself is unchanged. <em>(F-EXPORT, F-ESTIMATE)</em>
+<li><a id="brd-218"></a><strong>BRD-218</strong> — System shall write the reconciliation into the snapshot export's <code>tflens.json</code> as an <code>estimates</code> block in the <strong>exact key layout</strong> of <code>tf-metrics.sh --rollup --json</code> (<code>phases[]</code>, <code>repos_with_estimates</code>, and under each phase <code>cmds</code>, <code>parts</code>, <code>actual</code>, <code>actual_in_range</code>), so the parity check diffs it key for key; the total and per-row figures (BRD-217) are written beside it under keys listed in <code>tools/parity-compare.py</code>'s <code>ADDED_KEYS</code> with their reason. The Snapshot export page itself is unchanged; it is judged on the estimates part, and the rest of the parity run is BRD-220's (amended 2026-11-12, owner decision). <em>(F-EXPORT, F-ESTIMATE)</em>
 <ul>
-<li><em>Acceptance:</em> When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then it exits 0 with no <code>estimates</code> finding.
+<li><em>Acceptance:</em> When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then every estimates figure is compared and none differs.
 </li>
 </ul>
 </li>
 <li><a id="brd-219"></a><strong>BRD-219</strong> — Every number on the Estimates page is computed by code over the <code>Estimate</code> and <code>Run</code> tables at request time: no model or AI call anywhere in the request path, no stored derived value (BRD-30), no configuration key, query parameter or toggle that changes a figure. <strong>Owner UAT time</strong> is a fixed text, <strong>not measured</strong>; no field, input, setting or stream column accepts a value for it. <em>(NFR — REQ-NFR-027)</em>
 <ul>
 <li><em>Acceptance:</em> When a source scan covers EstimateMetrics and the page on /estimates, then it finds no HTTP or AI client, and Owner UAT time reads exactly <code>not measured</code>.
+</li>
+</ul>
+</li>
+<li><a id="brd-220"></a><strong>BRD-220</strong> — System shall close the two parity gaps the framework's script opened after phase 3 <em>(added 2026-11-12, owner decision)</em>. <strong>(a) Discovery cost</strong> (SCHEMA.md §5.5.12, script v1.3.x, 2026-11-05): the export's <code>misses</code> block carries <code>discovery_tokens_per_miss</code>, <code>discovery_minutes_per_miss</code>, <code>discovery_measured_n</code>, <code>discovery_not_measured_n</code>, <code>discovery_not_recorded_n</code> and the <code>per_miss_cost</code> list, field for field as <code>analyse_misses</code> computes them — measured only where <code>discovery_scope</code> is set and not <code>not-measured</code>, <code>null</code> under three measured misses, and each miss's latest fix cost beside its discovery cost, whole when the fix was its run's only repair and its labelled share otherwise. <strong>(b) The app name of a repository with no records</strong>: named from the repository's single <code>docs/*-Checklist.md</code>, read by one GET of the <code>docs/</code> folder listing on sync and from such an entry in an imported bundle, and otherwise the repository's name; a repository whose records carry an app name keeps it. No figure, page or switch changes otherwise. <em>(F-EXPORT, F-SYNC, F-IMPORT — REQ-FN-152)</em>
+<ul>
+<li><em>Acceptance:</em> When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then it exits 0.
 </li>
 </ul>
 </li>
@@ -255,13 +261,13 @@ moves to the Playbook state, which reads <strong>no estimate yet</strong> (the P
 </table>
 <h2 id="development-status"><a id="4-development-status"></a>4. Development status<a class="anchor-link" href="#development-status">#</a></h2>
 <p>Written by the status gate after every build, verify and handoff; not by hand.</p>
-<p><strong>Snapshot as of 2026-11-10.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P4-Checklist.md</code>.</p>
+<p><strong>Snapshot as of 2026-11-12.</strong> Live per-requirement status: <code>PROJECT-STATUS.md</code> and the Requirements Status table in <code>docs/TfLens-P4-Checklist.md</code>.</p>
 <table>
 <thead><tr><th>Screen</th><th>Requirements</th><th>Verified</th><th>Open</th><th>Status</th></tr></thead>
 <tbody>
-<tr><td>Functional requirements</td><td>5</td><td>0</td><td>5</td><td>Planned</td></tr>
-<tr><td>UI / Pages</td><td>3</td><td>0</td><td>3</td><td>Planned</td></tr>
-<tr><td>Non-functional</td><td>1</td><td>0</td><td>1</td><td>Planned</td></tr>
+<tr><td>Functional requirements</td><td>6</td><td>6</td><td>0</td><td>Done</td></tr>
+<tr><td>UI / Pages</td><td>3</td><td>3</td><td>0</td><td>Done</td></tr>
+<tr><td>Non-functional</td><td>1</td><td>1</td><td>0</td><td>Done</td></tr>
 </tbody>
 </table>
 <h2 id="where-the-rest-lives"><a id="5-where-the-rest-lives"></a>5. Where the rest lives<a class="anchor-link" href="#where-the-rest-lives">#</a></h2>

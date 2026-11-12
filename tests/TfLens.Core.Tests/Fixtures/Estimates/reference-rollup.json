@@ -1,0 +1,1012 @@
+{
+  "per_repo": [
+    {
+      "repo": "sample-app",
+      "app": "SampleApp",
+      "project_type": "app",
+      "gates": 0,
+      "gates_backfilled": 0,
+      "gates_malformed": 0,
+      "runs": 15,
+      "sessions": 0,
+      "commits": 0,
+      "misses": 0,
+      "stale_types": [],
+      "commit_hook": null
+    },
+    {
+      "repo": "sample-empty",
+      "app": "SampleEmpty",
+      "project_type": "app",
+      "gates": 0,
+      "gates_backfilled": 0,
+      "gates_malformed": 0,
+      "runs": 0,
+      "sessions": 0,
+      "commits": 0,
+      "misses": 0,
+      "stale_types": [],
+      "commit_hook": null
+    }
+  ],
+  "tainted_reqs": [],
+  "live": {},
+  "backfilled": {},
+  "pooled": {
+    "runs_total": 15,
+    "runs_by_cmd": {
+      "build-phase": 5,
+      "fix-issues": 4,
+      "verify-phase": 6
+    },
+    "rework_ratio": "80%",
+    "throughput_median_reqs_per_hour": 9.0,
+    "batch_size_median": 2,
+    "sessions": 0,
+    "tokens_total": 0,
+    "tokens_per_verified_req": null,
+    "cost_usd": null,
+    "list_usd_total": 3.22,
+    "list_usd_records": 15,
+    "list_usd_per_verified_req": null,
+    "commits": 0,
+    "commit_duplicates_collapsed": 0,
+    "session_duplicates_collapsed": 0,
+    "active_days": 0,
+    "commits_per_active_day": null
+  },
+  "runs_voided_n": 0,
+  "runs_voided": [],
+  "run_voids_orphaned_n": 0,
+  "gates_malformed_n": 0,
+  "gates_malformed": [],
+  "misses": {
+    "misses_total": 0,
+    "miss_fixes_total": 0,
+    "orphan_fixes": 0,
+    "open_misses": 0,
+    "wont_fix": 0,
+    "resolved_misses": 0,
+    "amendments_applied": 0,
+    "orphan_amends": 0,
+    "misses_voided_n": 0,
+    "misses_voided": [],
+    "miss_voids_orphaned_n": 0,
+    "why_missed_n": 0,
+    "why_missed_eligible": 0,
+    "why_missed_predates_field": 0,
+    "why_missed": {},
+    "escapes_missing_why": 0,
+    "sort_n": 0,
+    "sort_eligible": 0,
+    "sort_predates_field": 0,
+    "sort": {},
+    "reviews_n": 0,
+    "review_corrections": 0,
+    "reviews_by_phase": {},
+    "review_tokens_produce_mean": null,
+    "review_tokens_produce_n": 0,
+    "review_tokens_correct_mean": null,
+    "review_tokens_correct_n": 0,
+    "class_distribution": {},
+    "found_by": {},
+    "design_miss_share": "insufficient data (n=0)",
+    "escape_share": "insufficient data (n=0)",
+    "attributed_n": 0,
+    "attribution_excluded": 0,
+    "by_origin_phase": {},
+    "by_origin_model": {},
+    "by_origin_agent": {},
+    "cost_sole_n": 0,
+    "cost_shared_n": 0,
+    "cost_unattributable_n": 0,
+    "cost_recovered_n": 0,
+    "tokens_per_miss_measured": null,
+    "tokens_per_miss_measured_n": 0,
+    "tokens_unrecorded_sole_n": 0,
+    "tokens_per_miss_apportioned": null,
+    "tokens_per_miss_apportioned_n": 0,
+    "tokens_unrecorded_shared_n": 0,
+    "cost_usd_per_miss_measured": null,
+    "cost_usd_records": 0,
+    "cost_usd_excluded_not_money_n": 0,
+    "cost_list_usd_per_miss": null,
+    "cost_list_usd_records": 0,
+    "discovery_tokens_per_miss": null,
+    "discovery_minutes_per_miss": null,
+    "discovery_measured_n": 0,
+    "discovery_not_measured_n": 0,
+    "discovery_not_recorded_n": 0,
+    "per_miss_cost": []
+  },
+  "phases": {
+    "runs_live": 15,
+    "scope_coverage": {
+      "tree": 15
+    },
+    "tokens_out_total": 161000,
+    "duration_s_total": 12900,
+    "duration_measured_n": 15,
+    "duration_impossible_n": 0,
+    "duration_absent_n": 0,
+    "duration_recomputed_n": 0,
+    "phases": {
+      "build-phase": {
+        "runs": 5,
+        "duration_s": {
+          "total": 6900,
+          "median": 1200,
+          "max": 2400,
+          "n": 5,
+          "derived_n": 0
+        },
+        "share_of_duration": "53%",
+        "tokens_measured_n": 5,
+        "tokens_unmeasured_n": 0,
+        "tokens": {
+          "in": 0,
+          "out": 117000,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": 20000,
+        "share_of_tokens_out": "73%",
+        "tokens_out_per_run": 23400.0,
+        "models": {
+          "claude-opus-5-5": {
+            "runs": 5,
+            "tokens_out": 117000,
+            "list_usd": 2.34
+          }
+        },
+        "harnesses": {
+          "claude-code": 5
+        },
+        "modes": {
+          "build": 5
+        },
+        "by_mode": {
+          "build": {
+            "runs": 5,
+            "duration_s": 6900,
+            "tokens_out": 117000,
+            "tokens_unmeasured_n": 0,
+            "files_written": 15,
+            "first_started": "2026-10-02T08:00:00Z"
+          }
+        },
+        "build_result": {
+          "pass": 5
+        },
+        "reqs_touched_total": 9,
+        "files_written_total": 15,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 5,
+          "unobserved_not_tree": 0,
+          "unobserved_predates_field": 5,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 5
+        },
+        "cost_usd_by_harness": {},
+        "billing_modes": {
+          "unrecorded": 5
+        },
+        "cost_usd_by_billing_mode": {},
+        "money_usd": 0.0,
+        "money_records": 0,
+        "money_mixed_usd": 0.0,
+        "money_mixed_records": 0,
+        "spend_by_model": {},
+        "spend_unattributed": {
+          "usd": 0.0,
+          "records": 0
+        },
+        "list_usd": 2.34,
+        "list_usd_records": 5,
+        "list_usd_unpriced_n": 0,
+        "plan_allowance_usd": 0.0,
+        "plan_allowance_records": 0,
+        "plan_allowance_by_model": {}
+      },
+      "fix-issues": {
+        "runs": 4,
+        "duration_s": {
+          "total": 2400,
+          "median": 600.0,
+          "max": 900,
+          "n": 4,
+          "derived_n": 0
+        },
+        "share_of_duration": "19%",
+        "tokens_measured_n": 4,
+        "tokens_unmeasured_n": 0,
+        "tokens": {
+          "in": 0,
+          "out": 19000,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": 4500.0,
+        "share_of_tokens_out": "12%",
+        "tokens_out_per_run": 4750.0,
+        "models": {
+          "claude-opus-5-5": {
+            "runs": 4,
+            "tokens_out": 19000,
+            "list_usd": 0.38
+          }
+        },
+        "harnesses": {
+          "claude-code": 4
+        },
+        "modes": {
+          "fix": 4
+        },
+        "by_mode": {
+          "fix": {
+            "runs": 4,
+            "duration_s": 2400,
+            "tokens_out": 19000,
+            "tokens_unmeasured_n": 0,
+            "files_written": 12,
+            "first_started": "2026-10-02T09:41:00Z"
+          }
+        },
+        "build_result": {
+          "pass": 4
+        },
+        "reqs_touched_total": 3,
+        "files_written_total": 12,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 4,
+          "unobserved_not_tree": 0,
+          "unobserved_predates_field": 4,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 4
+        },
+        "cost_usd_by_harness": {},
+        "billing_modes": {
+          "unrecorded": 4
+        },
+        "cost_usd_by_billing_mode": {},
+        "money_usd": 0.0,
+        "money_records": 0,
+        "money_mixed_usd": 0.0,
+        "money_mixed_records": 0,
+        "spend_by_model": {},
+        "spend_unattributed": {
+          "usd": 0.0,
+          "records": 0
+        },
+        "list_usd": 0.38,
+        "list_usd_records": 4,
+        "list_usd_unpriced_n": 0,
+        "plan_allowance_usd": 0.0,
+        "plan_allowance_records": 0,
+        "plan_allowance_by_model": {}
+      },
+      "verify-phase": {
+        "runs": 6,
+        "duration_s": {
+          "total": 3600,
+          "median": 600.0,
+          "max": 900,
+          "n": 6,
+          "derived_n": 0
+        },
+        "share_of_duration": "28%",
+        "tokens_measured_n": 6,
+        "tokens_unmeasured_n": 0,
+        "tokens": {
+          "in": 0,
+          "out": 25000,
+          "cache_read": 0,
+          "cache_write": 0
+        },
+        "tokens_out_median": 4000.0,
+        "share_of_tokens_out": "16%",
+        "tokens_out_per_run": 4166.7,
+        "models": {
+          "claude-opus-5-5": {
+            "runs": 6,
+            "tokens_out": 25000,
+            "list_usd": 0.5
+          }
+        },
+        "harnesses": {
+          "claude-code": 6
+        },
+        "modes": {
+          "\u2014": 6
+        },
+        "by_mode": {
+          "\u2014": {
+            "runs": 6,
+            "duration_s": 3600,
+            "tokens_out": 25000,
+            "tokens_unmeasured_n": 0,
+            "files_written": 18,
+            "first_started": "2026-10-02T09:03:00Z"
+          }
+        },
+        "build_result": {
+          "pass": 6
+        },
+        "reqs_touched_total": 12,
+        "files_written_total": 18,
+        "subagents_declared": {},
+        "fanout": {
+          "observed_n": 0,
+          "unobserved_n": 6,
+          "unobserved_not_tree": 0,
+          "unobserved_predates_field": 6,
+          "spawns_total": 0,
+          "spawns_median": null,
+          "spawns_max": null,
+          "runs_with_fanout": 0,
+          "tokens_out_subagents": 0,
+          "subagent_share_of_tokens_out": "\u2014"
+        },
+        "routing": {
+          "routed": 0,
+          "drifted": 0,
+          "unknown": 6
+        },
+        "cost_usd_by_harness": {},
+        "billing_modes": {
+          "unrecorded": 6
+        },
+        "cost_usd_by_billing_mode": {},
+        "money_usd": 0.0,
+        "money_records": 0,
+        "money_mixed_usd": 0.0,
+        "money_mixed_records": 0,
+        "spend_by_model": {},
+        "spend_unattributed": {
+          "usd": 0.0,
+          "records": 0
+        },
+        "list_usd": 0.5,
+        "list_usd_records": 6,
+        "list_usd_unpriced_n": 0,
+        "plan_allowance_usd": 0.0,
+        "plan_allowance_records": 0,
+        "plan_allowance_by_model": {}
+      }
+    },
+    "note": "Per-phase effort over LIVE run records, aggregated by `cmd`. Token figures exclude runs whose window could not be computed; fan-out figures use tokens_scope='tree' records ONLY, because a 'main' window never looked at the subagent transcripts and its 0 means 'not observed', not 'none ran'. The unit is the RUN, never the feature \u2014 SCHEMA.md \u00a70 non-goal, \u00a72.6."
+  },
+  "estimates": {
+    "phases": [
+      {
+        "app": "SampleApp",
+        "phase": 1,
+        "model": "claude-opus-5-5",
+        "ts": "2026-10-01T09:00:00Z",
+        "rows_n": 3,
+        "cmds": {
+          "build-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 28000,
+                "mid": 42000,
+                "high": 56000
+              },
+              "duration_s": {
+                "low": 1400,
+                "mid": 2300,
+                "high": 3200
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 52000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3000,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "within",
+              "duration_s": "within"
+            }
+          },
+          "verify-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 3000,
+                "mid": 6000,
+                "high": 9000
+              },
+              "duration_s": {
+                "low": 600,
+                "mid": 1200,
+                "high": 1800
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 15000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 2100,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "above",
+              "duration_s": "above"
+            }
+          },
+          "fix-issues": {
+            "estimate": {
+              "tokens_out": {
+                "low": 4500,
+                "mid": 7500,
+                "high": 10500
+              },
+              "duration_s": {
+                "low": 600,
+                "mid": 900,
+                "high": 1200
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 2,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": "insufficient data (n=2)",
+              "tokens_n": 2,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=2)",
+              "duration_n": 2
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          },
+          "triage": {
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null,
+              "basis": "none",
+              "basis_runs": 1,
+              "rows_covered": 0
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          }
+        },
+        "retro": false,
+        "parts": {
+          "build": {
+            "rows_covered": 3,
+            "estimate": {
+              "tokens_out": {
+                "low": 28000,
+                "mid": 42000,
+                "high": 56000
+              },
+              "duration_s": {
+                "low": 1400,
+                "mid": 2300,
+                "high": 3200
+              }
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 52000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3000,
+              "duration_n": 3
+            }
+          },
+          "machine_qa": {
+            "rows_covered": 3,
+            "estimate": {
+              "tokens_out": {
+                "low": 7500,
+                "mid": 13500,
+                "high": 19500
+              },
+              "duration_s": {
+                "low": 1200,
+                "mid": 2100,
+                "high": 3000
+              }
+            },
+            "actual": {
+              "runs_n": 5,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": 24000,
+              "tokens_n": 5,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3300,
+              "duration_n": 5
+            }
+          },
+          "after_handoff": {
+            "rows_covered": 0,
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            }
+          }
+        }
+      },
+      {
+        "app": "SampleApp",
+        "phase": 1,
+        "model": "claude-sonnet-5-5",
+        "ts": "2026-10-01T09:30:00Z",
+        "rows_n": 3,
+        "cmds": {
+          "build-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 55000,
+                "mid": 70000,
+                "high": 85000
+              },
+              "duration_s": {
+                "low": 2600,
+                "mid": 3400,
+                "high": 4200
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 52000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3000,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "below",
+              "duration_s": "within"
+            }
+          },
+          "verify-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 3000,
+                "mid": 6000,
+                "high": 9000
+              },
+              "duration_s": {
+                "low": 600,
+                "mid": 1200,
+                "high": 1800
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 15000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 2100,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "above",
+              "duration_s": "above"
+            }
+          },
+          "fix-issues": {
+            "estimate": {
+              "tokens_out": {
+                "low": 4500,
+                "mid": 7500,
+                "high": 10500
+              },
+              "duration_s": {
+                "low": 600,
+                "mid": 900,
+                "high": 1200
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 3
+            },
+            "actual": {
+              "runs_n": 2,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": "insufficient data (n=2)",
+              "tokens_n": 2,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=2)",
+              "duration_n": 2
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          },
+          "triage": {
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null,
+              "basis": "none",
+              "basis_runs": 1,
+              "rows_covered": 0
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          }
+        },
+        "retro": false,
+        "parts": {
+          "build": {
+            "rows_covered": 3,
+            "estimate": {
+              "tokens_out": {
+                "low": 55000,
+                "mid": 70000,
+                "high": 85000
+              },
+              "duration_s": {
+                "low": 2600,
+                "mid": 3400,
+                "high": 4200
+              }
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 52000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3000,
+              "duration_n": 3
+            }
+          },
+          "machine_qa": {
+            "rows_covered": 3,
+            "estimate": {
+              "tokens_out": {
+                "low": 7500,
+                "mid": 13500,
+                "high": 19500
+              },
+              "duration_s": {
+                "low": 1200,
+                "mid": 2100,
+                "high": 3000
+              }
+            },
+            "actual": {
+              "runs_n": 5,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": 24000,
+              "tokens_n": 5,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3300,
+              "duration_n": 5
+            }
+          },
+          "after_handoff": {
+            "rows_covered": 0,
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            }
+          }
+        }
+      },
+      {
+        "app": "SampleApp",
+        "phase": 2,
+        "model": "claude-opus-5-5",
+        "ts": "2026-10-05T09:00:00Z",
+        "rows_n": 2,
+        "cmds": {
+          "build-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 30000,
+                "mid": 45000,
+                "high": 60000
+              },
+              "duration_s": {
+                "low": 1800,
+                "mid": 2700,
+                "high": 3600
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 2
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 65000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3900,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "above",
+              "duration_s": "above"
+            }
+          },
+          "verify-phase": {
+            "estimate": {
+              "tokens_out": {
+                "low": 6000,
+                "mid": 9000,
+                "high": 12000
+              },
+              "duration_s": {
+                "low": 1000,
+                "mid": 1400,
+                "high": 1800
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 2
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 10000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 1500,
+              "duration_n": 3
+            },
+            "actual_in_range": {
+              "tokens_out": "within",
+              "duration_s": "within"
+            }
+          },
+          "fix-issues": {
+            "estimate": {
+              "tokens_out": {
+                "low": 2000,
+                "mid": 4000,
+                "high": 6000
+              },
+              "duration_s": {
+                "low": 400,
+                "mid": 600,
+                "high": 800
+              },
+              "basis": "repo",
+              "basis_runs": 6,
+              "rows_covered": 2
+            },
+            "actual": {
+              "runs_n": 1,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": "insufficient data (n=1)",
+              "tokens_n": 1,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=1)",
+              "duration_n": 1
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          },
+          "triage": {
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null,
+              "basis": "none",
+              "basis_runs": 1,
+              "rows_covered": 0
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            },
+            "actual_in_range": {
+              "tokens_out": null,
+              "duration_s": null
+            }
+          }
+        },
+        "retro": false,
+        "parts": {
+          "build": {
+            "rows_covered": 2,
+            "estimate": {
+              "tokens_out": {
+                "low": 30000,
+                "mid": 45000,
+                "high": 60000
+              },
+              "duration_s": {
+                "low": 1800,
+                "mid": 2700,
+                "high": 3600
+              }
+            },
+            "actual": {
+              "runs_n": 3,
+              "apportioned_n": 1,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": 65000,
+              "tokens_n": 3,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 3900,
+              "duration_n": 3
+            }
+          },
+          "machine_qa": {
+            "rows_covered": 2,
+            "estimate": {
+              "tokens_out": {
+                "low": 8000,
+                "mid": 13000,
+                "high": 18000
+              },
+              "duration_s": {
+                "low": 1400,
+                "mid": 2000,
+                "high": 2600
+              }
+            },
+            "actual": {
+              "runs_n": 4,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 1,
+              "tokens_out": 13000,
+              "tokens_n": 4,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": 1800,
+              "duration_n": 4
+            }
+          },
+          "after_handoff": {
+            "rows_covered": 0,
+            "estimate": {
+              "tokens_out": null,
+              "duration_s": null
+            },
+            "actual": {
+              "runs_n": 0,
+              "apportioned_n": 0,
+              "rowless_runs_in_repo_n": 0,
+              "tokens_out": "insufficient data (n=0)",
+              "tokens_n": 0,
+              "tokens_unrecorded_n": 0,
+              "tokens_main_scope_n": 0,
+              "duration_s": "insufficient data (n=0)",
+              "duration_n": 0
+            }
+          }
+        }
+      }
+    ],
+    "repos_with_estimates": 1
+  }
+}

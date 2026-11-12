@@ -117,6 +117,40 @@ public sealed class PriceProviderTests
     }
 
     /// <summary>
+    /// Claude Opus 5.5 is priced in the seed at the list price Anthropic publishes, and that price
+    /// reaches the flat rate card every list-price figure reads (owner request 2026-11-12).
+    /// </summary>
+    /// <remarks>
+    /// Read on 2026-11-12 from https://platform.claude.com/docs/en/about-claude/pricing: $4 input,
+    /// $20 output, $0.20 cache hits, $5 five-minute cache writes per million tokens. Without it, every
+    /// run on that model fell into <c>list_usd_unpriced_n</c> and its phase read as costing nothing.
+    /// </remarks>
+    /// <returns>The running test.</returns>
+    [Fact]
+    public async Task OpusFiveFiveCarriesItsPublishedListPrice()
+    {
+        var vAnthropic = PriceProviders.Seed().Single(aP => aP.Id == "anthropic");
+        vAnthropic.Models.Should().ContainSingle(aM => aM.Model == "claude-opus-5-5")
+            .Which.Should().Be(new PriceProviderModel("claude-opus-5-5", 4m, 20m, 0.2m, 5m));
+
+        var vFolder = Path.Combine(Path.GetTempPath(), "tflens-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(vFolder);
+            var vCard = await PriceProviders.ApplyAsync(Path.Combine(vFolder, "prices.json"), PriceProviders.Seed());
+
+            vCard.Find("claude-opus-5-5").Should().Be(new ModelRate(4m, 20m, 0.2m, 5m));
+
+            // The card a fresh install starts from, before anyone opens Price providers, prices it too.
+            RateCard.Default().Find("claude-opus-5-5").Should().Be(new ModelRate(4m, 20m, 0.2m, 5m));
+        }
+        finally
+        {
+            Directory.Delete(vFolder, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// Where two providers price the same model the first wins, and the clash is reported.
     /// </summary>
     /// <remarks>

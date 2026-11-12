@@ -75,6 +75,14 @@ internal static class SnapshotJson
             ["pooled"] = Pooled(aInputs.Analysis.Pooled),
             ["misses"] = Misses(aInputs),
             ["phases"] = Phases(aInputs.Analysis.Phases),
+
+            // Forecasts beside measurements, never pooled with them (SCHEMA.md §2.8, §6 fourth
+            // separation; REQ-FN-151, BRD-218). The `estimates` block is the oracle's OWN key layout,
+            // diffed key for key by tools/parity-compare.py; the two figures the oracle does not
+            // compute — the Total and the per-row actuals — sit BESIDE it under `estimates_extras`,
+            // the documented allow-list entry, never inside the parity surface (BRD-217, ADR-035).
+            ["estimates"] = Estimates(aInputs.Analysis.Estimates),
+            ["estimates_extras"] = EstimatesExtras(aInputs.Analysis.Estimates),
             ["extras"] = Extras(aInputs),
             ["parity"] = Parity(aInputs)
         };
@@ -374,6 +382,16 @@ internal static class SnapshotJson
             ["cost_list_usd_per_miss"] = aInputs.Reviews.ListUsdPerMiss,
             ["cost_list_usd_records"] = aInputs.Reviews.ListUsdRecords,
 
+            // REQ-FN-152 / BRD-220 — what finding a defect cost (SCHEMA.md §5.5.12), each mean beside
+            // its divisor and the two counts that sit outside it; then, per miss, discovery beside the
+            // latest fix. Two columns, never added together.
+            ["discovery_tokens_per_miss"] = aInputs.Discovery.TokensPerMiss,
+            ["discovery_minutes_per_miss"] = aInputs.Discovery.MinutesPerMiss,
+            ["discovery_measured_n"] = aInputs.Discovery.MeasuredN,
+            ["discovery_not_measured_n"] = aInputs.Discovery.NotMeasuredN,
+            ["discovery_not_recorded_n"] = aInputs.Discovery.NotRecordedN,
+            ["per_miss_cost"] = PerMissCost(aInputs.Discovery.PerMiss),
+
             // Owner reviews (SCHEMA.md §5.5.9). Counted here and reaching no miss figure anywhere: a
             // review is not a mistake. It is the only record in any stream that prices a specification
             // defect, and the owner's review time is the scarcest input the framework consumes.
@@ -385,6 +403,48 @@ internal static class SnapshotJson
             ["review_tokens_correct_mean"] = Number(aInputs.Reviews.TokensToCorrect, TokensPerMissDigits),
             ["review_tokens_correct_n"] = aInputs.Reviews.TokensToCorrectN
         };
+    }
+
+    /// <summary>
+    /// The <c>per_miss_cost</c> list, in the reference's key layout (SCHEMA.md §5.5.12; REQ-FN-152).
+    /// </summary>
+    /// <param name="aLines">The per-miss lines, oldest first.</param>
+    /// <returns>The JSON array.</returns>
+    private static JsonArray PerMissCost(IReadOnlyList<MissCostLine> aLines)
+    {
+        var vArray = new JsonArray();
+
+        foreach (var vLine in aLines)
+        {
+            var vRow = new JsonObject
+            {
+                ["miss_id"] = vLine.MissId,
+                ["req_id"] = vLine.ReqId,
+                ["found_phase"] = vLine.FoundPhase
+            };
+
+            if (vLine.IsMeasured)
+            {
+                vRow["discovery"] = "measured";
+                vRow["discovery_tokens_out"] = vLine.DiscoveryTokensOut;
+                vRow["discovery_s"] = vLine.DiscoverySeconds;
+            }
+            else
+            {
+                vRow["discovery"] = "not measured";
+                vRow["discovery_why"] = vLine.DiscoveryWhy;
+            }
+
+            vRow["fix"] = vLine.Fix;
+            if (vLine.FixTokensOut is { } vFixTokens)
+            {
+                vRow["fix_tokens_out"] = vFixTokens;
+            }
+
+            vArray.Add(vRow);
+        }
+
+        return vArray;
     }
 
     /// <summary>
@@ -587,6 +647,242 @@ internal static class SnapshotJson
 
         return vObject;
     }
+
+    /// <summary>
+    /// The estimates block, in the oracle's exact key layout (REQ-FN-151, BRD-218).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every key <c>analyse_estimates()</c> emits, spelled and shaped exactly as it emits them, so
+    /// <c>tools/parity-compare.py</c> walks them with no mapping layer: <c>phases[]</c> with
+    /// <c>app</c>, <c>phase</c>, <c>model</c>, <c>ts</c>, <c>rows_n</c>, <c>cmds</c>, <c>retro</c> and
+    /// <c>parts</c>, plus <c>repos_with_estimates</c>. The two TfLens additions the oracle does not
+    /// compute live in <see cref="EstimatesExtras"/> BESIDE this block and never inside it — a key
+    /// added to a phase entry here would break the byte-for-byte multiset compare of
+    /// <c>estimates.phases</c>.
+    /// </para>
+    /// <para>
+    /// An actual figure the oracle refuses writes its exact string — <c>insufficient data (n=2)</c> —
+    /// and a forecast with no precedent writes a real <c>null</c>, never a zero (SCHEMA.md §2.5).
+    /// </para>
+    /// </remarks>
+    /// <param name="aEstimates">The engine's reconciliation.</param>
+    /// <returns>The <c>estimates</c> object.</returns>
+    private static JsonObject Estimates(EstimateReconciliation aEstimates)
+    {
+        var vPhases = new JsonArray();
+
+        foreach (var vCard in aEstimates.Phases)
+        {
+            var vCmds = new JsonObject();
+            foreach (var vCmd in vCard.Cmds)
+            {
+                vCmds[vCmd.Key] = new JsonObject
+                {
+                    ["estimate"] = EstimateSide(vCmd.Value.Estimate),
+                    ["actual"] = Actual(vCmd.Value.Actual),
+                    ["actual_in_range"] = new JsonObject
+                    {
+                        ["tokens_out"] = vCmd.Value.ActualInRange.TokensOut,
+                        ["duration_s"] = vCmd.Value.ActualInRange.DurationS
+                    }
+                };
+            }
+
+            vPhases.Add(new JsonObject
+            {
+                ["app"] = vCard.App,
+                ["phase"] = vCard.Phase,
+                ["model"] = vCard.Model,
+                ["ts"] = vCard.Ts,
+                ["rows_n"] = vCard.RowsN,
+                ["cmds"] = vCmds,
+                ["retro"] = vCard.Retro,
+                ["parts"] = new JsonObject
+                {
+                    ["build"] = Part(vCard.Build),
+                    ["machine_qa"] = Part(vCard.MachineQa),
+                    ["after_handoff"] = Part(vCard.AfterHandoff)
+                }
+            });
+        }
+
+        return new JsonObject
+        {
+            ["phases"] = vPhases,
+            ["repos_with_estimates"] = aEstimates.ReposWithEstimates
+        };
+    }
+
+    /// <summary>
+    /// The two figures with no parity oracle — the Total and the per-row actuals — beside the parity
+    /// surface, labelled as TfLens additions (REQ-FN-150, BRD-217, ADR-035).
+    /// </summary>
+    /// <remarks>
+    /// They stand where <c>extras</c> stands: hand-checked once against the raw JSONL, recorded in
+    /// DECISIONS.md, and never quoted on a passing TechieFlow diff. The per-card identity
+    /// (<c>repo</c>, <c>app</c>, <c>phase</c>, <c>model</c>, <c>ts</c>) is repeated so a reader can
+    /// pair a line with its card without positional arithmetic — the oracle's phases list is per-repo
+    /// in argv order and carries no repository key.
+    /// </remarks>
+    /// <param name="aEstimates">The engine's reconciliation.</param>
+    /// <returns>The <c>estimates_extras</c> object.</returns>
+    private static JsonObject EstimatesExtras(EstimateReconciliation aEstimates)
+    {
+        var vPhases = new JsonArray();
+
+        foreach (var vCard in aEstimates.Phases)
+        {
+            var vRows = new JsonArray();
+            foreach (var vRow in vCard.Rows)
+            {
+                vRows.Add(new JsonObject
+                {
+                    ["req_id"] = vRow.ReqId,
+                    ["build"] = RowPart(vRow.Build),
+                    ["machine_qa"] = RowPart(vRow.MachineQa),
+                    ["after_handoff"] = RowPart(vRow.AfterHandoff)
+                });
+            }
+
+            vPhases.Add(new JsonObject
+            {
+                ["repo"] = vCard.Repo,
+                ["app"] = vCard.App,
+                ["phase"] = vCard.Phase,
+                ["model"] = vCard.Model,
+                ["ts"] = vCard.Ts,
+                ["no_oracle"] = true,
+                ["total"] = new JsonObject
+                {
+                    ["rows_covered"] = vCard.Total.Part.RowsCovered,
+                    ["not_one_figure"] = vCard.Total.NotOneFigure,
+                    ["estimate"] = new JsonObject
+                    {
+                        ["tokens_out"] = Range(vCard.Total.Part.TokensOut),
+                        ["duration_s"] = Range(vCard.Total.Part.DurationS)
+                    },
+                    ["actual"] = Actual(vCard.Total.Part.Actual)
+                },
+                ["rows"] = vRows
+            });
+        }
+
+        return new JsonObject
+        {
+            ["note"] =
+                "TfLens additions with NO parity oracle (BRD-217, REQ-FN-150, ADR-035): the Total "
+                + "(build + machine QA) and the per-row actuals. The Total's estimate is the sum of the "
+                + "covered rows' low/mid/high across the three steps and its actual is the part rule "
+                + "over the same rows; after handoff is never inside it. Per-row actuals count each run "
+                + "1 ÷ reqs_count of its tokens and time. Both were hand-checked once against the raw "
+                + "JSONL and recorded in DECISIONS.md; they stand where `extras` stands and are never "
+                + "quoted on a passing parity diff. Estimate and actual are two columns here too — "
+                + "nothing in this block combines them (BRD-213).",
+            ["phases"] = vPhases
+        };
+    }
+
+    /// <summary>One part of a phase card, in the oracle's <c>parts</c> shape.</summary>
+    /// <param name="aPart">The part.</param>
+    /// <returns>The part object.</returns>
+    private static JsonObject Part(EstimatePart aPart) => new()
+    {
+        ["rows_covered"] = aPart.RowsCovered,
+        ["estimate"] = new JsonObject
+        {
+            ["tokens_out"] = Range(aPart.TokensOut),
+            ["duration_s"] = Range(aPart.DurationS)
+        },
+        ["actual"] = Actual(aPart.Actual)
+    };
+
+    /// <summary>One row's one part: the summed forecast, its per-step legs and the row's own actual.</summary>
+    /// <param name="aPart">The row part.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject RowPart(EstimateRowPart aPart)
+    {
+        var vSteps = new JsonArray();
+        foreach (var vStep in aPart.Steps)
+        {
+            vSteps.Add(new JsonObject
+            {
+                ["cmd"] = vStep.Cmd,
+                ["tokens_out"] = Range(vStep.TokensOut),
+                ["duration_s"] = Range(vStep.DurationS),
+                ["basis"] = vStep.Basis,
+                ["basis_runs"] = vStep.BasisRuns
+            });
+        }
+
+        return new JsonObject
+        {
+            ["estimate"] = new JsonObject
+            {
+                ["tokens_out"] = Range(aPart.TokensOut),
+                ["duration_s"] = Range(aPart.DurationS)
+            },
+            ["steps"] = vSteps,
+            ["actual"] = Actual(aPart.Actual)
+        };
+    }
+
+    /// <summary>The estimate column of one step, in the oracle's shape.</summary>
+    /// <param name="aSide">The estimate side.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject EstimateSide(EstimateSide aSide) => new()
+    {
+        ["tokens_out"] = Range(aSide.TokensOut),
+        ["duration_s"] = Range(aSide.DurationS),
+        ["basis"] = aSide.Basis,
+        ["basis_runs"] = aSide.BasisRuns,
+        ["rows_covered"] = aSide.RowsCovered
+    };
+
+    /// <summary>One forecast range — <c>{low, mid, high}</c> — or a real <c>null</c> for no precedent.</summary>
+    /// <param name="aRange">The range, or <c>null</c>.</param>
+    /// <returns>The JSON node.</returns>
+    private static JsonNode? Range(EstimateRange? aRange) =>
+        aRange is { } vRange
+            ? new JsonObject
+            {
+                ["low"] = vRange.Low,
+                ["mid"] = vRange.Mid,
+                ["high"] = vRange.High
+            }
+            : null;
+
+    /// <summary>
+    /// The actual column, in the oracle's nine-key shape.
+    /// </summary>
+    /// <remarks>
+    /// A refused figure writes the oracle's own string; an accepted one writes an integer — never a
+    /// float and never a zero standing in for a refusal.
+    /// </remarks>
+    /// <param name="aActual">The actual.</param>
+    /// <returns>The object.</returns>
+    private static JsonObject Actual(EstimateActual aActual) => new()
+    {
+        ["runs_n"] = aActual.RunsN,
+        ["apportioned_n"] = aActual.ApportionedN,
+        ["rowless_runs_in_repo_n"] = aActual.RowlessRunsInRepoN,
+        ["tokens_out"] = ActualFigure(aActual.TokensOut),
+        ["tokens_n"] = aActual.TokensN,
+        ["tokens_unrecorded_n"] = aActual.TokensUnrecordedN,
+        ["tokens_main_scope_n"] = aActual.TokensMainScopeN,
+        ["duration_s"] = ActualFigure(aActual.DurationS),
+        ["duration_n"] = aActual.DurationN
+    };
+
+    /// <summary>
+    /// Renders an actual figure exactly as the oracle does: an integer, or its refusal string.
+    /// </summary>
+    /// <param name="aFigure">The figure.</param>
+    /// <returns>The JSON node.</returns>
+    private static JsonNode? ActualFigure(Figure aFigure) =>
+        aFigure.TryGetValue(out var vValue)
+            ? JsonValue.Create((long)Math.Round(vValue, MidpointRounding.ToEven))
+            : aFigure.Display();
 
     /// <summary>
     /// The fan-out block — the denominator first, the numbers after (BRD-147, ADR-026).

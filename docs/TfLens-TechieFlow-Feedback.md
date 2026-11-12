@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 56 entries: 2 filed, not blocking (TF-055, TF-056), 18 fixed upstream awaiting re-check here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-054), 36 closed. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done only once it has been re-checked here: run each entry's "Verify from here" step in its Resolution status block, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 58 entries: 2 filed, not blocking (TF-057, TF-058, 2026-11-12), 19 fixed upstream awaiting re-check here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-055), 37 closed. TF-056 was re-checked and closed here on 2026-11-12. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done once re-checked here: run the entry's "Verify from here" step, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -3407,6 +3407,8 @@ still caught — proved 2026-10-12 by a planted badge, which the gate reported a
 
 ## TF-056 — `tf-mockup-parity` reads a mockup's translucent tint at full strength, so a pale tinted badge in the app reads "neutral" against "accent"
 
+> ✅ **Closed 2026-11-12** — re-checked here: Re-checked 2026-11-12 on /estimates: tf-mockup-parity read the mockup's rgba(59,130,246,.08) separation note as 'neutral' (composited over the card), the fixed behaviour; the remaining difference was the app's own stronger tint, styled to the mockup's in the page.
+
 - **Severity:** minor
 - **Blocks:** no — REQ-UI-072 stays `Needs re-verify` on this finding alone; the run carried on.
 - **Repro:** `bash .tfcore/utils/tf-mockup-parity.sh --base <url> --screen prices=/prices …` (TfLens, 2026-11-01). Light theme: `color on prices-standing-note @1280: semantic colour differs — mockup accent, app neutral`, the same for `prices-kind-openrouter`, at 1280 and 390. The mockup background is `rgba(59,130,246,.08)`; the app's TrBlazeUI Info background is `oklch(0.965 0.03 250)` with text `oklch(0.42 0.13 250)`, plainly blue.
@@ -3417,3 +3419,29 @@ still caught — proved 2026-10-12 by a planted badge, which the gate reported a
 - **Suggested fix:** composite a translucent colour over the nearest opaque ancestor background before bucketing.
 
 **What is NOT affected.** Every other parity class; `/misses` and `/effort` passed parity clean on the same run. No figure, test or build is touched.
+
+## TF-057 — `tf-phase.sh end` inside a nested command deletes the outer command's marker
+
+- **Severity:** minor
+- **Blocks:** no — the outer marker was written back by hand with its original start time; the run carried on.
+- **Repro:** `bash .tfcore/utils/tf-phase.sh start triage-and-fix TfLens`, then `bash .tfcore/utils/tf-phase.sh start amend-docs TfLens` (the marker now reads `{"outer":{"cmd":"triage-and-fix",…},"cmd":"amend-docs",…}`), then `bash .tfcore/utils/tf-phase.sh end amend-docs TfLens`. It prints `tf-phase: marker removed` and `.tfcore/.session/phase.json` is gone (TfLens, 2026-11-12).
+- **Expected:** ending the inner command restores the outer one, so the outer command's start time (which `tf-triage.sh close`, `tf-fix-close.sh` and the emitter read) survives.
+- **Actual:** the `end)` branch of `tf-phase.sh` runs `rm -f "$FILE"` whatever the marker holds; the `outer` object `start` saved is never read back.
+- **Encountered in:** `*triage-and-fix TfLens` running the amend route inline, 2026-11-12.
+- **Workaround:** write the outer marker back by hand from the `outer` object, before `end`.
+- **Suggested fix:** in `end`, when the marker carries `outer` and the ended command is the inner one, rewrite the file to the outer object instead of deleting it.
+
+**What is NOT affected.** `start` nests correctly; a command run on its own ends cleanly; no telemetry record already written is changed.
+
+## TF-058 — no verify check opens a dropdown, so a list too narrow to read passes every gate
+
+- **Severity:** major
+- **Blocks:** no — fixed in TfLens on 2026-11-12 with a test of its own (REQ-UI-077); the gap stays for every other app.
+- **Repro:** TfLens `/estimates` (and five other report pages) carry a TrBlazeUI `Select` repo picker. On the owner's screen its open list was as narrow as "All repos", so every repository name read `techierathore/` (docs/uatissuessc/0-Estimates-Repo-Dd.png). `tf-verify-screens.sh` and `tf-mockup-parity.sh` graded the page clean on 2026-11-12; its menu walk opened the user menu (`parity.json` → `menus.menus[0].trigger` "TfLens Test2") and never the picker's list.
+- **Expected:** a screen with a dropdown has its list opened once, and an option whose text is cut (`scrollWidth > clientWidth`) or a list outside the window is a visual finding.
+- **Actual:** both tools grade the closed trigger only; the menu walk does not recognise a `Select`'s list (`role="listbox"`, `data-select-content`) as a menu, and the acceptance tests click an option by its text, which works when the text is cut.
+- **Encountered in:** owner UAT after `*handoff-phase TfLens`, 2026-11-12.
+- **Workaround:** an app-side browser test that opens each dropdown and measures its options (`tests/verify/req-ui-077-repo-picker.spec.ts`).
+- **Suggested fix:** in the menu walk, also open every `[role="combobox"]` / `[aria-haspopup="listbox"]` trigger and grade its `[role="listbox"]` for cut options and off-window placement.
+
+**What is NOT affected.** Closed controls, overlap, sideways scroll and every other parity class are graded as before.

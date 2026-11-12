@@ -1,7 +1,7 @@
 namespace TfLens.Core.Contracts;
 
 /// <summary>
-/// The five TechieFlow telemetry streams plus the Playbook stream, as recognised by TfLens.
+/// The six TechieFlow telemetry streams plus the Playbook streams, as recognised by TfLens.
 /// </summary>
 /// <remarks>
 /// The wire names (<c>runs</c>, <c>gates</c>, <c>sessions</c>, <c>commits</c>, <c>misses</c>,
@@ -68,7 +68,19 @@ public enum StreamKind
     /// mapping to use; the wall that stops the two pooling on READ is <c>UserRepo.Framework</c> (ADR-016),
     /// which is a mandatory parameter rather than a filter.
     /// </remarks>
-    PlaybookMisses = 7
+    PlaybookMisses = 7,
+
+    /// <summary>
+    /// docs/metrics/estimates.jsonl — what a phase should cost, written before it is built
+    /// (SCHEMA.md §2.8, added to the framework 2026-11-08; REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <remarks>
+    /// The sixth TechieFlow stream. A <b>forecast, never a measurement</b>: its rows land in their own
+    /// <c>"Estimate"</c> table and are read only by the reconciliation and the export, so no reader of
+    /// <c>runs.jsonl</c> can ever take one for a run and no figure can pool the two (SCHEMA.md §6,
+    /// fourth separation; ADR-034). A missing file is an empty stream, never an error (BRD-211).
+    /// </remarks>
+    Estimates = 8
 }
 
 /// <summary>
@@ -248,15 +260,27 @@ public static class StreamNames
     public const string PlaybookMisses = "playbookmisses";
 
     /// <summary>
-    /// The five TechieFlow streams in report order; <c>misses</c> is appended, so it reports last.
+    /// Wire name of <see cref="StreamKind.Estimates"/> (added 2026-11-10, BRD-211, REQ-FN-147).
+    /// </summary>
+    public const string Estimates = "estimates";
+
+    /// <summary>
+    /// The TechieFlow streams in report order; <c>misses</c> is appended, so it reports last.
     /// </summary>
     /// <remarks>
     /// The sync loop, the raw-archive replay and the Coverage stream table all read this list, so
     /// appending the name here is what makes the fifth stream fetched, archived and reported. A
     /// repository that does not emit <c>misses.jsonl</c> simply answers 404 and stores zero rows —
     /// no coordination window is needed in either deploy order (BRD-112, REQ-FN-071).
+    /// <para>
+    /// <b>Extended 2026-11-10 with <c>estimates</c> (BRD-211, REQ-FN-147):</b> the sixth stream is
+    /// fetched on the ordinary sync and on Sync now, archived raw, replayed by <c>rebuild</c> and
+    /// reported on Coverage by this one addition — and a repository that does not emit
+    /// <c>estimates.jsonl</c> answers 404 and stores zero rows, exactly like <c>misses</c>: a missing
+    /// file is an empty stream, never an error.
+    /// </para>
     /// </remarks>
-    public static readonly IReadOnlyList<string> TechieFlow = [Runs, Gates, Sessions, Commits, Misses];
+    public static readonly IReadOnlyList<string> TechieFlow = [Runs, Gates, Sessions, Commits, Misses, Estimates];
 
     /// <summary>The Playbook streams in report order.</summary>
     public static readonly IReadOnlyList<string> Playbook = [Events];
@@ -274,6 +298,7 @@ public static class StreamNames
         Sessions => StreamKind.Sessions,
         Commits => StreamKind.Commits,
         Misses => StreamKind.Misses,
+        Estimates => StreamKind.Estimates,
         Events => StreamKind.Events,
         PhaseMetrics => StreamKind.PhaseMetrics,
         PlaybookMisses => StreamKind.PlaybookMisses,
@@ -292,6 +317,7 @@ public static class StreamNames
         StreamKind.Sessions => Sessions,
         StreamKind.Commits => Commits,
         StreamKind.Misses => Misses,
+        StreamKind.Estimates => Estimates,
         StreamKind.Events => Events,
         StreamKind.PhaseMetrics => PhaseMetrics,
         StreamKind.PlaybookMisses => PlaybookMisses,
@@ -1413,4 +1439,115 @@ public sealed record PbEventRecord
 
     /// <summary>Output-side tokens as the Playbook's joiner counts them — output plus reasoning.</summary>
     public long TokensOutTotal => (TokensOutput ?? 0) + (TokensReasoning ?? 0);
+}
+
+/// <summary>
+/// One <c>estimates.jsonl</c> record, stored in the <c>"Estimate"</c> table (SCHEMA.md §2.8, added
+/// 2026-11-10; REQ-FN-147, BRD-211).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A forecast, never a measurement.</b> One record per checklist row and one per phase total, per
+/// step (<c>build-phase</c> · <c>verify-phase</c> · <c>fix-issues</c> · <c>triage</c>), each a low, mid
+/// and high for output tokens and wall seconds, with its basis, its run count and the <b>estimating</b>
+/// model. The low/mid/high triple fans out to three columns per figure (<c>tokens_out</c> →
+/// <c>TokensOutLow</c> / <c>TokensOutMid</c> / <c>TokensOutHigh</c>), and a <c>null</c> figure — no
+/// precedent — stays six nulls, never six zeros (SCHEMA.md §2.5).
+/// </para>
+/// <para>
+/// The fourth separation (SCHEMA.md §6, BRD-213, ADR-034): this table is read only by the
+/// reconciliation and the export, is never joined to <c>"Run"</c> in SQL, and no figure anywhere adds,
+/// averages, subtracts or divides one of these values with a run value.
+/// </para>
+/// <para>
+/// Deduped on <c>(UserId, Repo, Ts, App, Phase, ReqId, Cmd, Model)</c>, first wins (BRD-211) —
+/// <c>"UcEstimateIdentity"</c> in the schema is the same rule, with the nullable key parts coalesced so
+/// a phase total (<c>ReqId</c> null) still collides with itself.
+/// </para>
+/// </remarks>
+public sealed record EstimateRecord
+{
+    /// <summary>AppManager user who connected the repository this record came from.</summary>
+    public required int UserId { get; init; }
+
+    /// <summary><c>owner/name</c> of the source repository.</summary>
+    public required string Repo { get; init; }
+
+    /// <summary>Commit SHA (or bundle sha256) the raw file was obtained at.</summary>
+    public required string SourceSha { get; init; }
+
+    /// <summary>Schema version carried by the record.</summary>
+    public int V { get; init; } = 1;
+
+    /// <summary>ISO-8601 timestamp of the estimating batch; every record of one batch carries the same one.</summary>
+    public required string Ts { get; init; }
+
+    /// <summary>Application the estimate belongs to.</summary>
+    public string? App { get; init; }
+
+    /// <summary>Declared or inferred project type.</summary>
+    public string? ProjectType { get; init; }
+
+    /// <summary>The phase estimated — 1 is the plain checklist, n is <c>-P&lt;n&gt;-</c>.</summary>
+    public int? Phase { get; init; }
+
+    /// <summary>The checklist row; <c>null</c> on the phase total — a meaningful absence, never an empty string.</summary>
+    public string? ReqId { get; init; }
+
+    /// <summary>
+    /// The step estimated — <c>build-phase</c> | <c>verify-phase</c> | <c>fix-issues</c> | <c>triage</c>.
+    /// </summary>
+    /// <remarks>
+    /// An open vocabulary at the producer (ADR-032): a value outside the four is stored and rendered as
+    /// it stands, never filtered away.
+    /// </remarks>
+    public required string Cmd { get; init; }
+
+    /// <summary>Output-token forecast, first quartile; <c>null</c> when there was no precedent.</summary>
+    public long? TokensOutLow { get; init; }
+
+    /// <summary>Output-token forecast, median.</summary>
+    public long? TokensOutMid { get; init; }
+
+    /// <summary>Output-token forecast, third quartile.</summary>
+    public long? TokensOutHigh { get; init; }
+
+    /// <summary>Wall-seconds forecast, first quartile; <c>null</c> when there was no precedent.</summary>
+    public long? DurationSLow { get; init; }
+
+    /// <summary>Wall-seconds forecast, median.</summary>
+    public long? DurationSMid { get; init; }
+
+    /// <summary>Wall-seconds forecast, third quartile.</summary>
+    public long? DurationSHigh { get; init; }
+
+    /// <summary><c>repo</c> | <c>family</c> | <c>none</c> — what history the figure was computed from.</summary>
+    public string? Basis { get; init; }
+
+    /// <summary>How many runs the figure was computed over.</summary>
+    public int? BasisRuns { get; init; }
+
+    /// <summary>The model that MADE the estimate — not the model the build will use.</summary>
+    public string? Model { get; init; }
+
+    /// <summary>Detected harness; <c>null</c> means not detected.</summary>
+    public string? Harness { get; init; }
+
+    /// <summary>
+    /// Present only as <c>retro</c>: the phase was estimated after the fact — hindsight, not a forecast.
+    /// </summary>
+    /// <remarks>
+    /// A retro batch is used only when that phase and model has no forecast, and is labelled
+    /// <i>estimated after the fact</i> wherever it is rendered (BRD-212).
+    /// </remarks>
+    public string? BasisNote { get; init; }
+
+    /// <summary>Phase total only: rows in the phase.</summary>
+    public int? RowsN { get; init; }
+
+    /// <summary>Phase total only: rows whose figure for this cmd was <c>null</c> (no precedent).</summary>
+    public int? RowsNoPrecedentN { get; init; }
+
+    /// <summary>JSON object of properties SCHEMA.md does not document, preserved for rebuild fidelity.</summary>
+    public string? Overflow { get; init; }
 }

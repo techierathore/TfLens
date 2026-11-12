@@ -1,0 +1,204 @@
+/* REQ-UI-078..080 — Estimates (`/estimates`).
+   The mockup's `.est` / `.tbl` / `.t2` / `.nm` rules (docs/mockups/estimates.html:8, :72–:75),
+   in this page's own scope. Two-column grammar: the estimate column and the actual column are
+   cells side by side and nothing between them renders as one figure (BRD-213). */
+
+/* The page stack, matching the other report pages. */
+.tflens-estimates {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+/* The mockup's `.est td { vertical-align: top }` — a cell whose time line wraps must not
+   centre the tokens line against a two-line neighbour. Outranks the `.tflens-table ::deep td`
+   middle-alignment the by-row DataTable wants, because both tables sit in a `.tflens-table`. */
+.tflens-est-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+    .tflens-est-table th {
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground, hsl(var(--muted-foreground)));
+        padding: 0.625rem 1rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .tflens-table .tflens-est-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+    }
+
+    .tflens-est-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+.tflens-right {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* The mockup's `.t2` — the second line inside a cell: 12px, muted, under the figure. */
+.tflens-t2 {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 2px;
+}
+
+    .tflens-t2 .font-mono {
+        font-size: 0.78125rem;
+    }
+
+/* The mockup's `.nm` — the words that stand where a number is refused: italic, muted. */
+.tflens-nm {
+    font-style: italic;
+    color: var(--muted-foreground);
+}
+
+/* Card header: title block and the forecast/retro pill wrap below 700px, as the design's
+   `.card-h { flex-wrap: wrap; gap: 8px }` does. */
+@media (max-width: 43.75rem) {
+    .tflens-estimates ::deep .tflens-card-head {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+/* The footer's standing note and the two disclosures stack flush-left, on the design's
+   `.card-f` rule (1px top border, 16px/24px padding). */
+.tflens-estimates ::deep .tflens-card-note {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    text-align: left;
+}
+
+/* The mockup's `.tbl tr:last-child td { border-bottom: 0 }` above a footer note. */
+.tflens-table-flush ::deep tbody tr:last-child td {
+    border-bottom-width: 0;
+}
+
+.tflens-estimates ::deep .tflens-flush-bottom {
+    padding-bottom: 0;
+}
+
+/* The mockup's `.sm` (13px) and `.xs` (12px) against the page's own 14px. */
+.tflens-small {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+.tflens-xs {
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+}
+
+/* Wide tables scroll inside their own card, never past the shell (BRD-144). */
+.tflens-table {
+    min-width: 0;
+    max-width: calc(100% + 3rem);
+    overflow-x: auto;
+    margin-inline: -1.5rem;
+}
+
+    .tflens-table ::deep table {
+        width: 100%;
+    }
+
+    .tflens-table ::deep th,
+    .tflens-table ::deep td {
+        vertical-align: middle;
+    }
+
+    .tflens-table ::deep th {
+        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .tflens-table ::deep td .font-mono {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        font-size: 0.78125rem;
+    }
+
+@media (max-width: 56.25rem) {
+    .tflens-table {
+        margin-inline: 0;
+        max-width: 100%;
+    }
+}
+
+/* The By step and By row tables sit inside the card footer's disclosures, which already carry the
+   footer's own padding. The flush rule's negative margin would pull them past the card's left edge,
+   where the card clips them ("ow", "EQ-FN-001"); inside a disclosure they keep the footer's inset,
+   and the disclosure itself takes the footer's full width. */
+.tflens-table.tflens-table-inset {
+    margin-inline: 0;
+    max-width: 100%;
+}
+.tflens-estimates ::deep .tflens-card-note > * {
+    width: 100%;
+}
+
+/* REQ-UI-078/079 — a card and its two disclosures stand together; each disclosure is its own
+   bordered block after the card, the mockup's `.coll` (1px border, radius, card background,
+   14px/16px trigger, 0 16px 16px body). */
+.tflens-est-phase {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+.tflens-est-coll {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    min-width: 0;
+}
+    .tflens-est-coll ::deep [data-testid$="-trigger"] {
+        width: 100%;
+        padding: 0.875rem 1rem;
+    }
+    .tflens-est-coll .tflens-table-inset,
+    .tflens-est-coll .tflens-xs {
+        margin: 0 1rem 1rem;
+    }
+    .tflens-est-coll .tflens-table-inset {
+        max-width: calc(100% - 2rem);
+    }
+/* The mockup narrows the card's side padding to 16px on a phone (`.card-f` at 700px). */
+@media (max-width: 43.75rem) {
+    .tflens-estimates ::deep .tflens-card-note {
+        padding-inline: 1rem;
+    }
+}
+
+/* The mockup's `.alert.info` (docs/mockups/estimates.html:71): a faint info tint — 8% of the info
+   colour, 35% on the border — an info-coloured icon, and the text in the page's own foreground. The
+   library's Info alert paints a stronger tint than the design draws. */
+.tflens-estimates ::deep [data-testid="est-separation-note"] {
+    color: var(--foreground);
+    background-color: color-mix(in oklab, var(--alert-info) 8%, transparent);
+    border-color: color-mix(in oklab, var(--alert-info) 35%, transparent);
+}
+    .tflens-estimates ::deep [data-testid="est-separation-note"] > svg {
+        color: var(--alert-info);
+    }
+.tflens-est-state {
+    margin-left: auto;
+}

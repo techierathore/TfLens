@@ -367,6 +367,9 @@ public sealed class RateCard
     [
         new("claude-fable-5", new ModelRate(10.00m, 50.00m, 1.00m, 12.50m)),
         new("claude-opus-5", new ModelRate(5.00m, 25.00m, 0.50m, 6.25m)),
+        // Read 2026-11-12 from https://platform.claude.com/docs/en/about-claude/pricing (Opus 5.5:
+        // $4 input, $20 output, $0.20 cache hits, $5 five-minute cache writes per million).
+        new("claude-opus-5-5", new ModelRate(4.00m, 20.00m, 0.20m, 5.00m)),
         new("claude-opus-4-8", new ModelRate(5.00m, 25.00m, 0.50m, 6.25m)),
         new("claude-opus-4-7", new ModelRate(5.00m, 25.00m, 0.50m, 6.25m)),
         new("claude-opus-4-6", new ModelRate(5.00m, 25.00m, 0.50m, 6.25m)),

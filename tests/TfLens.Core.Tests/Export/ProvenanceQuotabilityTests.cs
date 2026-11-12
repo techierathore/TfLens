@@ -22,8 +22,8 @@ namespace TfLens.Core.Tests.Export;
 /// The written document is checked too, because the banner and the file must not be able to disagree:
 /// both read <see cref="ParityRecord.EvaluateWithProvenance"/>, and <c>tflens.json</c> carries the
 /// verdict in <c>parity.status_reason</c> — an extended <b>reason</b> vocabulary, not a new key, so
-/// <c>extras</c> and <c>parity</c> remain the only two additions to the reference's top-level layout
-/// (REQ-FN-058).
+/// <c>extras</c>, <c>estimates_extras</c> (added 2026-11-11, BRD-217) and <c>parity</c> remain the
+/// only additions to the reference's top-level layout (REQ-FN-058).
 /// </para>
 /// </remarks>
 public sealed class ProvenanceQuotabilityTests : IDisposable
@@ -258,11 +258,16 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
                     // REQ-FN-145 — the two malformed-gate keys are the ORACLE's own too (SCHEMA.md §3).
                     "gates_malformed_n", "gates_malformed",
                     "live", "backfilled", "pooled", "misses", "phases",
-                    "extras", "parity"
+                    // REQ-FN-151 — `estimates` is the ORACLE's own key too: it rides inside
+                    // --rollup --json since tf-metrics.sh grew analyse_estimates (BRD-218).
+                    // `estimates_extras` carries the two no-oracle figures and is a TfLens addition
+                    // listed in tools/parity-compare.py's ADDED_KEYS beside `extras` (BRD-217).
+                    "estimates",
+                    "extras", "estimates_extras", "parity"
                 ],
                 "the new refusal is a reason, never a key of its own (REQ-FN-058). `phases` is on this "
-                + "list because the ORACLE emits it (BRD-152); extras and parity remain the only two "
-                + "keys TfLens adds to the reference's layout");
+                + "list because the ORACLE emits it (BRD-152); extras, estimates_extras and parity "
+                + "remain the only keys TfLens adds to the reference's layout");
     }
 
     /// <summary>
@@ -302,9 +307,15 @@ public sealed class ProvenanceQuotabilityTests : IDisposable
                     // REQ-FN-145 — the two malformed-gate keys are the ORACLE's own too (SCHEMA.md §3).
                     "gates_malformed_n", "gates_malformed",
                     "live", "backfilled", "pooled", "misses", "phases",
-                    "extras", "parity"
+                    // REQ-FN-151 — `estimates` is the ORACLE's own key too: it rides inside
+                    // --rollup --json since tf-metrics.sh grew analyse_estimates (BRD-218).
+                    // `estimates_extras` carries the two no-oracle figures and is a TfLens addition
+                    // listed in tools/parity-compare.py's ADDED_KEYS beside `extras` (BRD-217).
+                    "estimates",
+                    "extras", "estimates_extras", "parity"
                 ],
-                "extras and parity stay the only additions to the reference's key layout (REQ-FN-058); "
+                "extras, estimates_extras and parity stay the only additions to the reference's key "
+                + "layout (REQ-FN-058, BRD-217); "
                 + "`phases` is the oracle's own block, which rides inside --rollup --json (BRD-152)");
     }
 

@@ -5,6 +5,8 @@ using Microsoft.Extensions.Options;
 using TfLens.Core;
 using TfLens.Core.Abstractions;
 using TfLens.Core.Contracts;
+using TfLens.Core.GitHub;
+using TfLens.Core.Repos;
 using TfLens.Core.Import;
 using TfLens.Core.Provenance;
 
@@ -189,6 +191,52 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
     }
 
     /// <summary>
+    /// Reads the app name from the repository's single <c>docs/*-Checklist.md</c> at this sync's SHA
+    /// and records it (BRD-220, REQ-FN-152, ADR-036).
+    /// </summary>
+    /// <remarks>
+    /// One GET, made only on a changed sync, so an unchanged repository still costs exactly one call
+    /// (BRD-13). The name only ever labels a repository whose records carry none, so a listing that
+    /// fails is logged and the stored name stands: it never fails a sync whose streams are already
+    /// stored. A rate-limit stop is not swallowed — it ends the pass as it always has.
+    /// </remarks>
+    /// <param name="aWork">The sync's collaborators.</param>
+    /// <param name="aRepo">The connected repository.</param>
+    /// <param name="aSha">The telemetry SHA this sync read.</param>
+    /// <param name="aCancellationToken">Cancels the read.</param>
+    /// <returns>A task that completes when the name is recorded or the failure logged.</returns>
+    private async Task RecordChecklistAppAsync(
+        SyncWork aWork,
+        UserRepo aRepo,
+        string aSha,
+        CancellationToken aCancellationToken)
+    {
+        try
+        {
+            var vNames = await aWork.Fetcher
+                .ListFileNamesAsync(aRepo.Owner, aRepo.Name, ChecklistAppName.Folder, aSha, aCancellationToken)
+                .ConfigureAwait(false);
+
+            if (vNames is null)
+            {
+                return;
+            }
+
+            await aWork.Store
+                .WriteChecklistAppAsync(aRepo.UserId, aRepo.Repo, ChecklistAppName.FromFileNames(vNames), aCancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception vEx) when (vEx is not OperationCanceledException and not GitHubRateLimitException)
+        {
+            objLogger.LogWarning(
+                "Could not read the checklist name of user {UserId} repository {Repo}: {Error}",
+                aRepo.UserId,
+                aRepo.Repo,
+                vEx.GetType().Name);
+        }
+    }
+
+    /// <summary>
     /// Reads the telemetry SHA and, when it moved, archives, parses and stores every stream.
     /// </summary>
     /// <param name="aWork">The pass's scoped services.</param>
@@ -312,6 +360,8 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
             }
         }
 
+        await RecordChecklistAppAsync(aWork, aRepo, vSha, aCancellationToken).ConfigureAwait(false);
+
         // BRD-17: the SHA, the timestamp and the per-stream counts, with LastError cleared on success.
         await WriteStateAsync(
                 aWork,
@@ -418,6 +468,9 @@ public sealed class RepoSyncRunner : IRepoSyncRunner
             // REQ-FN-071: one count for the whole misses stream — the parser has already split its
             // three record kinds, but the file, and therefore the Coverage row, is one.
             MissesCount = Count(aCounts, StreamNames.Misses),
+            // REQ-FN-147 / BRD-211: the sixth stream. A repository that does not emit estimates.jsonl
+            // answers 404 and stores zero — an empty stream, never an error.
+            EstimatesCount = Count(aCounts, StreamNames.Estimates),
             SessionDuplicatesCollapsed = aSessionDuplicatesCollapsed
         };
 

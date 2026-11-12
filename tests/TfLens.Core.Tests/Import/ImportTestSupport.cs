@@ -23,6 +23,20 @@ public sealed class RecordingImportStore : ITelemetryStore
     /// <summary>Every parse result the subject handed to the store, in call order.</summary>
     public List<ParseResult> Upserts { get; } = [];
 
+    /// <summary>Checklist names written, keyed by repository (BRD-220).</summary>
+    public Dictionary<string, string?> ChecklistApps { get; } = [];
+
+    /// <inheritdoc />
+    public Task WriteChecklistAppAsync(
+        int aUserId,
+        string aRepo,
+        string? aChecklistApp,
+        CancellationToken aCancellationToken = default)
+    {
+        ChecklistApps[aRepo] = aChecklistApp;
+        return Task.CompletedTask;
+    }
+
     /// <summary>Rows the next upsert reports as newly written; the default writes everything presented.</summary>
     public int? InsertedOverride { get; set; }
 

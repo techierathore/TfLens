@@ -37,7 +37,7 @@ public static class ShellNavigation
     public const string AccountSection = "Account";
 
     /// <summary>
-    /// The nine navigation items, in the fixed working order the checklist asserts.
+    /// The ten navigation items, in the fixed working order the checklist asserts.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -58,6 +58,11 @@ public static class ShellNavigation
     /// <b>budgeting</b> view and everything before it is a quality view: coverage → quality → harness →
     /// routing → rework → effort → export. Export stays last for the same reason it always has.
     /// </para>
+    /// <para>
+    /// Amended 2026-11-11 (BRD-214, REQ-UI-078): <c>/estimates</c> — "Estimates" — sits directly after
+    /// Phase effort. It is the second budgeting view — what a phase was expected to cost beside what it
+    /// cost — and belongs beside the view of what it cost; Snapshot export stays last.
+    /// </para>
     /// </remarks>
     public static readonly IReadOnlyList<ShellNavItem> Items =
     [
@@ -69,6 +74,7 @@ public static class ShellNavigation
         new ShellNavItem("/routing", "Routing & economics", "route", ReportsSection, false, true),
         new ShellNavItem("/misses", "Misses & rework", "bug", ReportsSection, false, true),
         new ShellNavItem("/effort", "Phase effort", "gauge", ReportsSection, false, true),
+        new ShellNavItem("/estimates", "Estimates", "scale", ReportsSection, false, true),
         new ShellNavItem("/export", "Snapshot export", "download", ReportsSection, false, true)
     ];
 

@@ -277,6 +277,15 @@ public sealed class TelemetryImportService : ITelemetryImportService
                 aUserId, aSource, vBundle.BundleSha, vBundle.Framework, vImportedTs, vSessionCollapsed, aCancellationToken)
             .ConfigureAwait(false);
 
+        // REQ-FN-152 / BRD-220 — a bundle laid out as the repository (docs/App-Checklist.md beside
+        // docs/metrics/) names the app the way the framework's script does. A bundle with no checklist
+        // entry says nothing, and the stored name stands.
+        if (ChecklistAppName.TryFromBundleEntries(vBundle.UnrecognisedEntries, out var vChecklistApp))
+        {
+            await objStore.WriteChecklistAppAsync(aUserId, aSource.Repo, vChecklistApp, aCancellationToken)
+                .ConfigureAwait(false);
+        }
+
         objLogger.LogInformation(
             "Imported bundle {BundleSha} for user {UserId} source {Source}: {Added} rows written across {Streams} streams",
             vBundle.BundleSha,
@@ -414,6 +423,7 @@ public sealed class TelemetryImportService : ITelemetryImportService
                     SessionsCount = StoredCount(vMine, StreamNames.Sessions),
                     CommitsCount = StoredCount(vMine, StreamNames.Commits),
                     MissesCount = StoredCount(vMine, StreamNames.Misses),
+                    EstimatesCount = StoredCount(vMine, StreamNames.Estimates),
                     EventsCount = StoredCount(vMine, StreamNames.Events),
                     SessionDuplicatesCollapsed = aSessionCollapsed ?? vState.SessionDuplicatesCollapsed
                 },

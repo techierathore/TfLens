@@ -46,7 +46,7 @@ public sealed class PostgresStore : ITelemetryStore
     /// leave with it, and a rebuild must replay them like every other record on the stream.
     /// </remarks>
     private static readonly string[] StreamTables =
-        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "MissVoid", "PbEvent"];
+        ["Run", "Gate", "Session", "Commit", "Miss", "MissFix", "MissAmend", "MissReview", "MissVoid", "PbEvent", "Estimate"];
 
     /// <summary>
     /// The three schema-2 Playbook phase tables, purged with the stream tables when a repository is
@@ -146,6 +146,10 @@ public sealed class PostgresStore : ITelemetryStore
         vWritten += await ExecuteBatchAsync(vConnection, InsertSessionSql, aParsed.Sessions, aCancellationToken)
             .ConfigureAwait(false);
         vWritten += await ExecuteBatchAsync(vConnection, InsertCommitSql, aParsed.Commits, aCancellationToken)
+            .ConfigureAwait(false);
+        // The sixth stream (SCHEMA.md §2.8, REQ-FN-147): forecasts, stored in their own table and never
+        // joined to "Run" anywhere in this file (ADR-034).
+        vWritten += await ExecuteBatchAsync(vConnection, InsertEstimateSql, aParsed.Estimates, aCancellationToken)
             .ConfigureAwait(false);
         // The misses stream is one file and FOUR tables (ADR-018, BRD-115 as amended 2026-09-08): the
         // parser has already split the records by their own `kind`, so this is four ordinary idempotent
@@ -279,6 +283,11 @@ public sealed class PostgresStore : ITelemetryStore
     public Task<IReadOnlyList<CommitRecord>> ReadCommitsAsync(
         int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
         ReadStreamAsync<CommitRecord>("Commit", aUserId, aFramework, aRepo, aCancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<EstimateRecord>> ReadEstimatesAsync(
+        int aUserId, string aFramework, string? aRepo = null, CancellationToken aCancellationToken = default) =>
+        ReadStreamAsync<EstimateRecord>("Estimate", aUserId, aFramework, aRepo, aCancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MissRecord>> ReadMissesAsync(
@@ -445,6 +454,26 @@ public sealed class PostgresStore : ITelemetryStore
         await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
         await vConnection.ExecuteAsync(
             new CommandDefinition(UpsertUserRepoSql, aRepo, cancellationToken: aCancellationToken))
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task WriteChecklistAppAsync(
+        int aUserId,
+        string aRepo,
+        string? aChecklistApp,
+        CancellationToken aCancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(aRepo);
+
+        const string vSql = """
+            UPDATE "UserRepo" SET "ChecklistApp" = @aChecklistApp
+            WHERE "UserId" = @aUserId AND "Repo" = @aRepo
+            """;
+
+        await using var vConnection = await OpenAsync(aCancellationToken).ConfigureAwait(false);
+        await vConnection.ExecuteAsync(
+            new CommandDefinition(vSql, new { aUserId, aRepo, aChecklistApp }, cancellationToken: aCancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -624,7 +653,8 @@ public sealed class PostgresStore : ITelemetryStore
                                 + (SELECT COUNT(*) FROM "MissFix"    f WHERE f."UserId" = t."UserId" AND f."Repo" = t."Repo")
                                 + (SELECT COUNT(*) FROM "MissAmend"  a WHERE a."UserId" = t."UserId" AND a."Repo" = t."Repo")
                                 + (SELECT COUNT(*) FROM "MissReview" v WHERE v."UserId" = t."UserId" AND v."Repo" = t."Repo")
-                                + (SELECT COUNT(*) FROM "MissVoid"   w WHERE w."UserId" = t."UserId" AND w."Repo" = t."Repo")
+                                + (SELECT COUNT(*) FROM "MissVoid"   w WHERE w."UserId" = t."UserId" AND w."Repo" = t."Repo"),
+                "EstimatesCount" = (SELECT COUNT(*) FROM "Estimate" e WHERE e."UserId" = t."UserId" AND e."Repo" = t."Repo")
             WHERE @aUserId IS NULL OR t."UserId" = @aUserId
             """;
 
@@ -793,6 +823,7 @@ public sealed class PostgresStore : ITelemetryStore
             // The daily series counts misses OPENED per day; fixes and amendments are lifecycle events
             // on an existing miss and would double-count a defect if they joined the same line.
             StreamKind.Misses => "Miss",
+            StreamKind.Estimates => "Estimate",
             StreamKind.Events => "PbEvent",
             _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream.")
         };
@@ -859,6 +890,7 @@ public sealed class PostgresStore : ITelemetryStore
             StreamKind.Sessions => "session",
             StreamKind.Commits => "commit",
             StreamKind.Misses => "miss",
+            StreamKind.Estimates => "estimate",
             StreamKind.Events => "event",
             _ => StreamNames.ToName(aStream)
         };
@@ -1037,6 +1069,11 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "Repo", 'events', COUNT(*)::int, 0, MAX("Ts")
         FROM "PbEvent" WHERE "UserId" = @aUserId GROUP BY "Repo"
+        UNION ALL
+        -- The sixth stream (SCHEMA.md §2.8, REQ-FN-147). An estimate is a forecast and carries no
+        -- `backfilled` column, so the backfilled count is 0 rather than a pretended measurement.
+        SELECT "Repo", 'estimates', COUNT(*)::int, 0, MAX("Ts")
+        FROM "Estimate" WHERE "UserId" = @aUserId GROUP BY "Repo"
         """;
 
     /// <summary>
@@ -1082,6 +1119,10 @@ public sealed class PostgresStore : ITelemetryStore
         SELECT "Repo", 'events', k, COUNT(*)::int
         FROM "PbEvent", LATERAL jsonb_object_keys("Overflow") AS k
         WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL GROUP BY "Repo", k
+        UNION ALL
+        SELECT "Repo", 'estimates', k, COUNT(*)::int
+        FROM "Estimate", LATERAL jsonb_object_keys("Overflow") AS k
+        WHERE "UserId" = @aUserId AND "Overflow" IS NOT NULL GROUP BY "Repo", k
         """;
 
     /// <summary>
@@ -1116,6 +1157,9 @@ public sealed class PostgresStore : ITelemetryStore
             UNION ALL
             SELECT "Repo", "V" FROM "MissVoid" WHERE "UserId" = @aUserId AND "V" > 1
         ) misses GROUP BY "Repo"
+        UNION ALL
+        SELECT "Repo", 'estimates', MAX("V")::int, COUNT(*)::int
+        FROM "Estimate" WHERE "UserId" = @aUserId AND "V" > 1 GROUP BY "Repo"
         """;
 
     /// <summary>Idempotent insert for <c>runs</c>; conflicts on <c>UcRunIdentity</c> are no-ops.</summary>
@@ -1175,6 +1219,28 @@ public sealed class PostgresStore : ITelemetryStore
         VALUES (
             @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@Sha,@Files,@Insertions,@Deletions,
             @SubjectPrefix,@Branch,CAST(@Overflow AS jsonb))
+        ON CONFLICT DO NOTHING
+        """;
+
+    /// <summary>
+    /// Idempotent insert for <c>estimates</c>; conflicts on <c>UcEstimateIdentity</c> are no-ops
+    /// (SCHEMA.md §2.8, REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <remarks>
+    /// First-wins across files, matching the parser's within-file rule: one <c>tf-estimate.sh</c> batch
+    /// writes one record per (row, step) under a single <c>ts</c>, so a repeat of the key is a re-parse
+    /// of the same archived bytes and has nothing newer to offer. The forecast legs are written exactly
+    /// as parsed — six NULLs for <c>basis: "none"</c>, never six zeros.
+    /// </remarks>
+    private const string InsertEstimateSql = """
+        INSERT INTO "Estimate" (
+            "UserId","Repo","SourceSha","V","Ts","App","ProjectType","Phase","ReqId","Cmd",
+            "TokensOutLow","TokensOutMid","TokensOutHigh","DurationSLow","DurationSMid","DurationSHigh",
+            "Basis","BasisRuns","Model","Harness","BasisNote","RowsN","RowsNoPrecedentN","Overflow")
+        VALUES (
+            @UserId,@Repo,@SourceSha,@V,@Ts,@App,@ProjectType,@Phase,@ReqId,@Cmd,
+            @TokensOutLow,@TokensOutMid,@TokensOutHigh,@DurationSLow,@DurationSMid,@DurationSHigh,
+            @Basis,@BasisRuns,@Model,@Harness,@BasisNote,@RowsN,@RowsNoPrecedentN,CAST(@Overflow AS jsonb))
         ON CONFLICT DO NOTHING
         """;
 
@@ -1488,6 +1554,9 @@ public sealed class PostgresStore : ITelemetryStore
         UNION ALL
         SELECT "UserId", "Repo", "SourceSha", 'PbEvent', COUNT(*)::int
         FROM "PbEvent" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
+        UNION ALL
+        SELECT "UserId", "Repo", "SourceSha", 'Estimate', COUNT(*)::int
+        FROM "Estimate" WHERE @aUserId IS NULL OR "UserId" = @aUserId GROUP BY 1,2,3
         """;
 
     /// <summary>
@@ -1518,11 +1587,11 @@ public sealed class PostgresStore : ITelemetryStore
         INSERT INTO "SyncState" (
             "UserId","Repo","Kind","Branch","LastSha","LastSyncTs","LastError",
             "RunsCount","GatesCount","SessionsCount","CommitsCount","EventsCount","MissesCount",
-            "SessionDuplicatesCollapsed")
+            "EstimatesCount","SessionDuplicatesCollapsed")
         VALUES (
             @UserId,@Repo,@Kind,@Branch,@LastSha,@LastSyncTs,@LastError,
             @RunsCount,@GatesCount,@SessionsCount,@CommitsCount,@EventsCount,@MissesCount,
-            @SessionDuplicatesCollapsed)
+            @EstimatesCount,@SessionDuplicatesCollapsed)
         ON CONFLICT ON CONSTRAINT "PkSyncState" DO UPDATE SET
             "Kind" = EXCLUDED."Kind",
             "Branch" = EXCLUDED."Branch",
@@ -1535,6 +1604,7 @@ public sealed class PostgresStore : ITelemetryStore
             "CommitsCount" = EXCLUDED."CommitsCount",
             "EventsCount" = EXCLUDED."EventsCount",
             "MissesCount" = EXCLUDED."MissesCount",
+            "EstimatesCount" = EXCLUDED."EstimatesCount",
             "SessionDuplicatesCollapsed" = EXCLUDED."SessionDuplicatesCollapsed"
         """;
 

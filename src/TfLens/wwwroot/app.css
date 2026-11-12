@@ -534,3 +534,20 @@ li:has(> [data-testid="nav-repo-count"]) {
     justify-content: space-between;
     gap: 1rem;
 }
+
+
+/* Owner UAT 2026-11-12 (REQ-UI-077): TrBlazeUI draws a Select's open list in a fixed layer outside the
+   page, exactly as wide as its trigger, so a repository name longer than the trigger was cut. The list
+   now grows to its longest option — never narrower than the trigger, never wider than the window — and
+   an option too long even for that ends in an ellipsis, with its full name on hover. */
+[data-select-content] {
+    width: max-content;
+    min-width: 100%;
+    max-width: min(32rem, calc(100vw - 2rem));
+}
+
+[data-select-content] [role="option"] {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

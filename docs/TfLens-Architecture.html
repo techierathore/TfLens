@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout">
   <nav class="side">
     <h1>TfLens — Architecture</h1>
-    <div class="sub">Last rendered: 2026-11-10</div>
+    <div class="sub">Last rendered: 2026-11-12</div>
     <div class="group">Contents</div>
     <ol>
         <li><a href="#table-of-contents">Table of Contents</a></li>
@@ -126,6 +126,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
         <li><a href="#data-model">6. Data model</a></li>
         <li class="h3"><a href="#x-the-estimate-table-added-2026-11-10-phase-4">6.x The Estimate table (added 2026-11-10, phase 4)</a></li>
+        <li class="h3"><a href="#y-userrepo-checklistapp-added-2026-11-12-phase-4-brd-220">6.y UserRepo.&quot;ChecklistApp&quot; (added 2026-11-12, phase 4, BRD-220)</a></li>
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
         <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
         <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
@@ -138,7 +139,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
   </nav>
   <main>
     <h1>TfLens — Architecture</h1>
-    <div class="subtitle">Rendered 2026-11-10 &middot; source <code>TfLens-Architecture.md</code></div>
+    <div class="subtitle">Rendered 2026-11-12 &middot; source <code>TfLens-Architecture.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -160,6 +161,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#weekly-snapshot-export">5.4 Weekly snapshot export</a></li>
         <li><a href="#data-model">6. Data model</a></li>
         <li class="h3"><a href="#x-the-estimate-table-added-2026-11-10-phase-4">6.x The Estimate table (added 2026-11-10, phase 4)</a></li>
+        <li class="h3"><a href="#y-userrepo-checklistapp-added-2026-11-12-phase-4-brd-220">6.y UserRepo.&quot;ChecklistApp&quot; (added 2026-11-12, phase 4, BRD-220)</a></li>
         <li><a href="#metrics-engine-parity-with-tf-metrics-sh">7. Metrics engine — parity with tf-metrics.sh</a></li>
         <li><a href="#cross-cutting-concerns">8. Cross-cutting concerns</a></li>
         <li><a href="#deployment-architecture">9. Deployment architecture</a></li>
@@ -1123,6 +1125,8 @@ CREATE INDEX IF NOT EXISTS "IxRunUserCmd"           ON "Run"              ("User
 CREATE UNIQUE INDEX IF NOT EXISTS "UcEstimateIdentity" ON "Estimate"
   ("UserId","Repo","Ts",COALESCE("App",''),COALESCE("Phase",-1),COALESCE("ReqId",''),"Cmd",COALESCE("Model",''));</code></pre>
 <p>Fetcher, importer, parser, <code>UpsertAsync</code>, <code>DeleteRepoDataAsync</code> and <code>Rebuild()</code> gain the stream; <code>ITelemetryStore</code> gains <code>ReadEstimatesAsync</code>.</p>
+<h3 id="y-userrepo-checklistapp-added-2026-11-12-phase-4-brd-220"><a id="6y-userrepochecklistapp-added-2026-11-12-phase-4-brd-220"></a>6.y <code>UserRepo."ChecklistApp"</code> (added 2026-11-12, phase 4, BRD-220)<a class="anchor-link" href="#y-userrepo-checklistapp-added-2026-11-12-phase-4-brd-220">#</a></h3>
+<p><code>ALTER TABLE "UserRepo" ADD COLUMN IF NOT EXISTS "ChecklistApp" text;</code> — the app name read from the repository's single <code>docs/*-Checklist.md</code> (one GET of the <code>docs/</code> folder listing per sync; for an import, a <code>docs/*-Checklist.md</code> entry in the bundle). <code>null</code> when there is none or more than one. Read only for <code>per_repo[].app</code> of a repository whose records carry no app name, exactly as <code>app_name()</code> in <code>tf-metrics.sh</code> names one.</p>
 <h2 id="metrics-engine-parity-with-tf-metrics-sh"><a id="7-metrics-engine--parity-with-tf-metricssh"></a>7. Metrics engine — parity with tf-metrics.sh<a class="anchor-link" href="#metrics-engine-parity-with-tf-metrics-sh">#</a></h2>
 <p>The reference script is the specification. The port keeps its names so a diff reads naturally:</p>
 <table>
@@ -1296,6 +1300,8 @@ onto a document whose Tech stack (§1) and ADR log (§10) already answer them in
 <li><strong>ADR-034 — An estimate is its own table and result type; no type combines it with a measurement (2026-11-10).</strong> Reason: SCHEMA.md §6's fourth separation, enforced by shape as in ADR-007 — <code>EstimateVsActual</code> can hold no ratio, difference or percentage, and <code>Estimate</code> is never joined to <code>Run</code>. Status: planned (BRD-213).
 </li>
 <li><strong>ADR-035 — The Total row and per-row actual have no oracle (2026-11-10).</strong> Reason: the owner asked for both; <code>tf-metrics.sh</code> (never edited) ends at three parts with per-phase actuals. Total = build + machine QA as <code>tf-estimate.sh</code> prints it, actual by the oracle's part rule; both on <code>ADDED_KEYS</code>, hand-checked once. Status: planned (BRD-217).
+</li>
+<li><strong>ADR-036 — Two parity gaps closed: discovery cost and the empty repository's app name (2026-11-12).</strong> Reason: the owner's decision 1 of 2026-11-12; <code>tf-metrics.sh</code> gained <code>discovery_*</code> and <code>per_miss_cost</code> on 2026-11-05 and names every app from its checklist file. Ported field for field (<code>MissDiscovery</code>), and one nullable column on <code>UserRepo</code> fed by one extra GET per sync. Status: planned (BRD-220).
 </li>
 </ul>
 <h2 id="target-architecture-brownfield-only-if-enhancement-changes-structure"><a id="11-target-architecture-brownfield-only--if-enhancement-changes-structure"></a>11. Target architecture (brownfield only — if enhancement changes structure)<a class="anchor-link" href="#target-architecture-brownfield-only-if-enhancement-changes-structure">#</a></h2>

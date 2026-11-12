@@ -28,6 +28,11 @@ public static class ImportStreamCatalog
         ("sessions.jsonl", StreamNames.Sessions),
         ("commits.jsonl", StreamNames.Commits),
         ("misses.jsonl", MissesStream),
+        // REQ-FN-147 / BRD-211 — the sixth TechieFlow stream (SCHEMA.md §2.8): what a phase SHOULD cost,
+        // written by *estimate-phase before the build. Recognised by file name like every other stream,
+        // archived verbatim, parsed by the same StreamParser and deduped on its own natural key, so a
+        // re-import collapses and cannot double-count a forecast.
+        ("estimates.jsonl", StreamNames.Estimates),
         ("events.ndjson", StreamNames.Events),
         // REQ-FN-094 / BRD-153 / ADR-023 — the Playbook's normalized schema-2 phase output. This ONE
         // LINE is the whole of the ingest wiring: the exporter's stdout is uploaded like any other

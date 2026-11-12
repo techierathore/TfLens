@@ -28,6 +28,20 @@ public sealed class FakeTelemetryStore : ITelemetryStore
     /// <summary>Rows held, by stream wire name.</summary>
     public Dictionary<string, int> RowCounts { get; } = [];
 
+    /// <summary>Checklist names written, keyed by repository (BRD-220).</summary>
+    public Dictionary<string, string?> ChecklistApps { get; } = [];
+
+    /// <inheritdoc />
+    public Task WriteChecklistAppAsync(
+        int aUserId,
+        string aRepo,
+        string? aChecklistApp,
+        CancellationToken aCancellationToken = default)
+    {
+        ChecklistApps[aRepo] = aChecklistApp;
+        return Task.CompletedTask;
+    }
+
     /// <summary>The raw archive root a rebuild replays from.</summary>
     public string? RawRoot { get; set; }
 

@@ -139,6 +139,14 @@ public sealed class MetricsEngine : IMetricsEngine
         // block does and writes nothing back; the two never share a figure.
         var vPhaseFigures = PhaseMetrics.Compute(vRead, vPrices);
 
+        // ---- stage 8: the estimates-against-actual reconciliation — the port of `analyse_estimates`
+        // (REQ-FN-148, BRD-212). EstimateMetrics is the ONLY reader of the "Estimate" table on the
+        // figure path (BRD-213): it reads the store itself, applies its own run-void fold, and returns
+        // cards whose shape cannot express a ratio, a difference or a blended number (ADR-034).
+        var vEstimateFigures = await EstimateMetrics.ReconcileAsync(
+                objStore, aUserId, aFramework, aRepo, aCancellationToken)
+            .ConfigureAwait(false);
+
         objLogger.LogInformation(
             "Analysed user {UserId} framework {Framework}: {Gates} gates, {Runs} runs, {Sessions} sessions, {Commits} commits, {Misses} misses, {MissFixes} miss fixes, {Tainted} tainted REQs, {AttemptsDerived} attempts derived, {DurationsDerived} durations derived, {AttributionExcluded} misses outside the per-origin figures",
             aUserId,
@@ -165,6 +173,7 @@ public sealed class MetricsEngine : IMetricsEngine
             Pooled = vPooled,
             Misses = vMissFigures,
             Phases = vPhaseFigures,
+            Estimates = vEstimateFigures,
             RunsVoidedN = vVoids.VoidedN,
             RunsVoided = vVoids.Reasons,
             RunVoidsOrphanedN = vVoids.OrphanedN,
@@ -229,7 +238,9 @@ public sealed class MetricsEngine : IMetricsEngine
     /// <c>docs/*-Checklist.md</c> when there is exactly one, and otherwise from the repository
     /// directory. A connected repository that has not yet produced a single telemetry record is the
     /// second case, so emitting <c>null</c> there disagreed with the reference on every such line
-    /// (BRD §13 parity run, 2026-08-27).
+    /// (BRD §13 parity run, 2026-08-27). Between the two sits the name read from that same checklist
+    /// file on sync or import (<see cref="UserRepo.ChecklistApp"/>; BRD-220, REQ-FN-152), so a
+    /// repository with no records yet is named as the reference names it.
     /// </remarks>
     /// <param name="aRepos">Every repository the user has connected.</param>
     /// <param name="aFramework">The framework being analysed; repositories on another axis are excluded.</param>
@@ -266,6 +277,7 @@ public sealed class MetricsEngine : IMetricsEngine
                     .Concat(vSessionsHere.Select(aSession => aSession.App))
                     .Concat(vCommitsHere.Select(aCommit => aCommit.App))
                     .FirstOrDefault(aApp => !string.IsNullOrEmpty(aApp))
+                    ?? vRepo.ChecklistApp
                     ?? vRepo.Name,
                 DeclaredProjectType(vGatesHere, vRunsHere, vSessionsHere, vCommitsHere),
                 vRepo.Framework,

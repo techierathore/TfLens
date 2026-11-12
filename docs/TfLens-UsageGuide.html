@@ -106,7 +106,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
 <div class="layout no-toc">
   <main>
     <h1>TfLens — Usage Guide</h1>
-    <div class="subtitle">Rendered 2026-11-01 &middot; source <code>TfLens-UsageGuide.md</code></div>
+    <div class="subtitle">Rendered 2026-11-12 &middot; source <code>TfLens-UsageGuide.md</code></div>
 
     <div class="toc-inline">
       <div>Contents</div>
@@ -131,6 +131,7 @@ h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link{opacity:1}
         <li class="h3"><a href="#routing-economics-routing">Routing &amp;amp; economics (/routing)</a></li>
         <li class="h3"><a href="#misses-rework-misses">Misses &amp;amp; rework (/misses)</a></li>
         <li class="h3"><a href="#phase-effort-effort">Phase effort (/effort)</a></li>
+        <li class="h3"><a href="#estimates-estimates">Estimates (/estimates)</a></li>
         <li class="h3"><a href="#snapshot-export-export">Snapshot export (/export)</a></li>
         <li class="h3"><a href="#parity-procedure-terminal-no-screen">Parity procedure (terminal — no screen)</a></li>
         <li class="h3"><a href="#playbook-framework-state-framework-switch-playbook-every-report-page">Playbook framework state (Framework switch → Playbook, every report page)</a></li>
@@ -226,9 +227,11 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </li>
 <li>[ ] Open <strong>Price providers</strong>, filter OpenRouter's models and page through a provider's rates
 </li>
+<li>[ ] Import the Sample app test files on <strong>Repos</strong>, open <strong>Estimates</strong>, and expand <strong>By step</strong> and <strong>By row</strong> on the phase 1 Opus card
+</li>
 <li>[ ] Flip the Framework switch to Playbook on a report page and back
 </li>
-<li>[ ] Export a snapshot and open both files from the new row — the banner reads QUOTABLE (parity run of 2026-10-12, parser 1.3.0) and the Dataset SHAs table shows <code>sha256 &lt;8 chars&gt;</code> for each imported source
+<li>[ ] Export a snapshot and open both files from the new row — the banner reads NOT QUOTABLE until the parity procedure is re-run (the framework's script changed 2026-11-08), and the Dataset SHAs table shows <code>sha256 &lt;8 chars&gt;</code> for each imported source
 </li>
 <li>[ ] Sign in as user 2 and confirm none of user 1's repos or figures are visible
 </li>
@@ -414,13 +417,24 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <li><strong>Covers:</strong> BRD-145..BRD-163, BRD-168, BRD-169 (<code>REQ-UI-045</code>..<code>051</code>)
 </li>
 </ul>
+<h3 id="estimates-estimates">Estimates (<code>/estimates</code>)<a class="anchor-link" href="#estimates-estimates">#</a></h3>
+<ul>
+<li><strong>Sign in as:</strong> user 2
+</li>
+<li><strong>Steps:</strong> 1) Run <code>TF_BASE=&lt;app url&gt; bash tests/verify/seed/estimates.sh</code> 2) Open <code>/estimates</code>, pick Sample app 3) Expand <strong>By step</strong> and <strong>By row</strong> on the phase 1 Opus card 4) Pick Sample empty, then All repos 5) Flip to Playbook and back 6) Run the seed again with <code>--remove</code>
+</li>
+<li><strong>Expected:</strong> three cards whose Build, Machine QA, Total, After handoff and Owner UAT lines read exactly as BRD-P4 §3.1 (Totals 55.5k, 83.5k, 58.0k beside 76.0k, 76.0k, 78.0k); By row shows <code>none</code> under after handoff; Sample empty and Playbook read <code>No estimate yet</code> with no card or digit; no ratio or percentage anywhere.
+</li>
+<li><strong>Covers:</strong> BRD-211..BRD-220 (<code>REQ-UI-078</code>..<code>080</code>, <code>REQ-FN-147</code>..<code>152</code>, <code>REQ-NFR-027</code>)
+</li>
+</ul>
 <h3 id="snapshot-export-export">Snapshot export (<code>/export</code>)<a class="anchor-link" href="#snapshot-export-export">#</a></h3>
 <ul>
 <li><strong>Sign in as:</strong> user 1
 </li>
 <li><strong>Steps:</strong> 1) Read the banner 2) Press <strong>Export snapshot</strong> 3) Open both files from the new row 4) Copy a SHA from the dataset table
 </li>
-<li><strong>Expected:</strong> banner reads <strong>QUOTABLE</strong> (parity P-004, parser <strong>1.3.0</strong>) until the parser or <code>tf-metrics.sh</code> changes; the parity card shows <code>0 differences</code>; Dataset SHAs show a commit SHA when fetched, <code>sha256 &lt;8 chars&gt;</code> when imported; export writes <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON carries <code>per_repo</code> (each with <code>source_kind</code>), <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code>, <code>extras</code> and <code>parity</code>; the markdown never mixes live and backfilled figures and labels every estimate; the row appears in past snapshots with the parser version.
+<li><strong>Expected:</strong> banner reads <strong>NOT QUOTABLE</strong> until the parity procedure is re-run — <code>tf-metrics.sh</code> changed on 2026-11-08, after parity P-004; afterwards <strong>QUOTABLE</strong>; Dataset SHAs show a commit SHA when fetched, <code>sha256 &lt;8 chars&gt;</code> when imported; export writes <code>data/reports/&lt;userId&gt;/&lt;today&gt;/&lt;framework&gt;/snapshot.md</code> and <code>tflens.json</code>; the JSON carries <code>per_repo</code> (each with <code>source_kind</code>), <code>live</code>, <code>backfilled</code>, <code>pooled</code>, <code>misses</code> (with the discovery-cost keys), <code>estimates</code>, <code>estimates_extras</code>, <code>extras</code> and <code>parity</code>; the row appears in past snapshots with the parser version.
 </li>
 <li><strong>Covers:</strong> BRD-63, BRD-65, BRD-66, BRD-67, BRD-70
 </li>
@@ -474,9 +488,13 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 <pre><code class="language-bash">TFLENS_BASE_URL=http://localhost:5099 npx playwright test</code></pre>
 <p>Covers: core, guardrail and integration tests (<code>-m:1</code>: not parallel-safe), plus browser specs under <code>tests/verify/</code> run serially against a running app (narrow with <code>TF_VERIFY_GREP='REQ-UI-0(3[5-8])\b'</code>).</p>
 <h2 id="known-limitations">Known limitations<a class="anchor-link" href="#known-limitations">#</a></h2>
-<p><strong>Phase 3:</strong> 121 of 121 rows in <code>docs/TfLens-P3-Checklist.md</code> are <code>Verified</code>. <strong>Phase 2:</strong> 39 of 44. <strong>Phase 1:</strong> 76 of 77. None is <code>Blocked</code> (verify of 2026-10-12, <code>docs/TfLens-UAT-Readiness-2026-10-12.md</code>).</p>
+<p><strong>Phase 4:</strong> 10 of 10 rows in <code>docs/TfLens-P4-Checklist.md</code> are <code>Verified</code> (2026-11-12). <strong>Phase 3:</strong> 91 of 96. <strong>Phase 2:</strong> 38 of 43. <strong>Phase 1:</strong> 74 of 75. None is <code>Blocked</code>.</p>
 <h3 id="this-release">This release<a class="anchor-link" href="#this-release">#</a></h3>
 <ul>
+<li>The export banner reads NOT QUOTABLE: <code>tf-metrics.sh</code> changed on 2026-11-08 and the last recorded parity run (P-004) predates it. Re-run the parity procedure below to restore it.
+</li>
+<li><code>REQ-FN-065</code>, <code>068</code>, <code>069</code>, <code>104</code> (Needs re-verify, Phase 3) — need a connected public Playbook repository; <code>REQ-FN-084</code> needs an imported TechieFlow source.
+</li>
 <li><code>REQ-UI-023</code> (Needs re-verify, Phase 2) — Harness page; every test passes, but mockup parity counts the token chart's <code>&lt;svg&gt;</code> as an icon (<code>TF-054</code>).
 </li>
 <li><code>REQ-UI-027</code>, <code>REQ-UI-029</code> (Needs re-verify, Phase 2) — <code>/routing</code>; every test passes, but the drift table pages its rows and the mockup draws no pager (owner decision).
@@ -502,11 +520,9 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </ul>
 <h3 id="upstream-techieflow-docs-tflens-techieflow-feedback-md"><a id="upstream--techieflow-docstflens-techieflow-feedbackmd"></a>Upstream — TechieFlow (<code>docs/TfLens-TechieFlow-Feedback.md</code>)<a class="anchor-link" href="#upstream-techieflow-docs-tflens-techieflow-feedback-md">#</a></h3>
 <ul>
-<li><code>TF-053</code> (open, minor) — <code>tf-mockup-parity</code> reads a box that scrolls its own content as cut off.
+<li><code>TF-057</code> (open, minor) — <code>tf-phase.sh end</code> inside a nested command deletes the outer command's marker.
 </li>
-<li><code>TF-054</code> (open, minor) — <code>tf-mockup-parity</code> counts a chart's <code>&lt;svg&gt;</code> as an icon.
-</li>
-<li>16 entries fixed upstream and waiting to be re-checked here; 36 closed. Nothing blocks.
+<li>19 entries fixed upstream and waiting to be re-checked here (<code>TF-053</code>, <code>TF-054</code> among them); 37 closed. Nothing blocks.
 </li>
 </ul>
 <h3 id="upstream-appmanager-docs-tflens-appmanager-feedback-md"><a id="upstream--appmanager-docstflens-appmanager-feedbackmd"></a>Upstream — AppManager (<code>docs/TfLens-AppManager-Feedback.md</code>)<a class="anchor-link" href="#upstream-appmanager-docs-tflens-appmanager-feedback-md">#</a></h3>
@@ -516,11 +532,7 @@ dotnet run --project src/TfLens -- provision-test-accounts</code></pre>
 </ul>
 <h3 id="upstream-trblazeui-docs-tflens-trblazeui-feedback-md"><a id="upstream--trblazeui-docstflens-trblazeui-feedbackmd"></a>Upstream — TrBlazeUI (<code>docs/TfLens-TrBlazeUI-Feedback.md</code>)<a class="anchor-link" href="#upstream-trblazeui-docs-tflens-trblazeui-feedback-md">#</a></h3>
 <ul>
-<li>TfLens builds on TrBlazeUI 2.0.6: 35 entries fixed upstream and closed, <code>TR-022</code> merged into <code>TR-008</code>.
-</li>
-<li><code>TR-039</code> (open, minor) — leaving a page with a chart logs an unobserved <code>JSDisconnectedException</code> from the chart library; server log only.
-</li>
-<li><code>TR-040</code> (open, minor) — <code>InputGroupInput</code> has no debounce, so the filter boxes on <code>/misses</code> and <code>/prices</code> re-filter on every keystroke, in memory.
+<li>38 entries, all closed; nothing open.
 </li>
 </ul>
   </main>

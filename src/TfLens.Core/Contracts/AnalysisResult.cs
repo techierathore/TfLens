@@ -73,6 +73,19 @@ public sealed record AnalysisResult
     public PhaseEffortAnalysis Phases { get; init; } = PhaseEffortAnalysis.Empty;
 
     /// <summary>
+    /// The estimates-against-actual reconciliation — one card per (repository, phase, estimating
+    /// model), the forecast beside the measurement and never combined with it (SCHEMA.md §2.8, §6
+    /// fourth separation; REQ-FN-148, BRD-212, ADR-034).
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="EstimateReconciliation.Empty"/> so a repository whose estimate stream is
+    /// empty or absent reports <i>no estimate yet</i> rather than nothing at all (BRD-216). Computed by
+    /// <c>EstimateMetrics</c> — the only reader of the <c>"Estimate"</c> table besides the store and
+    /// the export (BRD-213).
+    /// </remarks>
+    public EstimateReconciliation Estimates { get; init; } = EstimateReconciliation.Empty;
+
+    /// <summary>
     /// Runs a <c>run-void</c> record took out of every figure (SCHEMA.md §2.7, REQ-FN-135).
     /// </summary>
     /// <remarks>

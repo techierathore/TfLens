@@ -139,6 +139,33 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         vCountsAfterSecond.Should().Be(vCountsAfterFirst);
     }
 
+    /// <summary>
+    /// Parsing and upserting the estimate stream twice writes nothing the second time:
+    /// <c>UcEstimateIdentity</c> collapses the re-import, first wins (REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <returns>The running test.</returns>
+    [Fact(DisplayName = "REQ-FN-147 — storing the estimate stream twice writes nothing the second time")]
+    public async Task EstimateUpsertIsIdempotentAcrossRepeatedParses()
+    {
+        const string vRepo = "tflenstest/EstimateIdempotence";
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
+
+        var vText = await File.ReadAllTextAsync(Path.Combine(
+            Fixtures.Root(), "Estimates", "sample__sample-app", "estimates.jsonl"));
+
+        var vFirst = await objStore.UpsertAsync(objParser.Parse(
+            Fixtures.StoreTestUserId, vRepo, "fixture", StreamKind.Estimates, vText));
+        var vSecond = await objStore.UpsertAsync(objParser.Parse(
+            Fixtures.StoreTestUserId, vRepo, "fixture", StreamKind.Estimates, vText));
+
+        vFirst.Should().Be(44, "the Sample app fixture holds 44 estimate records (BRD §3.1)");
+        vSecond.Should().Be(0, "every estimate row already exists under UcEstimateIdentity");
+
+        var vStored = await objStore.ReadEstimatesAsync(
+            Fixtures.StoreTestUserId, FrameworkNames.TechieFlow, vRepo);
+        vStored.Should().HaveCount(44);
+    }
+
     /// <summary>Two users may hold the same repo name and neither sees the other's rows (ADR-013).</summary>
     [Fact]
     public async Task CrossUserIsolationKeepsRowsApart()
@@ -222,7 +249,7 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         var vReport = await vStore.RebuildAsync(Fixtures.StoreTestUserId);
         var vRebuilt = await CountAsync(Fixtures.StoreTestUserId, vRepo, vStore);
 
-        vReport.FilesReplayed.Should().Be(5, "the fifth stream, misses, joined the set on 2026-08-28");
+        vReport.FilesReplayed.Should().Be(6, "the sixth stream, estimates, joined the set on 2026-11-10 (BRD-211)");
         vRebuilt.Should().Be(vLive, "a rebuild reads only data/raw and must land on the same numbers");
         vReport.InvalidLines.Should().Be(
             6, "one malformed line per stream file, plus the misses fixture's unknown `kind` line");
@@ -493,6 +520,26 @@ public sealed class PostgresStoreTests : IAsyncLifetime
         };
 
         return new PostgresStore(Options.Create(vOptions), objParser, NullLogger<PostgresStore>.Instance);
+    }
+
+    /// <summary>
+    /// The checklist name is stored, read back on the repository row, and survives a later row upsert
+    /// that does not know it (REQ-FN-152, BRD-220, ADR-036).
+    /// </summary>
+    /// <returns>The running test.</returns>
+    [Fact(DisplayName = "REQ-FN-152 — the checklist name is stored and a row upsert never clears it")]
+    public async Task ChecklistAppSurvivesARowUpsert()
+    {
+        const string vRepo = "tflenstest/ChecklistApp";
+        await ResetAsync(Fixtures.StoreTestUserId, vRepo);
+
+        await objStore.WriteChecklistAppAsync(Fixtures.StoreTestUserId, vRepo, "SampleEmpty");
+        var vRow = (await objStore.ReadUserReposAsync(Fixtures.StoreTestUserId)).Single(aR => aR.Repo == vRepo);
+        vRow.ChecklistApp.Should().Be("SampleEmpty");
+
+        await objStore.WriteUserRepoAsync(vRow with { ChecklistApp = null, Branch = "trunk" });
+        (await objStore.ReadUserReposAsync(Fixtures.StoreTestUserId)).Single(aR => aR.Repo == vRepo)
+            .ChecklistApp.Should().Be("SampleEmpty");
     }
 
     /// <summary>

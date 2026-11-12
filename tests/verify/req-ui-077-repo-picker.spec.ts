@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { signIn, gotoScreen, testid, DESKTOP } from './_helpers';
+import { signIn, gotoScreen, testid, DESKTOP, MOBILE } from './_helpers';
 
 // REQ-UI-077 (owner UAT, 2026-11-01): the report pages had no way to see one repository's figures.
 // A repo picker in each report page's title row narrows every figure to the chosen repository, the
@@ -89,4 +89,53 @@ test('REQ-UI-077 — repo picker narrows Gate outcomes, carries to Routing, and 
   expect(await tabStrip(page), 'All repos is today\'s view, unchanged').toBe(allTabs);
 
   await ensureTechieFlow(page);
+});
+
+// Owner UAT 2026-11-12 (docs/uatissuessc/0-Estimates-Repo-Dd.png): the open list was only as wide as a
+// trigger squeezed to the width of "All repos", so every repository name read "techierathore/" — and no
+// check opened the list to see it. This one opens it on every page that carries the picker, at both
+// widths, and measures what a person sees.
+test('REQ-UI-077 — the open repo picker shows every repository name whole, inside the window, on all six report pages at 1280 and 390', async ({ page }) => {
+  test.setTimeout(240_000);
+  await signIn(page);
+  const pages = ['/gate-outcomes', '/harness', '/routing', '/misses', '/effort', '/estimates'];
+
+  for (const size of [DESKTOP, MOBILE]) {
+    await page.setViewportSize(size);
+    for (const route of pages) {
+      await gotoScreen(page, route);
+      const trigger = await testid(page, 'repo-picker');
+      await trigger.click();
+      const list = page.locator('[data-select-content]');
+      await list.waitFor({ state: 'visible', timeout: 10_000 }).catch(async () => {
+        await page.waitForTimeout(1_500);
+        await trigger.click();
+        await list.waitFor({ state: 'visible', timeout: 10_000 });
+      });
+
+      const seen = await page.evaluate(() => {
+        const t = document.querySelector('[data-testid="repo-picker"]')!.getBoundingClientRect();
+        const l = document.querySelector('[data-select-content]')!.getBoundingClientRect();
+        const options = [...document.querySelectorAll('[data-select-content] [role="option"]')] as HTMLElement[];
+        return {
+          trigger: t.width,
+          left: l.left,
+          right: l.right,
+          viewport: window.innerWidth,
+          options: options.length,
+          cut: options.filter(o => o.scrollWidth > o.clientWidth + 1).map(o => o.textContent!.trim()),
+        };
+      });
+
+      const where = `${route} @${size.width}`;
+      expect(seen.options, `${where}: the list has All repos and the repositories`).toBeGreaterThan(1);
+      expect(seen.cut, `${where}: no repository name is cut`).toEqual([]);
+      expect(seen.left, `${where}: the list starts inside the window`).toBeGreaterThanOrEqual(0);
+      expect(seen.right, `${where}: the list ends inside the window`).toBeLessThanOrEqual(seen.viewport);
+      expect(seen.trigger, `${where}: the picker is not squeezed to the width of "All repos"`)
+        .toBeGreaterThanOrEqual(size.width < 600 ? size.width - 40 : 280);
+
+      await page.keyboard.press('Escape');
+    }
+  }
 });

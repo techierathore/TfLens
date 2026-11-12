@@ -67,6 +67,12 @@ ADDED_KEYS = {
         "`import` (uploaded as a bundle). The reference always reads a working tree and has no such "
         "concept. It is DISPLAYED and never divided on: no figure anywhere in either document is "
         "segmented by it, which is why it appears on this list and nowhere else.",
+    "estimates_extras":
+        "REQ-FN-150 / BRD-217 / ADR-035 -- the two estimates figures tf-metrics.sh does NOT compute: "
+        "the Total (build + machine QA) and the per-row actuals. They are stated rules, hand-checked "
+        "once against the raw JSONL and recorded in DECISIONS.md, and they stand where `extras` "
+        "stands -- beside the parity surface, never inside it. The `estimates` block itself carries "
+        "only keys the reference emits, so this addition can never mask a divergence there.",
 }
 
 # The segment keys `live` and `backfilled` are maps of. Enumerated rather than wildcarded because
@@ -221,7 +227,30 @@ KEYED_LISTS = {"per_repo": "repo"}
 # appends each repository's entries as it walks argv, TfLens orders by owner/name. They are compared
 # as multisets -- every entry must appear on both sides exactly as often, byte for byte -- so content
 # is held exactly as strictly as before and only the position stops counting (2026-10-12, REQ-FN-063).
-UNORDERED_LISTS = {"runs_voided", "misses.misses_voided", "gates_malformed"}
+UNORDERED_LISTS = {"runs_voided", "misses.misses_voided", "gates_malformed", "estimates.phases"}
+
+# ESTIMATES_* -- the estimates-against-actual figures BRD-218 requires this script to diff key for
+# key. Same job as MISSES_KEYS and PHASES_*: the walk compares them anyway, and these lists make the
+# coverage a CHECKED FACT. The block rides inside `--report --json` / `--rollup --json` under the
+# top-level key `estimates`, in the exact layout `analyse_estimates()` emits, so nothing here needs a
+# second oracle invocation. The two figures with no oracle (the Total and the per-row actuals) live
+# under `estimates_extras` -- an ADDED_KEYS entry, never inside this surface.
+#
+ESTIMATES_TOP_KEYS = ("phases", "repos_with_estimates")
+ESTIMATES_PHASE_KEYS = ("app", "phase", "model", "ts", "rows_n", "cmds", "retro", "parts")
+ESTIMATES_CMD_KEYS = ("estimate", "actual", "actual_in_range")
+ESTIMATES_ESTIMATE_KEYS = ("tokens_out", "duration_s", "basis", "basis_runs", "rows_covered")
+# The actual's nine keys. tokens_unrecorded_n and tokens_main_scope_n are the two ways a token total
+# here goes quietly wrong -- runs with no usable window summed as zeros, and main-thread-only windows
+# read as whole ones -- so they are diffed on their own keys like every other exclusion count.
+ESTIMATES_ACTUAL_KEYS = (
+    "runs_n", "apportioned_n", "rowless_runs_in_repo_n",
+    "tokens_out", "tokens_n", "tokens_unrecorded_n", "tokens_main_scope_n",
+    "duration_s", "duration_n",
+)
+ESTIMATES_PART_KEYS = ("rows_covered", "estimate", "actual")
+ESTIMATES_PART_ESTIMATE_KEYS = ("tokens_out", "duration_s")
+ESTIMATES_PARTS = ("build", "machine_qa", "after_handoff")
 
 
 def canonical(path):
@@ -543,6 +572,163 @@ def check_phase_keys(compare, path, reference_block, actual_block, keys):
     return checked
 
 
+def check_estimates_coverage(compare, reference, actual):
+    """Assert that every estimates figure BRD-218 names was actually on both documents.
+
+    Same reasoning as check_misses_coverage and check_phases_coverage: a key that vanished from BOTH
+    sides -- an oracle predating the v1.3.0 `estimates` block, or a TfLens regression that dropped the
+    reconciliation -- would produce no diff at all and the run would pass having verified none of it.
+    BRD-218 says the block is written in the oracle's EXACT key layout so this script diffs it key for
+    key, so absence is a finding rather than a silence.
+    """
+    if not isinstance(reference, dict) or not isinstance(actual, dict):
+        return
+
+    reference_block = reference.get("estimates")
+    actual_block = actual.get("estimates")
+
+    if not isinstance(reference_block, dict):
+        compare.fail("UNCOVERED", "estimates",
+                     "BRD-218 requires the whole estimates block to be diffed, but the reference "
+                     "emits no `estimates` object. The oracle predates v1.3.0's analyse_estimates(); "
+                     "re-run against a current tf-metrics.sh before recording a pass.")
+        return
+
+    if not isinstance(actual_block, dict):
+        compare.fail("UNCOVERED", "estimates",
+                     "the reference emits an `estimates` object and tflens.json does not, so no "
+                     "estimate figure was verified (BRD-218).")
+        return
+
+    for key in ESTIMATES_TOP_KEYS:
+        missing_on = [side for side, block in (("reference", reference_block), ("tflens", actual_block))
+                      if key not in block]
+        if missing_on:
+            compare.fail("UNCOVERED", "estimates." + key,
+                         "BRD-218 names this key, and it is absent from: %s. Absent on both sides "
+                         "is not agreement." % ", ".join(missing_on))
+
+    reference_cards = reference_block.get("phases")
+    actual_cards = actual_block.get("phases")
+
+    if not isinstance(reference_cards, list) or not isinstance(actual_cards, list):
+        return
+
+    # Pair the cards on their identity (app, phase, model, ts) rather than by position: the list
+    # order is per-repo in argv order on the reference side and per-repo in owner/name order on the
+    # TfLens side, which is an artefact of invocation, not data.
+    def identity(card):
+        return json.dumps([card.get("app"), card.get("phase"), card.get("model"), card.get("ts")],
+                          sort_keys=True, ensure_ascii=False)
+
+    reference_map = dict((identity(c), c) for c in reference_cards if isinstance(c, dict))
+    actual_map = dict((identity(c), c) for c in actual_cards if isinstance(c, dict))
+
+    checked = 0
+
+    for name in sorted(set(reference_map) | set(actual_map)):
+        if name not in actual_map:
+            compare.fail("UNCOVERED", "estimates.phases[%s]" % name,
+                         "the reference reports this phase card; tflens does not")
+            continue
+        if name not in reference_map:
+            compare.fail("UNCOVERED", "estimates.phases[%s]" % name,
+                         "tflens reports this phase card; the reference does not")
+            continue
+        checked += check_estimate_card(compare, name, reference_map[name], actual_map[name])
+
+    compare.note("COVERED", "estimates",
+                 "%d estimates figure(s) BRD-218 names were present on both documents and compared, "
+                 "over %d phase card(s). The Total and the per-row actuals are NOT in this count: "
+                 "they have no oracle and live under estimates_extras (BRD-217, ADR-035)."
+                 % (checked, len(set(reference_map) | set(actual_map))))
+
+
+def check_estimate_card(compare, name, reference_card, actual_card):
+    """Check one `estimates.phases[]` card on both sides. Returns how many keys were compared."""
+    path = "estimates.phases[%s]" % name
+    checked = 0
+
+    for key in ESTIMATES_PHASE_KEYS:
+        missing_on = [side for side, card in (("reference", reference_card), ("tflens", actual_card))
+                      if key not in card]
+        if missing_on:
+            compare.fail("UNCOVERED", "%s.%s" % (path, key),
+                         "BRD-218 names this key, and it is absent from: %s. Absent on both sides "
+                         "is not agreement." % ", ".join(missing_on))
+
+    reference_cmds = reference_card.get("cmds")
+    actual_cmds = actual_card.get("cmds")
+    if isinstance(reference_cmds, dict) and isinstance(actual_cmds, dict):
+        for cmd in sorted(set(reference_cmds) | set(actual_cmds)):
+            checked += check_estimate_cmd(compare, "%s.cmds.%s" % (path, cmd),
+                                          reference_cmds.get(cmd), actual_cmds.get(cmd))
+
+    reference_parts = reference_card.get("parts")
+    actual_parts = actual_card.get("parts")
+    if isinstance(reference_parts, dict) and isinstance(actual_parts, dict):
+        for part in ESTIMATES_PARTS:
+            checked += check_estimate_part(compare, "%s.parts.%s" % (path, part),
+                                           reference_parts.get(part), actual_parts.get(part))
+
+    return checked
+
+
+def check_estimate_cmd(compare, path, reference_cmd, actual_cmd):
+    """Check one `estimates.phases[].cmds.<cmd>` block on both sides."""
+    if not isinstance(reference_cmd, dict) or not isinstance(actual_cmd, dict):
+        compare.fail("UNCOVERED", path,
+                     "BRD-218 requires every cmd block to be diffed, and this one is an object on "
+                     "only one side, so none of its figures was compared.")
+        return 0
+
+    checked = check_phase_keys_218(compare, path + ".estimate", reference_cmd.get("estimate"),
+                                   actual_cmd.get("estimate"), ESTIMATES_ESTIMATE_KEYS)
+    checked += check_phase_keys_218(compare, path + ".actual", reference_cmd.get("actual"),
+                                    actual_cmd.get("actual"), ESTIMATES_ACTUAL_KEYS)
+    checked += check_phase_keys_218(compare, path + ".actual_in_range",
+                                    reference_cmd.get("actual_in_range"),
+                                    actual_cmd.get("actual_in_range"), ("tokens_out", "duration_s"))
+    return checked
+
+
+def check_estimate_part(compare, path, reference_part, actual_part):
+    """Check one `estimates.phases[].parts.<part>` block on both sides."""
+    if not isinstance(reference_part, dict) or not isinstance(actual_part, dict):
+        compare.fail("UNCOVERED", path,
+                     "BRD-218 requires every part block to be diffed, and this one is an object on "
+                     "only one side, so none of its figures was compared.")
+        return 0
+
+    checked = check_phase_keys_218(compare, path, reference_part, actual_part, ESTIMATES_PART_KEYS)
+    checked += check_phase_keys_218(compare, path + ".estimate", reference_part.get("estimate"),
+                                    actual_part.get("estimate"), ESTIMATES_PART_ESTIMATE_KEYS)
+    checked += check_phase_keys_218(compare, path + ".actual", reference_part.get("actual"),
+                                    actual_part.get("actual"), ESTIMATES_ACTUAL_KEYS)
+    return checked
+
+
+def check_phase_keys_218(compare, path, reference_block, actual_block, keys):
+    """Check that one estimates block carries every key on both sides. Returns how many were compared."""
+    if not isinstance(reference_block, dict) or not isinstance(actual_block, dict):
+        compare.fail("UNCOVERED", path,
+                     "BRD-218 names the figures in this block and it is an object on only one side, "
+                     "so none of them was compared.")
+        return 0
+
+    checked = 0
+    for key in keys:
+        missing_on = [side for side, block in (("reference", reference_block), ("tflens", actual_block))
+                      if key not in block]
+        if missing_on:
+            compare.fail("UNCOVERED", "%s.%s" % (path, key),
+                         "BRD-218 names this figure, and it is absent from: %s. Absent on both sides "
+                         "is not agreement." % ", ".join(missing_on))
+        else:
+            checked += 1
+    return checked
+
+
 def kind_of(value):
     if isinstance(value, dict):
         return "an object"
@@ -683,6 +869,7 @@ def main(argv):
     compare.walk(reference, actual)
     check_misses_coverage(compare, reference, actual)
     check_phases_coverage(compare, reference, actual)
+    check_estimates_coverage(compare, reference, actual)
 
     import io
     buffer = io.StringIO()

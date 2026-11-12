@@ -170,6 +170,21 @@ public sealed class StreamParser : IStreamParser
     private static readonly string[] CommitDocumented =
         ["sha", "files", "insertions", "deletions", "subject_prefix", "branch"];
 
+    /// <summary>
+    /// Fields SCHEMA.md §2.8 documents for <c>estimates</c> (added 2026-11-08; REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <remarks>
+    /// <c>tokens_out</c> and <c>duration_s</c> are nested <c>{low, mid, high}</c> objects and fan out to
+    /// three columns each. A <c>null</c> figure — <c>basis: "none"</c>, no precedent — stays six null
+    /// columns and is never coerced to zeros (SCHEMA.md §2.5). <c>cmd</c> is an open vocabulary at the
+    /// producer (ADR-032): a value outside the four known steps is stored as it stands.
+    /// </remarks>
+    private static readonly string[] EstimateDocumented =
+    [
+        "phase", "req_id", "cmd", "tokens_out", "duration_s", "basis", "basis_runs", "model",
+        "basis_note", "rows_n", "rows_no_precedent_n"
+    ];
+
     /// <summary>Fields SCHEMA.md §5.5.1 documents for a <c>miss</c> record.</summary>
     /// <remarks>
     /// <c>what</c> (2026-09-05) and <c>sort</c> (2026-09-07) are listed here — and given columns below —
@@ -249,6 +264,15 @@ public sealed class StreamParser : IStreamParser
     private static readonly HashSet<string> CommitMapped =
         BuildMapped(CommitDocumented, "project_type_inferred", "backfilled", "inferred", "harness");
 
+    /// <summary>Wire names that <c>"Estimate"</c> has a column for; anything else overflows.</summary>
+    /// <remarks>
+    /// The table carries no <c>ProjectTypeInferred</c>, <c>Backfilled</c> or <c>Inferred</c> column —
+    /// SCHEMA.md §2.8 puts none of them on an estimate record — so a record that carries one preserves
+    /// it in <c>Overflow</c> rather than losing it.
+    /// </remarks>
+    private static readonly HashSet<string> EstimateMapped =
+        BuildMapped(EstimateDocumented, "project_type_inferred", "backfilled", "inferred");
+
     /// <summary>Wire names that <c>"Miss"</c> has a column for; anything else overflows.</summary>
     private static readonly HashSet<string> MissMapped = BuildMapped(MissDocumented, "inferred");
 
@@ -281,6 +305,9 @@ public sealed class StreamParser : IStreamParser
 
     /// <summary>Every wire name SCHEMA.md documents for <c>commits</c>.</summary>
     private static readonly HashSet<string> CommitKnown = BuildKnown(CommitDocumented);
+
+    /// <summary>Every wire name SCHEMA.md documents for <c>estimates</c>.</summary>
+    private static readonly HashSet<string> EstimateKnown = BuildKnown(EstimateDocumented);
 
     /// <summary>Every wire name the provisional Playbook column set covers.</summary>
     private static readonly HashSet<string> EventKnown = BuildKnown(EventDocumented);
@@ -346,6 +373,7 @@ public sealed class StreamParser : IStreamParser
             StreamKind.Sessions => SessionKnown.Contains(aField),
             StreamKind.Commits => CommitKnown.Contains(aField),
             StreamKind.Misses => MissesKnown.Contains(aField),
+            StreamKind.Estimates => EstimateKnown.Contains(aField),
             StreamKind.Events => EventKnown.Contains(aField),
             StreamKind.PhaseMetrics => PhaseMetricKnown.Contains(aField),
             _ => throw new ArgumentOutOfRangeException(nameof(aStream), aStream, "Unknown stream kind.")
@@ -468,6 +496,9 @@ public sealed class StreamParser : IStreamParser
             case StreamKind.Misses:
                 AddMissRecord(aObj, aState, vVersion, vTs, vIsAboveV1);
                 break;
+            case StreamKind.Estimates:
+                AddEstimateRecord(aObj, aState, vVersion, vTs, vIsAboveV1);
+                break;
             case StreamKind.Events:
                 CollectUnknown(aObj, EventKnown, aState);
                 aState.PbEvents.Add(BuildPbEvent(aObj, aState, vTs, vIsAboveV1));
@@ -518,6 +549,132 @@ public sealed class StreamParser : IStreamParser
         aState.PhaseExecutions.Add(PlaybookPhaseInvariants.Annotate(vRows.Execution));
         aState.PhaseModelUsages.AddRange(vRows.Models);
         aState.PhaseSubagents.AddRange(vRows.Subagents);
+    }
+
+    /// <summary>
+    /// Reads one <c>estimates.jsonl</c> record (SCHEMA.md §2.8; REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <remarks>
+    /// The stream declares exactly one kind, <c>estimate</c>, so "matches the file" and "is declared by
+    /// the file" are the same rule here — but the check is still made, because a line of any other kind
+    /// in this file is the same class of event as a malformed line: counted and skipped, never thrown
+    /// and never stored as a forecast (REQ-FN-032). The oracle reads the stream with the identical
+    /// filter (<c>e.get("kind") == "estimate"</c>), so a skipped line changes no figure on either side.
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    private static void AddEstimateRecord(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        if (!string.Equals(ReadString(aObj, "kind"), "estimate", StringComparison.Ordinal))
+        {
+            aState.InvalidLines++;
+            return;
+        }
+
+        CollectUnknown(aObj, EstimateKnown, aState);
+        aState.Estimates.Add(BuildEstimate(aObj, aState, aVersion, aTs, aIsAboveV1));
+    }
+
+    /// <summary>
+    /// Builds one <c>estimate</c> record; a <c>v &gt; 1</c> record keeps only its identity columns.
+    /// </summary>
+    /// <remarks>
+    /// The two forecast objects fan out to three columns each. A <c>null</c> figure — no precedent —
+    /// stays null on all three legs: it is <i>not estimated</i>, never zero (SCHEMA.md §2.5, §2.8).
+    /// </remarks>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aState">Accumulating parse state.</param>
+    /// <param name="aVersion">The record's schema version.</param>
+    /// <param name="aTs">The record's timestamp.</param>
+    /// <param name="aIsAboveV1">True when the whole record belongs in <c>Overflow</c>.</param>
+    /// <returns>The typed record.</returns>
+    private static EstimateRecord BuildEstimate(
+        JsonElement aObj, ParseState aState, int aVersion, string aTs, bool aIsAboveV1)
+    {
+        var vOverflow = BuildOverflow(aObj, EstimateMapped, aIsAboveV1);
+        if (aIsAboveV1)
+        {
+            return new EstimateRecord
+            {
+                UserId = aState.UserId,
+                Repo = aState.Repo,
+                SourceSha = aState.SourceSha,
+                V = aVersion,
+                Ts = aTs,
+                App = ReadString(aObj, "app"),
+                Phase = ReadInt(aObj, "phase"),
+                ReqId = ReadString(aObj, "req_id"),
+                Cmd = ReadString(aObj, "cmd") ?? string.Empty,
+                Overflow = vOverflow
+            };
+        }
+
+        var vTokens = ReadRange(aObj, "tokens_out");
+        var vDuration = ReadRange(aObj, "duration_s");
+
+        return new EstimateRecord
+        {
+            UserId = aState.UserId,
+            Repo = aState.Repo,
+            SourceSha = aState.SourceSha,
+            V = aVersion,
+            Ts = aTs,
+            App = ReadString(aObj, "app"),
+            ProjectType = ReadString(aObj, "project_type"),
+            Phase = ReadInt(aObj, "phase"),
+            ReqId = ReadString(aObj, "req_id"),
+            Cmd = ReadString(aObj, "cmd") ?? string.Empty,
+            TokensOutLow = vTokens.Low,
+            TokensOutMid = vTokens.Mid,
+            TokensOutHigh = vTokens.High,
+            DurationSLow = vDuration.Low,
+            DurationSMid = vDuration.Mid,
+            DurationSHigh = vDuration.High,
+            Basis = ReadString(aObj, "basis"),
+            BasisRuns = ReadInt(aObj, "basis_runs"),
+            Model = ReadString(aObj, "model"),
+            Harness = ReadString(aObj, "harness"),
+            BasisNote = ReadString(aObj, "basis_note"),
+            RowsN = ReadInt(aObj, "rows_n"),
+            RowsNoPrecedentN = ReadInt(aObj, "rows_no_precedent_n"),
+            Overflow = vOverflow
+        };
+    }
+
+    /// <summary>
+    /// Reads one <c>{low, mid, high}</c> forecast object.
+    /// </summary>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aName">The wire name — <c>tokens_out</c> or <c>duration_s</c>.</param>
+    /// <returns>The three legs; all <c>null</c> when the figure is absent, JSON-null or not an object.</returns>
+    private static (long? Low, long? Mid, long? High) ReadRange(JsonElement aObj, string aName)
+    {
+        if (!aObj.TryGetProperty(aName, out var vValue) || vValue.ValueKind != JsonValueKind.Object)
+        {
+            return (null, null, null);
+        }
+
+        return (ReadLong(vValue, "low"), ReadLong(vValue, "mid"), ReadLong(vValue, "high"));
+    }
+
+    /// <summary>
+    /// Reads a 64-bit integer property. Absent is <c>null</c>; a present <c>0</c> is <c>0</c>.
+    /// </summary>
+    /// <param name="aObj">The record's JSON object.</param>
+    /// <param name="aName">The SCHEMA.md wire name.</param>
+    /// <returns>The value, or <c>null</c> when the field was not captured.</returns>
+    private static long? ReadLong(JsonElement aObj, string aName)
+    {
+        if (!aObj.TryGetProperty(aName, out var vValue) || vValue.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        return vValue.TryGetInt64(out var vLong) ? vLong : (long)vValue.GetDouble();
     }
 
     /// <summary>
@@ -1443,6 +1600,9 @@ public sealed class StreamParser : IStreamParser
         /// <summary>Commit records read so far, before dedupe.</summary>
         public List<CommitRecord> Commits { get; } = [];
 
+        /// <summary><c>estimate</c> records read so far, before dedupe (SCHEMA.md §2.8).</summary>
+        public List<EstimateRecord> Estimates { get; } = [];
+
         /// <summary>Playbook event records read so far, before dedupe.</summary>
         public List<PbEventRecord> PbEvents { get; } = [];
 
@@ -1507,6 +1667,7 @@ public sealed class StreamParser : IStreamParser
             var vSessions = Dedupe.Sessions(Sessions);
             var vCommits = Dedupe.Commits(Commits);
             var vEvents = Dedupe.PbEvents(PbEvents);
+            var vEstimates = Dedupe.Estimates(Estimates);
             var vMisses = Dedupe.Misses(Misses);
             var vMissFixes = Dedupe.MissFixes(MissFixes);
             var vMissAmends = Dedupe.MissAmends(MissAmends);
@@ -1530,6 +1691,7 @@ public sealed class StreamParser : IStreamParser
                 Sessions = vSessions.Records,
                 Commits = vCommits.Records,
                 PbEvents = vEvents.Records,
+                Estimates = vEstimates.Records,
                 Misses = vMisses.Records,
                 MissFixes = vMissFixes.Records,
                 MissAmends = vMissAmends.Records,
@@ -1540,7 +1702,7 @@ public sealed class StreamParser : IStreamParser
                 PhaseSubagents = vPhaseSubagents.Records,
                 InvalidLines = InvalidLines,
                 DuplicatesCollapsed = vRuns.Collapsed + vGates.Collapsed + vSessions.Collapsed
-                    + vCommits.Collapsed + vEvents.Collapsed
+                    + vCommits.Collapsed + vEvents.Collapsed + vEstimates.Collapsed
                     + vMisses.Collapsed + vMissFixes.Collapsed + vMissAmends.Collapsed
                     + vMissReviews.Collapsed + vMissVoids.Collapsed
                     + vPhases.Collapsed + vPhaseModels.Collapsed + vPhaseSubagents.Collapsed,

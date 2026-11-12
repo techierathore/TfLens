@@ -907,6 +907,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UcEstimateIdentity" ON "Estimate"
 
 Fetcher, importer, parser, `UpsertAsync`, `DeleteRepoDataAsync` and `Rebuild()` gain the stream; `ITelemetryStore` gains `ReadEstimatesAsync`.
 
+### 6.y `UserRepo."ChecklistApp"` (added 2026-11-12, phase 4, BRD-220)
+
+`ALTER TABLE "UserRepo" ADD COLUMN IF NOT EXISTS "ChecklistApp" text;` — the app name read from the repository's single `docs/*-Checklist.md` (one GET of the `docs/` folder listing per sync; for an import, a `docs/*-Checklist.md` entry in the bundle). `null` when there is none or more than one. Read only for `per_repo[].app` of a repository whose records carry no app name, exactly as `app_name()` in `tf-metrics.sh` names one.
+
 ## 7. Metrics engine — parity with tf-metrics.sh
 
 The reference script is the specification. The port keeps its names so a diff reads naturally:
@@ -1034,6 +1038,7 @@ onto a document whose Tech stack (§1) and ADR log (§10) already answer them in
 - **ADR-033 — Brand files are served from a plain, un-fingerprinted `/brand/` path, and the brand colour is a literal, not a theme token (2026-11-01).** Reason: fingerprinting (REQ-NFR-015) protects stylesheets from stale caches, while share scrapers and home-screen icons cache an image by URL; the files change only by amendment (BRD-206, BRD-207). `#0284C7` is literal because the theme's primary is near-black in light and off-white in dark (BRD-208); the dark wordmark is a second image toggled by `html.dark`, never a filter (BRD-209).
 - **ADR-034 — An estimate is its own table and result type; no type combines it with a measurement (2026-11-10).** Reason: SCHEMA.md §6's fourth separation, enforced by shape as in ADR-007 — `EstimateVsActual` can hold no ratio, difference or percentage, and `Estimate` is never joined to `Run`. Status: planned (BRD-213).
 - **ADR-035 — The Total row and per-row actual have no oracle (2026-11-10).** Reason: the owner asked for both; `tf-metrics.sh` (never edited) ends at three parts with per-phase actuals. Total = build + machine QA as `tf-estimate.sh` prints it, actual by the oracle's part rule; both on `ADDED_KEYS`, hand-checked once. Status: planned (BRD-217).
+- **ADR-036 — Two parity gaps closed: discovery cost and the empty repository's app name (2026-11-12).** Reason: the owner's decision 1 of 2026-11-12; `tf-metrics.sh` gained `discovery_*` and `per_miss_cost` on 2026-11-05 and names every app from its checklist file. Ported field for field (`MissDiscovery`), and one nullable column on `UserRepo` fed by one extra GET per sync. Status: planned (BRD-220).
 ## 11. Target architecture (brownfield only — if enhancement changes structure)
 
 Not applicable — greenfield; §2 is the target.

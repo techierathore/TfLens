@@ -50,6 +50,48 @@ public sealed class RepoSyncRunnerTests : IDisposable
         vHarness.Parser.Calls.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// A changed sync reads the app name from the repository's single <c>docs/*-Checklist.md</c> with
+    /// one folder listing at the synced SHA, and stores it (REQ-FN-152, BRD-220).
+    /// </summary>
+    /// <returns>The running test.</returns>
+    [Fact(DisplayName = "REQ-FN-152 — a changed sync names the app from the single docs checklist")]
+    public async Task ChangedSyncRecordsTheChecklistApp()
+    {
+        var vHarness = BuildHarness();
+        vHarness.Fetcher.Folders["techierathore/TfLens:docs"] = ["README.md", "TfLens-Checklist.md", "TfLens-BRD.md"];
+
+        await vHarness.Runner.SyncAsync(2);
+
+        vHarness.Fetcher.ListCalls.Should().Equal($"techierathore/TfLens:docs@{Sha}");
+        vHarness.Store.ChecklistApps.Should().ContainKey("techierathore/TfLens")
+            .WhoseValue.Should().Be("TfLens");
+    }
+
+    /// <summary>
+    /// Several checklist files name no app, as the framework's glob finds more than one hit; an unchanged
+    /// sync lists nothing at all, so it still costs exactly one call (REQ-FN-152, BRD-13).
+    /// </summary>
+    /// <returns>The running test.</returns>
+    [Fact(DisplayName = "REQ-FN-152 — several checklists name no app, and an unchanged sync lists nothing")]
+    public async Task SeveralChecklistsNameNoAppAndSkipListsNothing()
+    {
+        var vHarness = BuildHarness();
+        vHarness.Fetcher.Folders["techierathore/TfLens:docs"] = ["TfLens-Checklist.md", "TfLens-P2-Checklist.md"];
+
+        await vHarness.Runner.SyncAsync(2);
+        vHarness.Store.ChecklistApps["techierathore/TfLens"].Should().BeNull();
+
+        var vSkipped = BuildHarness();
+        vSkipped.Store.States["2|techierathore/TfLens"] = new SyncState
+        {
+            UserId = 2, Repo = "techierathore/TfLens", LastSha = Sha, LastSyncTs = "2026-01-01T00:00:00Z"
+        };
+
+        await vSkipped.Runner.SyncAsync(2);
+        vSkipped.Fetcher.ListCalls.Should().BeEmpty();
+    }
+
     /// <summary>A skip touches only the last-sync timestamp and leaves the SHA and counts alone (REQ-FN-021).</summary>
     [Fact]
     public async Task SkipTouchesOnlyTheTimestamp()

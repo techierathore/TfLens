@@ -28,6 +28,7 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
     private readonly List<MissAmendRecord> objMissAmends = [];
     private readonly List<MissReviewRecord> objMissReviews = [];
     private readonly List<MissVoidRecord> objMissVoids = [];
+    private readonly List<EstimateRecord> objEstimates = [];
     private readonly List<UserRepo> objRepos = [];
 
     /// <summary>
@@ -113,6 +114,7 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         Collect(vStored, aUserId, "Miss", objMisses.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
         Collect(vStored, aUserId, "MissFix", objMissFixes.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
         Collect(vStored, aUserId, "MissAmend", objMissAmends.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
+        Collect(vStored, aUserId, "Estimate", objEstimates.Select(aR => (aR.UserId, aR.Repo, aR.SourceSha)));
 
         var vObtained = aUserId is null
             ? objObtained
@@ -245,6 +247,38 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         }
 
         return this;
+    }
+
+    /// <summary>
+    /// Names a registered repository's checklist app, as a sync or import would have read it from
+    /// <c>docs/*-Checklist.md</c> (BRD-220, REQ-FN-152).
+    /// </summary>
+    /// <param name="aUserId">The user the repository belongs to.</param>
+    /// <param name="aRepo">The <c>owner/name</c>.</param>
+    /// <param name="aChecklistApp">The app name.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore WithChecklistApp(int aUserId, string aRepo, string aChecklistApp)
+    {
+        WriteChecklistAppAsync(aUserId, aRepo, aChecklistApp).GetAwaiter().GetResult();
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task WriteChecklistAppAsync(
+        int aUserId,
+        string aRepo,
+        string? aChecklistApp,
+        CancellationToken aCancellationToken = default)
+    {
+        for (var vIndex = 0; vIndex < objRepos.Count; vIndex++)
+        {
+            if (objRepos[vIndex].UserId == aUserId && objRepos[vIndex].Repo == aRepo)
+            {
+                objRepos[vIndex] = objRepos[vIndex] with { ChecklistApp = aChecklistApp };
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -439,6 +473,44 @@ public sealed class FixtureTelemetryStore : ITelemetryStore
         objMissAmends.AddRange(Ingest(aAmends, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
         return this;
     }
+
+    /// <summary>
+    /// Seeds <c>estimates.jsonl</c> records (SCHEMA.md §2.8), for the reconciliation tests
+    /// (REQ-FN-147..REQ-FN-151).
+    /// </summary>
+    /// <remarks>
+    /// Served exactly as stored — the reconciliation is <see cref="TfLens.Core.Metrics.EstimateMetrics"/>'s
+    /// read-time job, and a fixture that pre-reconciled would prove nothing. A repository seeded with
+    /// NO records is the "no estimate yet" state and is registered, because a connected repository
+    /// with an empty stream is exactly what BRD-216 renders.
+    /// </remarks>
+    /// <param name="aUserId">The user id the records are attributed to.</param>
+    /// <param name="aRepo">The <c>owner/name</c> the records belong to.</param>
+    /// <param name="aFramework">The provenance axis.</param>
+    /// <param name="aEstimates">The estimate records to serve, or none.</param>
+    /// <returns>The same store, for chaining.</returns>
+    public FixtureTelemetryStore SeedEstimates(
+        int aUserId,
+        string aRepo,
+        string aFramework,
+        IEnumerable<EstimateRecord>? aEstimates = null)
+    {
+        RegisterRepo(aUserId, aRepo, aFramework);
+        objEstimates.AddRange(Ingest(aEstimates, aR => Entry(aR.UserId, aR.Repo, aR.SourceSha)));
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<EstimateRecord>> ReadEstimatesAsync(
+        int aUserId,
+        string aFramework,
+        string? aRepo = null,
+        CancellationToken aCancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<EstimateRecord>>(
+            objEstimates
+                .Where(aRecord => aRecord.UserId == aUserId && Matches(aRecord.Repo, aFramework, aRepo))
+                .OrderBy(aRecord => aRecord.Ts, StringComparer.Ordinal)
+                .ToList());
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MissRecord>> ReadMissesAsync(

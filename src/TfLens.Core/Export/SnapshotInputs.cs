@@ -34,6 +34,10 @@ namespace TfLens.Core.Export;
 /// The measuring harness's money row computed over <c>sole</c> fix records only — the two
 /// <c>cost_usd_*</c> keys, in the record set the reference computes them over (REQ-FN-080).
 /// </param>
+/// <param name="Discovery">
+/// Discovery cost and the per-miss cost list, in the reference's six keys (SCHEMA.md §5.5.12,
+/// BRD-220, REQ-FN-152).
+/// </param>
 /// <param name="DatasetShas">Repository to commit SHA, so the exact dataset can be checked out (REQ-FN-062).</param>
 /// <param name="Parity">The last recorded parity run, or <c>null</c> when none has ever passed.</param>
 /// <param name="ParityStatus">One of the <see cref="ParityStatuses"/> constants for this parser version.</param>
@@ -60,6 +64,7 @@ internal sealed record SnapshotInputs(
     MissSegmentFigures MissParity,
     MissHarnessCost? MeasuredRework,
     MissReviewBlock Reviews,
+    MissDiscoveryFigures Discovery,
     IReadOnlyList<KeyValuePair<string, string>> DatasetShas,
     ParityRecord? Parity,
     string ParityStatus,

@@ -51,4 +51,19 @@
     <Content Include="Fixtures\tflens-fixtures\parity-repo\docs\*.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- REQ-FN-148 / REQ-FN-151 (BRD-212, BRD-218): the oracle's own estimates and rollup JSON output
+       over the Sample app fixture streams, produced by Fixtures/Estimates/make-reference.sh running
+       tf-metrics.sh. Never hand-edited; the Total and per-row actuals (BRD-217) are in NEITHER file
+       and are hand-checked in DECISIONS.md §8 instead. -->
+  <ItemGroup>
+    <Content Include="Fixtures\Estimates\reference-estimates.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures\Estimates\reference-rollup.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- REQ-FN-152 (BRD-220): the oracle's own rollup over the made-up discovery-cost fixture, produced by
+       Fixtures/Discovery/make-reference.sh running tf-metrics.sh. Never hand-edited. -->
+  <ItemGroup>
+    <Content Include="Fixtures\Discovery\reference-rollup.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

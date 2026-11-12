@@ -20,15 +20,16 @@ Read the estimate stream TechieFlow v1.3.0 added on 2026-11-08 (`docs/metrics/es
 
 | ID | Requirement | Status | % | Remarks | Details |
 |----|-------------|--------|---|---------|---------|
-| REQ-FN-147 | Estimate stream — fetch, archive, import and parse `estimates.jsonl` into its own `Estimate` table (BRD-211, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-FN-147] added by *amend-docs (Estimates) | [view](#d-req-fn-147) |
-| REQ-FN-148 | Reconciliation — field-for-field port of `analyse_estimates` (latest forecast, apportioned actual, rowless count, MIN_N, range position, three parts) (BRD-212, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-FN-148] added by *amend-docs (Estimates) | [view](#d-req-fn-148) |
-| REQ-FN-149 | The fourth separation — an estimate never pools with a measurement; no ratio, no difference, no blended figure (BRD-213, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-FN-149] added by *amend-docs (Estimates) | [view](#d-req-fn-149) |
-| REQ-UI-078 | Estimates page — `/estimates` under the repo picker and framework switch; one card per repo, phase and estimating model; Build · Machine QA · After handoff · Total · Owner UAT time (BRD-214, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-UI-078] added by *amend-docs (Estimates) | [view](#d-req-ui-078) |
-| REQ-UI-079 | Estimates page — the per-row drill-down under each phase card (BRD-215, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-UI-079] added by *amend-docs (Estimates) | [view](#d-req-ui-079) |
-| REQ-UI-080 | Estimates page — empty and partial states in words: `no estimate yet`, `no precedent`, `insufficient data (n=…)`, repos with none (BRD-216, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-UI-080] added by *amend-docs (Estimates) | [view](#d-req-ui-080) |
-| REQ-FN-150 | The two figures with no oracle — Total (build + machine QA) and the per-row actual, by stated rules, hand-checked once (BRD-217, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-FN-150] added by *amend-docs (Estimates) | [view](#d-req-fn-150) |
-| REQ-FN-151 | Export — the `estimates` block in `tflens.json` in the oracle's exact key layout, so parity diffs it (BRD-218, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-FN-151] added by *amend-docs (Estimates); the oracle has carried this block since v1.3.0 (2026-11-08), so the parity check very likely reports it missing until this is built | [view](#d-req-fn-151) |
-| REQ-NFR-027 | Estimates page — every number is code over the two streams; no model call; owner UAT time is fixed text `not measured` (BRD-219, Phase 4) | Not Started | 0% | 2026-11-10 [REQ-NFR-027] added by *amend-docs (Estimates) | [view](#d-req-nfr-027) |
+| REQ-FN-147 | Estimate stream — fetch, archive, import and parse `estimates.jsonl` into its own `Estimate` table (BRD-211, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-147 — importing the three Sample app test files on /r` | [view](#d-req-fn-147) |
+| REQ-FN-148 | Reconciliation — field-for-field port of `analyse_estimates` (latest forecast, apportioned actual, rowless count, MIN_N, range position, three parts) (BRD-212, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-148 — no precedent, insufficient data and rowless run` | [view](#d-req-fn-148) |
+| REQ-FN-149 | The fourth separation — an estimate never pools with a measurement; no ratio, no difference, no blended figure (BRD-213, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-149 — no result type can hold a ratio, difference or ` | [view](#d-req-fn-149) |
+| REQ-UI-078 | Estimates page — `/estimates` under the repo picker and framework switch; one card per repo, phase and estimating model; Build · Machine QA · After handoff · Total · Owner UAT time (BRD-214, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-UI-078 — each Sample app card shows exactly the Build, M`; Estimates renders and looks right @1280/390 in light and dark mode; matches its mockup | [view](#d-req-ui-078) |
+| REQ-UI-079 | Estimates page — the per-row drill-down under each phase card (BRD-215, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-UI-079 — By row on the Sample app phase 1 Opus card show`; Estimates renders and looks right @1280/390 in light and dark mode; matches its mockup | [view](#d-req-ui-079) |
+| REQ-UI-080 | Estimates page — empty and partial states in words: `no estimate yet`, `no precedent`, `insufficient data (n=…)`, repos with none (BRD-216, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-UI-080 — with the Sample empty test file loaded, the pag`; Estimates renders and looks right @1280/390 in light and dark mode; matches its mockup | [view](#d-req-ui-080) |
+| REQ-FN-150 | The two figures with no oracle — Total (build + machine QA) and the per-row actual, by stated rules, hand-checked once (BRD-217, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-150 — the three Totals read 55.5k, 83.5k and 58.0k be` | [view](#d-req-fn-150) |
+| REQ-FN-151 | Export — the `estimates` block in `tflens.json` in the oracle's exact key layout, so parity diffs it (BRD-218, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-151 — parity-compare.py covers every estimates figure` | [view](#d-req-fn-151) |
+| REQ-NFR-027 | Estimates page — every number is code over the two streams; no model call; owner UAT time is fixed text `not measured` (BRD-219, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-NFR-027 — on /estimates Owner UAT time reads exactly not` | [view](#d-req-nfr-027) |
+| REQ-FN-152 | Parity gaps after phase 3 — discovery cost and `per_miss_cost` in the export; an empty repository's app name from its checklist (BRD-220, Phase 4) | Verified | 100% | 2026-11-12 verify: PASS — test `REQ-FN-152 — the app is named from exactly one docs checklis` | [view](#d-req-fn-152) |
 
 **Status values:** `Not Started` · `In Progress` · `Implemented` · `Verified` · `Done (pre-existing)` · `Needs re-verify` · `PARTIAL` · `FAIL` · `Blocked` · `Owner-UAT` · `N/A`.
 
@@ -41,7 +42,7 @@ Read the estimate stream TechieFlow v1.3.0 added on 2026-11-08 (`docs/metrics/es
   - *Acceptance:* When the Sample app test files are loaded on /estimates, then each card's Build, Machine QA, After handoff and Owner UAT lines show exactly the figures in §3.1.
 
 <a id="d-req-ui-079"></a>
-- **REQ-UI-079** — Estimates page: By row under each phase card — one line per row of the estimate batch, build, machine QA and after handoff each with the estimate's mid (low–high), basis and run count beside the row's own actual (each run counting 1 ÷ its row count, `apportioned` when below one, `insufficient data (n=…)` under three runs); paged, sortable by row id, no per-row total. *BRD:* BRD-215. *Mockup:* docs/mockups/estimates.html.
+- **REQ-UI-079** — Estimates page: By row under each phase card — one line per row of the estimate batch, build, machine QA and after handoff each with the estimate's mid (low–high), basis and run count (for a step with no precedent, the basis `none` alone, as the mockup draws it — amended 2026-11-12) beside the row's own actual (each run counting 1 ÷ its row count, `apportioned` when below one, `insufficient data (n=…)` under three runs); paged, sortable by row id, no per-row total. *BRD:* BRD-215. *Mockup:* docs/mockups/estimates.html.
   - *Acceptance:* When By row is expanded on the Sample app phase 1 Opus card on /estimates, then each row shows exactly the per-row figures in §3.1.
 
 <a id="d-req-ui-080"></a>
@@ -70,10 +71,15 @@ Read the estimate stream TechieFlow v1.3.0 added on 2026-11-08 (`docs/metrics/es
 
 <a id="d-req-fn-151"></a>
 - **REQ-FN-151** — Export: `tflens.json` carries `estimates` in the exact key layout of `tf-metrics.sh --rollup --json`; the Total and per-row figures sit beside it under keys added to `ADDED_KEYS` in `tools/parity-compare.py` with their reason; the Snapshot export page is unchanged. *BRD:* BRD-218.
-  - *Acceptance:* When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then it exits 0 with no `estimates` finding.
+  - *Acceptance:* When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then every estimates figure is compared and none differs.
+
+<a id="d-req-fn-152"></a>
+- **REQ-FN-152** — Parity gaps opened after phase 3: the export's `misses` block carries the discovery cost figures and the `per_miss_cost` list exactly as `analyse_misses` computes them (SCHEMA.md §5.5.12); a repository with no records is named from its single `docs/*-Checklist.md` (one GET of the `docs/` listing on sync, or a bundle entry on import), else its repository name. *BRD:* BRD-220.
+  - *Acceptance:* When parity-compare.py diffs tf-metrics.sh --rollup --json and tflens.json over the Sample app test files on /export, then it exits 0.
 
 ## Non-functional
 
 <a id="d-req-nfr-027"></a>
 - **REQ-NFR-027** — Every number on the Estimates page is computed by code over the `Estimate` and `Run` tables at request time: no model or AI call in the request path, no stored derived value, no key, parameter or toggle that changes a figure; Owner UAT time is fixed text and nothing accepts a value for it. *BRD:* BRD-219.
   - *Acceptance:* When a source scan covers EstimateMetrics and the page on /estimates, then it finds no HTTP or AI client, and Owner UAT time reads exactly `not measured`.
+

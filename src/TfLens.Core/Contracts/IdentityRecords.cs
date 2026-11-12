@@ -165,6 +165,19 @@ public sealed record UserRepo
     /// untouched, because neither makes an outbound request for an imported source.
     /// </remarks>
     public DateTimeOffset? LastImportTs { get; init; }
+
+    /// <summary>
+    /// The app name read from the repository's single <c>docs/*-Checklist.md</c>, or <c>null</c> when
+    /// there is none or more than one (BRD-220, REQ-FN-152, ADR-036).
+    /// </summary>
+    /// <remarks>
+    /// Read on sync by one listing of <c>docs/</c>, and on import from a bundle entry. It names a
+    /// repository whose records carry no app name, exactly as <c>app_name()</c> in
+    /// <c>tf-metrics.sh</c> does; a repository whose records name their app keeps that name. Written
+    /// only through <see cref="Abstractions.ITelemetryStore.WriteChecklistAppAsync"/>, never by the
+    /// row upsert, so a write that does not know it cannot clear it.
+    /// </remarks>
+    public string? ChecklistApp { get; init; }
 }
 
 /// <summary>
@@ -262,6 +275,15 @@ public sealed record SyncState
     /// at zero — the same fact a 404 states, and never an error (BRD-112).
     /// </remarks>
     public int MissesCount { get; init; }
+
+    /// <summary>
+    /// Rows stored for the <c>estimates</c> stream (SCHEMA.md §2.8, added 2026-11-10; REQ-FN-147).
+    /// </summary>
+    /// <remarks>
+    /// A repository that does not emit <c>estimates.jsonl</c> keeps this at zero — the same fact a 404
+    /// states, and never an error (BRD-211).
+    /// </remarks>
+    public int EstimatesCount { get; init; }
 
     /// <summary>
     /// Session records ingest discarded because another record already carried that <c>session_id</c>.

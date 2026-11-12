@@ -1,0 +1,752 @@
+@*
+    REQ-UI-078 / REQ-UI-079 / REQ-UI-080 — Estimates, the eighth report page and the budgeting view
+    of the sixth stream (BRD-214..BRD-216, phase 4).
+
+    Everything here binds `EstimateReconciliation`, computed by `EstimateMetrics` at REQUEST time over
+    the `Estimate` and `Run` tables — no model call, no stored derived value, no key or toggle that
+    changes a figure (BRD-219). The fourth separation is the page's whole grammar (SCHEMA.md §6,
+    BRD-213, ADR-034):
+
+      1. The estimate's mid and low–high range sit in ONE column and the actual in a SECOND. Nothing
+         on this page can produce a ratio, a difference or an accuracy percentage, because the result
+         types carry no member that would hold one — the shape enforces the rule, not discipline.
+      2. A forecast with no precedent renders `no precedent`, never a zero; an actual under three
+         runs renders the engine's `insufficient data (n=…)`, never a number (BRD-216).
+      3. Owner UAT time is the fixed text `not measured` — no stream records it and no input here
+         accepts a value for it (BRD-219).
+      4. The Total row and the per-row actuals are TfLens additions with NO parity oracle; both carry
+         their `no oracle` label wherever they render (BRD-217, ADR-035).
+      5. With All repos picked, one card per (repository, phase, estimating model) — repositories are
+         listed beside each other and NEVER added together; the repositories with no estimate stream
+         are named in words (BRD-216).
+
+    Figures are formatted exactly as the oracle prints them (`_k` / `_hms` in `tf-metrics.sh`):
+    `42.0k tok (28.0k–56.0k)`, `38m20s (23m20s–53m20s)`, `1h13m`.
+*@
+@page "/estimates"
+@using System.Globalization
+@using TfLens.Core.Metrics
+@inject ITelemetryStore objStore
+@inject ShellPreferences objPreferences
+@inject ShellState objShellState
+@implements IDisposable
+
+<PageTitle>Estimates · TfLens</PageTitle>
+
+<div class="tflens-stack tflens-estimates" data-testid="estimates-page">
+
+    @* REQ-UI-078 — the page header, under the same repo picker as every report page (BRD-210). *@
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <TypographyH2>Estimates</TypographyH2>
+            <TypographyMuted>What each phase was expected to cost, beside what it cost</TypographyMuted>
+            <RepoScopeLine />
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <RepoPicker />
+        </div>
+    </div>
+
+    @* REQ-UI-078 / BRD-213 — the standing separation note. Page copy, never a tooltip, and not
+       conditional on the data: the framing has to be true of an empty page too. *@
+    <Alert Variant="AlertVariant.Info" data-testid="est-separation-note">
+        <LucideIcon Name="info" Size="16" />
+        <AlertTitle>Two columns, never one number</AlertTitle>
+        <AlertDescription>
+            An estimate is a forecast written by <span class="font-mono">*estimate-phase</span> before
+            the phase was built; a run is a measurement. They sit side by side and are never added,
+            divided or blended into one figure — no ratio, no accuracy percentage. Every number here is
+            computed from <span class="font-mono">estimates.jsonl</span> and
+            <span class="font-mono">runs.jsonl</span>; nothing is judged by a model. Owner UAT time is
+            not measured.
+        </AlertDescription>
+    </Alert>
+
+    @if (IsPlaybook)
+    {
+        @* REQ-UI-080 / BRD-216 — the Playbook writes no estimate stream, so its state is the empty
+           state in words, with its own reason. Never a card, never a zero. *@
+        <Empty Title="No estimate yet"
+               Description="The Playbook writes no estimate stream, so there is nothing to set beside its runs. Estimates exist only for TechieFlow repositories that ran *estimate-phase."
+               Size="EmptySize.Default"
+               data-testid="est-empty">
+            <Icon>
+                <LucideIcon Name="scale" Size="40" />
+            </Icon>
+        </Empty>
+    }
+    else if (!objIsLoaded)
+    {
+        <Card>
+            <CardContent Class="p-6">
+                <div class="flex flex-col gap-3">
+                    <Skeleton Class="h-4 w-full" />
+                    <Skeleton Class="h-4 w-3/4" />
+                    <Skeleton Class="h-4 w-1/2" />
+                </div>
+            </CardContent>
+        </Card>
+    }
+    else if (objLoadError is not null)
+    {
+        <Alert Variant="AlertVariant.Danger" data-testid="est-error">
+            <LucideIcon Name="alert-triangle" Size="16" />
+            <AlertTitle>The estimates could not be computed</AlertTitle>
+            <AlertDescription>@objLoadError</AlertDescription>
+        </Alert>
+    }
+    else if (objCards.Count == 0)
+    {
+        @* REQ-UI-080 / BRD-216 — no estimate stream for the picked scope: the empty state in words.
+           No card, no table, no number and no `0` anywhere (the acceptance line checks exactly that). *@
+        <Empty Title="No estimate yet"
+               Description="Run *estimate-phase {App} before *build-phase; its records arrive in docs/metrics/estimates.jsonl on the next sync."
+               Size="EmptySize.Default"
+               data-testid="est-empty">
+            <Icon>
+                <LucideIcon Name="scale" Size="40" />
+            </Icon>
+        </Empty>
+    }
+    else
+    {
+        @foreach (var vCard in objCards)
+        {
+            @* REQ-UI-078 — one card per (repository, phase, estimating model), never pooled; its By step
+               and By row disclosures follow it as their own bordered blocks, as the mockup draws them. *@
+            <div class="tflens-est-phase" data-testid="est-phase">
+            <Card data-testid="est-card">
+                <CardHeader Class="flex flex-row items-start justify-between gap-3 tflens-card-head">
+                    <div class="min-w-0">
+                        <CardTitle Class="text-base">@CardTitle(vCard)</CardTitle>
+                        <CardDescription data-testid="est-card-head">@CardHead(vCard)</CardDescription>
+                    </div>
+                    @if (vCard.Entry.Retro)
+                    {
+                        @* BRD-212 — a hindsight batch is labelled as one wherever it renders. *@
+                        <Badge Variant="BadgeVariant.Warning" data-testid="est-retro">estimated after the fact</Badge>
+                    }
+                    else
+                    {
+                        <Badge Variant="BadgeVariant.Outline">forecast</Badge>
+                    }
+                </CardHeader>
+                <CardContent Class="pt-0 tflens-flush-bottom">
+                    <div class="tflens-table tflens-table-flush">
+                        <table class="tflens-est-table" data-testid="est-parts">
+                            <thead>
+                                <tr>
+                                    <th>Part</th>
+                                    <th>Estimate — mid (low–high)</th>
+                                    <th>Actual</th>
+                                    <th class="tflens-right">Runs</th>
+                                    <th class="tflens-right">Rows</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr data-testid="est-part-build">
+                                    <td><b>Build</b><span class="tflens-t2"><span class="font-mono">build-phase</span></span></td>
+                                    <td>@EstimateCell(vCard.Entry.Build.TokensOut, vCard.Entry.Build.DurationS)</td>
+                                    <td>@ActualCell(vCard.Entry.Build.Actual)</td>
+                                    <td class="tflens-right">@RunsText(vCard.Entry.Build.Actual)</td>
+                                    <td class="tflens-right">@RowsText(vCard.Entry.Build.RowsCovered, vCard.Entry.RowsN)</td>
+                                </tr>
+                                <tr data-testid="est-part-qa">
+                                    <td><b>Machine QA</b><span class="tflens-t2"><span class="font-mono">verify-phase + fix-issues</span></span></td>
+                                    <td>@EstimateCell(vCard.Entry.MachineQa.TokensOut, vCard.Entry.MachineQa.DurationS)</td>
+                                    <td>@ActualCell(vCard.Entry.MachineQa.Actual)</td>
+                                    <td class="tflens-right">@RunsText(vCard.Entry.MachineQa.Actual)</td>
+                                    <td class="tflens-right">@RowsText(vCard.Entry.MachineQa.RowsCovered, vCard.Entry.RowsN)</td>
+                                </tr>
+                                <tr data-testid="est-part-handoff">
+                                    <td><b>After handoff</b><span class="tflens-t2"><span class="font-mono">triage-and-fix + triage-issues</span></span></td>
+                                    <td>@EstimateCell(vCard.Entry.AfterHandoff.TokensOut, vCard.Entry.AfterHandoff.DurationS)</td>
+                                    <td>@ActualCell(vCard.Entry.AfterHandoff.Actual)</td>
+                                    <td class="tflens-right">@RunsText(vCard.Entry.AfterHandoff.Actual)</td>
+                                    <td class="tflens-right">@RowsText(vCard.Entry.AfterHandoff.RowsCovered, vCard.Entry.RowsN)</td>
+                                </tr>
+                                <tr data-testid="est-part-total">
+                                    <td>
+                                        <b>Total</b>
+                                        <span class="tflens-t2">
+                                            <Badge Variant="BadgeVariant.Outline" data-testid="est-total-no-oracle">no oracle</Badge>
+                                            build + machine QA · after handoff never inside
+                                        </span>
+                                    </td>
+                                    @if (vCard.Entry.Total.NotOneFigure is { } vNotOne)
+                                    {
+                                        @* BRD-217 — a sum over different rows is not one figure, and the
+                                           total says so in words rather than adding across row sets. *@
+                                        <td><span class="tflens-nm">@vNotOne</span></td>
+                                        <td><span class="tflens-nm">@vNotOne</span></td>
+                                        <td class="tflens-right">@Dash</td>
+                                        <td class="tflens-right">0/@vCard.Entry.RowsN</td>
+                                    }
+                                    else
+                                    {
+                                        <td>@EstimateCell(vCard.Entry.Total.Part.TokensOut, vCard.Entry.Total.Part.DurationS)</td>
+                                        <td>@ActualCell(vCard.Entry.Total.Part.Actual)</td>
+                                        <td class="tflens-right">@RunsText(vCard.Entry.Total.Part.Actual)</td>
+                                        <td class="tflens-right">@RowsText(vCard.Entry.Total.Part.RowsCovered, vCard.Entry.RowsN)</td>
+                                    }
+                                </tr>
+                                <tr data-testid="est-part-uat">
+                                    <td><b>Owner UAT time</b><span class="tflens-t2">no stream records it</span></td>
+                                    @* BRD-219 — fixed text. Nothing on this page accepts a value for it. *@
+                                    <td><span class="tflens-nm">not measured</span></td>
+                                    <td><span class="tflens-nm">not measured</span></td>
+                                    <td class="tflens-right">@Dash</td>
+                                    <td class="tflens-right">@Dash</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+                <CardFooter Class="tflens-card-note">
+                    @* BRD-212 — runs that named no row are counted over the whole repository and are
+                       never shared out into a phase. Zeros included: a count is always a number. *@
+                    <p class="tflens-small text-muted-foreground" data-testid="est-rowless">@RowlessText(vCard)</p>
+                </CardFooter>
+            </Card>
+
+                @* REQ-UI-078 — the collapsed By step disclosure: each of the four steps on its own,
+                   with where the actual falls against the range (within / above / below / dash). *@
+                <div class="tflens-est-coll" data-testid="est-by-step">
+                <Collapsible @bind-Open="vCard.ByStepOpen">
+                    <CollapsibleTrigger Class="flex items-center gap-2 text-sm font-medium"
+                                        data-testid="est-by-step-trigger">
+                        <LucideIcon Name="@(vCard.ByStepOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                        <span class="whitespace-nowrap">By step</span>
+                        <span class="text-muted-foreground font-normal">— @StepScopeText(vCard), each step with where the actual falls</span>
+                        @* The disclosure's state, as the mockup's pill shows it. *@
+                        <Badge Variant="BadgeVariant.Secondary" Class="tflens-est-state">@(vCard.ByStepOpen ? "expanded" : "collapsed")</Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <div class="tflens-table tflens-table-inset">
+                            <table class="tflens-est-table" data-testid="est-step-table">
+                                <thead>
+                                    <tr>
+                                        <th>Step</th>
+                                        <th>Estimate — mid (low–high)</th>
+                                        <th>Actual</th>
+                                        <th>Range</th>
+                                        <th class="tflens-right">Runs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var vStep in vCard.Entry.Cmds)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (vStep.Key == "triage")
+                                                {
+                                                    <span>after handoff <span class="text-muted-foreground">[@RowsText(vStep.Value.Estimate.RowsCovered, vCard.Entry.RowsN)]</span></span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="font-mono">@vStep.Key</span>
+                                                }
+                                            </td>
+                                            <td>@EstimateCell(vStep.Value.Estimate.TokensOut, vStep.Value.Estimate.DurationS)</td>
+                                            <td>@ActualCell(vStep.Value.Actual)</td>
+                                            <td data-testid="est-range">
+                                                @RangeBadge(vStep.Value.ActualInRange.TokensOut)
+                                                <span class="tflens-t2">@RangeBadge(vStep.Value.ActualInRange.DurationS)</span>
+                                            </td>
+                                            <td class="tflens-right">@RunsText(vStep.Value.Actual)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
+                </div>
+
+                @* REQ-UI-079 — the per-row drill-down: paged at 25, sortable by row id, and with no
+                   per-row total anywhere (BRD-215: a row's figure is an input to the phase, never a
+                   score). The per-row actual is a TfLens addition with no oracle (BRD-217). *@
+                <div class="tflens-est-coll" data-testid="est-by-row">
+                <Collapsible @bind-Open="vCard.ByRowOpen">
+                    <CollapsibleTrigger Class="flex items-center gap-2 text-sm font-medium"
+                                        data-testid="est-by-row-trigger">
+                        <LucideIcon Name="@(vCard.ByRowOpen ? "chevron-down" : "chevron-right")" Size="16" />
+                        <span class="whitespace-nowrap">By row</span>
+                        <span class="text-muted-foreground font-normal">— @StepScopeText(vCard), estimate beside each row's own actual</span>
+                        @* The disclosure's state, as the mockup's pill shows it. *@
+                        <Badge Variant="BadgeVariant.Secondary" Class="tflens-est-state">@(vCard.ByRowOpen ? "expanded" : "collapsed")</Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <div class="tflens-table tflens-table-inset">
+                            <DataTable TData="EstimateRowLine"
+                                       Data="@vCard.Entry.Rows"
+                                       ShowToolbar="false"
+                                       Density="DataTableDensity.Compact"
+                                       ShowPagination="true"
+                                       InitialPageSize="25"
+                                       AriaLabel="@($"Estimate rows for {CardTitle(vCard)}")"
+                                       data-testid="est-row-table">
+                                <Columns>
+                                    <DataTableColumn TData="EstimateRowLine" TValue="string"
+                                                     Property="@(aRow => aRow.ReqId)" Header="Row" Sortable>
+                                        <CellTemplate Context="vRow">
+                                            <span class="font-mono">@vRow.ReqId</span>
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="EstimateRowLine" TValue="string"
+                                                     Property="@(aRow => aRow.ReqId + "-build")" Header="Build">
+                                        <CellTemplate Context="vRow">
+                                            @RowPartCell(vRow.Build)
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="EstimateRowLine" TValue="string"
+                                                     Property="@(aRow => aRow.ReqId + "-qa")" Header="Machine QA">
+                                        <CellTemplate Context="vRow">
+                                            @RowPartCell(vRow.MachineQa)
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                    <DataTableColumn TData="EstimateRowLine" TValue="string"
+                                                     Property="@(aRow => aRow.ReqId + "-handoff")" Header="After handoff">
+                                        <CellTemplate Context="vRow">
+                                            @RowPartCell(vRow.AfterHandoff)
+                                        </CellTemplate>
+                                    </DataTableColumn>
+                                </Columns>
+                            </DataTable>
+                        </div>
+                        <p class="tflens-xs text-muted-foreground">
+                            Each actual counts 1 ÷ the run's row count of its tokens and time. No
+                            per-row total: a row's figure is an input to the phase, never a score.
+                            <span data-testid="est-row-no-oracle">@EstimateRowPart.NoOracleLabel</span>
+                        </p>
+                    </CollapsibleContent>
+                </Collapsible>
+                </div>
+            </div>
+        }
+
+        @* BRD-212's standing explanation, verbatim from the approved design. *@
+        <p class="tflens-xs text-muted-foreground">
+            Actual = the live runs of that step that touched the rows the estimate covered. A run that
+            also touched other rows counts only its share and is marked <b>apportioned</b>. Fewer than
+            3 runs: insufficient data, never a number.
+        </p>
+
+        @* REQ-UI-080 / BRD-216 — with All repos picked, the repositories that have no estimate stream
+           are named in words. Never a card that adds repositories together. *@
+        @if (objReposWithout.Count > 0)
+        {
+            <p class="tflens-small text-muted-foreground" data-testid="est-repos-without">
+                No estimate yet: @string.Join(", ", objReposWithout)
+            </p>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>What a value reads when there is nothing to measure at all.</summary>
+    private const string Dash = "—";
+
+    /// <summary>What a null forecast reads — never a zero (BRD-216).</summary>
+    private const string NoPrecedent = "no precedent";
+
+    /// <summary>One card, with the disclosure state the two collapsed sections bind to.</summary>
+    private sealed class CardVm
+    {
+        /// <summary>The reconciliation card this view model renders.</summary>
+        public required EstimatePhaseEntry Entry { get; init; }
+
+        /// <summary>Whether the By step disclosure is open — collapsed by default (BRD-214).</summary>
+        public bool ByStepOpen { get; set; }
+
+        /// <summary>Whether the By row disclosure is open — collapsed by default (BRD-215).</summary>
+        public bool ByRowOpen { get; set; }
+    }
+
+    private IReadOnlyList<CardVm> objCards = [];
+    private IReadOnlyList<string> objReposWithout = [];
+
+    /// <summary>
+    /// Counts loads, so only the latest one is kept. A repo pick raises the shell's change event and
+    /// can re-enter <see cref="LoadAsync"/> while an earlier load is still awaiting the store; two loads
+    /// filling one list showed every card twice (found 2026-11-12 with All repos picked).
+    /// </summary>
+    private int objLoadNumber;
+
+    private bool objIsLoaded;
+    private string? objLoadError;
+    private int? objUserId;
+    private string? objLoadedScope;
+
+    /// <summary>The signed-in principal, cascaded by <c>AddCascadingAuthenticationState</c>.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    /// <summary>True when the header Framework switch is on the Playbook axis (REQ-UI-010, ADR-016).</summary>
+    private bool IsPlaybook => objPreferences.Framework == FrameworkNames.Playbook;
+
+    /// <summary>The scope key a reload is triggered by: the framework and the repo choice together.</summary>
+    private string ScopeKey => objPreferences.Framework + "|" + (objPreferences.Repo ?? "*");
+
+    /// <summary>Subscribes to the shell so a sync, a framework change or a repo choice re-queries.</summary>
+    protected override void OnInitialized()
+    {
+        objShellState.Changed += OnShellChanged;
+        objPreferences.Changed += OnShellChanged;
+    }
+
+    /// <summary>Resolves the signed-in user and loads the reconciliation for the selected scope.</summary>
+    /// <returns>A task that completes when the page has its figures or its error.</returns>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        if (objUserId is null)
+        {
+            var vState = await AuthenticationStateTask;
+            objUserId = ShellIdentity.UserId(vState.User);
+
+            if (objUserId is null)
+            {
+                objIsLoaded = true;
+                return;
+            }
+        }
+
+        if (objLoadedScope != ScopeKey)
+        {
+            await LoadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Computes the reconciliation at request time (BRD-219) — <see cref="EstimateMetrics"/> is the one
+    /// door the <c>Estimate</c> table is read through on the figure path (BRD-213).
+    /// </summary>
+    /// <returns>A task that completes when the cards are built or the error is set.</returns>
+    private async Task LoadAsync()
+    {
+        if (objUserId is null)
+        {
+            return;
+        }
+
+        var vLoad = ++objLoadNumber;
+        objIsLoaded = false;
+        objLoadedScope = ScopeKey;
+
+        if (IsPlaybook)
+        {
+            // The Playbook writes no estimate stream (BRD-216); the empty state is the whole answer and
+            // the store is never asked — there is nothing it could return.
+            objCards = [];
+            objReposWithout = [];
+            objLoadError = null;
+            objIsLoaded = true;
+            return;
+        }
+
+        IReadOnlyList<CardVm> vCards = [];
+        IReadOnlyList<string> vReposWithout = [];
+        string? vError = null;
+
+        try
+        {
+            var vResult = await EstimateMetrics.ReconcileAsync(
+                objStore, objUserId.Value, objPreferences.Framework, objPreferences.Repo);
+
+            vCards = vResult.Phases.Select(aEntry => new CardVm { Entry = aEntry }).ToList();
+
+            // BRD-216 — with All repos, name the connected repositories that have no estimate stream.
+            if (objPreferences.Repo is null)
+            {
+                vReposWithout = ReposWithout(vResult);
+            }
+        }
+        catch (Exception vEx)
+        {
+            vError = vEx.Message;
+        }
+
+        // A later load started while this one awaited the store: its answer is the current one.
+        if (vLoad != objLoadNumber)
+        {
+            return;
+        }
+
+        objCards = vCards;
+        objReposWithout = vReposWithout;
+        objLoadError = vError;
+        objIsLoaded = true;
+    }
+
+    /// <summary>The connected repositories on this framework that have no estimate record (BRD-216).</summary>
+    /// <param name="aResult">The reconciliation for All repos.</param>
+    /// <returns>Their labels, sorted.</returns>
+    private IReadOnlyList<string> ReposWithout(EstimateReconciliation aResult)
+    {
+        var vWith = aResult.Phases
+            .Select(aCard => aCard.Repo)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return objShellState.Repos
+            .Where(aRepo => string.Equals(aRepo.Framework, objPreferences.Framework, StringComparison.OrdinalIgnoreCase)
+                            && !vWith.Contains(aRepo.Repo))
+            .Select(aRepo => RepoLabel(aRepo))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(aLabel => aLabel, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>Re-queries on a sync, a framework change or a repo pick.</summary>
+    private void OnShellChanged() => InvokeAsync(async () =>
+    {
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        objShellState.Changed -= OnShellChanged;
+        objPreferences.Changed -= OnShellChanged;
+    }
+
+    /// <summary>The card title: the app and the phase, as the oracle names a batch.</summary>
+    /// <param name="aCard">The card.</param>
+    /// <returns>The title text.</returns>
+    private static string CardTitle(CardVm aCard) =>
+        $"{aCard.Entry.App} · phase {(aCard.Entry.Phase?.ToString(CultureInfo.InvariantCulture) ?? "—")}";
+
+    /// <summary>The card's head line: who estimated, when, and how many rows (BRD-214).</summary>
+    /// <param name="aCard">The card.</param>
+    /// <returns>The description text.</returns>
+    private static string CardHead(CardVm aCard) =>
+        $"estimated by {aCard.Entry.Model ?? "unknown model"} · {TsText(aCard.Entry.Ts)} · "
+        + (aCard.Entry.RowsN == 1 ? "1 row" : $"{aCard.Entry.RowsN.ToString(CultureInfo.InvariantCulture)} rows");
+
+    /// <summary>The scope phrase the two disclosure triggers carry.</summary>
+    /// <param name="aCard">The card.</param>
+    /// <returns>Text naming the phase and the estimating model.</returns>
+    private static string StepScopeText(CardVm aCard) =>
+        $"phase {aCard.Entry.Phase?.ToString(CultureInfo.InvariantCulture) ?? "—"} · {aCard.Entry.Model ?? "unknown model"}";
+
+    /// <summary>The batch timestamp as the design prints it: <c>2026-10-01 09:00 UTC</c>.</summary>
+    /// <param name="aTs">The ISO-8601 timestamp.</param>
+    /// <returns>The display text, or the raw string when it cannot be read.</returns>
+    private static string TsText(string aTs)
+    {
+        return DateTimeOffset.TryParse(aTs, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var vTs)
+            ? vTs.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC"
+            : aTs;
+    }
+
+    /// <summary>A connected repository's human label, as the repo picker's options read.</summary>
+    /// <param name="aRepo">The repository row.</param>
+    /// <returns>The label.</returns>
+    private static string RepoLabel(UserRepo aRepo)
+    {
+        var vName = string.IsNullOrWhiteSpace(aRepo.Name) ? aRepo.Repo : aRepo.Name;
+        var vWords = vName.Replace('-', ' ').Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return vWords.Length == 0
+            ? vName
+            : string.Join(' ', vWords.Select(aWord =>
+                char.ToUpperInvariant(aWord[0]) + aWord[1..]));
+    }
+
+    /// <summary>The estimate column: mid with its range, tokens above and time beneath.</summary>
+    /// <param name="aTokens">The token forecast, or <c>null</c> for no precedent.</param>
+    /// <param name="aDuration">The time forecast, or <c>null</c> for no precedent.</param>
+    /// <returns>The cell fragment.</returns>
+    private RenderFragment EstimateCell(EstimateRange? aTokens, EstimateRange? aDuration) => __builder =>
+    {
+        if (aTokens is { } vTokens)
+        {
+            <span>@RangeText(vTokens, OracleText.Kilo, " tok")</span>
+        }
+        else
+        {
+            <span class="tflens-nm">@NoPrecedent</span>
+        }
+        <span class="tflens-t2">
+            @if (aDuration is { } vDuration)
+            {
+                <span>@RangeText(vDuration, OracleText.Hms)</span>
+            }
+            else
+            {
+                <span class="tflens-nm">@NoPrecedent</span>
+            }
+        </span>
+    };
+
+    /// <summary>
+    /// The actual column: tokens above, time beneath, each through <see cref="FigureText"/> — the one
+    /// way a figure reaches a page (ADR-007) — with the <b>apportioned</b> badge beside it.
+    /// </summary>
+    /// <param name="aActual">The actual side of a part or step.</param>
+    /// <returns>The cell fragment.</returns>
+    private RenderFragment ActualCell(EstimateActual aActual) => __builder =>
+    {
+        <FigureText Value="@Shown(aActual.TokensOut, OracleText.Kilo, " tok")" />
+        @if (aActual.IsApportioned)
+        {
+            @(" ")
+            @* BRD-214 — an inference, labelled as one, beside the figure it qualifies. *@
+            <Badge Variant="BadgeVariant.Warning" data-testid="est-apportioned">apportioned</Badge>
+        }
+        <span class="tflens-t2"><FigureText Value="@Shown(aActual.DurationS, OracleText.Hms, string.Empty)" /></span>
+    };
+
+    /// <summary>The one by-row part cell: the forecast, its basis, and the row's own actual (BRD-215).</summary>
+    /// <param name="aPart">One row's one part.</param>
+    /// <returns>The cell fragment.</returns>
+    private RenderFragment RowPartCell(EstimateRowPart aPart) => __builder =>
+    {
+        if (aPart.TokensOut is { } vTokens)
+        {
+            <span>@RangeText(vTokens, OracleText.Kilo, " tok") · @OracleText.Hms(aPart.DurationS?.Mid)</span>
+        }
+        else
+        {
+            <span class="tflens-nm">@NoPrecedent</span>
+        }
+        <span class="tflens-t2">
+            @BasisText(aPart) · actual:
+            @if (IsOneRefusal(aPart.Actual))
+            {
+                @* Both figures refused for the same count: said once, as the design draws it. *@
+                <FigureText Value="@aPart.Actual.TokensOut" />
+            }
+            else
+            {
+                <FigureText Value="@Shown(aPart.Actual.TokensOut, OracleText.Kilo, " tok")" />
+                <span> · </span>
+                <FigureText Value="@Shown(aPart.Actual.DurationS, OracleText.Hms, string.Empty)" />
+                @if (aPart.Actual.IsApportioned)
+                {
+                    @(" ")
+                    <Badge Variant="BadgeVariant.Warning" data-testid="est-apportioned">apportioned</Badge>
+                }
+            }
+        </span>
+    };
+
+    /// <summary>
+    /// A figure carrying the oracle's printed text when it is a number, unchanged when it is a refusal.
+    /// </summary>
+    /// <param name="aFigure">The engine's figure.</param>
+    /// <param name="aFormat">The oracle formatter (<c>_k</c> or <c>_hms</c>).</param>
+    /// <param name="aUnit">Text after the number, such as <c> tok</c>.</param>
+    /// <returns>The figure to render.</returns>
+    private static Figure Shown(Figure aFigure, Func<double?, string> aFormat, string aUnit) =>
+        aFigure.TryGetValue(out var vValue)
+            ? Figure.Value(vValue, aFigure.SupportingRecords, aFormat(vValue) + aUnit)
+            : aFigure;
+
+    /// <summary>True when the token and the time figure are the same refusal, so it is said once.</summary>
+    /// <param name="aActual">A row's actual.</param>
+    /// <returns><c>true</c> when neither is a number and both read the same.</returns>
+    private static bool IsOneRefusal(EstimateActual aActual) =>
+        !aActual.TokensOut.HasValue && !aActual.DurationS.HasValue
+        && string.Equals(aActual.TokensOut.Display(), aActual.DurationS.Display(), StringComparison.Ordinal);
+
+    /// <summary>
+    /// A range as the design prints it: the mid with its unit, then <c>(low–high)</c> —
+    /// <c>42.0k tok (28.0k–56.0k)</c>, <c>38m20s (23m20s–53m20s)</c>.
+    /// </summary>
+    /// <param name="aRange">The forecast range.</param>
+    /// <param name="aFormat">The oracle formatter for the leg kind.</param>
+    /// <param name="aUnit">Text after the mid, such as <c> tok</c>; empty for a time.</param>
+    /// <returns>The display text.</returns>
+    private static string RangeText(EstimateRange aRange, Func<double?, string> aFormat, string aUnit = "") =>
+        $"{aFormat(aRange.Mid)}{aUnit} ({aFormat(aRange.Low)}–{aFormat(aRange.High)})";
+
+    /// <summary>The per-step basis and run count beneath a by-row forecast.</summary>
+    /// <param name="aPart">One row's one part.</param>
+    /// <returns>Text like <c>repo n=6</c>; distinct legs are joined, never averaged.</returns>
+    private static string BasisText(EstimateRowPart aPart)
+    {
+        // BRD-215, amended 2026-11-12: a step with no precedent reads its basis `none` alone, as the
+        // mockup draws it. Its run count is below the floor that made it no precedent, and printed
+        // beside `none` it read as if it were the history the figure stood on.
+        var vLegs = aPart.Steps
+            .Select(aStep => aStep.Basis is null
+                ? NoPrecedent
+                : string.Equals(aStep.Basis, EstimateMetrics.BasisNone, StringComparison.Ordinal)
+                    ? aStep.Basis
+                    : aStep.Basis + (aStep.BasisRuns is { } vN ? $" n={vN.ToString(CultureInfo.InvariantCulture)}" : string.Empty))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return vLegs.Count == 0 ? NoPrecedent : string.Join(" · ", vLegs);
+    }
+
+    /// <summary>The range badge: within, above, below, or the oracle's dash.</summary>
+    /// <param name="aPosition">The position word, or <c>null</c>.</param>
+    /// <returns>The badge fragment.</returns>
+    private RenderFragment RangeBadge(string? aPosition) => __builder =>
+    {
+        @if (aPosition is null)
+        {
+            <span>@Dash</span>
+        }
+        else
+        {
+            <Badge Variant="@(aPosition == "within" ? BadgeVariant.Secondary : BadgeVariant.Outline)">@aPosition</Badge>
+        }
+    };
+
+    /// <summary>The runs cell: the count, and every qualifier the oracle prints beside it.</summary>
+    /// <param name="aActual">The actual side.</param>
+    /// <returns>The display text.</returns>
+    private static string RunsText(EstimateActual aActual)
+    {
+        var vText = aActual.RunsN.ToString(CultureInfo.InvariantCulture);
+
+        if (aActual.ApportionedN > 0)
+        {
+            vText += $" · {aActual.ApportionedN.ToString(CultureInfo.InvariantCulture)} apportioned";
+        }
+
+        if (aActual.TokensUnrecordedN > 0)
+        {
+            vText += $", {aActual.TokensUnrecordedN.ToString(CultureInfo.InvariantCulture)} with no tokens";
+        }
+
+        if (aActual.TokensMainScopeN > 0)
+        {
+            vText += $", {aActual.TokensMainScopeN.ToString(CultureInfo.InvariantCulture)} main-thread only";
+        }
+
+        return vText;
+    }
+
+    /// <summary>The rows cell: the count, or <c>[n/m]</c> when a part covers fewer than all rows.</summary>
+    /// <param name="aCovered">Rows the part had a figure for.</param>
+    /// <param name="aRowsN">Rows the batch covers.</param>
+    /// <returns>The display text.</returns>
+    private static string RowsText(int aCovered, int aRowsN) =>
+        aCovered == aRowsN
+            ? aRowsN.ToString(CultureInfo.InvariantCulture)
+            : $"{aCovered.ToString(CultureInfo.InvariantCulture)}/{aRowsN.ToString(CultureInfo.InvariantCulture)}";
+
+    /// <summary>The rowless-runs line under a card — per step, zeros included (BRD-212).</summary>
+    /// <param name="aCard">The card.</param>
+    /// <returns>The display text.</returns>
+    private static string RowlessText(CardVm aCard)
+    {
+        string CountOf(string aCmd) =>
+            aCard.Entry.Cmds
+                .FirstOrDefault(aEntry => string.Equals(aEntry.Key, aCmd, StringComparison.Ordinal))
+                .Value?.Actual.RowlessRunsInRepoN.ToString(CultureInfo.InvariantCulture) ?? "0";
+
+        return "Runs that named no row, in the repository, not shared out: "
+            + $"build {CountOf("build-phase")} · verify {CountOf("verify-phase")} · fix {CountOf("fix-issues")} "
+            + $"· after handoff {CountOf("triage")}";
+    }
+}

@@ -97,9 +97,21 @@ public static class Fixtures
     /// <summary>
     /// Reads one fixture stream file.
     /// </summary>
+    /// <remarks>
+    /// Only the <c>estimates</c> stream may be absent: the fixture repositories predate it (added
+    /// 2026-11-10), and a repository that has not written it is an EMPTY stream, never an error — the
+    /// contract the fetcher and the importer honour (BRD-211). Every other missing fixture file still
+    /// throws, so a mistyped fixture path can never pass as an empty stream.
+    /// </remarks>
     /// <param name="aRepo"><c>owner/name</c> of the fixture repository.</param>
     /// <param name="aStream">Which stream to read.</param>
     /// <returns>The raw file text, exactly as the fetcher would have archived it.</returns>
-    public static string Read(string aRepo, StreamKind aStream) =>
-        File.ReadAllText(Path.Combine(RepoDirectory(aRepo), StreamNames.ToName(aStream) + ".jsonl"));
+    /// <exception cref="FileNotFoundException">A stream other than <c>estimates</c> has no fixture file.</exception>
+    public static string Read(string aRepo, StreamKind aStream)
+    {
+        var vPath = Path.Combine(RepoDirectory(aRepo), StreamNames.ToName(aStream) + ".jsonl");
+        var vIsAbsentEstimates = aStream == StreamKind.Estimates && !File.Exists(vPath);
+
+        return vIsAbsentEstimates ? string.Empty : File.ReadAllText(vPath);
+    }
 }

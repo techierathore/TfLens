@@ -767,6 +767,19 @@ first compare on the UAT dataset gave **86 findings**; every one was traced and 
   as multisets (`UNORDERED_LISTS`): every entry must appear on both sides exactly as often, so content
   is held as strictly as before.
 
+### D-013 — How the estimates export is judged, and the two older parity gaps (owner decision, answered 2026-11-12)
+
+**Date:** 2026-11-12 · **See:** BRD-218, BRD-220, REQ-FN-151, REQ-FN-152, ADR-036 · **Request:** docs/OldDocs/TfLens-Decision-Request-2026-11-12.md
+
+**Asked.** The estimates export matched the framework's script on all 318 estimates figures, but the
+whole parity check still failed on seven findings outside phase 4: six miss-cost keys the script
+gained on 2026-11-05 (`discovery_*`, `per_miss_cost`) and the app name of a repository with no records.
+
+**Answered: option C.** REQ-FN-151 is judged on the estimates part (its acceptance line now reads
+"every estimates figure is compared and none differs") and is Implemented. A new requirement,
+BRD-220 / REQ-FN-152, closes the two older gaps in phase 4 (9 rows of a cap of 100), built in the same
+run, and the whole parity check is run again on the Sample app files.
+
 ## §7 Playbook schema discovery
 
 <!-- APPEND ONE ENTRY PER events.ndjson EXAMINED, NEWEST LAST.
@@ -1101,6 +1114,68 @@ raised. Recorded for the owner.
   hand. One defect found and recorded (`opencode_cost_usd` reads the wrong stream).
 - **Playbook axis:** not covered here. `events.ndjson` is a TfLens-only stream (`per_repo[].events`,
   REQ-FN-065); its figures are an `extras` axis with no reference and are checked in §7.
+
+### X-003 — The estimates Total and the per-row actuals, checked by hand against the raw JSONL, 2026-11-11
+
+REQ-FN-150 / BRD-217 / ADR-035. `tf-metrics.sh` stops at the three parts with their per-phase
+actuals; it computes **neither** the Total (build + machine QA) **nor** the per-row actual. Both are
+TfLens additions with no parity oracle, so each is hand-checked once against the raw fixture JSONL,
+here, with the actual numbers — and both are pinned as tests (`EstimateReconciliationTests.
+TotalsCarryTheHandCheckedFigures` / `PerRowActualsFollowTheStatedRule`) and exported under
+`estimates_extras` in `ADDED_KEYS`, never inside the parity surface.
+
+- **Files read:** `tests/TfLens.Core.Tests/Fixtures/Estimates/sample__sample-app/{estimates,runs}.jsonl`
+  — the Sample app of BRD §3.1, which is made up and exists only as these files. No private
+  repository's data is involved.
+- **Method:** the 15 run records read with `python3` and every share computed by hand from
+  `rows hit ÷ reqs_count`; the estimate sums taken row by row from the 44 forecast records. Never
+  through the C# path.
+
+**Total (build + machine QA) — every figure matched.** Covered rows: phase 1 `{REQ-FN-001,
+REQ-FN-002, REQ-UI-001}` (all three steps have a forecast on every row), phase 2 `{REQ-FN-003,
+REQ-UI-002}`. After handoff is never inside.
+
+| Card | Estimate low/mid/high (tok) | Estimate low/mid/high (s) | Actual tokens | Actual seconds | Runs |
+|---|---|---|---|---|---|
+| P1 · Opus | 28000+7500=**35500** / 42000+13500=**55500** / 56000+19500=**75500** | 1400+1200=**2600** / 2300+2100=**4400** / 3200+3000=**6200** | build 30000+12000+20000×½=52000, QA 6000+6000+3000+4000+5000=24000 → **76000** | 1800+600+600=3000, 900+900+300+600+600=3300 → **6300** | 3+5=**8**, 1 apportioned (run 3, share ½) |
+| P1 · Sonnet | 55000+7500=**62500** / 70000+13500=**83500** / 85000+19500=**104500** | 2600+1200=**3800** / 3400+2100=**5500** / 4200+3000=**7200** | same run set → **76000** | → **6300** | **8**, 1 apportioned |
+| P2 · Opus | 30000+8000=**38000** / 45000+13000=**58000** / 60000+18000=**78000** | 1800+1400=**3200** / 2700+2000=**4700** / 3600+2600=**6200** | build 20000×½+40000+15000=65000, QA 4000+4000+2000+3000=13000 → **78000** | 600+2400+900=3900, 600+600+300+300=1800 → **5700** | 3+4=**7**, 1 apportioned |
+
+Printed, that is §3.1's acceptance line exactly: **55.5k, 83.5k and 58.0k beside 76.0k, 76.0k and
+78.0k**; durations 1h13m (43m20s–1h43m) beside 1h45m · 1h31m (1h03m–2h00m) · 1h18m (53m20s–1h43m)
+beside 1h35m. The run 9 fix record (`reqs_touched: []`, 7000 tok) is in NO total — it is the rowless
+run, counted per repository and never shared out.
+
+**Per-row actuals — every figure matched** (phase 1 · Opus card, `1 ÷ reqs_count` per run):
+
+| Row · part | Runs | Tokens | Seconds | Rendered |
+|---|---|---|---|---|
+| REQ-FN-001 build | run 1 (⅓: 10000, 600) + run 2 (1: 12000, 600) = 2 | n=2 < 3 | n=2 < 3 | *insufficient data (n=2)* |
+| REQ-FN-001 machine QA | run 4 (⅓: 2000, 300) + run 5 (⅓: 2000, 300) = 2 | n=2 < 3 | n=2 < 3 | *insufficient data (n=2)* |
+| REQ-FN-002 build | run 1 (⅓) = 1 | n=1 < 3 | n=1 < 3 | *insufficient data (n=1)* |
+| REQ-FN-002 machine QA | runs 4, 5 (⅓ each), 6 (1), fix 7 (1) = 4 | 2000+2000+3000+4000=**11000** | 300+300+300+600=**1500** | 11.0k tok · 25m00s, **apportioned** |
+| REQ-UI-001 build | run 1 (⅓: 10000, 600) + run 3 (½: 10000, 600) = 2 | n=2 < 3 | n=2 < 3 | *insufficient data (n=2)* |
+| REQ-UI-001 machine QA | runs 4, 5 (⅓ each), fix 8 (1) = 3 | 2000+2000+5000=**9000** | 300+300+600=**1200** | 9.0k tok · 20m00s, **apportioned** |
+| any row · after handoff | none — the fixture has no triage run | n=0 | n=0 | *no precedent · insufficient data (n=0)* |
+
+Note the floor working in both directions: REQ-UI-001's machine QA sits at exactly three runs and IS
+a number, while REQ-FN-001's identical-shaped two-run cells are refused — `MIN_N=3` applies to the
+per-row actual exactly as it does to every other figure (BRD-215).
+
+- **Verdict:** PASS — both no-oracle figures reproduce the raw JSONL by hand, and §3.1's table is
+  those same numbers printed through the oracle's `_k` / `_hms` formatters.
+- **Standing note:** estimate and actual stay two columns in the extras block too; nothing above
+  divides one by the other (BRD-213).
+- **Re-checked 2026-11-12, independently.** The entry above was written by the build of 2026-11-11,
+  whose author also wrote the code it checks. It was redone from the raw fixture JSONL with a fresh
+  Python script that shares nothing with the C# path or with `tf-metrics.sh`: all three Totals
+  (tokens, seconds, runs, apportioned) and all six per-row cells of the phase 1 · Opus card matched
+  the figures above and §3.1. Verdict unchanged: PASS.
+- **Parity, 2026-11-12.** `tools/parity-compare.py` over the oracle's `--rollup --json` and the
+  exported `tflens.json` for the Sample app: 318 estimates figures compared, no estimates finding.
+  The run as a whole still reports seven findings outside phase 4 (six miss-cost keys the oracle
+  added on 2026-11-05, and the app name of a repository with no records), so it is not recorded
+  as a P-nnn pass; the owner's ruling is asked in docs/TfLens-Decision-Request.md.
 
 ## §9 Naming
 

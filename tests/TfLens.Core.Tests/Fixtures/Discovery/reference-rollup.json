@@ -1,0 +1,173 @@
+{
+  "per_repo": [
+    {
+      "repo": "sample-misses",
+      "app": "SampleMisses",
+      "project_type": "app",
+      "gates": 0,
+      "gates_backfilled": 0,
+      "gates_malformed": 0,
+      "runs": 0,
+      "sessions": 0,
+      "commits": 0,
+      "misses": 7,
+      "stale_types": [],
+      "commit_hook": null
+    }
+  ],
+  "tainted_reqs": [],
+  "live": {},
+  "backfilled": {},
+  "pooled": {
+    "runs_total": 0,
+    "runs_by_cmd": {},
+    "rework_ratio": "insufficient data (n=0 build-phase runs)",
+    "throughput_median_reqs_per_hour": null,
+    "batch_size_median": null,
+    "sessions": 0,
+    "tokens_total": 0,
+    "tokens_per_verified_req": null,
+    "cost_usd": null,
+    "list_usd_total": 0,
+    "list_usd_records": 0,
+    "list_usd_per_verified_req": null,
+    "commits": 0,
+    "commit_duplicates_collapsed": 0,
+    "session_duplicates_collapsed": 0,
+    "active_days": 0,
+    "commits_per_active_day": null
+  },
+  "runs_voided_n": 0,
+  "runs_voided": [],
+  "run_voids_orphaned_n": 0,
+  "gates_malformed_n": 0,
+  "gates_malformed": [],
+  "misses": {
+    "misses_total": 6,
+    "miss_fixes_total": 4,
+    "orphan_fixes": 0,
+    "open_misses": 2,
+    "wont_fix": 0,
+    "resolved_misses": 4,
+    "amendments_applied": 0,
+    "orphan_amends": 0,
+    "misses_voided_n": 0,
+    "misses_voided": [],
+    "miss_voids_orphaned_n": 0,
+    "why_missed_n": 0,
+    "why_missed_eligible": 6,
+    "why_missed_predates_field": 0,
+    "why_missed": {},
+    "escapes_missing_why": 0,
+    "sort_n": 6,
+    "sort_eligible": 6,
+    "sort_predates_field": 0,
+    "sort": {
+      "spec": 6
+    },
+    "reviews_n": 0,
+    "review_corrections": 0,
+    "reviews_by_phase": {},
+    "review_tokens_produce_mean": null,
+    "review_tokens_produce_n": 0,
+    "review_tokens_correct_mean": null,
+    "review_tokens_correct_n": 0,
+    "class_distribution": {
+      "missed-requirement": 6
+    },
+    "found_by": {
+      "verifier": 6
+    },
+    "design_miss_share": "0%",
+    "escape_share": "0%",
+    "attributed_n": 0,
+    "attribution_excluded": 6,
+    "by_origin_phase": {},
+    "by_origin_model": {},
+    "by_origin_agent": {},
+    "cost_sole_n": 1,
+    "cost_shared_n": 2,
+    "cost_unattributable_n": 1,
+    "cost_recovered_n": 0,
+    "tokens_per_miss_measured": null,
+    "tokens_per_miss_measured_n": 1,
+    "tokens_unrecorded_sole_n": 0,
+    "tokens_per_miss_apportioned": null,
+    "tokens_per_miss_apportioned_n": 2,
+    "tokens_unrecorded_shared_n": 0,
+    "cost_usd_per_miss_measured": null,
+    "cost_usd_records": 0,
+    "cost_usd_excluded_not_money_n": 0,
+    "cost_list_usd_per_miss": null,
+    "cost_list_usd_records": 1,
+    "discovery_tokens_per_miss": 3000.0,
+    "discovery_minutes_per_miss": 5.0,
+    "discovery_measured_n": 3,
+    "discovery_not_measured_n": 2,
+    "discovery_not_recorded_n": 1,
+    "per_miss_cost": [
+      {
+        "miss_id": "MISS-SampleMisses-20261111-01",
+        "req_id": "REQ-FN-001",
+        "found_phase": "verify-phase",
+        "discovery": "measured",
+        "discovery_tokens_out": 3000,
+        "discovery_s": 600,
+        "fix": "measured",
+        "fix_tokens_out": 5000
+      },
+      {
+        "miss_id": "MISS-SampleMisses-20261112-01",
+        "req_id": "REQ-FN-002",
+        "found_phase": "verify-phase",
+        "discovery": "measured",
+        "discovery_tokens_out": 2000,
+        "discovery_s": 300,
+        "fix": "apportioned 1/2",
+        "fix_tokens_out": 4000.0
+      },
+      {
+        "miss_id": "MISS-SampleMisses-20261113-01",
+        "req_id": "REQ-UI-001",
+        "found_phase": "verify-phase",
+        "discovery": "measured",
+        "discovery_tokens_out": 4000,
+        "discovery_s": null,
+        "fix": "apportioned 1/2",
+        "fix_tokens_out": 4000.0
+      },
+      {
+        "miss_id": "MISS-SampleMisses-20261114-01",
+        "req_id": "REQ-UI-002",
+        "found_phase": "verify-phase",
+        "discovery": "not measured",
+        "discovery_why": "found together with another finding",
+        "fix": "not measured"
+      },
+      {
+        "miss_id": "MISS-SampleMisses-20261115-01",
+        "req_id": "REQ-UI-003",
+        "found_phase": "verify-phase",
+        "discovery": "not measured",
+        "discovery_why": "found together with another finding",
+        "fix": "no fix yet"
+      }
+    ]
+  },
+  "phases": {
+    "runs_live": 0,
+    "scope_coverage": {},
+    "tokens_out_total": 0,
+    "duration_s_total": 0,
+    "duration_measured_n": 0,
+    "duration_impossible_n": 0,
+    "duration_absent_n": 0,
+    "duration_recomputed_n": 0,
+    "phases": {},
+    "note": "Per-phase effort over LIVE run records, aggregated by `cmd`. Token figures exclude runs whose window could not be computed; fan-out figures use tokens_scope='tree' records ONLY, because a 'main' window never looked at the subagent transcripts and its 0 means 'not observed', not 'none ran'. The unit is the RUN, never the feature \u2014 SCHEMA.md \u00a70 non-goal, \u00a72.6."
+  },
+  "estimates": {
+    "phases": [],
+    "repos_with_estimates": 0
+  }
+}

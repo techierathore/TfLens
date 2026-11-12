@@ -526,6 +526,25 @@ public static class MissFigures
     }
 
     /// <summary>
+    /// The recomputed cost attribution of each fix, over this set of fixes: <c>1</c> for <c>sole</c>,
+    /// <c>n</c> for <c>shared:n</c>, <c>null</c> for <c>none</c> (BRD-220, REQ-FN-152).
+    /// </summary>
+    /// <remarks>
+    /// The per-miss cost list (SCHEMA.md §5.5.12) prices each miss's latest fix by the same recount
+    /// <see cref="SoleFixes"/> draws its boundary with, so the two can never disagree about a fix.
+    /// </remarks>
+    /// <param name="aFixes">The fix records the recount runs over.</param>
+    /// <returns>A function giving each fix's divisor.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="aFixes"/> is <c>null</c>.</exception>
+    public static Func<MissFixRecord, int?> AttributionOf(IReadOnlyList<MissFixRecord> aFixes)
+    {
+        ArgumentNullException.ThrowIfNull(aFixes);
+
+        var vClosedPerRun = ClosedPerRun(aFixes);
+        return aFix => ComputedAttribution(aFix, vClosedPerRun);
+    }
+
+    /// <summary>
     /// Indexes the distinct miss ids each fix run closed — the recomputed cost divisor's only input.
     /// </summary>
     /// <param name="aFixes">The fix records to index.</param>

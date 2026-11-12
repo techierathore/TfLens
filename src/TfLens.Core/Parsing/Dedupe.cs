@@ -21,6 +21,7 @@ public sealed record DedupeResult<T>(IReadOnlyList<T> Records, int Collapsed);
 ///   <item><term><c>sessions</c></term><description><c>(UserId, Repo, SessionId)</c> — <c>UcSessionUserRepoId</c>. OpenCode appends a cumulative snapshot per idle, so the <b>largest</b> copy is the complete one: keep the highest <c>output_tokens</c>, tie broken by the latest <c>ts</c> (BRD-27).</description></item>
 ///   <item><term><c>runs</c></term><description><c>(UserId, Repo, Ts, App, Cmd)</c> — <c>UcRunIdentity</c>. First wins (BRD-28).</description></item>
 ///   <item><term><c>gates</c></term><description><c>(UserId, Repo, Ts, App, ReqId, RunId)</c> — <c>UcGateIdentity</c>. First wins (BRD-28).</description></item>
+///   <item><term><c>estimates</c></term><description><c>(UserId, Repo, Ts, App, Phase, ReqId, Cmd, Model)</c> — <c>UcEstimateIdentity</c>. First wins (BRD-211).</description></item>
 ///   <item><term><c>events</c></term><description><c>(UserId, Repo, Ts, EventType, SessionId)</c> — <c>UcPbEventIdentity</c>. First wins (provisional, ADR-010).</description></item>
 ///   <item><term><c>misses</c> / <c>miss</c></term><description><c>(UserId, Repo, MissId)</c> — <c>UcMissUserRepoMissId</c>. <b>Earliest <c>ts</c> wins</b>: a miss is opened once, so a duplicate is a re-parse of the same archived file rather than new information (BRD-114).</description></item>
 ///   <item><term><c>misses</c> / <c>miss-fix</c></term><description><c>(UserId, Repo, MissId, COALESCE(FixRunId, ''), COALESCE(FixAttempt, -1))</c> — <c>UcMissFixUserRepoMissIdFixRunIdAttempt</c>. <b>Latest <c>ts</c> wins</b> (BRD-114, widened by REQ-FN-144).</description></item>
@@ -85,6 +86,31 @@ public static class Dedupe
     public static DedupeResult<GateRecord> Gates(IReadOnlyList<GateRecord> aRecords) =>
         KeepFirst(aRecords, aR => Key(
             aR.UserId, aR.Repo, aR.Ts, aR.App ?? string.Empty, aR.ReqId ?? string.Empty, aR.RunId ?? string.Empty));
+
+    /// <summary>
+    /// Collapses <c>estimate</c> records sharing <c>ts + app + phase + req_id + cmd + model</c> within
+    /// one user and repository, keeping the first (SCHEMA.md §2.8; REQ-FN-147, BRD-211).
+    /// </summary>
+    /// <remarks>
+    /// One batch of <c>tf-estimate.sh</c> writes one record per (row, step) under a single <c>ts</c>, so
+    /// the key is the record's whole identity: two records sharing it are a re-parse of the same
+    /// archived file, never two facts. The nullable key parts coalesce exactly as the store's
+    /// <c>"UcEstimateIdentity"</c> index does — <c>App</c> and <c>ReqId</c> and <c>Model</c> to the
+    /// empty string, <c>Phase</c> to <c>-1</c> — so a phase total (<c>req_id</c> null) still collides
+    /// with itself and a re-import adds nothing.
+    /// </remarks>
+    /// <param name="aRecords">The estimate records as parsed, in file order.</param>
+    /// <returns>The survivors and the collapsed count.</returns>
+    public static DedupeResult<EstimateRecord> Estimates(IReadOnlyList<EstimateRecord> aRecords) =>
+        KeepFirst(aRecords, aR => Key(
+            aR.UserId,
+            aR.Repo,
+            aR.Ts,
+            aR.App ?? string.Empty,
+            (aR.Phase ?? -1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            aR.ReqId ?? string.Empty,
+            aR.Cmd,
+            aR.Model ?? string.Empty));
 
     /// <summary>
     /// Collapses Playbook event records: <c>turn</c> records on <c>messageID</c>, keeping the one with the

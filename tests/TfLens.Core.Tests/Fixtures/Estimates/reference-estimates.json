@@ -1,0 +1,611 @@
+{
+  "phases": [
+    {
+      "app": "SampleApp",
+      "phase": 1,
+      "model": "claude-opus-5-5",
+      "ts": "2026-10-01T09:00:00Z",
+      "rows_n": 3,
+      "cmds": {
+        "build-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 28000,
+              "mid": 42000,
+              "high": 56000
+            },
+            "duration_s": {
+              "low": 1400,
+              "mid": 2300,
+              "high": 3200
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 52000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3000,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "within",
+            "duration_s": "within"
+          }
+        },
+        "verify-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 3000,
+              "mid": 6000,
+              "high": 9000
+            },
+            "duration_s": {
+              "low": 600,
+              "mid": 1200,
+              "high": 1800
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 15000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 2100,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "above",
+            "duration_s": "above"
+          }
+        },
+        "fix-issues": {
+          "estimate": {
+            "tokens_out": {
+              "low": 4500,
+              "mid": 7500,
+              "high": 10500
+            },
+            "duration_s": {
+              "low": 600,
+              "mid": 900,
+              "high": 1200
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 2,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": "insufficient data (n=2)",
+            "tokens_n": 2,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=2)",
+            "duration_n": 2
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        },
+        "triage": {
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null,
+            "basis": "none",
+            "basis_runs": 1,
+            "rows_covered": 0
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        }
+      },
+      "retro": false,
+      "parts": {
+        "build": {
+          "rows_covered": 3,
+          "estimate": {
+            "tokens_out": {
+              "low": 28000,
+              "mid": 42000,
+              "high": 56000
+            },
+            "duration_s": {
+              "low": 1400,
+              "mid": 2300,
+              "high": 3200
+            }
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 52000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3000,
+            "duration_n": 3
+          }
+        },
+        "machine_qa": {
+          "rows_covered": 3,
+          "estimate": {
+            "tokens_out": {
+              "low": 7500,
+              "mid": 13500,
+              "high": 19500
+            },
+            "duration_s": {
+              "low": 1200,
+              "mid": 2100,
+              "high": 3000
+            }
+          },
+          "actual": {
+            "runs_n": 5,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": 24000,
+            "tokens_n": 5,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3300,
+            "duration_n": 5
+          }
+        },
+        "after_handoff": {
+          "rows_covered": 0,
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          }
+        }
+      }
+    },
+    {
+      "app": "SampleApp",
+      "phase": 1,
+      "model": "claude-sonnet-5-5",
+      "ts": "2026-10-01T09:30:00Z",
+      "rows_n": 3,
+      "cmds": {
+        "build-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 55000,
+              "mid": 70000,
+              "high": 85000
+            },
+            "duration_s": {
+              "low": 2600,
+              "mid": 3400,
+              "high": 4200
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 52000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3000,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "below",
+            "duration_s": "within"
+          }
+        },
+        "verify-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 3000,
+              "mid": 6000,
+              "high": 9000
+            },
+            "duration_s": {
+              "low": 600,
+              "mid": 1200,
+              "high": 1800
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 15000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 2100,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "above",
+            "duration_s": "above"
+          }
+        },
+        "fix-issues": {
+          "estimate": {
+            "tokens_out": {
+              "low": 4500,
+              "mid": 7500,
+              "high": 10500
+            },
+            "duration_s": {
+              "low": 600,
+              "mid": 900,
+              "high": 1200
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 3
+          },
+          "actual": {
+            "runs_n": 2,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": "insufficient data (n=2)",
+            "tokens_n": 2,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=2)",
+            "duration_n": 2
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        },
+        "triage": {
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null,
+            "basis": "none",
+            "basis_runs": 1,
+            "rows_covered": 0
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        }
+      },
+      "retro": false,
+      "parts": {
+        "build": {
+          "rows_covered": 3,
+          "estimate": {
+            "tokens_out": {
+              "low": 55000,
+              "mid": 70000,
+              "high": 85000
+            },
+            "duration_s": {
+              "low": 2600,
+              "mid": 3400,
+              "high": 4200
+            }
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 52000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3000,
+            "duration_n": 3
+          }
+        },
+        "machine_qa": {
+          "rows_covered": 3,
+          "estimate": {
+            "tokens_out": {
+              "low": 7500,
+              "mid": 13500,
+              "high": 19500
+            },
+            "duration_s": {
+              "low": 1200,
+              "mid": 2100,
+              "high": 3000
+            }
+          },
+          "actual": {
+            "runs_n": 5,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": 24000,
+            "tokens_n": 5,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3300,
+            "duration_n": 5
+          }
+        },
+        "after_handoff": {
+          "rows_covered": 0,
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          }
+        }
+      }
+    },
+    {
+      "app": "SampleApp",
+      "phase": 2,
+      "model": "claude-opus-5-5",
+      "ts": "2026-10-05T09:00:00Z",
+      "rows_n": 2,
+      "cmds": {
+        "build-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 30000,
+              "mid": 45000,
+              "high": 60000
+            },
+            "duration_s": {
+              "low": 1800,
+              "mid": 2700,
+              "high": 3600
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 2
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 65000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3900,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "above",
+            "duration_s": "above"
+          }
+        },
+        "verify-phase": {
+          "estimate": {
+            "tokens_out": {
+              "low": 6000,
+              "mid": 9000,
+              "high": 12000
+            },
+            "duration_s": {
+              "low": 1000,
+              "mid": 1400,
+              "high": 1800
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 2
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 10000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 1500,
+            "duration_n": 3
+          },
+          "actual_in_range": {
+            "tokens_out": "within",
+            "duration_s": "within"
+          }
+        },
+        "fix-issues": {
+          "estimate": {
+            "tokens_out": {
+              "low": 2000,
+              "mid": 4000,
+              "high": 6000
+            },
+            "duration_s": {
+              "low": 400,
+              "mid": 600,
+              "high": 800
+            },
+            "basis": "repo",
+            "basis_runs": 6,
+            "rows_covered": 2
+          },
+          "actual": {
+            "runs_n": 1,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": "insufficient data (n=1)",
+            "tokens_n": 1,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=1)",
+            "duration_n": 1
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        },
+        "triage": {
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null,
+            "basis": "none",
+            "basis_runs": 1,
+            "rows_covered": 0
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          },
+          "actual_in_range": {
+            "tokens_out": null,
+            "duration_s": null
+          }
+        }
+      },
+      "retro": false,
+      "parts": {
+        "build": {
+          "rows_covered": 2,
+          "estimate": {
+            "tokens_out": {
+              "low": 30000,
+              "mid": 45000,
+              "high": 60000
+            },
+            "duration_s": {
+              "low": 1800,
+              "mid": 2700,
+              "high": 3600
+            }
+          },
+          "actual": {
+            "runs_n": 3,
+            "apportioned_n": 1,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": 65000,
+            "tokens_n": 3,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 3900,
+            "duration_n": 3
+          }
+        },
+        "machine_qa": {
+          "rows_covered": 2,
+          "estimate": {
+            "tokens_out": {
+              "low": 8000,
+              "mid": 13000,
+              "high": 18000
+            },
+            "duration_s": {
+              "low": 1400,
+              "mid": 2000,
+              "high": 2600
+            }
+          },
+          "actual": {
+            "runs_n": 4,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 1,
+            "tokens_out": 13000,
+            "tokens_n": 4,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": 1800,
+            "duration_n": 4
+          }
+        },
+        "after_handoff": {
+          "rows_covered": 0,
+          "estimate": {
+            "tokens_out": null,
+            "duration_s": null
+          },
+          "actual": {
+            "runs_n": 0,
+            "apportioned_n": 0,
+            "rowless_runs_in_repo_n": 0,
+            "tokens_out": "insufficient data (n=0)",
+            "tokens_n": 0,
+            "tokens_unrecorded_n": 0,
+            "tokens_main_scope_n": 0,
+            "duration_s": "insufficient data (n=0)",
+            "duration_n": 0
+          }
+        }
+      }
+    }
+  ],
+  "repos_with_estimates": 1
+}

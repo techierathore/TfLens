@@ -234,6 +234,56 @@ public sealed class GitHubStreamFetcher : IGitHubStreamFetcher
     /// <param name="aAccept">The <c>Accept</c> media type for this call.</param>
     /// <param name="aCancellationToken">Cancels the call.</param>
     /// <returns>The response, for the caller to inspect and dispose.</returns>
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>?> ListFileNamesAsync(
+        string aOwner,
+        string aName,
+        string aPath,
+        string aRef,
+        CancellationToken aCancellationToken = default)
+    {
+        var vUrl =
+            $"repos/{Uri.EscapeDataString(aOwner)}/{Uri.EscapeDataString(aName)}/contents/{EncodePath(aPath)}" +
+            $"?ref={Uri.EscapeDataString(aRef)}";
+
+        using var vResponse = await SendGetAsync(vUrl, JsonMediaType, aCancellationToken).ConfigureAwait(false);
+
+        // A repository with no such folder has no checklist in it: an answer, not a failure.
+        if (vResponse.StatusCode == HttpStatusCode.NotFound)
+        {
+            return [];
+        }
+
+        EnsureUsable(vResponse, aOwner, aName);
+
+        var vBody = await vResponse.Content.ReadAsStringAsync(aCancellationToken).ConfigureAwait(false);
+        var vNames = ReadFileNames(vBody);
+
+        objLogger.LogInformation(
+            "Listed {Count} file(s) in {Path} of {Owner}/{Name} at {Ref}", vNames.Count, aPath, aOwner, aName, aRef);
+
+        return vNames;
+    }
+
+    /// <summary>Reads the <c>name</c> of every <c>file</c> item in a contents-API folder answer.</summary>
+    /// <param name="aBody">The JSON body; an array for a folder.</param>
+    /// <returns>The file names; empty when the body is not a folder listing.</returns>
+    private static IReadOnlyList<string> ReadFileNames(string aBody)
+    {
+        using var vDocument = JsonDocument.Parse(aBody);
+
+        if (vDocument.RootElement.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return vDocument.RootElement.EnumerateArray()
+            .Where(aItem => aItem.TryGetProperty("type", out var vType) && vType.GetString() == "file"
+                            && aItem.TryGetProperty("name", out _))
+            .Select(aItem => aItem.GetProperty("name").GetString()!)
+            .ToList();
+    }
+
     private async Task<HttpResponseMessage> SendGetAsync(
         string aRelativeUrl,
         string aAccept,
