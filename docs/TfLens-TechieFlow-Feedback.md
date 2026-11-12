@@ -18,7 +18,7 @@ Workaround / Suggested fix). One file per upstream owner; this one is TechieFlow
 
 ## Summary
 
-**Nothing is blocked.** 58 entries: 2 filed, not blocking (TF-057, TF-058, 2026-11-12), 19 fixed upstream awaiting re-check here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-055), 37 closed. TF-056 was re-checked and closed here on 2026-11-12. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done once re-checked here: run the entry's "Verify from here" step, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
+**Nothing is blocked.** 58 entries: 1 filed, not blocking (TF-058, 2026-11-12), 20 fixed upstream awaiting re-check here (TF-018, TF-020, TF-021, TF-025 to TF-028, TF-030, TF-033 to TF-035, TF-042 to TF-044, TF-051 to TF-055, TF-057), 37 closed. TF-056 was re-checked and closed here on 2026-11-12. TF-045 to TF-048 were re-checked and closed here on 2026-09-14. TF-013 to TF-017, TF-019, TF-022 to TF-024, TF-029, TF-031, TF-032 and TF-036 were re-checked and closed here on 2026-09-11, and TF-037 to TF-041 on 2026-09-12 (the account is in `docs/TfLens-Feedback-Recheck-2026-09-12.md`). Every problem TfLens filed up to TF-054 is fixed in the framework: TF-013 to TF-022 on 2026-09-09 (the reply that day left out TF-013 to TF-017, which is why they showed open here), TF-023 to TF-036 on 2026-09-11, TF-037 to TF-041 on 2026-09-12, TF-042 to TF-045 on 2026-09-13, TF-046 to TF-050 on 2026-09-14, TF-051 and TF-052 on 2026-09-15, and TF-053 and TF-054 on 2026-10-12. A fix counts as done once re-checked here: run the entry's "Verify from here" step, then close it with `bash .tfcore/utils/tf-feedback.sh TfLens --close <ID> "<what you ran and what it showed>"`. `bash .tfcore/utils/tf-feedback.sh TfLens` prints the state of every entry. Never describe a fixed entry as an open problem.
 
 #### Detail
 
@@ -141,6 +141,16 @@ that grew a legal move as a result.
 > and a message naming the real reason. **The dated evidence is kept and `TF-004` stays closed here**;
 > `PROJECT-STATUS.md` is owned elsewhere and was not edited. Its line 53 also still counts five
 > entries, where the collision fix above makes six.
+
+---
+
+## Resolution status (TechieFlow team, 2026-11-12, evening)
+
+**TF-057 is fixed in the framework and in this repository's `.tfcore/`** through the framework update of 2026-11-12 (evening). Nothing is blocked. Case `tf_057` in `tests/faults/run.sh`, failing against the script you had and passing now. TF-058 is not answered in this update.
+
+| ID | Fix | Verify from here |
+|----|-----|------------------|
+| **TF-057** | `tf-phase.sh end` inside a nested command gives the marker back to the outer command, its start unchanged; the reply is under the entry. | `start triage-and-fix TfLens`, `start amend-docs TfLens`, `end amend-docs TfLens`, then `tf-phase.sh show` prints the triage-and-fix marker. |
 
 ---
 
@@ -3422,6 +3432,7 @@ still caught — proved 2026-10-12 by a planted badge, which the gate reported a
 
 ## TF-057 — `tf-phase.sh end` inside a nested command deletes the outer command's marker
 
+- **Status:** fixed upstream 2026-11-12 (evening), fixed in TfLens's `.tfcore/` by the framework update of 2026-11-12 (evening); not yet re-checked here.
 - **Severity:** minor
 - **Blocks:** no — the outer marker was written back by hand with its original start time; the run carried on.
 - **Repro:** `bash .tfcore/utils/tf-phase.sh start triage-and-fix TfLens`, then `bash .tfcore/utils/tf-phase.sh start amend-docs TfLens` (the marker now reads `{"outer":{"cmd":"triage-and-fix",…},"cmd":"amend-docs",…}`), then `bash .tfcore/utils/tf-phase.sh end amend-docs TfLens`. It prints `tf-phase: marker removed` and `.tfcore/.session/phase.json` is gone (TfLens, 2026-11-12).
@@ -3432,6 +3443,8 @@ still caught — proved 2026-10-12 by a planted badge, which the gate reported a
 - **Suggested fix:** in `end`, when the marker carries `outer` and the ended command is the inner one, rewrite the file to the outer object instead of deleting it.
 
 **What is NOT affected.** `start` nests correctly; a command run on its own ends cleanly; no telemetry record already written is changed.
+
+- **Reply (TechieFlow team, 2026-11-12, evening):** Fixed upstream as you suggested, in `tf-phase.sh`. `end` on a marker that carries `outer`, when the command ended is the inner one (or no command is named), rewrites the file to the outer object, its start unchanged, and prints `marker back to the outer command`. Ending the outer command by name, or a marker with no `outer`, removes it as before. Case `tf_057` in `tests/faults/run.sh` (triage-and-fix, then amend-docs inside it, then `end amend-docs`) fails on the script you had (no marker left) and passes now (the triage's marker, byte for byte). Its control half: a command run on its own, and the outer one after its inner, still end with no marker. **Fixed in TfLens's `.tfcore/`:** deployed with `update-framework.sh` on 2026-11-12 (evening), when no TfLens run was in progress. **Check it here:** your repro: `start triage-and-fix TfLens`, `start amend-docs TfLens`, `end amend-docs TfLens`, then `bash .tfcore/utils/tf-phase.sh show` prints the triage-and-fix marker with its own start.
 
 ## TF-058 — no verify check opens a dropdown, so a list too narrow to read passes every gate
 
